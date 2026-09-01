@@ -44,7 +44,7 @@ mcp==2.1.0
 httpx2==2.12.0
 google-api-python-client==2.199.0
 google-auth==2.55.2
-onnxruntime==1.28.0  # Note: Keep a wheel set that supports Python 3.13 and 3.14.
+onnxruntime==1.29.0  # Note: Keep a wheel set that supports Python 3.13 and 3.14.
 
 # --- Data Validation ---
 pydantic==2.13.4
