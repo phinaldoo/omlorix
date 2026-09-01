@@ -1,0 +1,163 @@
+groups:
+  - name: omlorix.service-health
+    rules:
+      - alert: OmlorixAPIDown
+        expr: up{job="omlorix-backend"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: omlorix
+        annotations:
+          summary: "Omlorix API metrics endpoint is unreachable"
+          description: "Prometheus cannot scrape the Omlorix API metrics endpoint on {{ $labels.instance }}."
+
+      - alert: OmlorixScrapeTargetDown
+        # Redis has its own availability rule below. Keeping its exporter out
+        # of this generic target alert prevents an intentional Redis Off mode
+        # from being reported as an observability outage.
+        expr: up{job=~"otel-collector|otel-collector-internal|jaeger|alertmanager|postgres-exporter|node-exporter"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          service: omlorix
+        annotations:
+          summary: "Observability target is down"
+          description: "Prometheus cannot scrape {{ $labels.job }} at {{ $labels.instance }}."
+
+      - alert: OmlorixHighServerErrors
+        expr: |
+          (
+            (sum(increase(http_server_duration_milliseconds_count{http_status_code=~"5.."}[10m])) or vector(0))
+            +
+            (sum(increase(omlorix_http_server_duration_milliseconds_count{http_status_code=~"5.."}[10m])) or vector(0))
+            +
+            (sum(increase(http_server_request_duration_seconds_count{http_response_status_code=~"5.."}[10m])) or vector(0))
+            +
+            (sum(increase(omlorix_http_server_request_duration_seconds_count{http_response_status_code=~"5.."}[10m])) or vector(0))
+          ) > 10
+        for: 5m
+        labels:
+          severity: warning
+          service: omlorix
+        annotations:
+          summary: "Omlorix API is returning elevated 5xx responses"
+          description: "More than 10 server errors were observed in the last 10 minutes."
+
+  - name: omlorix.database
+    rules:
+      - alert: OmlorixPostgresDown
+        expr: pg_up == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: postgres
+        annotations:
+          summary: "PostgreSQL exporter cannot reach the database"
+          description: "postgres-exporter reports pg_up=0 for {{ $labels.instance }}."
+
+      - alert: OmlorixPostgresScrapeErrors
+        expr: pg_exporter_last_scrape_error > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: postgres
+        annotations:
+          summary: "PostgreSQL exporter scrape errors"
+          description: "postgres-exporter is reporting scrape errors for {{ $labels.instance }}."
+
+      - alert: OmlorixPostgresConnectionPressure
+        expr: |
+          (
+            sum(pg_stat_activity_count)
+            /
+            clamp_min(max(pg_settings_max_connections), 1)
+          ) > 0.8
+        for: 10m
+        labels:
+          severity: warning
+          service: postgres
+        annotations:
+          summary: "PostgreSQL connection usage is high"
+          description: "PostgreSQL is using more than 80% of configured max_connections."
+
+  - name: omlorix.redis
+    rules:
+      - alert: OmlorixRedisExporterDown
+        expr: up{job="redis-exporter"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: redis
+        annotations:
+          summary: "Redis exporter endpoint is unreachable"
+          description: "Prometheus cannot scrape redis-exporter at {{ $labels.instance }}."
+
+      - alert: OmlorixRedisDown
+        expr: redis_up == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: redis
+        annotations:
+          summary: "Redis exporter cannot reach Redis"
+          description: "redis-exporter reports redis_up=0 for {{ $labels.instance }}."
+
+      - alert: OmlorixRedisRejectedConnections
+        expr: increase(redis_rejected_connections_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "Redis rejected client connections"
+          description: "Redis rejected one or more client connections in the last 5 minutes."
+
+      - alert: OmlorixRedisMemoryPressure
+        expr: |
+          redis_memory_max_bytes > 0
+          and
+          (
+            redis_memory_used_bytes
+            /
+            clamp_min(redis_memory_max_bytes, 1)
+          ) > 0.9
+        for: 10m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "Redis memory usage is high"
+          description: "Redis is using more than 90% of maxmemory on {{ $labels.instance }}."
+
+      - alert: OmlorixAutomationQueueBacklog
+        expr: redis_key_size{key=~"rq:queue:.*"} > 100
+        for: 15m
+        labels:
+          severity: warning
+          service: automations
+        annotations:
+          summary: "Automation queue backlog is growing"
+          description: "RQ queue {{ $labels.key }} has more than 100 pending jobs for 15 minutes."
+
+  - name: omlorix.storage
+    rules:
+      - alert: OmlorixFilesystemSpaceLow
+        expr: |
+          (
+            node_filesystem_avail_bytes{
+              fstype!~"tmpfs|devtmpfs|overlay|squashfs|fuse.*",
+              mountpoint!~"/run($|/.*)|/var/lib/docker/containers($|/.*)"
+            }
+            /
+            node_filesystem_size_bytes{
+              fstype!~"tmpfs|devtmpfs|overlay|squashfs|fuse.*",
+              mountpoint!~"/run($|/.*)|/var/lib/docker/containers($|/.*)"
+            }
+          ) < 0.1
+        for: 15m
+        labels:
+          severity: warning
+          service: storage
+        annotations:
+          summary: "Filesystem free space is low"
+          description: "{{ $labels.mountpoint }} has less than 10% free space."

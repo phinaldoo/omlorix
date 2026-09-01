@@ -1,0 +1,9 @@
+# Keep development-only packages compatible with the exact production graph.
+# Install this compiled overlay together with requirements.txt.
+-c requirements.txt
+
+# --- Development & Testing ---
+fakeredis==2.37.0
+pytest==9.1.1
+pytest-asyncio==1.4.0
+ruff==0.16.4

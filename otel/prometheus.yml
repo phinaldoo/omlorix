@@ -1,0 +1,77 @@
+# Prometheus Configuration for Omlorix Observability Stack
+# Scrapes metrics from OpenTelemetry Collector and other services
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'omlorix-monitor'
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+rule_files:
+  - /etc/prometheus/rules/*.yml
+
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    metrics_path: /metrics
+
+  # OpenTelemetry Collector metrics (from OTLP exporter)
+  - job_name: 'otel-collector'
+    static_configs:
+      - targets: ['otel-collector:8889']
+    metrics_path: /metrics
+
+  # OpenTelemetry Collector internal metrics
+  - job_name: 'otel-collector-internal'
+    static_configs:
+      - targets: ['otel-collector:8888']
+    metrics_path: /metrics
+
+  # Jaeger metrics (if available)
+  - job_name: 'jaeger'
+    static_configs:
+      - targets: ['jaeger:14269']
+    metrics_path: /metrics
+
+  # Alertmanager metrics
+  - job_name: 'alertmanager'
+    static_configs:
+      - targets: ['alertmanager:9093']
+    metrics_path: /metrics
+
+  # Omlorix Backend metrics (direct scrape if needed)
+  - job_name: 'omlorix-backend'
+    static_configs:
+      - targets: ['fastapi:8000']
+    metrics_path: /metrics
+    authorization:
+      type: Bearer
+      credentials_file: /run/omlorix-metrics/token
+
+  # PostgreSQL exporter metrics
+  - job_name: 'postgres-exporter'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+    metrics_path: /metrics
+
+  # Redis exporter metrics, including the RQ automation queue length
+  - job_name: 'redis-exporter'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    metrics_path: /metrics
+
+  # Linux host metrics. The platform overlay supplies a target; macOS and
+  # Windows use the bundled empty target file and do not start node-exporter.
+  - job_name: 'node-exporter'
+    file_sd_configs:
+      - files:
+          - /etc/prometheus/host-metrics-targets.yml
+    metrics_path: /metrics

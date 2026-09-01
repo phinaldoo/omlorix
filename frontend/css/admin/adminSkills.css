@@ -1,0 +1,298 @@
+/* Admin Skills Page Styles */
+.admin-skills-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Skill Card */
+.admin-skill-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: var(--bg-normal);
+    border: 1px solid var(--admin-border);
+    border-radius: 12px;
+    transition: border-color 0.15s ease;
+}
+
+.admin-skill-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    border-radius: 12px;
+    background: white;
+}
+
+.admin-skill-icon svg {
+    width: 24px;
+    height: 24px;
+    stroke: white;
+}
+
+.admin-skill-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* Skill Form */
+.skill-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.skill-form-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.skill-form-row label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.skill-form-row input[type="text"],
+.skill-form-row textarea {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 14px;
+    color: var(--text-color);
+    background: var(--bg-normal);
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.skill-form-row input[type="text"]:focus,
+.skill-form-row textarea:focus {
+    border-color: var(--admin-accent);
+    box-shadow: 0 0 0 3px var(--admin-accent-subtle);
+}
+
+.skill-form-row textarea {
+    resize: vertical;
+    min-height: 120px;
+    font-family: inherit;
+}
+
+.skill-form-hint {
+    margin: 0;
+    font-size: 12px;
+    color: var(--text-color-tertiary);
+}
+
+.admin-skill-files-header {
+    margin-bottom: 12px;
+}
+
+.admin-skill-files-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.admin-skill-files-title svg {
+    width: 18px;
+    height: 18px;
+    color: var(--admin-accent);
+}
+
+.admin-skill-files-desc {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: var(--text-color-secondary);
+}
+
+/* Files List */
+.admin-skill-files-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.admin-skill-files-list:empty {
+    display: none;
+}
+
+.admin-skill-files-list:empty + .admin-skill-files-upload {
+    margin-top: 0;
+}
+
+.admin-skill-file-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--bg-normal);
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    transition: border-color 0.15s ease;
+}
+
+.admin-skill-file-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: var(--admin-hover);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-color-secondary);
+    flex-shrink: 0;
+}
+
+.admin-skill-file-icon svg {
+    width: 16px;
+    height: 16px;
+}
+
+.admin-skill-file-icon img {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    display: block;
+}
+
+.admin-skill-file-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.admin-skill-file-name {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.admin-skill-file-size {
+    margin: 2px 0 0;
+    font-size: 12px;
+    color: var(--text-color-secondary);
+}
+
+.admin-skill-file-delete {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-color-secondary);
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+}
+.admin-skill-file-delete svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* File Upload Button */
+.admin-skill-files-upload {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border: 1px dashed transparent;
+    border-radius: 10px;
+    padding: 8px;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.admin-skill-files-upload.dragover,
+.dashboard-card.dragover .admin-skill-files-upload {
+    border-color: var(--admin-accent);
+    background: var(--admin-accent-subtle);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .admin-skill-file-delete:hover {
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+    }
+    .admin-skill-file-item:hover {
+        border-color: var(--admin-accent);
+    }
+    .admin-skill-card:hover {
+        border-color: var(--admin-text-tertiary);
+    }
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .admin-skill-card {
+        flex-wrap: wrap;
+    }
+
+    .admin-skill-actions {
+        width: 100%;
+        margin-top: 8px;
+    }
+
+    .admin-skill-file-item {
+        padding: 8px 10px;
+    }
+
+    .admin-skill-file-icon {
+        width: 28px;
+        height: 28px;
+    }
+
+    .admin-skill-file-name {
+        font-size: 13px;
+    }
+}
+
+/* SVG Icon Styling Classes */
+.svg-stroke-thin svg {
+    stroke-width: 1.5;
+}
+
+.svg-stroke-white svg {
+    stroke: white;
+}
+
+.svg-stroke-accent svg {
+    stroke: var(--accent-color);
+}
+
+.svg-size-14 svg {
+    width: 14px;
+    height: 14px;
+}
+
+.svg-size-16 svg {
+    width: 16px;
+    height: 16px;
+}
+
+.svg-size-24 svg {
+    width: 24px;
+    height: 24px;
+}
+
+.svg-flex-shrink svg {
+    flex-shrink: 0;
+}
+
+.svg-animate-spin svg {
+    animation: spin 1s linear infinite;
+}

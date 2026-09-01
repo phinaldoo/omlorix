@@ -1,0 +1,11 @@
+{
+  "legal_page_title": "Informations légales",
+  "legal_navigation_aria": "Documents juridiques",
+  "legal_loading": "Chargement des documents juridiques...",
+  "legal_scroll_to_top_aria": "Retour en haut",
+  "legal_toc_title": "Table des matières",
+  "legal_language_notice_label": "Avis de langue",
+  "legal_language_notice_authoritative": "Ce document juridique est fourni en {language}. L’interface de la page peut être traduite, mais le document ci-dessous n’est pas traduit automatiquement.",
+  "legal_language_notice_operator": "Ce document juridique est fourni dans la langue faisant foi choisie par l’opérateur. L’interface de la page peut être traduite, mais le document ci-dessous n’est pas traduit automatiquement.",
+  "legal_language_name_en": "anglais"
+}

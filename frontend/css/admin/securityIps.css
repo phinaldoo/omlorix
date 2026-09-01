@@ -1,0 +1,834 @@
+.security-ips-warning-banner,
+.security-ips-analytics {
+    --security-ips-badge-blocked-bg: var(--admin-info-bg, rgba(37, 99, 235, 0.12));
+    --security-ips-badge-blocked-text: var(--admin-info-text, #1d4ed8);
+    --security-ips-badge-blocked-border: var(--admin-info-border, rgba(37, 99, 235, 0.28));
+    --security-ips-badge-danger-bg: var(--admin-danger-bg, rgba(185, 28, 28, 0.12));
+    --security-ips-badge-danger-text: var(--admin-danger-text, #b91c1c);
+    --security-ips-badge-danger-border: var(--admin-danger-border, rgba(185, 28, 28, 0.28));
+    --security-ips-badge-success-bg: var(--admin-success-bg, rgba(4, 120, 87, 0.12));
+    --security-ips-badge-success-text: var(--admin-success-text, #047857);
+    --security-ips-badge-success-border: var(--admin-success-border, rgba(4, 120, 87, 0.28));
+    --security-ips-badge-warning-bg: var(--admin-warning-bg, rgba(180, 83, 9, 0.12));
+    --security-ips-badge-warning-text: var(--admin-warning-text, #92400e);
+    --security-ips-badge-warning-border: var(--admin-warning-border, rgba(180, 83, 9, 0.28));
+}
+
+.security-ips-warning-banner {
+    margin-bottom: 24px;
+}
+
+.security-ip-override-banner[hidden] {
+    display: none !important;
+}
+
+.security-ips-analytics {
+    display: grid;
+    gap: 24px;
+    margin-bottom: 24px;
+    animation: securityIpsFadeIn 0.3s ease-out both;
+}
+
+/*
+ * The analytics shell uses `display: grid`, so the browser's default
+ * `[hidden] { display: none; }` rule can be overridden by the class selector.
+ * Keep the hidden state authoritative so the dashboard stays collapsed until
+ * settings explicitly allow it.
+ */
+.security-ips-analytics[hidden] {
+    display: none !important;
+}
+
+/*
+ * The shared `.stats-*` blocks ship their own bottom margin for stacked layouts.
+ * Inside the analytics grid we rely on `gap` for spacing, so reset those margins
+ * to avoid doubled vertical spacing between cards/sections.
+ */
+.security-ips-analytics > .stats-kpi-grid,
+.security-ips-analytics > .stats-charts-grid,
+.security-ips-analytics > .stats-section {
+    margin-bottom: 0;
+}
+
+/*
+ * Page-scoped refinements that mirror the model statistics dashboard
+ * (see modelStatistics.css `#page-model-statistics .stats-*` rules) so the
+ * shared stats components render identically on the IP analytics page:
+ * neutral admin radius, no drop shadow, subtle neutral hover, and matching
+ * select/refresh focus treatment.
+ */
+#page-security-ip-analytics .stats-kpi-card,
+#page-security-ip-analytics .stats-chart-card,
+#page-security-ip-analytics .stats-section,
+#page-security-ip-analytics .security-ips-toolbar {
+    border-radius: var(--admin-radius);
+    box-shadow: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    #page-security-ip-analytics .stats-kpi-card:hover,
+    #page-security-ip-analytics .stats-chart-card:hover {
+        border-color: var(--admin-text-tertiary);
+        box-shadow: none;
+    }
+}
+
+#page-security-ip-analytics .stats-chart-header,
+#page-security-ip-analytics .stats-section-header {
+    border-bottom: 1px solid var(--admin-border-subtle);
+}
+
+#page-security-ip-analytics .stats-select-sm:focus {
+    border-color: var(--admin-text);
+    box-shadow: 0 0 0 2px var(--admin-hover);
+}
+
+#page-security-ip-analytics #securityIpsStatsRefreshBtn,
+#page-security-ip-analytics .stats-pagination-btn {
+    border-color: var(--admin-border);
+    background: var(--bg-normal);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    #page-security-ip-analytics #securityIpsStatsRefreshBtn:hover,
+    #page-security-ip-analytics .stats-pagination-btn:hover:not(:disabled) {
+        border-color: var(--admin-text-tertiary);
+        background: var(--admin-hover);
+        box-shadow: none;
+    }
+}
+
+@keyframes securityIpsFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.security-ips-toolbar {
+    display: grid;
+    gap: 20px;
+    padding: 20px 24px;
+    background: var(--bg-normal);
+    border: 1px solid var(--admin-border);
+    border-radius: 16px;
+}
+
+.security-ips-toolbar-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.security-ips-toolbar-intro {
+    flex: 1;
+    min-width: 0;
+}
+
+.security-ips-toolbar-title {
+    margin: 0;
+    color: var(--admin-text);
+    font-size: 17px;
+    font-weight: 600;
+}
+
+.security-ips-toolbar-desc {
+    margin: 6px 0 0;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--admin-text-secondary);
+}
+
+.security-ips-toolbar-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+/*
+ * Keep the schema-style custom period select aligned with the toolbar buttons.
+ * Its own container also preserves the original DOM order when helper.js wraps
+ * and relocates the native select inside the generated custom control.
+ */
+.security-ips-period-select,
+.security-ips-period-select .admin-select {
+    width: 150px;
+    min-width: 150px;
+}
+
+.security-ips-toolbar .admin-select-trigger {
+    height: 40px;
+}
+
+.security-ips-toolbar-notes {
+    display: grid;
+    gap: 8px;
+}
+
+/*
+ * KPI cards reuse the shared `.stats-kpi-*` layout from style.css.
+ * Only the gradient icon backgrounds are defined here so the colors stay
+ * specific to the IP analytics metrics while matching the model statistics look.
+ */
+.stats-kpi-icon.ips-blocked {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: #fff;
+}
+
+.stats-kpi-icon.ips-countries {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: #fff;
+}
+
+.stats-kpi-icon.ips-attempts {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: #fff;
+}
+
+.stats-kpi-icon.ips-top {
+    background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+    color: #fff;
+}
+
+/*
+ * Chart legend swatches use the exact same design tokens as the four Chart.js
+ * datasets. Keeping the mapping one-to-one prevents a legend from suggesting a
+ * different series color when an administrator changes theme.
+ */
+.security-ips-legend-denied::before {
+    background-color: var(--admin-warning);
+}
+
+.security-ips-legend-rate-limited::before {
+    background-color: var(--admin-error);
+}
+
+.security-ips-legend-manual-bans::before {
+    background-color: var(--admin-accent);
+}
+
+.security-ips-legend-automatic-bans::before {
+    background-color: var(--admin-success);
+}
+
+/* The top-country value shows a country name, so render it slightly smaller than numeric KPIs. */
+.security-ips-kpi-inline {
+    font-size: 20px;
+}
+
+/*
+ * Country table: numeric columns use tabular figures so digits stay aligned,
+ * mirroring the model statistics tables.
+ */
+.security-ips-num-cell,
+.security-ips-attempt-value {
+    font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Attempts cell: numeric value stacked above a horizontal "share" bar that
+ * visualizes how each country's blocked attempts compare to the busiest country.
+ * The gradient reuses the amber attempts color from the KPI icon / chart dataset.
+ */
+.security-ips-attempt-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.security-ips-attempt-value {
+    font-weight: 600;
+    color: var(--admin-text);
+}
+
+.security-ips-share-bar {
+    height: 6px;
+    max-width: 160px;
+    border-radius: 999px;
+    background: var(--admin-border-subtle);
+    overflow: hidden;
+}
+
+.security-ips-share-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
+    transition: width 0.5s ease;
+}
+
+/*
+ * The country overview contains eight columns, including several translated
+ * headings that are substantially wider than the columns in the shared stats
+ * tables. Convert only this table to the same labelled-card pattern used by the
+ * Users and Groups tables before those headings can overlap. The 1400px
+ * breakpoint also accounts for the admin sidebar reducing the available page
+ * width on common laptop displays.
+ */
+@media (max-width: 1400px) {
+    #page-security-ip-analytics .security-ips-stats-table {
+        border-collapse: separate;
+        border-spacing: 0 12px;
+    }
+
+    #page-security-ip-analytics .security-ips-stats-table thead {
+        display: none;
+    }
+
+    #page-security-ip-analytics .security-ips-stats-table tbody tr {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: stretch;
+        gap: 0;
+        border: 1px solid var(--admin-border-subtle);
+        border-radius: var(--admin-radius);
+        overflow: hidden;
+        background: var(--bg-normal);
+        box-shadow: var(--admin-shadow-sm);
+    }
+
+    #page-security-ip-analytics .security-ips-stats-table td {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: center;
+        gap: 4px;
+        min-width: 0;
+        padding: 10px 16px;
+        border-right: none;
+        border-bottom: 1px solid var(--admin-border-subtle);
+        overflow: hidden;
+        text-align: left;
+        text-overflow: ellipsis;
+        white-space: normal;
+    }
+
+    #page-security-ip-analytics .security-ips-stats-table td::before {
+        content: attr(data-label);
+        font-size: 10px;
+        line-height: 1.2;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--admin-text-tertiary);
+    }
+
+    /*
+     * Treat the country as the card header, pair the six central metrics, and
+     * give the timestamp a full-width footer. Explicit borders keep the visual
+     * grouping correct even though the first and last cells span both columns.
+     */
+    #page-security-ip-analytics .security-ips-stats-table td:first-child,
+    #page-security-ip-analytics .security-ips-stats-table td:last-child {
+        grid-column: 1 / -1;
+        border-right: none;
+    }
+
+    #page-security-ip-analytics .security-ips-stats-table td:first-child {
+        padding: 14px 16px;
+        background: var(--admin-bg);
+    }
+
+    #page-security-ip-analytics .security-ips-stats-table td:nth-child(2),
+    #page-security-ip-analytics .security-ips-stats-table td:nth-child(4),
+    #page-security-ip-analytics .security-ips-stats-table td:nth-child(6) {
+        border-right: 1px solid var(--admin-border-subtle);
+    }
+
+    #page-security-ip-analytics .security-ips-stats-table td:last-child {
+        border-bottom: none;
+    }
+
+    /*
+     * Empty results remain a single plain table row instead of becoming an
+     * outlined metric card with an empty data label.
+     */
+    #page-security-ip-analytics .security-ips-stats-table tbody tr.stats-table-empty {
+        display: table-row;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+    }
+
+    #page-security-ip-analytics .security-ips-stats-table tbody tr.stats-table-empty td {
+        display: table-cell;
+        width: 100%;
+        padding: 40px 16px;
+        border: none;
+        text-align: center;
+    }
+
+    #page-security-ip-analytics .security-ips-stats-table-wrapper {
+        overflow-x: visible;
+    }
+}
+
+@media (max-width: 1400px) and (hover: hover) and (pointer: fine) {
+    #page-security-ip-analytics .security-ips-stats-table tbody tr:hover {
+        background: var(--bg-normal);
+    }
+}
+
+/* Secondary line under the top-country value (e.g. attempt count). */
+.security-ips-kpi-subvalue {
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--admin-text-secondary);
+}
+
+.security-ips-recent-list {
+    display: grid;
+    gap: 8px;
+    padding: 16px 24px 24px;
+}
+
+.security-ips-recent-item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px 16px;
+    padding: 14px 16px;
+    border: 1px solid var(--admin-border-subtle);
+    border-radius: 10px;
+    background: var(--admin-accent-subtle);
+    transition: background 0.15s ease, border-color 0.15s ease;
+    animation: securityIpsEventIn 0.3s ease-out both;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .security-ips-recent-item:hover {
+        border-color: var(--admin-border);
+        background: var(--bg-normal);
+    }
+}
+
+.security-ips-recent-main {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.security-ips-event-type,
+.security-ips-risk-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 26px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.security-ips-event-type.ban_created {
+    background: var(--security-ips-badge-blocked-bg);
+    color: var(--security-ips-badge-blocked-text);
+    border: 1px solid var(--security-ips-badge-blocked-border);
+}
+
+.security-ips-event-type.request_denied {
+    background: var(--security-ips-badge-danger-bg);
+    color: var(--security-ips-badge-danger-text);
+    border: 1px solid var(--security-ips-badge-danger-border);
+}
+
+.security-ips-event-type.ban_removed {
+    background: var(--security-ips-badge-success-bg);
+    color: var(--security-ips-badge-success-text);
+    border: 1px solid var(--security-ips-badge-success-border);
+}
+
+.security-ips-event-type.rate_limited {
+    background: var(--security-ips-badge-warning-bg);
+    color: var(--security-ips-badge-warning-text);
+    border: 1px solid var(--security-ips-badge-warning-border);
+}
+
+.security-ips-risk-badge.low {
+    background: var(--security-ips-badge-success-bg);
+    color: var(--security-ips-badge-success-text);
+    border: 1px solid var(--security-ips-badge-success-border);
+}
+
+.security-ips-risk-badge.medium {
+    background: var(--security-ips-badge-warning-bg);
+    color: var(--security-ips-badge-warning-text);
+    border: 1px solid var(--security-ips-badge-warning-border);
+}
+
+.security-ips-risk-badge.high {
+    background: var(--security-ips-badge-danger-bg);
+    color: var(--security-ips-badge-danger-text);
+    border: 1px solid var(--security-ips-badge-danger-border);
+}
+
+.security-ips-recent-ip {
+    font-size: 14px;
+    font-weight: 600;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    letter-spacing: -0.01em;
+    color: var(--admin-text);
+}
+
+.security-ips-recent-meta,
+.security-ips-country-meta {
+    font-size: 12px;
+    color: var(--admin-text-secondary);
+}
+
+.security-ips-recent-desc {
+    grid-column: 1 / -1;
+    font-size: 13px;
+    color: var(--admin-text-secondary);
+    line-height: 1.5;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.security-ips-country-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.security-ips-country-name {
+    font-weight: 600;
+    color: var(--admin-text);
+}
+
+.security-ips-empty{
+    padding: 32px 24px;
+    color: var(--admin-text-secondary);
+    text-align: center;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.security-ips-ip {
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 13px;
+    letter-spacing: -0.01em;
+}
+
+.security-ips-row {
+    transition: background 0.15s ease, opacity 0.3s ease, transform 0.3s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .security-ips-row:hover {
+        background: var(--admin-hover);
+    }
+}
+
+.security-ips-row.is-removing {
+    opacity: 0;
+    transform: translateX(16px);
+    pointer-events: none;
+}
+
+.security-ips-table-header {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    grid-template-columns: minmax(10rem, 1.15fr) minmax(9rem, 1fr) minmax(9rem, 1fr) minmax(10rem, 1.2fr) minmax(5.75rem, auto);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.security-ips-row {
+    grid-template-columns: minmax(10rem, 1.15fr) minmax(9rem, 1fr) minmax(9rem, 1fr) minmax(10rem, 1.2fr) minmax(5.75rem, auto);
+}
+
+.security-ips-reason,
+.security-ips-blocked-at,
+.security-ips-expires-at {
+    min-width: 0;
+    font-size: 13px;
+}
+
+.security-ips-reason {
+    overflow-wrap: anywhere;
+}
+
+.refresh-icon {
+    transition: transform 0.3s ease;
+}
+
+.refresh-icon.is-spinning {
+    animation: securityIpsSpin 0.8s linear infinite;
+}
+
+@keyframes securityIpsSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes securityIpsEventIn {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 780px) {
+    .security-ips-toolbar-header {
+        flex-direction: column;
+    }
+
+    .security-ips-toolbar-actions {
+        width: 100%;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .security-ips-recent-item {
+        grid-template-columns: 1fr;
+    }
+
+    .security-ips-list {
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        overflow: visible;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .security-ips-table-header {
+        display: none;
+    }
+
+    .security-ips-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "ip ip"
+            "blocked expires"
+            "reason reason"
+            "actions actions";
+        align-items: start;
+        gap: 0;
+        padding: 0;
+        border: 1px solid var(--admin-border-subtle);
+        border-radius: var(--admin-radius);
+        overflow: hidden;
+        background: var(--bg-normal);
+        box-shadow: var(--admin-shadow-sm);
+    }
+
+    .security-ips-row:last-child {
+        border-bottom: 1px solid var(--admin-border-subtle);
+    }
+
+    .security-ips-row:hover {
+        background: var(--bg-normal);
+    }
+
+    .security-ips-row .security-ips-ip,
+    .security-ips-row .security-ips-blocked-at,
+    .security-ips-row .security-ips-expires-at,
+    .security-ips-row .security-ips-reason,
+    .security-ips-row .security-ips-actions {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: center;
+        gap: 4px;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--admin-border-subtle);
+        min-width: 0;
+        text-align: left;
+        width: 100%;
+    }
+
+    .security-ips-row .security-ips-ip::before,
+    .security-ips-row .security-ips-blocked-at::before,
+    .security-ips-row .security-ips-expires-at::before,
+    .security-ips-row .security-ips-reason::before,
+    .security-ips-row .security-ips-actions::before {
+        content: attr(data-label);
+        font-size: 11px;
+        line-height: 1.2;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--admin-text-tertiary);
+    }
+
+    .security-ips-row .security-ips-ip {
+        grid-area: ip;
+        overflow-wrap: anywhere;
+        white-space: normal;
+    }
+
+    .security-ips-row .security-ips-blocked-at {
+        grid-area: blocked;
+        border-right: 1px solid var(--admin-border-subtle);
+    }
+
+    .security-ips-row .security-ips-expires-at {
+        grid-area: expires;
+    }
+
+    .security-ips-row .security-ips-reason {
+        grid-area: reason;
+    }
+
+    .security-ips-row .security-ips-actions {
+        grid-area: actions;
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-end;
+        border-bottom: none;
+    }
+
+    .security-ips-row .security-ips-actions::before {
+        margin-right: auto;
+    }
+}
+
+@media (max-width: 520px) {
+    .security-ips-row {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+            "ip"
+            "blocked"
+            "expires"
+            "reason"
+            "actions";
+    }
+
+    .security-ips-row .security-ips-blocked-at {
+        border-right: none;
+    }
+}
+
+/* ---------- Reduced motion ---------- */
+
+.security-ips-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(150px, 1fr)) auto;
+    gap: 12px;
+    align-items: end;
+    padding-top: 20px;
+    border-top: 1px solid var(--admin-border-subtle);
+}
+
+.security-ips-filter-field {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+}
+
+.security-ips-filter-field > label {
+    color: var(--admin-text-secondary);
+    font-size: 0.82rem;
+}
+
+.security-ips-filter-field .admin-select {
+    min-width: 0;
+}
+
+.security-ips-filter-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.security-ips-data-note,
+.security-ips-retention-warning {
+    margin: 0;
+    color: var(--admin-text-secondary);
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+.security-ips-retention-warning {
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--surface-secondary);
+}
+
+.security-ips-provider-status {
+    padding: 5px 9px;
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+}
+
+.security-ips-ip-drilldown {
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: var(--primary-color);
+    cursor: pointer;
+    font: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+@media (max-width: 1000px) {
+    .security-ips-filter-grid {
+        grid-template-columns: repeat(2, minmax(150px, 1fr));
+    }
+
+    .security-ips-filter-actions {
+        grid-column: 1 / -1;
+        justify-content: flex-end;
+    }
+}
+
+@media (max-width: 600px) {
+    .security-ips-filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .security-ips-filter-actions {
+        grid-column: auto;
+        justify-content: stretch;
+    }
+
+    .security-ips-filter-actions .om-button.border {
+        flex: 1;
+    }
+}
+
+/*
+ * Honor the OS-level reduced-motion preference exposed by the browser.
+ * Disable the analytics fade-ins, the refresh spinner, the recent-event entry
+ * animation, and the country share-bar transition so the dashboard stays usable
+ * and fully functional without motion.
+ */
+@media (prefers-reduced-motion: reduce) {
+    .security-ips-analytics,
+    .security-ips-recent-item {
+        animation: none;
+    }
+
+    .refresh-icon,
+    .refresh-icon.is-spinning,
+    .security-ips-share-fill,
+    .security-ips-row {
+        transition: none;
+        animation: none;
+    }
+}

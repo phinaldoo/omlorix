@@ -1,0 +1,20 @@
+{
+  "verify_subject": "Verify your new {application_name} email address",
+  "verify_headline": "Verify your new email address",
+  "verify_intro": "Confirm this address to finish changing the email used by your {application_name} account.",
+  "verify_button": "Verify Email Address",
+  "verify_expires": "This link expires in {expires_in_hours} hours.",
+  "verify_ignore": "If you didn’t request this change, do not verify it.",
+  "requested_subject": "{application_name}: email change requested",
+  "requested_headline": "Email address change requested",
+  "requested_intro": "Someone requested a new email address for your account. Your current address remains active until the new address is verified.",
+  "cancel_button": "Cancel Email Change",
+  "requested_action": "If this wasn’t you, cancel the request and secure your account immediately.",
+  "changed_subject": "{application_name}: email address changed",
+  "changed_headline": "Your email address was changed",
+  "changed_intro": "The email address used to sign in to your {application_name} account has changed. All existing sessions and password-reset links were revoked.",
+  "changed_action": "If this wasn’t you, secure your account immediately and contact an administrator.",
+  "cancelled_subject": "{application_name}: email change cancelled",
+  "cancelled_headline": "Email change cancelled",
+  "cancelled_intro": "The pending email address change was cancelled. Your existing address remains active."
+}

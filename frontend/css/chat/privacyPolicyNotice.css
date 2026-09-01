@@ -1,0 +1,27 @@
+.privacy-policy-notice-modal-body {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-color-secondary, #666666);
+}
+
+.privacy-policy-notice-modal-body a {
+    color: inherit;
+    text-decoration: underline;
+}
+
+.privacy-policy-notice-modal-error {
+    margin: 12px 0 0;
+    padding: 10px 12px;
+    border: 1px solid var(--warning-error-border);
+    border-radius: var(--warning-radius-sm);
+    background: var(--warning-error-background);
+    color: var(--warning-error-color);
+    font-size: 14px;
+    line-height: 1.45;
+    text-align: start;
+}
+
+.privacy-policy-notice-modal-error[hidden] {
+    display: none !important;
+}

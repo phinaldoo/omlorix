@@ -1,0 +1,7 @@
+{
+  "privacy_page_title": "Política de Privacidade",
+  "privacy_loading": "A carregar a política de privacidade...",
+  "privacy_load_error": "Não foi possível carregar a política de privacidade. Tente novamente mais tarde.",
+  "privacy_default_template_warning_emphasis": "Importante:",
+  "privacy_default_template_warning": "Esta instância ainda utiliza o modelo padrão de política de privacidade. O operador deve substituí-lo por conteúdo jurídico específico da implantação."
+}

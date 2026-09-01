@@ -1,0 +1,7 @@
+{
+  "page_title": "Erro",
+  "message": "Algo deu errado",
+  "description": "Não foi possível carregar a página que você procura. Talvez seja um problema temporário — tente novamente ou volte para a página inicial.",
+  "btn_home": "Voltar para a página inicial",
+  "help_text": "Se o problema persistir, tente limpar o cache do navegador ou entre em contato com o administrador."
+}

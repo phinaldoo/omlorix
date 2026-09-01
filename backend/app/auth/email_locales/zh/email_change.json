@@ -1,0 +1,20 @@
+{
+  "verify_subject": "验证新的 {application_name} 电子邮件地址",
+  "verify_headline": "验证新的电子邮件地址",
+  "verify_intro": "请确认此地址，以完成 {application_name} 账户电子邮件地址的更改。",
+  "verify_button": "验证电子邮件地址",
+  "verify_expires": "此链接将在 {expires_in_hours} 小时后失效。",
+  "verify_ignore": "如果你未请求此更改，请勿验证。",
+  "requested_subject": "{application_name}：已请求更改电子邮件",
+  "requested_headline": "已请求更改电子邮件地址",
+  "requested_intro": "有人为你的账户请求了新地址。在新地址验证前，当前地址仍然有效。",
+  "cancel_button": "取消电子邮件更改",
+  "requested_action": "如果这不是你的操作，请取消请求并立即保护账户。",
+  "changed_subject": "{application_name}：电子邮件地址已更改",
+  "changed_headline": "你的电子邮件地址已更改",
+  "changed_intro": "用于登录 {application_name} 账户的地址已更改。所有现有会话和密码重置链接均已撤销。",
+  "changed_action": "如果这不是你的操作，请立即保护账户并联系管理员。",
+  "cancelled_subject": "{application_name}：电子邮件更改已取消",
+  "cancelled_headline": "电子邮件更改已取消",
+  "cancelled_intro": "待处理的地址更改已取消。当前地址仍然有效。"
+}

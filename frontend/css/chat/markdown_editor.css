@@ -1,0 +1,774 @@
+.canvas-md-editor-shell,
+.canvas-md-editor-menu,
+.canvas-md-dialog {
+    --canvas-md-bg: var(--background, #ffffff);
+    /* `--secondary-background-color` is not an Omlorix theme token, so its
+       light fallback stayed active in dark Canvas and Notes previews. Use the
+       shared muted surface for inline code, code blocks, and editor chrome. */
+    --canvas-md-bg-soft: var(--surface-muted, var(--input-bg, #f7f7f8));
+    /* Use Omlorix's semantic interactive surface so toolbar hover states stay
+       subtle in both themes instead of falling back to a light-only color. */
+    --canvas-md-bg-softer: var(--surface-interactive-hover, var(--hover, #efeff1));
+    --canvas-md-text: var(--text-color, #1f2937);
+    --canvas-md-text-muted: var(--text-color-secondary, #6b7280);
+    --canvas-md-accent: var(--accent-color, #2563eb);
+    --canvas-md-interactive-accent: var(--chat-markdown-link-color, var(--canvas-md-accent));
+    --canvas-md-danger: var(--danger-color, #dc2626);
+}
+
+.canvas-md-editor-shell {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.canvas-md-editor-shell.is-readonly {
+    border: 0;
+    border-radius: 0;
+    min-height: 0;
+    background: transparent;
+}
+
+.canvas-md-editor-toolbar,
+.canvas-md-editor-table-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--border-color);
+    overflow-x: auto;
+    scrollbar-width: thin;
+    flex: 0 0 auto;
+    height: 51px;
+}
+
+.canvas-md-editor-table-toolbar {
+    display: none;
+    /* The semantic muted surface follows the active light/dark palette. It
+       also leaves enough contrast for the interactive hover surface below. */
+    background: var(--surface-muted, var(--canvas-md-bg-soft));
+    color: var(--canvas-md-text-muted);
+}
+
+.canvas-md-editor-table-toolbar.is-visible {
+    display: flex;
+}
+
+.canvas-md-toolbar-btn {
+    min-width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--canvas-md-text-muted);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+}
+
+.canvas-md-toolbar-btn.has-caret {
+    gap: 5px;
+    padding: 0 8px;
+}
+
+.canvas-md-toolbar-btn.has-caret::after {
+    content: "";
+    width: 0;
+    height: 0;
+    border-left: 3.5px solid transparent;
+    border-right: 3.5px solid transparent;
+    border-top: 4px solid currentColor;
+    opacity: 0.62;
+}
+
+.canvas-md-toolbar-btn.danger {
+    color: var(--canvas-md-danger);
+}
+
+.canvas-md-toolbar-btn svg {
+    width: 20px;
+    height: 20px;
+    display: block;
+    flex: 0 0 auto;
+}
+
+.canvas-md-toolbar-label {
+    font-size: 12.5px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.canvas-md-toolbar-btn:disabled {
+    opacity: 0.42;
+    cursor: default;
+}
+
+.canvas-md-toolbar-btn.is-active {
+    color: var(--canvas-md-interactive-accent);
+    background: color-mix(in srgb, var(--canvas-md-interactive-accent) 12%, transparent);
+}
+
+.canvas-md-toolbar-separator {
+    width: 1px;
+    height: 24px;
+    margin: 0 3px;
+    background: var(--border-color);
+    flex: 0 0 auto;
+}
+
+.canvas-md-editor-block-select {
+    min-width: 108px;
+    justify-content: space-between;
+    padding: 0 10px;
+}
+
+.canvas-md-current-block-label {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.canvas-md-toolbar-btn:focus-visible,
+.canvas-md-editor-block-select:focus-visible,
+.canvas-md-editor-menu-item:focus-visible,
+.canvas-md-dialog-btn:focus-visible,
+.canvas-md-dialog-segment button:focus-visible,
+.canvas-md-dialog-field input:focus-visible,
+.canvas-md-dialog-field textarea:focus-visible,
+.canvas-md-dropzone:focus-visible,
+.canvas-md-source-editor:focus-visible,
+.canvas-md-rich-editor:focus-visible {
+    outline: 2px solid var(--canvas-md-interactive-accent);
+    outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .canvas-md-toolbar-btn:not(:disabled):hover,
+    .canvas-md-editor-menu-item:hover,
+    .canvas-md-dialog-btn:hover {
+        background: var(--canvas-md-bg-softer);
+        color: var(--canvas-md-text);
+    }
+}
+
+.canvas-md-editor-body {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+}
+
+.canvas-md-editor-view,
+.canvas-md-editor-source-view {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    overflow: auto;
+}
+
+.canvas-md-rich-editor {
+    min-height: 100%;
+    padding: 28px clamp(18px, 4vw, 48px) 32vh;
+    outline: none;
+    color: var(--canvas-md-text);
+    font-size: 16px;
+    line-height: 1.7;
+    word-break: break-word;
+}
+
+.canvas-md-editor-shell.is-format-painting .canvas-md-rich-editor {
+    cursor: cell;
+}
+
+.canvas-md-editor-shell.is-readonly .canvas-md-rich-editor {
+    padding: 0;
+}
+
+.canvas-md-rich-editor.is-empty::before {
+    content: attr(data-placeholder);
+    color: var(--canvas-md-text-muted);
+    pointer-events: none;
+}
+
+.canvas-md-rich-editor > *:first-child {
+    margin-top: 0;
+}
+
+.canvas-md-rich-editor p {
+    margin: 0 0 0.85em;
+}
+
+.canvas-md-rich-editor h1,
+.canvas-md-rich-editor h2,
+.canvas-md-rich-editor h3,
+.canvas-md-rich-editor h4,
+.canvas-md-rich-editor h5,
+.canvas-md-rich-editor h6 {
+    line-height: 1.28;
+    font-weight: 700;
+    margin: 1.25em 0 0.45em;
+}
+
+.canvas-md-rich-editor h1 {
+    font-size: 1.9em;
+}
+
+.canvas-md-rich-editor h2 {
+    font-size: 1.5em;
+}
+
+.canvas-md-rich-editor h3 {
+    font-size: 1.24em;
+}
+
+.canvas-md-rich-editor h4 {
+    font-size: 1.1em;
+}
+
+.canvas-md-rich-editor h5 {
+    font-size: 1em;
+}
+
+.canvas-md-rich-editor h6 {
+    color: var(--canvas-md-text-muted);
+    font-size: 0.9em;
+}
+
+.canvas-md-rich-editor a {
+    color: var(--canvas-md-accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.canvas-md-rich-editor blockquote {
+    margin: 0 0 1em;
+    padding: 2px 0 2px 16px;
+    border-left: 3px solid var(--border-color);
+    color: var(--canvas-md-text-muted);
+}
+
+.canvas-md-rich-editor ul,
+.canvas-md-rich-editor ol {
+    margin: 0 0 0.9em;
+    padding-left: 1.55em;
+}
+
+.canvas-md-rich-editor li {
+    margin: 0.15em 0;
+}
+
+.canvas-md-rich-editor ul.task-list,
+.canvas-md-rich-editor ul.contains-task-list {
+    list-style: none;
+    padding-left: 1.35em;
+}
+
+.canvas-md-rich-editor li.task-list-item {
+    list-style: none;
+}
+
+.canvas-md-rich-editor li.task-list-item > input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+    margin: 0 8px 0 -1.35em;
+    vertical-align: -1px;
+    accent-color: var(--canvas-md-accent);
+}
+
+.canvas-md-rich-editor code {
+    padding: 0.12em 0.36em;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    background: var(--canvas-md-bg-soft);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 0.88em;
+}
+
+.canvas-md-rich-editor pre {
+    margin: 0 0 1em;
+    padding: 14px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--canvas-md-bg-soft);
+    overflow-x: auto;
+    white-space: pre-wrap;
+}
+
+.canvas-md-rich-editor pre code {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    font-size: 0.92em;
+}
+
+/*
+ * Fenced blocks are rendered by the canonical chat Markdown pipeline inside a
+ * small .markdown-body island. Reset the few rich-editor <pre>/<code> rules
+ * that would otherwise leak into that island, while leaving the shared code
+ * block styling and responsive behavior completely in charge.
+ */
+.canvas-md-rich-editor .canvas-md-shared-code-block {
+    margin: 0 0 1em;
+    max-width: 100%;
+}
+
+.canvas-md-rich-editor .canvas-md-shared-code-block .code-block-wrapper {
+    margin: 0;
+}
+
+.canvas-md-rich-editor .canvas-md-shared-code-block pre {
+    border: 0;
+    border-radius: 0;
+    white-space: pre;
+}
+
+.canvas-md-rich-editor .canvas-md-shared-code-block code {
+    border: 0;
+    border-radius: 0;
+}
+
+/* Prism loads after the editor stylesheet. These more-specific declarations
+   prevent its light-theme outline from ever resurfacing in Canvas fallback
+   code blocks while the shared renderer is still loading. */
+.canvas-md-rich-editor pre[class*="language-"],
+.canvas-md-rich-editor code[class*="language-"] {
+    color: var(--canvas-md-text);
+    font-family: inherit !important;
+    text-shadow: none !important;
+}
+
+.canvas-md-rich-editor hr {
+    border: 0;
+    border-top: 1px solid var(--border-color);
+    margin: 1.6em 0;
+}
+
+.canvas-md-rich-editor img,
+.canvas-md-inline-image {
+    display: block;
+    max-width: min(100%, 620px);
+    height: auto;
+    border-radius: 8px;
+    margin: 10px 0;
+}
+
+.canvas-md-editor-table-wrap {
+    /* Keep ordinary Markdown tables inside the sidebar. The wrapper remains
+       scrollable as a last resort for genuinely unshrinkable cell content. */
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    margin: 0 0 1em;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+}
+
+.canvas-md-rich-editor table {
+    width: 100%;
+    min-width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95em;
+}
+
+.canvas-md-rich-editor th,
+.canvas-md-rich-editor td {
+    /* Match the streaming preview: prefer wrapping cell text over widening
+       the completed editor table beyond the available sidebar width. */
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: normal;
+    border: 1px solid var(--border-color);
+    padding: 8px 11px;
+    text-align: left;
+    vertical-align: top;
+}
+
+.canvas-md-rich-editor th {
+    /* Use the theme's neutral surface instead of the editor's light fallback.
+       This keeps header text readable when Canvas or Notes uses dark mode. */
+    background: var(--surface-muted, var(--canvas-md-bg-soft));
+    color: var(--canvas-md-text);
+    font-weight: 650;
+}
+
+.canvas-md-rich-editor th:focus,
+.canvas-md-rich-editor td:focus {
+    outline: 2px solid var(--canvas-md-accent);
+    outline-offset: -2px;
+}
+
+.canvas-md-rich-editor th.cell-active,
+.canvas-md-rich-editor td.cell-active {
+    background: color-mix(in srgb, var(--canvas-md-accent) 12%, transparent);
+}
+
+.canvas-md-rich-editor img.is-selected {
+    outline: 2px solid var(--canvas-md-accent);
+    outline-offset: 3px;
+}
+
+.canvas-md-rich-editor .mermaid-block {
+    margin: 0 0 1em;
+}
+
+.canvas-md-rich-editor .mermaid-diagram {
+    min-height: 120px;
+    display: grid;
+    place-items: center;
+    overflow: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--canvas-md-bg-soft);
+    color: var(--canvas-md-text-muted);
+    padding: 16px;
+}
+
+.canvas-md-rich-editor .mermaid-diagram svg {
+    max-width: 100%;
+    height: auto;
+}
+
+.canvas-md-rich-editor .mermaid-diagram.mermaid-diagram-error {
+    color: var(--canvas-md-danger);
+}
+
+.canvas-md-rich-editor.is-dragging-image {
+    box-shadow: inset 0 0 0 2px var(--canvas-md-accent);
+}
+
+.canvas-md-source-shell {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    width: 100%;
+    height: 100%;
+    min-height: min(72vh, 780px);
+}
+
+.canvas-md-source-shell.uses-codemirror {
+    display: block;
+}
+
+.canvas-md-source-shell.uses-codemirror .canvas-md-source-gutter {
+    display: none;
+}
+
+.canvas-md-source-gutter {
+    min-width: 44px;
+    border-right: 1px solid var(--border-color);
+    background: var(--background);
+    color: var(--canvas-md-text-muted);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    overflow: hidden;
+    padding: 18px 9px;
+    text-align: right;
+    user-select: none;
+}
+
+.canvas-md-source-gutter span {
+    display: block;
+    min-height: 1.6em;
+}
+
+.canvas-md-source-editor {
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-height: min(72vh, 780px);
+    resize: none;
+    border: 0;
+    outline: none;
+    padding: 18px;
+    background: var(--canvas-md-bg);
+    color: var(--canvas-md-text);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    tab-size: 2;
+}
+
+.canvas-md-source-shell.has-bracket-match .canvas-md-source-editor {
+    box-shadow: inset 3px 0 0 color-mix(in srgb, var(--canvas-md-accent) 72%, transparent);
+}
+
+.canvas-md-source-shell.has-bracket-mismatch .canvas-md-source-editor {
+    box-shadow: inset 3px 0 0 var(--canvas-md-danger);
+}
+
+.canvas-md-source-shell .CodeMirror {
+    height: 100%;
+    min-height: min(72vh, 780px);
+    background: var(--background);
+    color: var(--canvas-md-text);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.canvas-md-source-shell .CodeMirror-gutters {
+    border-right: 1px solid var(--border-color);
+    background: var(--background);
+}
+
+.canvas-md-source-shell .CodeMirror-linenumber {
+    color: var(--canvas-md-text-muted);
+}
+
+.canvas-md-editor-menu {
+    position: fixed;
+    z-index: 3100;
+    min-width: 170px;
+    max-width: min(92vw, 320px);
+    padding: 6px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--canvas-md-bg, #fff);
+    color: var(--canvas-md-text, #1f2937);
+    box-shadow: 0 12px 34px rgba(15, 23, 42, 0.16);
+}
+
+.canvas-md-editor-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    padding: 8px 10px;
+    text-align: left;
+    font: inherit;
+    font-size: 13px;
+}
+
+.canvas-md-editor-menu-item svg {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 auto;
+    fill: currentColor;
+    opacity: 0.82;
+}
+
+.canvas-md-editor-menu-label {
+    padding: 6px 10px 3px;
+    color: var(--canvas-md-text-muted);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.canvas-md-editor-menu-separator {
+    height: 1px;
+    margin: 5px 2px;
+    background: var(--border-color);
+}
+
+.canvas-md-editor-swatches {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 6px;
+    min-width: 220px;
+}
+
+.canvas-md-editor-swatch {
+    aspect-ratio: 1;
+    width: 100%;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.canvas-md-editor-swatch.none {
+    display: grid;
+    place-items: center;
+    background: var(--canvas-md-bg-soft);
+    color: var(--canvas-md-text-muted);
+}
+
+.canvas-md-editor-swatch.none svg {
+    width: 15px;
+    height: 15px;
+    fill: currentColor;
+}
+
+.canvas-md-editor-grid-pick {
+    display: grid;
+    grid-template-columns: repeat(10, 20px);
+    gap: 3px;
+    margin: 4px 0 8px;
+}
+
+.canvas-md-editor-grid-cell {
+    width: 20px;
+    height: 20px;
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    background: var(--canvas-md-bg-soft);
+    cursor: pointer;
+}
+
+.canvas-md-editor-grid-cell.on {
+    border-color: var(--canvas-md-accent);
+    background: color-mix(in srgb, var(--canvas-md-accent) 16%, transparent);
+}
+
+.canvas-md-editor-grid-size {
+    margin-bottom: 6px;
+    color: var(--canvas-md-text-muted);
+    font-size: 12.5px;
+    text-align: center;
+}
+
+.canvas-md-table-toolbar-title {
+    padding: 0 6px;
+    color: var(--canvas-md-text-muted);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.canvas-md-dialog-overlay {
+    --shared-modal-z-index: 3200;
+}
+
+.canvas-md-dialog-field {
+    display: block;
+    margin-bottom: 12px;
+    color: var(--canvas-md-text-muted, #6b7280);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.canvas-md-dialog-field span {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.canvas-md-dialog-tip {
+    display: block;
+    margin-top: 5px;
+    color: var(--canvas-md-text-muted, #6b7280);
+    font-size: 11.5px;
+    font-weight: 500;
+}
+
+.canvas-md-dialog-field input,
+.canvas-md-dialog-field textarea {
+    width: 100%;
+    min-height: 38px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--canvas-md-bg-soft, #f7f7f8);
+    color: var(--canvas-md-text, #1f2937);
+    padding: 8px 10px;
+    font: inherit;
+    font-size: 14px;
+}
+
+.canvas-md-dialog-segment {
+    display: inline-flex;
+    gap: 2px;
+    margin-bottom: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--canvas-md-bg-soft, #f7f7f8);
+    padding: 3px;
+}
+
+.canvas-md-dialog-segment button {
+    min-height: 30px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--canvas-md-text-muted, #6b7280);
+    cursor: pointer;
+    padding: 0 12px;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 650;
+}
+
+.canvas-md-dialog-segment button.is-active {
+    background: var(--canvas-md-bg, #fff);
+    color: var(--canvas-md-text, #1f2937);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.canvas-md-dropzone {
+    width: 100%;
+    min-height: 92px;
+    border: 1.5px dashed var(--border-color);
+    border-radius: 8px;
+    background: var(--canvas-md-bg-soft, #f7f7f8);
+    color: var(--canvas-md-text-muted, #6b7280);
+    cursor: pointer;
+    padding: 14px;
+    text-align: center;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 650;
+}
+
+.canvas-md-dropzone.is-dragging {
+    border-color: var(--canvas-md-accent, #2563eb);
+    background: color-mix(in srgb, var(--canvas-md-accent, #2563eb) 12%, var(--canvas-md-bg-soft, #f7f7f8));
+    color: var(--canvas-md-text, #1f2937);
+}
+
+.canvas-md-dialog-btn.danger {
+    margin-right: auto;
+}
+
+/* Markdown selections share the assistant response action component. Only
+   positioning remains editor-specific because this tooltip is shell-relative. */
+.canvas-md-reference-toolbar.selection-tooltip {
+    position: absolute;
+    z-index: 20;
+}
+
+.canvas-md-reference-toolbar.is-below::after {
+    top: -6px;
+    bottom: auto;
+    transform: translateX(-50%) rotate(180deg);
+}
+
+@media (max-width: 680px) {
+    .canvas-md-editor-shell {
+        min-height: 70vh;
+        border-left: 0;
+        border-right: 0;
+        border-radius: 0;
+    }
+
+    .canvas-md-editor-toolbar,
+    .canvas-md-editor-table-toolbar {
+        padding: 6px 8px;
+    }
+
+    .canvas-md-rich-editor {
+        padding: 20px 16px 32vh;
+    }
+
+    .canvas-md-editor-block-select {
+        min-width: 112px;
+    }
+}
+
+@media (pointer: coarse) {
+    .canvas-md-toolbar-btn {
+        min-width: 38px;
+        height: 38px;
+    }
+
+}

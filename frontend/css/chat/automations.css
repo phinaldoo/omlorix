@@ -1,0 +1,1141 @@
+/** Automation cards **/
+.automations-content-main-element .projects-content-main-element-bottom {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.automation-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    margin-top: 0;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.automation-status-badge.active {
+    background-color: rgba(76, 175, 80, 0.15);
+    color: #4caf50;
+}
+
+.automation-status-badge.inactive {
+    background-color: rgba(158, 158, 158, 0.15);
+    color: #9e9e9e;
+}
+
+.automation-status-badge svg {
+    width: 12px;
+    height: 12px;
+}
+
+#automationsContainer .projects-create-input-group .label-hint {
+    font-size: 12px;
+    color: var(--text-color-secondary);
+    font-weight: 400;
+}
+
+.automations-create-textarea {
+    min-height: 120px;
+    resize: vertical;
+    font-family: inherit;
+}
+
+/* Notes Select (Multi-select with chips) */
+.automations-notes-select,
+.automations-connections-select {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.automations-notes-selected-chips,
+.automations-connections-selected-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 32px;
+    align-items: center;
+}
+
+.automations-notes-placeholder {
+    font-size: 14px;
+    color: var(--text-color-secondary);
+}
+
+.automations-notes-chip,
+.automations-connection-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border-color);
+    font-size: 13px;
+    color: var(--text-color);
+}
+
+.automations-notes-chip {
+    gap: 6px;
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
+.automations-notes-chip svg {
+    width: 14px;
+    height: 14px;
+    color: var(--text-color-secondary);
+    flex-shrink: 0;
+}
+
+.automations-notes-chip-text,
+.automations-connection-chip-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.automations-notes-chip-text {
+    max-width: 150px;
+}
+
+.automations-notes-chip-remove,
+.automations-connection-chip-remove {
+    border: none;
+    background: transparent;
+    color: var(--text-color-secondary);
+    cursor: pointer;
+    padding: 0;
+}
+
+.automations-notes-chip-remove {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 2px;
+    transition: color 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .automations-notes-chip-remove:hover,
+    .automations-connection-chip-remove:hover {
+        color: var(--error-color);
+    }
+}
+
+.automations-notes-add-section,
+.automations-connections-add-section {
+    position: relative;
+}
+
+.automations-notes-add-trigger,
+.automations-connections-add-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px dashed var(--border-color);
+    background: transparent;
+    color: var(--text-color-secondary);
+    cursor: pointer;
+}
+
+.automations-notes-add-trigger {
+    font-size: 13px;
+    transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .automations-notes-add-trigger:hover,
+    .automations-connections-add-trigger:not(:disabled):hover {
+        border-color: var(--text-color);
+        color: var(--text-color);
+        background-color: var(--hover);
+    }
+}
+
+.automations-notes-add-trigger.open {
+    border-color: var(--text-color);
+    color: var(--text-color);
+}
+
+.automations-notes-dropdown,
+.automations-connections-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    z-index: 100;
+    display: none;
+    overflow-y: auto;
+    background-color: var(--background);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+}
+
+.automations-notes-dropdown {
+    min-width: 280px;
+    max-width: 400px;
+    max-height: 240px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.automations-notes-dropdown.open,
+.automations-connections-dropdown.open {
+    display: block;
+}
+
+.automations-notes-dropdown-empty,
+.automations-connections-dropdown-empty {
+    padding: 16px;
+    text-align: center;
+}
+
+.automations-notes-dropdown-empty {
+    color: var(--text-color-secondary);
+    font-size: 13px;
+}
+
+.automations-notes-dropdown-item,
+.automations-connections-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.automations-notes-dropdown-item {
+    padding: 10px 14px;
+    transition: background-color 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .automations-notes-dropdown-item:hover,
+    .automations-connections-dropdown-item:hover {
+        background-color: var(--hover);
+    }
+}
+
+.automations-notes-dropdown-item.selected {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.automations-notes-dropdown-item-icon {
+    display: flex;
+    align-items: center;
+    color: var(--text-color-secondary);
+    flex-shrink: 0;
+}
+
+.automations-notes-dropdown-item-icon svg {
+    width: 16px;
+    height: 16px;
+}
+
+.automations-notes-dropdown-item-text {
+    flex: 1;
+    font-size: 13px;
+    color: var(--text-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.automations-notes-dropdown-item-check,
+.automations-connections-dropdown-item-check {
+    display: none;
+}
+
+.automations-notes-dropdown-item-check {
+    color: var(--text-color);
+    flex-shrink: 0;
+}
+
+.automations-notes-dropdown-item.selected .automations-notes-dropdown-item-check {
+    display: flex;
+}
+
+/* Connection multi-select mirrors chat mentions with branded provider chips. */
+.automations-connections-placeholder,
+.automations-connections-dropdown-empty {
+    color: var(--text-color-secondary);
+    font-size: 13px;
+}
+
+.automations-connection-chip {
+    gap: 7px;
+    background-color: var(--hover);
+}
+
+.automations-connection-provider-icon {
+    display: inline-flex;
+    width: 18px;
+    height: 18px;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 18px;
+}
+
+.automations-connection-provider-icon svg,
+.automations-connection-provider-icon img {
+    width: 18px;
+    height: 18px;
+    object-fit: cover;
+}
+
+.automations-connection-provider-icon img {
+    border-radius: 50%;
+}
+
+.automations-connection-chip-text {
+    max-width: 180px;
+}
+
+.automations-connection-chip-remove {
+    display: inline-flex;
+}
+
+.automations-connection-chip-remove svg {
+    width: 14px;
+    height: 14px;
+}
+
+.automations-connections-add-trigger svg {
+    width: 16px;
+    height: 16px;
+}
+
+.automations-connections-add-trigger:disabled {
+    cursor: default;
+    opacity: 0.55;
+}
+
+.automations-connections-dropdown {
+    width: min(440px, calc(100vw - 48px));
+    max-height: 280px;
+    box-shadow: 0 8px 24px var(--shadow-color);
+}
+
+.automations-connections-dropdown-item {
+    width: 100%;
+    padding: 11px 14px;
+    border: 0;
+    background: transparent;
+    color: var(--text-color);
+    text-align: left;
+}
+
+.automations-connections-dropdown-item.selected {
+    background-color: var(--hover);
+}
+
+.automations-connections-dropdown-item-copy {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.automations-connections-dropdown-item-name,
+.automations-connections-dropdown-item-description {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.automations-connections-dropdown-item-name {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.automations-connections-dropdown-item-description {
+    color: var(--text-color-secondary);
+    font-size: 12px;
+}
+
+.automations-connections-dropdown-item-check {
+    flex: 0 0 auto;
+}
+
+.automations-connections-dropdown-item.selected .automations-connections-dropdown-item-check {
+    display: inline-flex;
+}
+
+.automations-connections-dropdown-item-check svg,
+.automations-notes-dropdown-item-check svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* ============================================================
+   Automations · Trigger editor (Schedule + Webhook)
+   Minimal, modern segmented controls and stacked cards.
+   ============================================================ */
+
+.automations-trigger-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+/* Interactive trigger controls use one keyboard focus treatment. */
+.automations-trigger-tab:focus-visible,
+.automations-schedule-type-btn:focus-visible,
+.automations-schedule-preset-btn:focus-visible,
+.automations-schedule-day-btn:focus-visible,
+.automations-schedule-time-add-btn:focus-visible,
+.automations-schedule-add-btn:focus-visible,
+.automations-webhook-copy-btn:focus-visible,
+.automations-webhook-action-btn:focus-visible {
+    outline: 2px solid var(--text-color);
+    outline-offset: 2px;
+}
+
+.automations-schedule-time-input:focus,
+.automations-schedule-label-input:focus,
+.automations-webhook-select:focus {
+    outline: none;
+    border-color: var(--text-color);
+    box-shadow: 0 0 0 3px var(--hover);
+}
+
+/* Shared small section label (uppercase, muted) */
+.automations-field-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: var(--text-color-secondary);
+}
+
+/* Top-level trigger type tabs: full-width segmented control */
+.automations-trigger-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 12px;
+    background-color: var(--hover);
+}
+
+.automations-trigger-tab {
+    flex: 1 1 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 9px 12px;
+    border: none;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--text-color-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .automations-trigger-tab:hover {
+        color: var(--text-color);
+    }
+}
+
+.automations-trigger-tab.active {
+    background-color: var(--background);
+    color: var(--text-color);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.automations-trigger-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Secondary toggle (Recurring / Run once): inline pill segmented control */
+.automations-schedule-type-toggle {
+    display: inline-flex;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 10px;
+    background-color: var(--hover);
+    width: fit-content;
+}
+
+.automations-schedule-type-btn {
+    border: none;
+    background: transparent;
+    color: var(--text-color-secondary);
+    padding: 7px 16px;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .automations-schedule-type-btn:hover {
+        color: var(--text-color);
+    }
+}
+
+.automations-schedule-type-btn.active {
+    background-color: var(--background);
+    color: var(--text-color);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+/* Quick presets */
+.automations-schedule-presets {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.automations-schedule-presets-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.automations-schedule-preset-btn {
+    padding: 7px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border-color);
+    background-color: transparent;
+    color: var(--text-color);
+    font-size: 13px;
+    cursor: pointer;
+    transition: background-color 0.18s ease, border-color 0.18s ease, transform 0.1s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .automations-schedule-preset-btn:hover {
+        background-color: var(--hover);
+        border-color: var(--text-color-secondary);
+    }
+}
+
+.automations-schedule-preset-btn:active {
+    transform: scale(0.97);
+}
+
+/* Rules list + cards */
+.automations-schedule-rules-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.automations-schedule-rules-empty {
+    padding: 28px 20px;
+    text-align: center;
+    color: var(--text-color-secondary);
+    font-size: 13px;
+    line-height: 1.5;
+    border: 1px dashed var(--border-color);
+    border-radius: 14px;
+}
+
+.automations-schedule-rule-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding: 18px;
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    background-color: var(--hover);
+}
+
+/* Reserve room at the top-right for the remove-rule button */
+.automations-schedule-rule-item:not(.automations-schedule-once-item) {
+    padding-right: 52px;
+}
+
+.automations-schedule-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Days */
+.automations-schedule-days {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.automations-schedule-day-btn {
+    min-width: 42px;
+    height: 38px;
+    padding: 0 10px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background-color: var(--background);
+    color: var(--text-color-secondary);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .automations-schedule-day-btn:hover {
+        border-color: var(--text-color-secondary);
+        color: var(--text-color);
+    }
+}
+
+.automations-schedule-day-btn.active {
+    background-color: var(--text-color);
+    color: var(--background);
+    border-color: var(--text-color);
+}
+
+/* Times */
+.automations-schedule-times-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.automations-schedule-time-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px 6px 12px;
+    border-radius: 999px;
+    background-color: var(--background);
+    border: 1px solid var(--border-color);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-color);
+}
+
+.automations-schedule-time-chip-value {
+    line-height: 1;
+}
+
+.automations-schedule-remove-time-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-color-secondary);
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .automations-schedule-remove-time-btn:hover {
+        background-color: var(--hover);
+        color: var(--text-color);
+    }
+}
+
+.automations-schedule-remove-time-btn:focus-visible {
+    outline: 2px solid var(--text-color);
+    outline-offset: 1px;
+}
+
+.automations-schedule-time-add {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.automations-schedule-time-input {
+    padding: 8px 12px;
+    border-radius: 9px;
+    border: 1px solid var(--border-color);
+    background-color: var(--background);
+    color: var(--text-color);
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.automations-once-datetime-input {
+    width: 100%;
+    max-width: 280px;
+}
+
+.automations-schedule-time-add-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 9px;
+    border: 1px dashed var(--border-color);
+    background: transparent;
+    color: var(--text-color-secondary);
+    font-size: 13px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+}
+
+.automations-schedule-time-add-btn svg {
+    width: 12px;
+    height: 12px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .automations-schedule-time-add-btn:hover {
+        border-color: var(--text-color-secondary);
+        color: var(--text-color);
+        background-color: var(--background);
+    }
+}
+
+/* Label input */
+.automations-schedule-label-input {
+    width: 100%;
+    padding: 9px 12px;
+    border-radius: 9px;
+    border: 1px solid var(--border-color);
+    background-color: var(--background);
+    color: var(--text-color);
+    font-size: 14px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.automations-schedule-label-input::placeholder {
+    color: var(--text-color-tertiary);
+}
+
+/* One-time hint */
+.automations-once-hint {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-color-secondary);
+    margin: 0;
+}
+
+.automations-once-hint svg {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+/* Remove-rule button (top-right of card) */
+.automations-schedule-remove-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    border: none;
+    background-color: transparent;
+    color: var(--text-color-tertiary);
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .automations-schedule-remove-btn:hover {
+        background-color: var(--danger-hover-bg);
+        color: var(--error-color);
+    }
+}
+
+.automations-schedule-remove-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+.automations-schedule-remove-btn:focus-visible {
+    outline: 2px solid var(--error-color);
+    outline-offset: 2px;
+}
+
+/* Add rule */
+.automations-schedule-add-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 13px;
+    border-radius: 12px;
+    border: 1px dashed var(--border-color);
+    background-color: transparent;
+    color: var(--text-color-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .automations-schedule-add-btn:hover {
+        border-color: var(--text-color-secondary);
+        color: var(--text-color);
+        background-color: var(--hover);
+    }
+}
+
+.automations-schedule-add-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+
+/* Active toggle */
+.automations-active-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background-color: var(--hover);
+}
+
+.automations-active-toggle-label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.automations-active-toggle-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.automations-active-toggle-desc {
+    font-size: 12px;
+    color: var(--text-color-secondary);
+}
+
+/* ============================================================
+   Automations · Webhook editor
+   ============================================================ */
+
+.automations-webhook-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.automations-webhook-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.automations-webhook-section-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.automations-webhook-section-head .automations-field-label {
+    margin-right: auto;
+}
+
+/* Settings rows */
+.automations-webhook-setting {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background-color: var(--hover);
+}
+
+.automations-webhook-setting-text {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    cursor: default;
+}
+
+.automations-webhook-setting-title {
+    font-size: 14px;
+    color: var(--text-color);
+}
+
+.automations-webhook-setting-desc {
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--text-color-secondary);
+}
+
+.automations-webhook-select {
+    flex-shrink: 0;
+    min-width: 200px;
+    max-width: 240px;
+    padding: 9px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 9px;
+    background-color: var(--background);
+    color: var(--text-color);
+    font-size: 13px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Endpoint card */
+.automations-webhook-endpoint {
+    padding: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    background-color: var(--hover);
+}
+
+/* Copyable rows (URL / secret) */
+.automations-webhook-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+        "label label"
+        "value copy";
+    align-items: center;
+    gap: 6px 10px;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background-color: var(--background);
+}
+
+.automations-webhook-row + .automations-webhook-row {
+    margin-top: 10px;
+}
+
+.automations-webhook-field-label {
+    grid-area: label;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--text-color-secondary);
+}
+
+.automations-webhook-value {
+    grid-area: value;
+    overflow-wrap: anywhere;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+    font-size: 12.5px;
+    color: var(--text-color);
+}
+
+.automations-webhook-copy-btn {
+    grid-area: copy;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid var(--border-color);
+    border-radius: 9px;
+    background-color: var(--hover);
+    color: var(--text-color-secondary);
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.automations-webhook-copy-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .automations-webhook-copy-btn:hover {
+        color: var(--text-color);
+        border-color: var(--text-color-secondary);
+    }
+}
+
+/* Secret one-time note */
+.automations-webhook-secret-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    margin: 10px 0 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-color-secondary);
+}
+
+.automations-webhook-secret-note svg {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    color: var(--admin-warning-text, #d99e00);
+}
+
+/* Action buttons */
+.automations-webhook-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+}
+
+.automations-webhook-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 9px;
+    background-color: var(--background);
+    color: var(--text-color);
+    font-size: 13px;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.automations-webhook-action-btn svg {
+    width: 15px;
+    height: 15px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .automations-webhook-action-btn:hover {
+        border-color: var(--text-color-secondary);
+        background-color: var(--hover);
+    }
+
+    .automations-webhook-action-btn.danger:hover {
+        border-color: var(--error-color);
+        background-color: var(--danger-hover-bg);
+        color: var(--error-color);
+    }
+}
+
+/* curl example block */
+.automations-webhook-curl {
+    margin: 0;
+    padding: 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background-color: var(--hover);
+    overflow-x: auto;
+    font-size: 12px;
+    line-height: 1.55;
+}
+
+.automations-webhook-curl code {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+    color: var(--text-color);
+    white-space: pre;
+}
+
+/* Deliveries */
+.automations-webhook-delivery-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.automations-webhook-delivery {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background-color: var(--background);
+}
+
+.automations-webhook-delivery .automation-status-badge {
+    margin-left: 0;
+    text-transform: capitalize;
+}
+
+.automations-webhook-delivery-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    font-size: 12px;
+    color: var(--text-color-secondary);
+}
+
+.automations-webhook-delivery-time {
+    color: var(--text-color);
+    font-variant-numeric: tabular-nums;
+}
+
+.automations-webhook-delivery-error {
+    color: var(--error-color);
+    overflow-wrap: anywhere;
+}
+
+/* Webhook empty state */
+.automations-webhook-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.automations-webhook-empty svg {
+    width: 26px;
+    height: 26px;
+    color: var(--text-color-tertiary);
+}
+
+/* Keep the icon compact when the empty state contains its generate action. */
+.automations-webhook-empty .automations-webhook-action-btn svg {
+    width: 15px;
+    height: 15px;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .automations-schedule-time-add {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .automations-schedule-time-input,
+    .automations-schedule-time-add-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .automations-once-datetime-input {
+        max-width: none;
+    }
+
+    .automations-schedule-day-btn {
+        flex: 1 1 calc((100% - 36px) / 7);
+        min-width: 0;
+        padding: 0 4px;
+    }
+
+    .automations-webhook-setting {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .automations-webhook-select {
+        max-width: none;
+        width: 100%;
+    }
+}

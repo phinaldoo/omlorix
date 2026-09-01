@@ -1,0 +1,122 @@
+.chat-box .om-button.call,
+.chat-box .om-button.send {
+    background-color: var(--chat-composer-primary-control-background, var(--text-color));
+    color: var(--chat-composer-primary-control-text, var(--background));
+}
+
+.om-button.chat-box-stop-button {
+    background-color: var(--chat-composer-control, var(--surface-control-button, var(--background)));
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .chat-box .om-button.call:not(.is-active-call):hover,
+    .chat-box .om-button.send:hover {
+        background-color: var(--chat-composer-primary-control-hover, var(--chat-composer-primary-control-background));
+        color: var(--chat-composer-primary-control-text, var(--background));
+    }
+}
+.om-button.chat-box-stop-button[data-mode="stopping"] {
+    cursor: progress;
+    pointer-events: none;
+    opacity: 0.82;
+}
+.om-button.call.is-active-call {
+    background-color: rgba(239, 68, 68, 0.14);
+    color: #ef4444;
+}
+.om-button.call.is-connecting-call {
+    animation: realtime-call-pulse 1.2s ease-in-out infinite;
+}
+.om-button.call-mute {
+    background-color: var(--chat-composer-control, var(--surface-control-button, var(--background)));
+}
+.om-button.call-mute.is-active {
+    background-color: rgba(239, 68, 68, 0.14);
+    color: #ef4444;
+}
+.om-button.send.is-uploading {
+    cursor: progress;
+    pointer-events: none;
+}
+.om-button.send.is-canceling {
+    cursor: progress;
+    pointer-events: none;
+    opacity: 0.82;
+}
+.om-button.chat-box-stop-button:disabled,
+.om-button.chat-box-stop-button[aria-disabled="true"] {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+.om-button.chat-box-stop-button[data-mode="stopping"]:disabled,
+.om-button.chat-box-stop-button[data-mode="stopping"][aria-disabled="true"] {
+    opacity: 0.82;
+}
+.om-button.send:disabled,
+.om-button.send[aria-disabled="true"] {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+.om-button.send.is-canceling:disabled,
+.om-button.send.is-canceling[aria-disabled="true"] {
+    opacity: 0.82;
+}
+.chat-send-spinner {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid rgba(148, 163, 184, 0.6);
+    border-top-color: var(--primary-color);
+    animation: spin 0.9s linear infinite;
+}
+.chat-send-spinner--canceling {
+    border-color: color-mix(in srgb, currentColor 16%, transparent);
+    border-top-color: currentColor;
+    border-right-color: currentColor;
+}
+
+
+/* Recording state - static red stop indicator. */
+.om-button.is-recording {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .om-button.is-recording:hover {
+        background-color: rgba(239, 68, 68, 0.25);
+    }
+}
+
+/* Transcribing state - loading spinner. */
+.om-button.is-transcribing {
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+.om-button.is-transcribing::after {
+    content: "";
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid rgba(148, 163, 184, 0.4);
+    border-top-color: var(--primary-color, #3b82f6);
+    animation: spin 0.8s linear infinite;
+}
+
+.om-button.is-transcribing svg {
+    opacity: 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .om-button.is-transcribing:hover {
+        background-color: rgba(239, 68, 68, 0.12);
+    }
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .om-button.is-transcribing:hover::after {
+        border-top-color: #ef4444;
+    }
+}

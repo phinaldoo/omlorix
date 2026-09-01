@@ -1,0 +1,7 @@
+{
+  "privacy_page_title": "Privacy Policy",
+  "privacy_loading": "Loading privacy policy...",
+  "privacy_load_error": "Failed to load privacy policy. Please try again later.",
+  "privacy_default_template_warning_emphasis": "Important:",
+  "privacy_default_template_warning": "This instance is still using the default privacy policy template. The operator must replace it with deployment-specific legal content."
+}

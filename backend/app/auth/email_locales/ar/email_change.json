@@ -1,0 +1,20 @@
+{
+  "verify_subject": "تحقق من عنوان بريدك الجديد في {application_name}",
+  "verify_headline": "تحقق من عنوان البريد الإلكتروني الجديد",
+  "verify_intro": "أكّد هذا العنوان لإتمام تغيير بريد حسابك على {application_name}.",
+  "verify_button": "التحقق من عنوان البريد",
+  "verify_expires": "تنتهي صلاحية هذا الرابط خلال {expires_in_hours} ساعة.",
+  "verify_ignore": "إذا لم تطلب هذا التغيير، فلا تتحقق منه.",
+  "requested_subject": "{application_name}: طُلب تغيير البريد الإلكتروني",
+  "requested_headline": "طُلب تغيير عنوان البريد الإلكتروني",
+  "requested_intro": "طلب شخص عنوانًا جديدًا لحسابك. يبقى عنوانك الحالي نشطًا حتى التحقق من العنوان الجديد.",
+  "cancel_button": "إلغاء تغيير البريد",
+  "requested_action": "إذا لم تكن أنت، فألغِ الطلب وأمّن حسابك فورًا.",
+  "changed_subject": "{application_name}: تم تغيير عنوان البريد",
+  "changed_headline": "تم تغيير عنوان بريدك الإلكتروني",
+  "changed_intro": "تغيّر العنوان المستخدم لتسجيل الدخول إلى حسابك على {application_name}. أُلغيت جميع الجلسات وروابط إعادة تعيين كلمة المرور الحالية.",
+  "changed_action": "إذا لم تكن أنت، فأمّن حسابك فورًا وتواصل مع أحد المسؤولين.",
+  "cancelled_subject": "{application_name}: أُلغي تغيير البريد",
+  "cancelled_headline": "أُلغي تغيير البريد الإلكتروني",
+  "cancelled_intro": "أُلغي تغيير العنوان المعلّق. لا يزال عنوانك الحالي نشطًا."
+}

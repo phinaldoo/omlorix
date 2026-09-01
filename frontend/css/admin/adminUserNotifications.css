@@ -1,0 +1,766 @@
+/* Hidden attribute helpers */
+#deleteUserNotificationOverlay[hidden] {
+    display: none !important;
+}
+
+/* Page Content */
+.user-notifications-page-content {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+/* Empty State */
+.user-notifications-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 60px 24px;
+    text-align: center;
+}
+
+.user-notifications-empty-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--admin-accent-subtle);
+    color: var(--admin-text-secondary);
+}
+
+.user-notifications-empty-icon svg {
+    width: 48px;
+    height: 48px;
+}
+
+.user-notifications-empty-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--admin-text);
+}
+
+.user-notifications-empty-text {
+    margin: 0;
+    font-size: 14px;
+    color: var(--admin-text-secondary);
+    max-width: 320px;
+}
+
+/* Notifications List */
+.user-notifications-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Notification Card */
+.admin-user-notification-card {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 16px;
+    min-height: 84px;
+    padding: 18px 20px;
+    background: var(--bg-normal);
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .admin-user-notification-card:hover {
+        border-color: var(--admin-active);
+        background: var(--admin-bg);
+    }
+}
+
+/* Card Icon */
+.admin-user-notification-card-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: var(--admin-accent-subtle);
+    color: var(--admin-text);
+}
+
+.admin-user-notification-card-icon.type-info {
+    background: var(--admin-info-bg);
+    color: var(--admin-info);
+}
+
+.admin-user-notification-card-icon.type-warning {
+    background: var(--admin-warning-bg);
+    color: var(--admin-warning);
+}
+
+.admin-user-notification-card-icon.type-error {
+    background: var(--admin-error-bg);
+    color: var(--admin-error);
+}
+
+/* Card Content */
+.admin-user-notification-card-content {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    align-items: center;
+    column-gap: 24px;
+    row-gap: 7px;
+}
+
+.admin-user-notification-card-header {
+    display: contents;
+}
+
+.admin-user-notification-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+}
+
+.admin-user-notification-card-category {
+    display: inline-flex;
+    align-items: center;
+    min-height: 22px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    background: var(--admin-accent-subtle);
+    color: var(--admin-text);
+}
+
+.admin-user-notification-card-type {
+    display: inline-flex;
+    align-items: center;
+    min-height: 22px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.admin-user-notification-card-type.type-info {
+    background: var(--admin-info-bg);
+    color: var(--admin-info);
+}
+
+.admin-user-notification-card-type.type-warning {
+    background: var(--admin-warning-bg);
+    color: var(--admin-warning);
+}
+
+.admin-user-notification-card-type.type-error {
+    background: var(--admin-error-bg);
+    color: var(--admin-error);
+}
+
+.admin-user-notification-card-recipients {
+    display: inline-flex;
+    align-items: center;
+    min-height: 22px;
+    font-size: 12px;
+    color: var(--admin-text-secondary);
+}
+
+.admin-user-notification-card-time {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: center;
+    font-size: 12px;
+    color: var(--admin-text-tertiary);
+    flex-shrink: 0;
+    line-height: 1.4;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.admin-user-notification-card-message {
+    grid-column: 1;
+    grid-row: 2;
+    margin: 0;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--admin-text);
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
+/* Card Actions */
+.admin-user-notification-card-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.admin-user-notification-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    background: var(--bg-normal);
+    color: var(--admin-text-secondary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .admin-user-notification-action-btn:hover {
+        border-color: var(--admin-active);
+        color: var(--admin-text);
+        background: var(--admin-hover);
+    }
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .admin-user-notification-action-btn.edit:hover {
+        border-color: var(--admin-info);
+        color: var(--admin-info);
+        background: var(--admin-info-bg);
+    }
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .admin-user-notification-action-btn.delete:hover {
+        border-color: var(--admin-error);
+        color: var(--admin-error);
+        background: var(--admin-error-bg);
+    }
+}
+
+/* Pagination */
+.user-notifications-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 20px;
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    background: var(--admin-bg);
+}
+
+/* The component declares its own display mode, so keep the native hidden
+ * attribute authoritative when a result set fits on a single page. */
+.user-notifications-pagination[hidden] {
+    display: none;
+}
+
+/* Keep the current page's height stable while its replacement is fetched.
+ * The muted busy state communicates progress without swapping the rows for a
+ * short placeholder that would make the scroll container jump. */
+.admin-skills-list.is-page-loading,
+.database-page .db-entity-list.is-page-loading {
+    opacity: 0.62;
+    pointer-events: none;
+    cursor: progress;
+}
+
+.user-notifications-pagination-info {
+    font-size: 14px;
+    color: var(--admin-text-secondary);
+    font-weight: 500;
+}
+
+.user-notifications-pagination-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.user-notifications-pagination-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 36px;
+    padding: 8px 14px;
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    background: var(--bg-normal);
+    color: var(--admin-text);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .user-notifications-pagination-btn:hover:not(:disabled) {
+        border-color: var(--admin-active);
+        background: var(--admin-hover);
+    }
+}
+
+.user-notifications-pagination-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.user-notifications-pagination-pages {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.user-notifications-pagination-page {
+    min-width: 32px;
+    height: 32px;
+    padding: 0 8px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--admin-text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .user-notifications-pagination-page:hover {
+        background: var(--admin-hover);
+        color: var(--admin-text);
+    }
+}
+
+.user-notifications-pagination-page.active {
+    background: var(--admin-text);
+    color: var(--admin-bg);
+}
+
+.user-notifications-pagination-ellipsis {
+    min-width: 28px;
+    text-align: center;
+    color: var(--admin-text-secondary);
+    font-size: 13px;
+}
+
+.user-notification-form-body {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.user-notification-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.user-notification-form-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--admin-text);
+}
+
+.user-notification-form-label .required {
+    color: #ef4444;
+}
+
+.user-notification-form-input,
+.user-notification-form-textarea,
+.user-notification-form-select {
+    padding: 12px 14px;
+    border: 1px solid var(--admin-border);
+    border-radius: 10px;
+    background: var(--bg-normal);
+    color: var(--admin-text);
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.user-notification-form-input:focus,
+.user-notification-form-textarea:focus,
+.user-notification-form-select:focus {
+    outline: none;
+    border-color: var(--admin-accent, #3b82f6);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.user-notification-form-textarea {
+    min-height: 100px;
+    resize: vertical;
+    font-family: inherit;
+}
+
+.user-notification-form-hint {
+    margin: 0;
+    font-size: 12px;
+    color: var(--admin-text-secondary);
+}
+
+.user-notification-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.user-notification-form-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding-top: 8px;
+}
+
+.user-notification-form-section-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--admin-text);
+}
+
+/* Toggle Row */
+.user-notification-form-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 16px;
+    background: var(--admin-bg);
+    border-radius: 12px;
+}
+
+.user-notification-form-toggle-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.user-notification-form-toggle-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--admin-text);
+}
+
+.user-notification-form-toggle-desc {
+    margin: 0;
+    font-size: 12px;
+    color: var(--admin-text-secondary);
+}
+
+/* Toggle Switch */
+.user-notification-form-toggle {
+    position: relative;
+    width: 48px;
+    height: 26px;
+    flex-shrink: 0;
+}
+
+.user-notification-form-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.user-notification-form-toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    inset: 0;
+    background: var(--admin-border);
+    border-radius: 26px;
+    transition: all 0.3s ease;
+}
+
+.user-notification-form-toggle-slider::before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    bottom: 3px;
+    background: #fff;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.user-notification-form-toggle input:checked + .user-notification-form-toggle-slider {
+    background: var(--admin-accent, #3b82f6);
+}
+
+.user-notification-form-toggle input:checked + .user-notification-form-toggle-slider::before {
+    transform: translateX(22px);
+}
+
+/* Recipients Section */
+.user-notification-form-recipients {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Multi-select */
+.user-notification-form-multiselect {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow: visible;
+}
+
+.user-notification-form-multiselect-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border: 1px solid var(--admin-border);
+    border-radius: 10px;
+    background: var(--bg-normal);
+    color: var(--admin-text-secondary);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.user-notification-form-multiselect.is-open .user-notification-form-multiselect-trigger {
+    border-color: var(--admin-accent, #3b82f6);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .user-notification-form-multiselect-trigger:hover {
+        border-color: var(--admin-active);
+    }
+}
+
+.user-notification-form-multiselect-selected {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.user-notification-form-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px 4px 10px;
+    background: var(--admin-accent, #3b82f6);
+    color: #fff;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.user-notification-form-chip button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .user-notification-form-chip button:hover {
+        background: rgba(255, 255, 255, 0.35);
+    }
+}
+
+.user-notification-form-multiselect-dropdown {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 280px;
+    max-height: 260px;
+    background: var(--bg-normal);
+    border: 1px solid var(--admin-border);
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    z-index: 1200;
+    overflow: hidden;
+}
+
+.user-notification-form-multiselect-dropdown[hidden] {
+    display: none !important;
+}
+
+.user-notification-form-multiselect-search {
+    width: 100%;
+    padding: 12px 14px;
+    border: none;
+    border-bottom: 1px solid var(--admin-border-subtle);
+    background: transparent;
+    font-size: 14px;
+    color: var(--admin-text);
+}
+
+.user-notification-form-multiselect-search:focus {
+    outline: none;
+}
+
+.user-notification-form-multiselect-options {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.user-notification-form-multiselect-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .user-notification-form-multiselect-option:hover {
+        background: var(--admin-hover);
+    }
+}
+
+.user-notification-form-multiselect-option input {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--admin-accent, #3b82f6);
+}
+
+.user-notification-form-multiselect-option span {
+    font-size: 14px;
+    color: var(--admin-text);
+}
+
+/* ===========================================
+   Responsive
+   =========================================== */
+
+@media (max-width: 768px) {
+    .admin-user-notification-card {
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: start;
+        gap: 14px;
+    }
+
+    .admin-user-notification-card-actions {
+        grid-column: 2;
+        align-self: flex-end;
+    }
+
+    .admin-user-notification-card-content {
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+    }
+
+    .admin-user-notification-card-header {
+        display: flex;
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .admin-user-notification-card-meta,
+    .admin-user-notification-card-time,
+    .admin-user-notification-card-message {
+        grid-column: auto;
+        grid-row: auto;
+    }
+
+    .admin-user-notification-card-time {
+        align-self: flex-start;
+        text-align: left;
+        white-space: normal;
+    }
+
+    .user-notifications-pagination {
+        flex-direction: column;
+        gap: 12px;
+        padding: 16px;
+    }
+
+    .user-notifications-pagination-controls {
+        width: 100%;
+    }
+
+    .user-notification-form-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .user-notifications-pagination-btn span {
+        display: none;
+    }
+}
+
+/* =============================================================================
+   Form Validation Error States
+   ============================================================================= */
+
+.user-notification-form-group.has-error .user-notification-form-input,
+.user-notification-form-group.has-error .user-notification-form-textarea,
+.user-notification-form-group.has-error .user-notification-form-select,
+.user-notification-form-group.has-error .user-notification-form-multiselect-trigger {
+    border-color: var(--admin-error, #ef4444) !important;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+}
+
+.user-notification-form-recipients.has-error {
+    border-radius: 12px;
+    box-shadow: 0 0 0 1px var(--admin-error, #ef4444),
+                0 0 0 4px rgba(239, 68, 68, 0.12);
+    padding: 12px;
+    margin: -4px;
+}
+
+.user-notification-form-group.has-error > .field-error-message,
+.user-notification-form-recipients.has-error > .field-error-message {
+    color: var(--admin-error, #ef4444);
+    font-size: 12px;
+    margin: 6px 0 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.user-notification-form-group.has-error > .field-error-message::before,
+.user-notification-form-recipients.has-error > .field-error-message::before {
+    content: "⚠";
+    font-size: 12px;
+    line-height: 1;
+}
+
+@keyframes userNotificationShake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+}
+
+.user-notification-form-group.shake-error,
+.user-notification-form-recipients.shake-error {
+    animation: userNotificationShake 0.4s ease-in-out;
+}

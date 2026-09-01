@@ -1,0 +1,103 @@
+services:
+  migrate:
+    build:
+      context: ./backend
+      target: prod
+    image: omlorix-backend:${OMLORIX_VERSION:-local}
+
+  fastapi:
+    build:
+      context: ./backend
+      target: prod
+    image: omlorix-backend:${OMLORIX_VERSION:-local}
+
+  automation_scheduler:
+    build:
+      context: ./backend
+      target: prod
+    image: omlorix-backend:${OMLORIX_VERSION:-local}
+
+  automation_worker:
+    build:
+      context: ./backend
+      target: prod
+    image: omlorix-backend:${OMLORIX_VERSION:-local}
+
+  email_worker:
+    build:
+      context: ./backend
+      target: prod
+    image: omlorix-backend:${OMLORIX_VERSION:-local}
+
+  operations_worker:
+    build:
+      context: ./backend
+      target: prod
+    image: omlorix-backend:${OMLORIX_VERSION:-local}
+
+  generation_worker:
+    build:
+      context: ./backend
+      target: prod
+    image: omlorix-backend:${OMLORIX_VERSION:-local}
+
+  research_worker:
+    build:
+      context: ./backend
+      target: prod
+    image: omlorix-backend:${OMLORIX_VERSION:-local}
+
+  file_processing_worker:
+    build:
+      context: ./backend
+      target: prod
+    image: omlorix-backend:${OMLORIX_VERSION:-local}
+
+  account_lifecycle_worker:
+    build:
+      context: ./backend
+      target: prod
+    image: omlorix-backend:${OMLORIX_VERSION:-local}
+
+  maintenance_worker:
+    build:
+      context: ./backend
+      target: prod
+    image: omlorix-backend:${OMLORIX_VERSION:-local}
+
+  rendering_worker:
+    build:
+      context: ./backend
+      target: prod
+    image: omlorix-backend:${OMLORIX_VERSION:-local}
+
+  media_worker:
+    build:
+      context: ./backend
+      target: prod
+    image: omlorix-backend:${OMLORIX_VERSION:-local}
+
+  connector_worker:
+    build:
+      context: ./backend
+      target: prod
+    image: omlorix-backend:${OMLORIX_VERSION:-local}
+
+  audit_event_worker:
+    build:
+      context: ./backend
+      target: prod
+    image: omlorix-backend:${OMLORIX_VERSION:-local}
+
+  realtime_gateway:
+    build:
+      context: ./backend
+      target: prod
+    image: omlorix-backend:${OMLORIX_VERSION:-local}
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      target: prod
+    image: omlorix-frontend:${OMLORIX_VERSION:-local}

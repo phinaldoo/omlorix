@@ -1,0 +1,228 @@
+/* Shared admin-style single select used by schema rendering and setup pages. */
+.admin-select {
+    /*
+     * Admin pages provide the first-choice values from admin/init.css. Setup
+     * and chat pages intentionally use the shared semantic fallbacks instead
+     * of importing the complete admin palette for this one component.
+     */
+    --admin-select-border: var(--admin-border, var(--border-color));
+    --admin-select-border-subtle: var(--admin-border-subtle, var(--border-color));
+    --admin-select-radius: var(--admin-radius-sm, 8px);
+    --admin-select-text: var(--admin-text, var(--text-color));
+    --admin-select-text-secondary: var(--admin-text-secondary, var(--text-color-secondary));
+    --admin-select-text-tertiary: var(--admin-text-tertiary, var(--text-color-tertiary));
+    --admin-select-transition: var(--admin-transition, 0.15s ease);
+    --admin-select-surface: var(--bg-normal-elevated, var(--surface-elevated, var(--background)));
+    --admin-select-search-surface: var(--admin-bg, var(--surface-muted, var(--background)));
+    --admin-select-shadow: var(--admin-shadow, var(--surface-elevated-shadow));
+    --admin-select-hover: var(--admin-hover, var(--hover));
+    --admin-select-selected: var(--admin-accent-subtle, var(--primary-light));
+    position: relative;
+    width: 100%;
+    min-width: 160px;
+}
+
+.admin-select-trigger {
+    width: 100%;
+    height: 40px;
+    padding: 0 40px 0 14px;
+    border: 1px solid var(--admin-select-border);
+    border-radius: var(--admin-select-radius);
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--admin-select-text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    text-align: left;
+    transition: all var(--admin-select-transition);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .admin-select-trigger:hover {
+        border-color: var(--admin-select-text-tertiary);
+    }
+}
+
+.admin-select-trigger:focus {
+    outline: none;
+    border-color: var(--admin-select-text);
+}
+
+.admin-select-trigger.placeholder .admin-select-value {
+    color: var(--admin-select-text-tertiary);
+}
+
+.admin-select-value {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.admin-select-caret {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: grid;
+    place-items: center;
+    width: 16px;
+    height: 16px;
+    color: var(--admin-select-text-tertiary);
+    pointer-events: none;
+    transition: transform var(--admin-select-transition);
+}
+
+.admin-select-caret svg {
+    /* The shared chevron is authored at 20px, so constrain it to its 16px caret slot. */
+    display: block;
+    width: 16px;
+    height: 16px;
+}
+
+.admin-select.open .admin-select-caret {
+    transform: translateY(-50%) rotate(180deg);
+}
+
+.admin-select-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: var(--admin-select-surface);
+    border: 1px solid var(--admin-select-border);
+    border-radius: var(--admin-select-radius);
+    box-shadow: var(--admin-select-shadow);
+    max-height: 240px;
+    overflow-y: auto;
+    padding: 4px;
+    opacity: 0;
+    transform: translateY(-4px);
+    pointer-events: none;
+    transition: all var(--admin-select-transition);
+    z-index: 100;
+}
+
+.admin-select.open .admin-select-menu {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+/* Searchable variant: the search row mirrors the admin stylesheet so the
+   searchable widget renders identically on non-admin pages. */
+.admin-select-search {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--admin-select-border-subtle);
+    background: var(--admin-select-search-surface);
+}
+
+.admin-select-search.admin-select-search-show-focus .admin-select-search-input:focus,
+.admin-select-search.admin-select-search-show-focus .admin-select-search-input:focus-visible {
+    outline: 2px solid var(--admin-select-text);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+.admin-select-search-icon {
+    width: 16px;
+    height: 16px;
+    color: var(--admin-select-text-secondary);
+    flex-shrink: 0;
+}
+
+.admin-select-search-icon svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+}
+
+.admin-select-search-input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    background: transparent;
+    font-size: 13px;
+    color: var(--admin-select-text);
+    outline: none;
+    font-family: inherit;
+}
+
+.admin-select-search-input::placeholder {
+    color: var(--admin-select-text-secondary);
+}
+
+.admin-select-option {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    color: var(--admin-select-text);
+    cursor: pointer;
+    text-align: left;
+    transition: background var(--admin-select-transition);
+}
+
+.admin-select-option[hidden] {
+    display: none;
+}
+
+.admin-select-option.keyboard-focus {
+    background: var(--admin-select-hover);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .admin-select-option:hover {
+        background: var(--admin-select-hover);
+    }
+}
+
+.admin-select-option.selected {
+    background: var(--admin-select-selected);
+}
+
+.admin-select-option-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--admin-select-text-tertiary);
+    transition: all var(--admin-select-transition);
+}
+
+.admin-select-option.selected .admin-select-option-dot {
+    background: var(--admin-select-text);
+    transform: scale(1.3);
+}
+
+.admin-select-option-text {
+    flex: 1;
+}
+
+.admin-select-empty {
+    padding: 16px;
+    font-size: 14px;
+    color: var(--admin-select-text-tertiary);
+    text-align: center;
+}
+
+.admin-select-native {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    overflow: hidden;
+    white-space: nowrap;
+}

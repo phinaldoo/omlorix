@@ -1,0 +1,7 @@
+{
+  "page_title": "Erreur",
+  "message": "Un problème est survenu",
+  "description": "Impossible de charger la page demandée. Il peut s’agir d’un problème temporaire : réessayez ou revenez à l’accueil.",
+  "btn_home": "Revenir à l'accueil",
+  "help_text": "Si le problème persiste, essayez de vider le cache de votre navigateur ou contactez votre administrateur."
+}

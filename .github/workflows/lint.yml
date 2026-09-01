@@ -1,0 +1,93 @@
+name: Lint (Lightweight)
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+concurrency:
+  group: lint-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  python-static-analysis:
+    name: Python static analysis
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+          architecture: arm64
+
+
+      - name: Install dependencies
+        run: |
+          python -m venv .venv
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+          . .venv/bin/activate
+          python -m pip install --upgrade pip
+          python -m pip install --no-cache-dir --require-hashes \
+            -r app/requirements.txt \
+            -r app/requirements-dev.txt
+        working-directory: backend
+
+      - name: Run Ruff
+        run: |
+          python -m ruff check app tests --select E9,F821
+        working-directory: backend
+
+      - name: Verify Ruff rejects undefined names
+        run: |
+          set +e
+          output="$(python -m ruff check lint_fixtures/undefined_name.py --select F821 2>&1)"
+          ruff_exit_code=$?
+          set -e
+          printf '%s\n' "$output"
+          test "$ruff_exit_code" -eq 1
+          printf '%s\n' "$output" | grep -q 'F821'
+        working-directory: backend
+
+      - name: Basic syntax/lint guardrails
+        run: |
+          python -m compileall -q app
+          python -m compileall -q tests
+        working-directory: backend
+
+      - name: Verify pytest collection
+        run: |
+          python -m pytest --collect-only -q
+        working-directory: backend
+
+  javascript-static-analysis:
+    name: JavaScript static analysis
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+
+      - name: Install dependencies
+        run: |
+          npm ci --ignore-scripts
+
+      - name: Run ESLint
+        run: |
+          npm run lint:js

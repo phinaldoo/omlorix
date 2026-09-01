@@ -1,0 +1,1321 @@
+/* ===================== */
+/* Provider & Model List */
+/* ===================== */
+.provider-list,
+.model-list {
+    background: var(--bg-normal);
+    border-radius: var(--admin-radius);
+    border: 1px solid var(--admin-border);
+    overflow: hidden;
+    margin-bottom: 24px;
+}
+
+.provider-table-header,
+.model-table-header {
+    display: grid;
+    grid-template-columns: 60px 1fr 1fr 100px 120px;
+    gap: 16px;
+    padding: 14px 20px;
+    background: var(--admin-bg);
+    border-bottom: 1px solid var(--admin-border-subtle);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--admin-text-tertiary);
+}
+
+.model-table-header {
+    grid-template-columns: 60px 140px 1fr auto;
+}
+
+.provider-table-header .header-actions,
+.model-table-header .header-actions {
+    justify-self: end;
+}
+
+.provider-row {
+    display: grid;
+    grid-template-columns: 60px 1fr 1fr 100px 120px;
+    gap: 16px;
+    padding: 14px 20px;
+    align-items: center;
+    border-bottom: 1px solid var(--admin-border-subtle);
+    transition: background var(--admin-transition);
+}
+
+.provider-row:last-child {
+    border-bottom: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .provider-row:hover {
+        background: var(--admin-hover);
+    }
+}
+
+.provider-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.provider-icon svg {
+    width: 32px;
+    height: 32px;
+    color: var(--admin-text);
+}
+
+.provider-icon img {
+    width: 32px;
+    height: 32px;
+    object-fit: cover;
+    display: block;
+    border-radius: 50%;
+}
+
+.provider-name,
+.provider-custom {
+    font-size: 14px;
+    color: var(--admin-text);
+    font-weight: 500;
+}
+
+.provider-custom {
+    color: var(--admin-text-secondary);
+    font-weight: 400;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.provider-custom .model-meta {
+    display: block;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.provider-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.provider-status-label {
+    font-size: 13px;
+    color: var(--admin-text-secondary);
+}
+
+.provider-status .status-indicator {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    flex-shrink: 0;
+    transition: background var(--admin-transition), color var(--admin-transition), transform var(--admin-transition);
+}
+
+.provider-actions {
+    display: flex;
+    gap: 4px;
+    justify-self: end;
+}
+
+/* ===================== */
+/* User List             */
+/* ===================== */
+.user-list {
+    background: var(--bg-normal);
+    border-radius: var(--admin-radius);
+    border: 1px solid var(--admin-border);
+    overflow: hidden;
+    margin-bottom: 24px;
+}
+
+.user-table-header {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 16px;
+    padding: 14px 20px;
+    background: var(--admin-bg);
+    border-bottom: 1px solid var(--admin-border-subtle);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--admin-text-tertiary);
+}
+
+.user-row {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 16px;
+    padding: 14px 20px;
+    align-items: center;
+    border-bottom: 1px solid var(--admin-border-subtle);
+    transition: background var(--admin-transition);
+    cursor: pointer;
+}
+
+.user-row:last-child {
+    border-bottom: none;
+}
+
+.user-row:focus-visible {
+    outline: 2px solid var(--admin-accent);
+    outline-offset: -2px;
+}
+
+.user-row-protected {
+    cursor: default;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .user-row:not(.user-row-protected):hover {
+        background: var(--admin-hover);
+    }
+}
+
+.user-name {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.user-name-primary {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--admin-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.user-name-secondary {
+    font-size: 12px;
+    color: var(--admin-text-tertiary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.user-email,
+.user-group,
+.user-role,
+.user-last-active {
+    font-size: 14px;
+    color: var(--admin-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.user-role {
+    cursor: pointer;
+}
+
+.user-account-control-disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+
+.user-last-active {
+    color: var(--admin-text-secondary);
+    font-size: 13px;
+}
+
+.user-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.user-status .status-indicator {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    flex-shrink: 0;
+    transition: background var(--admin-transition), color var(--admin-transition), transform var(--admin-transition);
+}
+
+.user-status-label {
+    font-size: 13px;
+}
+
+.user-actions {
+    display: flex;
+    gap: 4px;
+    justify-self: end;
+}
+
+.deleted-users-list {
+    /* Header and row are separate grids, so keep their column tracks defined once. */
+    --deleted-users-actions-column: 104px;
+    --deleted-users-grid-columns:
+        minmax(160px, 1.1fr)
+        minmax(220px, 1.35fr)
+        minmax(140px, 1fr)
+        minmax(180px, 1fr)
+        var(--deleted-users-actions-column);
+    margin-bottom: 0;
+}
+
+.deleted-users-table-header,
+.deleted-user-row {
+    grid-template-columns: var(--deleted-users-grid-columns);
+}
+
+.deleted-users-table-header > * {
+    justify-self: start;
+    min-width: 0;
+}
+
+.deleted-users-table-header .header-actions {
+    justify-self: stretch;
+    text-align: center;
+}
+
+.deleted-user-actions {
+    justify-self: stretch;
+    justify-content: center;
+}
+
+.deleted-user-scheduled .no-schedule {
+    color: var(--admin-text-tertiary);
+    font-style: italic;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .deleted-user-actions .restore-btn:hover {
+        background: var(--admin-success-bg);
+        color: var(--admin-success);
+    }
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .deleted-user-actions .cancel-btn:hover {
+        background: var(--admin-warning-bg, #fef3cd);
+        color: var(--admin-warning, #856404);
+    }
+}
+
+.role-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: capitalize;
+    background: var(--admin-accent-subtle);
+    color: var(--admin-text);
+}
+
+.role-user {
+    background: var(--admin-success-bg);
+    color: var(--admin-success);
+}
+
+.role-admin {
+    background: var(--admin-error-bg);
+    color: var(--admin-error);
+}
+
+.role-owner {
+    background: var(--admin-warning-bg);
+    color: var(--admin-warning);
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.status-active {
+    background: var(--admin-success-bg);
+    color: var(--admin-success);
+}
+
+.status-inactive {
+    background: var(--admin-error-bg);
+    color: var(--admin-error);
+}
+
+.status-unknown {
+    background: var(--admin-warning-bg, #fef3cd);
+    color: var(--admin-warning, #856404);
+}
+
+.provider-status .status-indicator svg {
+    width: 12px;
+    height: 12px;
+}
+
+/* ===================== */
+/* Icon Picker           */
+/* ===================== */
+.icon-picker {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.icon-picker-control-wrapper {
+    max-width: 100% !important;
+    width: 100%;
+}
+
+.icon-picker-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    background: var(--admin-bg);
+    border-radius: var(--admin-radius-sm);
+    width: fit-content;
+}
+
+.icon-picker-tab {
+    appearance: none;
+    border: none;
+    background: transparent;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--admin-text-secondary);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all var(--admin-transition);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .icon-picker-tab:hover {
+        color: var(--admin-text);
+    }
+}
+
+.icon-picker-tab.active {
+    background: var(--bg-normal);
+    color: var(--admin-text);
+    box-shadow: var(--admin-shadow-sm);
+}
+
+/* Keep keyboard focus visible without adding a persistent ring after touch input. */
+.icon-picker-tab:focus-visible,
+.icon-picker-icon-btn:focus-visible {
+    outline: 2px solid var(--admin-info);
+    outline-offset: 2px;
+}
+
+.icon-picker-content {
+    position: relative;
+}
+
+.icon-picker-panel {
+    display: none;
+}
+
+.icon-picker-panel.active {
+    display: block;
+}
+
+.icon-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 8px;
+    max-height: 240px;
+    overflow-y: auto;
+    padding: 8px;
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius);
+    background: var(--bg-normal);
+}
+
+.icon-picker-grid::-webkit-scrollbar {
+    width: 6px;
+}
+
+.icon-picker-grid::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.icon-picker-grid::-webkit-scrollbar-thumb {
+    background: var(--admin-scrollbar);
+    border-radius: 6px;
+}
+
+.icon-picker-icon-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 12px 8px;
+    border: 2px solid transparent;
+    border-radius: var(--admin-radius-sm);
+    background: var(--bg-normal);
+    cursor: pointer;
+    transition: all var(--admin-transition);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .icon-picker-icon-btn:hover {
+        background: var(--admin-hover);
+        border-color: var(--admin-border);
+    }
+}
+
+.icon-picker-icon-btn.selected {
+    background: var(--admin-info-bg);
+    border-color: var(--admin-info);
+}
+
+.icon-picker-icon-preview {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    color: var(--admin-text);
+}
+
+.icon-picker-icon-preview svg {
+    width: 24px;
+    height: 24px;
+}
+
+.icon-picker-icon-label {
+    font-size: 10px;
+    color: var(--admin-text-secondary);
+    text-align: center;
+    line-height: 1.2;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.icon-picker-custom-wrapper {
+    /* Keep the editor and its preview in stable columns. A flex item with
+       width: 100% can consume the whole row before it is allowed to shrink,
+       which leaves the preview squeezed against the right edge. */
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(156px, 196px);
+    grid-template-areas: "controls preview";
+    gap: 16px;
+    align-items: stretch;
+    padding: 16px;
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius);
+    background: var(--admin-bg);
+}
+
+.icon-picker-image-wrapper {
+    /* Mirror the SVG editor layout so switching tabs does not move the
+       preview to an unrelated position. The right column is reserved for
+       the image preview while upload feedback stays with the controls. */
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(156px, 196px);
+    grid-template-areas: "controls preview";
+    gap: 16px;
+    align-items: stretch;
+    padding: 16px;
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius);
+    background: var(--admin-bg);
+}
+
+.icon-picker-control-stack {
+    grid-area: controls;
+    min-width: 0;
+    min-height: 184px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.icon-picker-image-toolbar {
+    min-width: 0;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.icon-picker-image-input {
+    display: none;
+}
+
+.icon-picker-upload-btn {
+    appearance: none;
+    border: 1px solid var(--admin-border);
+    background: var(--bg-normal);
+    color: var(--admin-text);
+    padding: 8px 14px;
+    min-height: 40px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all var(--admin-transition);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .icon-picker-upload-btn:hover {
+        background: var(--admin-hover);
+        border-color: var(--admin-text-tertiary);
+    }
+}
+
+.icon-picker-image-hint,
+.icon-picker-image-status {
+    min-width: 0;
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.icon-picker-image-hint {
+    color: var(--admin-text-secondary);
+}
+
+.icon-picker-image-status {
+    color: var(--admin-text-secondary);
+    min-height: 18px;
+}
+
+.icon-picker-image-status[data-state="error"] {
+    color: var(--admin-danger);
+}
+
+.icon-picker-image-status[data-state="ready"] {
+    color: var(--admin-success);
+}
+
+.icon-picker-custom-input {
+    width: 100%;
+    min-width: 0;
+    min-height: 156px;
+    resize: vertical;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    background: var(--bg-normal);
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-sm);
+    padding: 12px;
+    color: var(--admin-text);
+}
+
+.icon-picker-custom-input:focus {
+    outline: none;
+    border-color: var(--admin-text);
+}
+
+.icon-picker-custom-input::placeholder {
+    color: var(--admin-text-tertiary);
+}
+
+.icon-picker-custom-preview-container {
+    grid-area: preview;
+    min-width: 0;
+    min-height: 184px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: stretch;
+    padding: 12px;
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-sm);
+    background: var(--bg-normal);
+}
+
+.icon-picker-custom-preview-label {
+    align-self: flex-start;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--admin-text-secondary);
+}
+
+.icon-picker-custom-preview {
+    width: min(100%, 128px);
+    aspect-ratio: 1;
+    height: auto;
+    min-height: 0;
+    align-self: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-sm);
+    background: var(--admin-bg);
+    color: var(--admin-text);
+    overflow: hidden;
+}
+
+.icon-picker-custom-preview svg {
+    width: 72px;
+    height: 72px;
+    max-width: 82%;
+    max-height: 82%;
+}
+
+.icon-picker-custom-preview img,
+.icon-picker-selection-icon img,
+.icon-picker-icon-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    border-radius: 50%;
+}
+
+.icon-picker-no-preview {
+    font-size: 11px;
+    color: var(--admin-text-tertiary);
+    text-align: center;
+}
+
+.icon-picker-custom-actions {
+    width: 100%;
+    display: flex;
+    gap: 8px;
+    margin-top: auto;
+}
+
+.icon-picker-clear-btn {
+    appearance: none;
+    border: 1px solid var(--admin-border);
+    background: var(--bg-normal);
+    color: var(--admin-text-secondary);
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all var(--admin-transition);
+}
+
+.icon-picker-upload-btn:focus-visible,
+.icon-picker-clear-btn:focus-visible,
+.icon-picker-custom-input:focus-visible {
+    outline: 2px solid var(--admin-info);
+    outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .icon-picker-clear-btn:hover {
+        background: var(--admin-hover);
+        border-color: var(--admin-text-tertiary);
+    }
+}
+
+.icon-picker-selection {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--admin-bg);
+    border-radius: var(--admin-radius-sm);
+    border: 1px solid var(--admin-border);
+}
+
+.icon-picker-selection-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--admin-text-secondary);
+}
+
+.icon-picker-selection-preview {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.icon-picker-selection-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    color: var(--admin-text);
+}
+
+.delete-warning-card--import {
+    padding: 0;
+    text-align: left;
+}
+
+.delete-warning-card--import.user-export-jobs-modal {
+    --shared-modal-width: 820px;
+}
+
+.provider-import-header > div {
+    min-width: 0;
+}
+
+.provider-import-shared-body.shared-modal-body {
+    padding: 0;
+}
+
+.provider-import-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 24px 0;
+    flex-wrap: wrap;
+}
+
+.provider-import-body {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 20px 24px;
+}
+
+.provider-import-select-all {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.92rem;
+    color: var(--admin-text-secondary, inherit);
+}
+
+.provider-import-file {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    min-height: 24px;
+    color: var(--admin-text-secondary, inherit);
+}
+
+.provider-import-file p,
+.provider-import-file div {
+    margin: 0;
+}
+
+.provider-import-search {
+    width: min(100%, 360px);
+}
+
+#userChatTransferOverlay .provider-import-controls {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+}
+
+#userChatTransferOverlay .provider-import-file {
+    min-height: 0;
+    overflow-wrap: anywhere;
+}
+
+#userChatTransferOverlay .provider-import-search {
+    width: 100%;
+}
+
+.provider-import-list {
+    margin: 18px 24px;
+    padding: 8px;
+    border: 1px solid var(--admin-border, rgba(15, 23, 42, 0.08));
+    border-radius: 16px;
+    background: var(--admin-bg, #f8fafc);
+    overflow: auto;
+    min-height: 120px;
+    max-height: min(48vh, 420px);
+}
+
+.provider-import-entry {
+    width: 100%;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.provider-import-entry + .provider-import-entry {
+    margin-top: 4px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .provider-import-entry:hover {
+        background: rgba(15, 23, 42, 0.05);
+    }
+}
+
+.provider-import-entry:focus-visible {
+    outline: 2px solid rgba(37, 99, 235, 0.72);
+    outline-offset: 3px;
+    background: rgba(37, 99, 235, 0.08);
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.14);
+}
+
+.provider-import-entry[aria-selected="true"],
+.provider-import-entry.selected {
+    background: rgba(59, 130, 246, 0.12);
+    box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.18);
+}
+
+.provider-import-entry input {
+    margin-top: 2px;
+}
+
+.provider-import-entry-content {
+    min-width: 0;
+}
+
+.provider-import-entry-title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--admin-text, inherit);
+}
+
+.provider-import-entry-meta {
+    margin-top: 4px;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    color: var(--admin-text-secondary, inherit);
+    word-break: break-word;
+}
+
+.provider-import-credential-field {
+    margin-top: 12px;
+    cursor: default;
+}
+
+.provider-import-api-key-input {
+    width: 100%;
+    margin-top: 6px;
+    cursor: text;
+}
+
+.provider-import-entry input.provider-import-api-key-input {
+    margin-top: 6px;
+}
+
+.provider-import-credential-hint {
+    margin-top: 6px;
+}
+
+.provider-import-empty {
+    padding: 18px 12px;
+    color: var(--admin-text-secondary, inherit);
+    text-align: center;
+}
+
+.provider-import-options {
+    display: grid;
+    gap: 14px;
+    margin: 18px 24px;
+    padding: 16px;
+    border: 1px solid var(--admin-border, rgba(15, 23, 42, 0.08));
+    border-radius: 14px;
+    background: var(--admin-bg, #f8fafc);
+}
+
+.provider-import-option-field {
+    display: grid;
+    gap: 8px;
+}
+
+.provider-import-option-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    color: var(--admin-text, inherit);
+}
+
+.provider-import-option-toggle-text {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+}
+
+.provider-import-option-title {
+    font-size: 0.94rem;
+    font-weight: 600;
+}
+
+.provider-import-option-desc {
+    margin: 0;
+    color: var(--admin-text-secondary, inherit);
+    font-size: 0.86rem;
+    line-height: 1.4;
+}
+
+.provider-import-status {
+    margin: 16px 24px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: var(--admin-info-bg, rgba(59, 130, 246, 0.1));
+    color: var(--admin-text-secondary, inherit);
+    font-size: 0.92rem;
+    line-height: 1.45;
+}
+
+.provider-import-status-message {
+    margin: 0;
+}
+
+.provider-import-error-list {
+    display: grid;
+    gap: 8px;
+    margin: 10px 0 0;
+    padding-left: 18px;
+}
+
+.provider-import-error-item {
+    overflow-wrap: anywhere;
+}
+
+.provider-import-error-label {
+    color: var(--admin-text, inherit);
+    font-weight: 600;
+}
+
+.provider-import-error-reason {
+    color: var(--admin-text-secondary, inherit);
+}
+
+.provider-import-entry.has-error {
+    border-color: var(--admin-danger-border, rgba(220, 38, 38, 0.35));
+}
+
+.provider-import-entry-error {
+    margin: 8px 0 0;
+    color: var(--admin-danger-text, #b91c1c);
+    font-size: 0.84rem;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.provider-import-description {
+    margin: 0;
+    font-size: 0.92rem;
+    line-height: 1.45;
+    color: var(--admin-text-secondary, inherit);
+}
+
+.provider-import-controls + .provider-import-description {
+    margin: 12px 24px 0;
+}
+
+@media (max-width: 640px) {
+    .provider-import-body,
+    .provider-import-controls {
+        padding-left: 18px;
+        padding-right: 18px;
+    }
+
+    .provider-import-list,
+    .provider-import-options,
+    .provider-import-status {
+        margin-left: 18px;
+        margin-right: 18px;
+    }
+
+    .provider-import-option-toggle {
+        align-items: flex-start;
+    }
+
+    .provider-import-controls + .provider-import-description {
+        margin-left: 18px;
+        margin-right: 18px;
+    }
+}
+
+/* ==========================================================================
+   Group import modal — refined, minimal layout
+   Scoped to #groupImportOverlay so the shared .provider-import-* styles used
+   by other import modals stay untouched.
+   ========================================================================== */
+
+/* Body: single vertical rhythm, self-contained padding (list no longer needs
+   its own outer margins because it lives inside this padded body). */
+#groupImportOverlay .group-import-body {
+    gap: 16px;
+    padding: 20px 24px 24px;
+}
+
+/* Source file row: a compact card that clearly shows which file is loaded and
+   lets the admin swap it without hunting for a control. */
+#groupImportOverlay .group-import-source {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius);
+    background: var(--admin-bg);
+}
+
+#groupImportOverlay .group-import-source-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+    border-radius: var(--admin-radius-sm);
+    background: var(--admin-accent-subtle);
+    color: var(--admin-text-secondary);
+}
+
+#groupImportOverlay .group-import-source-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* Filename can be long (timestamps); truncate gracefully on one line. */
+#groupImportOverlay .group-import-source-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 0.9rem;
+    color: var(--admin-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#groupImportOverlay .group-import-source-btn {
+    flex-shrink: 0;
+}
+
+/* List header: "Select all" on the left, live selection count on the right. */
+#groupImportOverlay .group-import-list-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+#groupImportOverlay .group-import-select-all {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    font-size: 0.92rem;
+    font-weight: 500;
+    color: var(--admin-text);
+    cursor: pointer;
+}
+
+#groupImportOverlay .group-import-count {
+    font-size: 0.85rem;
+    color: var(--admin-text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Accent-colored native checkboxes keep the control lightweight while matching
+   the monochrome admin accent. */
+#groupImportOverlay .group-import-select-all input[type="checkbox"],
+#groupImportOverlay .group-import-list input[type="checkbox"] {
+    accent-color: var(--admin-accent);
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+/* Status message lives inside the padded, gap-spaced body, so drop the shared
+   outer margins that would otherwise double-inset it. */
+#groupImportOverlay .group-import-body > .provider-import-status {
+    margin: 0;
+}
+
+/* List container sits inside the already-padded body, so drop the shared
+   outer margins and tighten the inner padding. */
+#groupImportOverlay .group-import-list {
+    margin: 0;
+    padding: 6px;
+}
+
+/* Entries: vertically centered, comfortable hit area, monochrome selection. */
+#groupImportOverlay .group-import-list .provider-import-entry {
+    align-items: center;
+    gap: 14px;
+    padding: 12px 14px;
+    border-radius: var(--admin-radius-sm);
+}
+
+#groupImportOverlay .group-import-list .provider-import-entry input {
+    margin-top: 0;
+}
+
+#groupImportOverlay .group-import-list .provider-import-entry:focus-visible {
+    outline: 2px solid var(--admin-accent);
+    outline-offset: 2px;
+    background: var(--admin-accent-subtle);
+    box-shadow: none;
+}
+
+#groupImportOverlay .group-import-list .provider-import-entry[aria-selected="true"] {
+    background: var(--admin-accent-subtle);
+    box-shadow: inset 0 0 0 1px var(--admin-border);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    #groupImportOverlay .group-import-list .provider-import-entry:hover {
+        background: var(--admin-hover);
+    }
+}
+
+/* Group name and its ID metadata. */
+#groupImportOverlay .group-import-list .provider-import-entry-title {
+    font-size: 0.94rem;
+    font-weight: 600;
+}
+
+/* Render the UUID/ID in a subtle monospace pill for easy scanning. */
+#groupImportOverlay .group-import-list .provider-import-entry-meta {
+    margin-top: 4px;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.78rem;
+    color: var(--admin-text-tertiary);
+}
+
+/* Match the reduced horizontal padding the other import modals use on phones. */
+@media (max-width: 640px) {
+    #groupImportOverlay .group-import-body {
+        padding-left: 18px;
+        padding-right: 18px;
+    }
+}
+
+.icon-picker-selection-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+.icon-picker-selection-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--admin-text);
+}
+
+.icon-picker-no-selection {
+    font-size: 13px;
+    color: var(--admin-text-tertiary);
+    font-style: italic;
+}
+
+/* The two-column editor becomes a single readable stack before the form
+   itself becomes narrow enough to force awkwardly small preview cards. */
+@media (max-width: 760px) {
+    .icon-picker-custom-wrapper,
+    .icon-picker-image-wrapper {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas:
+            "controls"
+            "preview";
+        gap: 12px;
+        padding: 12px;
+    }
+
+    .icon-picker-control-stack,
+    .icon-picker-custom-preview-container,
+    .icon-picker-image-wrapper .icon-picker-custom-preview-container {
+        grid-column: 1;
+        grid-row: auto;
+        min-height: 0;
+        width: 100%;
+    }
+
+    .icon-picker-custom-preview {
+        width: min(100%, 112px);
+    }
+}
+
+/*
+ * Long translated mode names cannot reliably share one row on a phone. A
+ * two-column segmented control keeps every option visible and gives each tab a
+ * comfortable touch target. The preset grid joins the page's natural scroll
+ * on small screens so users do not have to operate a nested scroll region.
+ */
+@media (max-width: 640px) {
+    .icon-picker-tabs {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        width: 100%;
+    }
+
+    .icon-picker-tab {
+        min-width: 0;
+        min-height: 44px;
+        padding: 8px 10px;
+        line-height: 1.25;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    /* With three modes, let the final mode span the full second row rather
+       than leaving an unbalanced half-width segment. */
+    .icon-picker-tab:last-child:nth-child(odd) {
+        grid-column: 1 / -1;
+    }
+
+    .icon-picker-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        max-height: none;
+        overflow-y: visible;
+        padding: 6px;
+    }
+
+    .icon-picker-icon-btn {
+        min-width: 0;
+        min-height: 88px;
+        padding: 10px 4px;
+    }
+
+    .icon-picker-icon-label {
+        width: 100%;
+    }
+
+    .icon-picker-selection {
+        min-height: 48px;
+        flex-wrap: wrap;
+    }
+
+    .icon-picker-upload-btn {
+        width: 100%;
+    }
+}
+
+.settings-row.column .icon-picker-control-wrapper {
+    width: 100%;
+}
+
+.settings-row.column .settings-row-left {
+    height: auto;
+}

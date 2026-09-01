@@ -1,0 +1,618 @@
+/* ============================================================================
+   Bookmarks Section Styles
+   ============================================================================ */
+
+.prompt-library-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.prompt-library-search {
+    flex: 1 1 260px;
+    min-width: 220px;
+}
+
+.prompt-library-search input {
+    width: 100%;
+}
+
+.prompt-library-loading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--text-color-secondary);
+    padding: 12px 0;
+}
+
+.prompt-library-empty {
+    margin-bottom: 12px;
+}
+
+.prompt-editor-revision-meta {
+    margin: -4px 0 4px;
+    color: var(--text-color-tertiary);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+
+.prompt-editor-conflict {
+    border: 1px solid var(--border-color);
+    border-color: color-mix(in srgb, var(--warning-color, var(--primary-color)) 55%, var(--border-color));
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    background: color-mix(in srgb, var(--warning-color, var(--primary-color)) 6%, transparent);
+}
+
+.prompt-editor-conflict[hidden] {
+    display: none;
+}
+
+.prompt-editor-conflict-header h3 {
+    margin: 0;
+    color: var(--text-color);
+    font-size: 14px;
+}
+
+.prompt-editor-conflict-header p {
+    margin: 4px 0 0;
+    color: var(--text-color-secondary);
+    font-size: 12px;
+}
+
+.prompt-editor-conflict-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.prompt-editor-conflict-grid h4 {
+    margin: 0 0 6px;
+    font-size: 12px;
+}
+
+.prompt-editor-conflict-grid pre {
+    margin: 0;
+    padding: 10px;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--text-color) 4%, transparent);
+    color: var(--text-color);
+    font-family: var(--font-courier);
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    max-height: 240px;
+    overflow: auto;
+}
+
+.prompt-editor-conflict-actions {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.prompt-editor-conflict-actions {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+    .prompt-editor-conflict-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ============================================================================
+   Unified Workspace Cards — Memories, Bookmarks, Prompts
+   A single, refined, minimalist surface system shared across all three views.
+   ============================================================================ */
+
+/* ---------- Card grids / lists ------------------------------------------- */
+.prompt-library-list,
+.bookmarks-list,
+.memories-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 10px;
+    padding-top: 14px;
+}
+
+/* ---------- Base card surface -------------------------------------------- */
+.prompt-library-card,
+.bookmark-card,
+.memory-item {
+    position: relative;
+    width: 100%;
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    text-align: left;
+    color: var(--text-color);
+    cursor: default;
+    transition: border-color 0.18s ease, background-color 0.18s ease;
+}
+
+.bookmark-card {
+    cursor: pointer;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .prompt-library-card:hover,
+    .bookmark-card:hover,
+    .memory-item:hover {
+        border-color: color-mix(in srgb, var(--text-color) 20%, transparent);
+        background: color-mix(in srgb, var(--text-color) 2.5%, var(--background));
+    }
+}
+
+/* ---------- Card header (title row + actions) ---------------------------- */
+.prompt-library-card-header,
+.bookmark-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    min-height: 24px;
+}
+
+.prompt-library-card-header > div:first-child {
+    min-width: 0;
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+/* Agent cards use a compact identity row so the icon, custom name, and base
+   model remain visually connected and vertically centered. */
+.prompt-library-card-header > div.agent-library-card-identity {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: nowrap;
+}
+
+.agent-library-card-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--text-color) 6%, transparent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex: 0 0 40px;
+}
+
+.agent-library-card-icon svg,
+.agent-library-card-icon img {
+    max-width: 100%;
+    max-height: 100%;
+}
+
+.agent-library-card-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.agent-library-card-identity > .prompt-library-card-title {
+    flex: 0 1 auto;
+    max-width: 40%;
+}
+
+.agent-library-card-model {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+    color: var(--text-color-tertiary);
+    font-size: 11px;
+    line-height: 1.35;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.agent-library-card-meta {
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+}
+
+/* ---------- Titles ------------------------------------------------------- */
+.prompt-library-card-title,
+.bookmark-card-chat-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-color);
+    line-height: 1.35;
+    letter-spacing: -0.005em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+/* ---------- Meta row under the title ------------------------------------ */
+.prompt-library-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    font-size: 11px;
+    color: var(--text-color-tertiary);
+    flex-wrap: wrap;
+}
+
+/* ---------- Card body text ---------------------------------------------- */
+.prompt-library-card-description,
+.bookmark-card-content,
+.memory-item-content {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.55;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    word-break: break-word;
+}
+
+.memory-item-actions {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+}
+
+.memory-item-action {
+    min-height: 30px;
+    padding: 5px 9px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-color-secondary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.2;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.memory-item-action > span[aria-hidden="true"] {
+    display: inline-flex;
+}
+
+.memory-item-action svg {
+    width: 15px;
+    height: 15px;
+}
+
+.memory-item-action:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+.memory-item-action:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .memory-item-action:hover:not(:disabled) {
+        background: color-mix(in srgb, var(--text-color) 7%, transparent);
+        color: var(--text-color);
+    }
+
+    .memory-item-delete:hover:not(:disabled) {
+        background: color-mix(in srgb, var(--error-color) 12%, transparent);
+        color: var(--error-color);
+    }
+}
+
+/* Prompt code preview — neutral block, minimal chrome */
+.prompt-library-card-content {
+    font-family: var(--font-courier);
+    font-size: 12px;
+    background: color-mix(in srgb, var(--text-color) 3.5%, transparent);
+    border-radius: 10px;
+    padding: 10px 12px;
+    white-space: pre-wrap;
+    max-height: 96px;
+    overflow: hidden;
+    color: var(--text-color);
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    line-clamp: 4;
+    -webkit-box-orient: vertical;
+    line-height: 1.5;
+    margin: 0;
+}
+
+/* ---------- Unified pill badges ----------------------------------------- */
+.prompt-library-badge,
+.bookmark-card-role-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.5;
+    letter-spacing: 0;
+    text-transform: none;
+    background: color-mix(in srgb, var(--text-color) 5%, transparent);
+    color: var(--text-color-secondary);
+    border: none;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.prompt-library-badge.mine,
+.bookmark-card-role-badge.role-user {
+    background: color-mix(in srgb, var(--primary-color) 10%, transparent);
+    color: var(--primary-color);
+}
+
+.prompt-library-badge.shared,
+.bookmark-card-role-badge.role-assistant {
+    background: color-mix(in srgb, var(--text-color) 5%, transparent);
+    color: var(--text-color-secondary);
+}
+
+.bookmark-card-role-badge svg {
+    flex-shrink: 0;
+    width: 12px;
+    height: 12px;
+}
+
+.prompt-library-owner {
+    font-size: 11px;
+    color: var(--text-color-tertiary);
+}
+
+/* ---------- Action rows -------------------------------------------------- */
+.prompt-library-card-actions,
+.bookmark-card-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+}
+
+/* Keep prompt card actions under the preview content and pinned to the card bottom. */
+.prompt-library-card > .prompt-library-card-actions {
+    margin-top: auto;
+    flex-wrap: wrap;
+}
+
+/* User prompt and agent cards mirror memory cards: preview, updated timestamp,
+   then a dedicated action row aligned to the card's right content edge. */
+.user-prompt-card > .prompt-library-card-actions,
+.agent-library-card > .prompt-library-card-actions {
+    width: 100%;
+    margin-top: 0;
+    justify-content: flex-end;
+}
+
+/* Prompt card text actions */
+.prompt-card-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 30px;
+    padding: 5px 11px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-color-secondary);
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.2;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .prompt-card-btn:hover {
+        background: color-mix(in srgb, var(--text-color) 6%, transparent);
+        color: var(--text-color);
+    }
+}
+
+.prompt-card-btn.use {
+    background: var(--primary-color);
+    color: #fff;
+    border-color: var(--primary-color);
+    font-weight: 600;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .prompt-card-btn.use:hover {
+        background: color-mix(in srgb, var(--primary-color) 88%, #000);
+        color: #fff;
+    }
+}
+
+.prompt-card-btn.danger {
+    color: var(--text-color-secondary);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .prompt-card-btn.danger:hover {
+        background: color-mix(in srgb, var(--error-color) 12%, transparent);
+        color: var(--error-color);
+    }
+}
+
+/* Bookmark icon actions */
+.bookmark-card-action-btn {
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: var(--text-color-tertiary);
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.bookmark-card-action-btn svg {
+    width: 15px;
+    height: 15px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .bookmark-card-action-btn:hover {
+        background: color-mix(in srgb, var(--text-color) 8%, transparent);
+        color: var(--text-color);
+    }
+
+    .bookmark-card-remove:hover {
+        background: color-mix(in srgb, var(--error-color) 12%, transparent);
+        color: var(--error-color);
+    }
+}
+
+/* ---------- Footers (meta strip at the bottom of cards) ----------------- */
+.prompt-library-card-updated,
+.bookmark-card-meta,
+.memory-item-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-top: 10px;
+    margin-top: auto;
+    border-top: 1px solid color-mix(in srgb, var(--border-color) 70%, transparent);
+    font-size: 11px;
+    color: var(--text-color-tertiary);
+    min-height: 28px;
+}
+
+.prompt-library-card-updated {
+    justify-content: flex-end;
+}
+
+.bookmark-card-date,
+.memory-item-date,
+.memory-item-updated {
+    font-size: 11px;
+    color: var(--text-color-tertiary);
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Bookmarks now show only the saved timestamp in the footer. */
+.bookmark-card-meta {
+    justify-content: flex-end;
+}
+
+.bookmark-card-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+}
+
+/* ---------- Loading & empty / no-results states ------------------------- */
+.prompt-library-loading,
+.bookmarks-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 56px 20px;
+    gap: 14px;
+    color: var(--text-color-secondary);
+    font-size: 13px;
+}
+
+.prompt-library-empty,
+.bookmarks-empty {
+    margin: 8px 0;
+}
+
+.bookmarks-no-results {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    color: var(--text-color-secondary);
+    font-size: 13px;
+    text-align: center;
+}
+
+.bookmarks-controls {
+    margin-bottom: 4px;
+}
+
+/* ---------- Mobile ------------------------------------------------------- */
+@media (max-width: 768px) {
+    .prompt-library-list,
+    .bookmarks-list,
+    .memories-list {
+        grid-template-columns: 1fr;
+    }
+
+    .prompt-library-card,
+    .bookmark-card,
+    .memory-item {
+        padding: 14px;
+        border-radius: 12px;
+    }
+
+    .bookmarks-empty,
+    .prompt-library-empty { padding: 56px 16px; }
+}
+
+.prompt-accept-description:empty {
+    display: none;
+}
+
+#promptAcceptShareTypeInfo {
+    display: grid;
+    gap: 0.2rem;
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    background: var(--surface-elevated, var(--background));
+}
+
+#promptAcceptShareTypeInfo strong {
+    color: var(--text-color);
+}
+
+#promptAcceptShareTypeInfo span {
+    color: var(--text-color-secondary);
+    line-height: 1.4;
+}
+
+#promptAcceptPreviewContent {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}

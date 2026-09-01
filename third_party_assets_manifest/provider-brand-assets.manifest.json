@@ -1,0 +1,11 @@
+{
+  "official_assets": [],
+  "omlorix_provider_icon": {
+    "registry_keys": [
+      "exa",
+      "github",
+      "mistral",
+      "openai"
+    ]
+  }
+}

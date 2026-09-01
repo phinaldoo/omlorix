@@ -1,0 +1,7 @@
+{
+  "privacy_page_title": "Política de privacidad",
+  "privacy_loading": "Cargando la política de privacidad...",
+  "privacy_load_error": "No se pudo cargar la política de privacidad. Inténtalo de nuevo más tarde.",
+  "privacy_default_template_warning_emphasis": "Importante:",
+  "privacy_default_template_warning": "Esta instancia sigue usando la plantilla de privacidad predeterminada. El operador debe reemplazarla por contenido legal específico de su despliegue."
+}

@@ -1,0 +1,15 @@
+{
+  "subject": "رمز التحقق الخاص بك في {application_name}",
+  "html_title": "رمز التحقق في {application_name}",
+  "headline": "رمز التحقق الخاص بك",
+  "expires_text": "تنتهي صلاحية هذا الرمز خلال {expires_in_minutes} دقيقة.",
+  "ignore_text": "إذا لم تطلب هذا، فيمكنك تجاهل هذا البريد الإلكتروني.",
+  "plain_text_body": "رمز التحقق الخاص بك في {application_name} هو {code}. تنتهي صلاحية هذا الرمز خلال {expires_in_minutes} دقيقة.",
+  "sms_body": "رمز التحقق الخاص بك في {application_name} هو {code}. تنتهي صلاحيته خلال {expires_in_minutes} دقيقة.",
+  "deactivated_subject": "{application_name}: تم تعطيل المصادقة الثنائية",
+  "deactivated_html_title": "تم تعطيل المصادقة الثنائية | {application_name}",
+  "deactivated_headline": "تم تعطيل المصادقة الثنائية",
+  "deactivated_body": "تم تعطيل المصادقة الثنائية لحسابك على {application_name}.",
+  "deactivated_action": "إذا لم تُجرِ هذا التغيير، فسجّل الدخول فورًا وأعد تفعيل المصادقة الثنائية وراجع جلساتك النشطة.",
+  "deactivated_plain_text_body": "تم تعطيل المصادقة الثنائية لحسابك على {application_name}. إذا لم تُجرِ هذا التغيير، فسجّل الدخول فورًا وأعد تفعيل المصادقة الثنائية وراجع جلساتك النشطة."
+}

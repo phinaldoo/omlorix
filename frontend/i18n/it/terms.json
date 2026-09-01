@@ -1,0 +1,7 @@
+{
+  "terms_page_title": "Termini di servizio",
+  "terms_loading": "Caricamento dei termini di servizio...",
+  "terms_load_error": "Impossibile caricare i termini di servizio. Riprova più tardi.",
+  "terms_default_template_warning_emphasis": "Importante:",
+  "terms_default_template_warning": "Questa istanza sta ancora usando il modello predefinito dei Termini di servizio. L’operatore deve sostituirlo con contenuti legali specifici per il deployment prima di abilitare la registrazione pubblica."
+}

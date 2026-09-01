@@ -1,0 +1,188 @@
+.chat-box-area {
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 auto;
+    align-items: center;
+    width: 100%;
+    justify-content: center;
+    padding: 0 8px max(8px, env(safe-area-inset-bottom, 0px)) 8px;
+    box-sizing: border-box;
+}
+.chat-box {
+    width: 80%;
+    max-width: 750px;
+    height: auto;
+    border-radius: 16px;
+    border: 1px solid var(--chat-composer-border, var(--border-color));
+    background: var(--chat-composer-background, var(--input-bg));
+    box-shadow: var(--chat-composer-shadow, none);
+    padding: 8px;
+    transition: width 0.2s ease, max-width 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    container-type: inline-size;
+    container-name: chat-files-layout;
+}
+
+body.chat-area-compact .chat-box {
+    width: 100%;
+    max-width: 100%;
+}
+
+@container chat-layout (max-width: 1000px) {
+    .chat-box {
+        width: 100%;
+        max-width: 100%;
+    }
+}
+.chat-box-top {
+    padding: 0px 10px;
+    position: relative;
+}
+.chat-box-top-input {
+    margin-top: 6px;
+    margin-bottom: 12px;
+    color: var(--text-color);
+    width: 100%;
+    height: 1.5em;
+    max-height: 8em;
+    resize: none;
+    overflow-y: hidden;
+    font-size: 16px;
+    line-height: 1.5;
+    box-sizing: border-box;
+    outline: none;
+}
+.chat-box-top-input::placeholder {
+    color: var(--chat-composer-placeholder, var(--text-color-secondary));
+    opacity: 1;
+}
+.chat-box-top-input:focus {
+    outline: none;
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+    .chat-box {
+        transition: none;
+    }
+}
+
+.chat-box-bottom {
+    display: flex;
+    justify-content: space-between;
+    height: auto;
+    gap: 4px;
+}
+.chat-box-bottom-div {
+    display: flex;
+    gap: 4px;
+}
+
+.chat-box-dropdown {
+    position: relative;
+    z-index: 40;
+}
+.chat-box-dropdown .select-dropdown {
+    top: auto;
+    right: auto;
+    bottom: 48px;
+    left: 0;
+    min-width: 220px;
+    z-index: 40;
+}
+
+.chat-container[data-temp-chat="true"] .chat-box {
+    border-color: var(--text-color);
+}
+
+.chat-container .chat-container-welcome {
+    flex-direction: column;
+}
+
+.temp-chat-subtitle-wrapper {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.temp-chat-subtitle-wrapper[hidden] {
+    display: none;
+}
+
+.chat-container[data-temp-chat="true"] .temp-chat-subtitle-wrapper {
+    grid-template-rows: 1fr;
+}
+
+.temp-chat-subtitle {
+    overflow: hidden;
+    font-size: 13px;
+    color: var(--text-color-secondary);
+    text-align: center;
+    user-select: none;
+    -webkit-user-select: none;
+    letter-spacing: 0.01em;
+    line-height: 1.4;
+    white-space: normal;
+    padding-top: 0;
+    opacity: 0;
+    transform: translateY(-6px);
+    transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.32, 0.72, 0, 1), padding-top 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.chat-container[data-temp-chat="true"] .temp-chat-subtitle {
+    opacity: 1;
+    transform: translateY(0);
+    padding-top: 8px;
+}
+
+.chat-box-warning {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 0px;
+    font-size: 12px;
+    color: var(--text-color-secondary);
+}
+
+.chat-model-unavailable {
+    width: min(80%, 750px);
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 12px 0;
+    color: var(--text-color-secondary);
+    font-size: 12px;
+    line-height: 1.4;
+    text-align: center;
+}
+
+.chat-model-unavailable[hidden] {
+    display: none;
+}
+
+.chat-model-unavailable button {
+    appearance: none;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: var(--primary-color);
+    font: inherit;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .chat-model-unavailable button:hover {
+        color: var(--primary-color-hover, var(--primary-color));
+    }
+}
+
+@container chat-layout (max-width: 1000px) {
+    .chat-model-unavailable {
+        width: 100%;
+    }
+}

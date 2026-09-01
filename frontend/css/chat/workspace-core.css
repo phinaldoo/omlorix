@@ -1,0 +1,817 @@
+/* Workspace shell and responsive header navigation */
+
+#workspaceContainer {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    align-items: stretch;
+    padding: 0;
+    overflow: hidden;
+    position: relative;
+}
+
+#workspaceContainer > .workspace-section {
+    grid-column: 1;
+    grid-row: 1;
+    box-sizing: border-box;
+    height: 100%;
+    min-width: 0;
+    padding: 38px 20px 20px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Project-style Workspace pages receive their visual end gap from the direct
+   .projects-content child, so the outer shell must not duplicate it. */
+#workspaceContainer > .workspace-section:has(> .projects-content) {
+    padding-bottom: 0;
+}
+
+#workspaceContainer.full-bleed > .workspace-section {
+    padding: 0;
+    overflow: hidden;
+}
+
+body.workspace-view-active .main-container > .main-container-body > .main-container-header {
+    border-bottom: 1px solid var(--border-color);
+}
+
+body.workspace-view-active .main-header-leading,
+body.workspace-view-active .main-header-actions,
+body.workspace-view-active .split-screen-main-header {
+    display: none !important;
+}
+
+.workspace-header-shell {
+    display: none;
+    width: 100%;
+    min-width: 0;
+}
+
+body.workspace-view-active .workspace-header-shell {
+    display: grid;
+    grid-template-columns: minmax(118px, 1fr) auto minmax(118px, 1fr);
+    align-items: center;
+    gap: 12px;
+}
+
+.workspace-header-end {
+    min-width: 0;
+}
+
+.workspace-header-sidebar-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    color: var(--text-color-tertiary);
+    background: transparent;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    visibility: hidden;
+}
+
+.workspace-header-sidebar-toggle svg {
+    width: var(--svg-size);
+    height: var(--svg-size);
+}
+
+body.sidebar-overlay-mode:not(.sidebar-open) .workspace-header-sidebar-toggle {
+    visibility: visible;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .workspace-header-sidebar-toggle:hover {
+        color: var(--text-color);
+        background: var(--hover);
+    }
+}
+
+.workspace-header-sidebar-toggle:focus-visible,
+.workspace-header-tab:focus-visible,
+.workspace-header-mobile-option:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+/* Desktop: borderless text tabs with a single active underline. */
+.workspace-header-desktop-tabs {
+    display: flex;
+    min-width: 0;
+    align-items: stretch;
+    justify-content: center;
+}
+
+.workspace-header-tab {
+    position: relative;
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    padding: 0 9px;
+    color: var(--text-color-tertiary);
+    background: transparent;
+    border: none;
+    font-size: 14px;
+    font-weight: 540;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color 0.15s ease;
+}
+
+.workspace-header-tab::after {
+    content: "";
+    position: absolute;
+    right: 9px;
+    bottom: -8px;
+    left: 9px;
+    height: 2px;
+    border-radius: 2px 2px 0 0;
+    background: var(--primary-color);
+    opacity: 0;
+    transform: scaleX(0.55);
+    transition: opacity 0.14s ease, transform 0.16s ease;
+}
+
+.workspace-header-tab.active {
+    color: var(--text-color);
+    font-weight: 640;
+}
+
+.workspace-header-tab.active::after {
+    opacity: 1;
+    transform: scaleX(1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .workspace-header-tab:hover:not(.active) {
+        color: var(--text-color);
+    }
+}
+
+/* Shared red-dot notification state. Workspace notification JavaScript adds
+   this element to every navigation surface that represents Notifications. */
+.notification-badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 10px;
+    height: 10px;
+    background: #ef4444;
+    border-radius: 50%;
+    border: 2px solid var(--background);
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.4);
+    animation: notification-pulse 2s ease-in-out infinite;
+    pointer-events: none;
+}
+
+#sidebarWorkspace .notification-badge {
+    top: 6px;
+    right: 6px;
+    width: 8px;
+    height: 8px;
+}
+
+.workspace-header-tab > .notification-badge {
+    top: 4px;
+    right: 2px;
+    width: 7px;
+    height: 7px;
+    border-width: 1px;
+}
+
+/* Mobile/compact: the current page title is the navigation trigger. */
+.workspace-header-mobile {
+    position: relative;
+    display: none;
+    justify-self: start;
+}
+
+.workspace-mobile-title-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    inset-inline-start: 0;
+    z-index: 1200;
+    display: grid;
+    width: min(230px, calc(100vw - 24px));
+    max-height: min(420px, calc(100vh - 84px));
+    padding: 5px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--surface-elevated, var(--background));
+    box-shadow: var(--surface-elevated-shadow);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(-4px);
+    transition: opacity 0.12s ease, visibility 0.12s ease, transform 0.14s ease;
+}
+
+.workspace-mobile-title-menu.open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+
+.workspace-header-mobile-option {
+    position: relative;
+    display: flex;
+    width: 100%;
+    min-height: 34px;
+    align-items: center;
+    padding: 6px 28px 6px 9px;
+    color: var(--text-color-secondary);
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    text-align: start;
+    cursor: pointer;
+}
+
+.workspace-header-mobile-option.active {
+    color: var(--text-color);
+    font-weight: 630;
+}
+
+.workspace-header-mobile-option.active::after {
+    content: "✓";
+    position: absolute;
+    inset-inline-end: 10px;
+    color: var(--text-color-secondary);
+    font-size: 11px;
+}
+
+.workspace-header-mobile-option > .notification-badge {
+    top: 50%;
+    right: 9px;
+    width: 7px;
+    height: 7px;
+    border-width: 1px;
+    transform: translateY(-50%);
+}
+
+.workspace-header-mobile-option.active > .notification-badge {
+    right: 26px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .workspace-header-mobile-option:hover {
+        color: var(--text-color);
+        background: var(--hover);
+    }
+}
+
+/* Switch based on the actual main-pane width, not only the browser viewport.
+   This also handles a narrow pane beside Canvas or an open desktop sidebar. */
+@container chat-layout (max-width: 1000px) {
+    body.workspace-view-active .workspace-header-shell {
+        grid-template-columns: 34px auto minmax(0, 1fr);
+        gap: 4px;
+    }
+
+    .workspace-header-desktop-tabs {
+        display: none;
+    }
+
+    .workspace-header-mobile {
+        display: block;
+    }
+}
+
+/* Viewport fallback for compact browsers that do not apply container queries. */
+@media (max-width: 768px) {
+    body.workspace-view-active .workspace-header-shell {
+        grid-template-columns: 34px auto minmax(0, 1fr);
+        gap: 4px;
+    }
+
+    .workspace-header-desktop-tabs {
+        display: none;
+    }
+
+    .workspace-header-mobile {
+        display: block;
+    }
+
+    #workspaceContainer > .workspace-section {
+        padding: 24px 14px 0;
+        scroll-padding-bottom: var(--projects-page-end-gap, 20px);
+    }
+
+    #workspaceContainer:not(.full-bleed) > .workspace-section > * {
+        flex-shrink: 0;
+    }
+
+    #workspaceContainer.full-bleed > .workspace-section {
+        padding: 0;
+        scroll-padding-bottom: 0;
+    }
+}
+
+/* Compact Canvas panes always use the title menu even in a wide viewport. */
+body.canvas-markdown-compact-main-layout.workspace-view-active .workspace-header-shell {
+    grid-template-columns: 34px auto minmax(0, 1fr);
+    gap: 4px;
+}
+
+body.canvas-markdown-compact-main-layout.workspace-view-active .workspace-header-desktop-tabs {
+    display: none;
+}
+
+body.canvas-markdown-compact-main-layout.workspace-view-active .workspace-header-mobile {
+    display: block;
+}
+
+body.canvas-markdown-compact-main-layout.workspace-view-active #workspaceContainer > .workspace-section {
+    padding: 24px 14px 0;
+}
+
+body.canvas-markdown-compact-main-layout.workspace-view-active #workspaceContainer.full-bleed > .workspace-section {
+    padding: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .workspace-header-tab,
+    .workspace-header-tab::after,
+    .workspace-mobile-title-menu {
+        transition: none;
+    }
+}
+.workspace-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+}
+
+.workspace-skills-header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.workspace-skills-header .projects-header-title {
+    margin-bottom: 4px;
+}
+
+.projects-header-subtitle {
+    margin: 0;
+    font-size: 14px;
+    color: var(--text-color-secondary);
+}
+
+/* Shared workspace sidebars: Files, Todos, Notes */
+:where(.files-workspace, .todos-workspace, .notes-workspace) {
+    gap: 0;
+}
+
+:where(.files-sidebar, .todos-sidebar, .notes-sidebar) {
+    width: 280px;
+    min-width: 220px;
+    max-width: 320px;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+:where(.files-sidebar-header, .todos-sidebar-header, .notes-sidebar-header) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+:where(.files-sidebar-title, .todos-sidebar-title, .notes-sidebar-title) {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-color);
+    margin: 0;
+}
+
+.notes-sidebar-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+:where(.files-sidebar-list, .todos-sidebar-list, .notes-sidebar-list) {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+}
+
+:where(.files-sidebar-list, .todos-sidebar-list, .notes-sidebar-list)::-webkit-scrollbar {
+    width: 6px;
+}
+
+:where(.files-sidebar-list, .todos-sidebar-list, .notes-sidebar-list)::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
+}
+
+.workspace-infinite-scroll-sentinel {
+    min-height: 20px;
+    width: 100%;
+    flex: 0 0 20px;
+    position: relative;
+}
+
+.workspace-infinite-scroll-sentinel::after {
+    content: '';
+    position: absolute;
+    inset: 50% auto auto 50%;
+    width: 14px;
+    height: 14px;
+    margin: -7px 0 0 -7px;
+    border: 2px solid color-mix(in srgb, var(--text-color-tertiary) 28%, transparent);
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    animation: spin 0.75s linear infinite;
+}
+
+.notes-file-picker-sentinel {
+    grid-column: 1 / -1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .workspace-infinite-scroll-sentinel::after {
+        animation: none;
+    }
+}
+
+:where(.files-sidebar-item, .todos-list-item) {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.1s ease;
+    margin-bottom: 2px;
+    position: relative;
+    color: var(--text-color);
+}
+
+.todos-list-item {
+    padding: 0;
+}
+
+.todos-list-item-select-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
+    padding: 10px 12px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.todos-list-item:not(.todos-marked-list-item) > .todos-list-item-select-btn {
+    padding-inline-end: 48px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    :where(.files-sidebar-item, .todos-list-item):hover {
+        background: var(--hover);
+    }
+}
+
+:where(.files-sidebar-item, .todos-list-item):focus {
+    outline: none;
+}
+
+:where(.files-sidebar-item, .todos-list-item):focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: -2px;
+}
+
+.todos-list-item-select-btn:focus {
+    outline: none;
+}
+
+.todos-list-item-select-btn:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: -2px;
+}
+
+:where(.files-sidebar-item.active, .todos-list-item.active) {
+    background: var(--primary-light);
+}
+
+:where(.files-sidebar-item.active .files-sidebar-item-icon:not(.has-color), .files-sidebar-item.active .files-sidebar-item-name, .todos-list-item.active .todos-list-item-icon, .todos-list-item.active .todos-list-item-name) {
+    color: var(--primary-color);
+}
+
+:where(.files-sidebar-item.active .files-sidebar-item-name, .todos-list-item.active .todos-list-item-name) {
+    font-weight: 600;
+}
+
+:where(.files-sidebar-item-icon, .todos-list-item-icon) {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: var(--hover);
+    color: var(--text-color-secondary);
+    flex-shrink: 0;
+}
+
+:where(.files-sidebar-item-icon svg, .todos-list-item-icon svg) {
+    width: 18px;
+    height: 18px;
+}
+
+:where(.files-sidebar-item-name, .todos-list-item-name) {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-color);
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+:where(.files-sidebar-item-count, .todos-list-item-count) {
+    font-size: 12px;
+    color: var(--text-color-secondary);
+    padding: 2px 8px;
+    background: var(--hover);
+    border-radius: 10px;
+    text-align: center;
+}
+
+.workspace-control-panel {
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(220px, 2fr) repeat(auto-fit, minmax(170px, 1fr));
+    margin-bottom: 4px;
+}
+
+/* When a workspace control panel has only two children (e.g. bookmarks: filter + sort),
+   treat them equally so the layout is balanced. */
+.workspace-control-panel:has(> :nth-child(2):last-child) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 768px) {
+    .workspace-control-panel,
+    .workspace-control-panel:has(> :nth-child(2):last-child) {
+        grid-template-columns: 1fr;
+    }
+}
+
+.workspace-control-field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    min-width: 0;
+}
+
+.workspace-control-select {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    font-size: 14px;
+}
+
+.workspace-control-select .select-trigger {
+    min-height: 40px;
+    padding: 0 40px 0 14px;
+    border-radius: 10px;
+    background: var(--background);
+    font-size: 14px;
+}
+
+.workspace-control-select .select-trigger span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.workspace-control-select .select-options {
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+.workspace-control-select .select-option {
+    padding: 10px 14px;
+}
+
+.workspace-control-input {
+    width: 100%;
+    min-width: 0;
+    height: 40px;
+    padding: 0 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--background);
+    color: var(--text-color);
+    font: inherit;
+    font-size: 14px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.workspace-control-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px transparent;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 18%, transparent);
+}
+
+.workspace-control-input::placeholder {
+    color: var(--text-color-secondary);
+}
+
+.workspace-control-search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+}
+
+/*
+ * The Skills list owns this row instead of depending on chat-search CSS. Keep
+ * its established dimensions here while the shared workspace controls provide
+ * positioning and focus behavior.
+ */
+.workspace-skills-search-row {
+    margin-bottom: 20px;
+}
+
+.workspace-skills-search-row .input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+}
+
+.workspace-skills-search-row .input-wrapper svg {
+    width: 18px;
+    height: 18px;
+    color: var(--text-color-secondary);
+}
+
+.workspace-skills-search-row input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--text-color);
+    font-size: 16px;
+}
+
+.workspace-skills-search-row input::placeholder {
+    color: var(--text-color-secondary);
+}
+
+.workspace-skills-search-row .clear-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    color: var(--text-color-secondary);
+    transition: background-color 0.2s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .workspace-skills-search-row .clear-button:hover {
+        background-color: var(--hover);
+    }
+}
+
+.workspace-control-search .workspace-control-input {
+    padding-left: 40px;
+}
+
+.workspace-control-icon {
+    position: absolute;
+    left: 13px;
+    width: 18px;
+    height: 18px;
+    color: var(--text-color-secondary);
+    pointer-events: none;
+}
+
+.workspace-control-clear {
+    position: absolute;
+    right: 7px;
+}
+
+.workspace-skills-footer {
+    padding: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.workspace-skills-footer-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* Shared empty and validation states used by multiple Workspace features. */
+.workspace-empty-grid {
+    width: 100%;
+}
+
+@media (max-width: 480px) {
+    .workspace-notifications-empty {
+        padding: 48px 16px;
+    }
+}
+
+.skills-input-hint {
+    margin: 4px 0 0;
+    font-size: 12px;
+    color: var(--text-color-secondary);
+}
+
+.skills-input-error {
+    margin: 6px 0 0;
+    font-size: 12px;
+    color: var(--error-color, #e53935);
+    display: none;
+    animation: skillsErrorFadeIn 0.2s ease;
+}
+
+.skills-input-error.visible {
+    display: block;
+}
+
+.field-validation-error {
+    margin: 6px 0 0;
+    font-size: 12px;
+    color: var(--error-color, #e53935);
+    display: none;
+}
+
+.field-validation-error.visible {
+    display: block;
+}
+
+.projects-create-input.input-error,
+.projects-create-textarea.input-error,
+.memories-editor-textarea.input-error,
+.memories-import-textarea.input-error,
+.todos-list-editor-input.input-error,
+.todos-list-editor-textarea.input-error,
+.files-edit-modal-input.input-error,
+.files-folder-modal-input.input-error {
+    border-color: var(--error-color, #e53935) !important;
+    box-shadow: 0 0 0 1px var(--error-color, #e53935);
+}
+
+.projects-create-input.input-error:focus,
+.projects-create-textarea.input-error:focus,
+.memories-editor-textarea.input-error:focus,
+.memories-import-textarea.input-error:focus,
+.todos-list-editor-input.input-error:focus,
+.todos-list-editor-textarea.input-error:focus,
+.files-edit-modal-input.input-error:focus,
+.files-folder-modal-input.input-error:focus {
+    border-color: var(--error-color, #e53935) !important;
+    box-shadow: 0 0 0 2px rgba(229, 57, 53, 0.2);
+}
+
+.projects-create-input-group.has-error .skills-input-hint,
+.todos-list-editor-field.has-error .skills-input-hint,
+.files-edit-modal-field.has-error .skills-input-hint,
+.files-folder-modal-field.has-error .skills-input-hint {
+    display: none;
+}

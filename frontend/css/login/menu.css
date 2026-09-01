@@ -1,0 +1,114 @@
+/* =============================================
+   Login Menu – Minimal & Modern
+   ============================================= */
+
+.menu-container {
+    position: relative;
+    display: inline-block;
+}
+
+/* Toggle button */
+.menu-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: background-color 0.18s ease, color 0.18s ease;
+    color: var(--text-color);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .menu-toggle:hover {
+        background-color: var(--hover);
+    }
+}
+
+.menu-toggle:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 3px;
+    background-color: var(--hover);
+}
+
+.menu-toggle:focus:not(:focus-visible) {
+    outline: none;
+}
+
+.menu-toggle:active {
+    transform: scale(0.94);
+}
+
+.menu-toggle svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* Dropdown panel */
+.dropdown-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: auto;
+    inset-inline-end: 0;
+    background-color: var(--background);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+    width: min(220px, calc(100vw - 32px));
+    padding: 6px;
+    z-index: 1000;
+    /* Animation */
+    opacity: 0;
+    transform-origin: top right;
+    transform: scale(0.96) translateY(-4px);
+    transition: opacity 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: none;
+}
+
+html[dir="rtl"] .dropdown-menu {
+    transform-origin: top left;
+}
+
+[data-mode="dark"] .dropdown-menu {
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.dropdown-menu.active {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    pointer-events: auto;
+}
+
+/* Language selector */
+.language-selector select {
+    width: 100%;
+    padding: 8px 10px;
+    font-size: 0.8125rem;
+    background-color: var(--input-bg, var(--background));
+    color: var(--text-color);
+    border: 1.5px solid var(--border-color);
+    border-radius: 10px;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 8px center;
+    background-repeat: no-repeat;
+    background-size: 1.25em 1.25em;
+    cursor: pointer;
+    transition: border-color 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .language-selector select:hover {
+        border-color: var(--primary-hover);
+    }
+}
+
+.language-selector select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb, 59, 130, 246), 0.15);
+}

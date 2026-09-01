@@ -1,0 +1,4 @@
+services:
+  frontend:
+    ports:
+      - "${FRONTEND_HTTP_HOST_BIND:-127.0.0.1}:${FRONTEND_HTTP_HOST_PORT:-8080}:8080"

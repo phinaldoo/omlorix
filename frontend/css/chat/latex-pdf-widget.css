@@ -1,0 +1,313 @@
+:root {
+    --latex-pdf-bg: var(--surface-elevated, #f5f6f8);
+    --latex-pdf-surface: var(--bg-primary, #ffffff);
+    --latex-pdf-border: var(--border-color, rgba(0, 0, 0, 0.1));
+    --latex-pdf-text: var(--text-color, #1f2937);
+    --latex-pdf-muted: var(--text-color-secondary, #6b7280);
+    --latex-pdf-accent: var(--accent-color, #2563eb);
+    --latex-pdf-success: #16a34a;
+    --latex-pdf-danger: #dc2626;
+}
+
+:root[data-mode="dark"] {
+    --latex-pdf-bg: #1c1c20;
+    --latex-pdf-surface: #18181b;
+    --latex-pdf-border: rgba(255, 255, 255, 0.1);
+    --latex-pdf-text: #f4f4f5;
+    --latex-pdf-muted: #a1a1aa;
+    --latex-pdf-success: #4ade80;
+    --latex-pdf-danger: #f87171;
+}
+
+.latex-pdf-preview-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 48%;
+    max-width: 820px;
+    min-width: 420px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--latex-pdf-bg);
+    border-left: 1px solid var(--latex-pdf-border);
+    z-index: 42;
+    overflow: hidden;
+    transform: translateX(100%);
+    opacity: 0;
+    transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+}
+
+.latex-pdf-preview-panel.visible {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+body.latex-pdf-preview-open .main-container {
+    margin-right: 48%;
+    transition: margin-right 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (min-width: 1400px) {
+    body.latex-pdf-preview-open .main-container {
+        margin-right: min(48%, 820px);
+    }
+}
+
+.latex-pdf-preview-header {
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 0 14px;
+    background: var(--latex-pdf-surface);
+    border-bottom: 1px solid var(--latex-pdf-border);
+    flex-shrink: 0;
+}
+
+.latex-pdf-preview-left,
+.latex-pdf-preview-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.latex-pdf-preview-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.latex-pdf-preview-title {
+    color: var(--latex-pdf-text);
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 260px;
+}
+
+.latex-pdf-preview-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--latex-pdf-muted);
+    font-size: 11px;
+    line-height: 1.2;
+}
+
+.latex-pdf-preview-status::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--latex-pdf-muted);
+}
+
+.latex-pdf-preview-status.compiling::before {
+    background: var(--latex-pdf-accent);
+    animation: latexPdfPulse 1.2s ease-in-out infinite;
+}
+
+.latex-pdf-preview-status.ready::before {
+    background: var(--latex-pdf-success);
+}
+
+.latex-pdf-preview-status.error::before {
+    background: var(--latex-pdf-danger);
+}
+
+.latex-pdf-preview-icon-btn{
+    height: 34px;
+    border: 1px solid var(--latex-pdf-border);
+    border-radius: 8px;
+    background: var(--latex-pdf-surface);
+    color: var(--latex-pdf-text);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    font: inherit;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.latex-pdf-preview-icon-btn {
+    width: 34px;
+    padding: 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .latex-pdf-preview-icon-btn:not(:disabled):hover{
+        opacity: 0.86;
+    }
+}
+
+.latex-pdf-preview-body {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    background: #70737a;
+}
+
+.latex-pdf-preview-frame {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+    background: #ffffff;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.12s ease;
+}
+
+.latex-pdf-preview-frame.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.latex-pdf-preview-loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    color: #ffffff;
+    background: linear-gradient(180deg, #5c616b 0%, #41464f 100%);
+    font-size: 13px;
+}
+
+.latex-pdf-preview-loading.hidden {
+    display: none;
+}
+
+.latex-pdf-preview-spinner {
+    width: 28px;
+    height: 28px;
+    border: 3px solid rgba(255, 255, 255, 0.32);
+    border-top-color: #ffffff;
+    border-radius: 999px;
+    animation: latexPdfSpin 0.9s linear infinite;
+}
+
+.latex-pdf-preview-log {
+    max-height: 150px;
+    overflow: auto;
+    background: var(--latex-pdf-surface);
+    border-top: 1px solid var(--latex-pdf-border);
+    color: var(--latex-pdf-muted);
+    font-size: 12px;
+}
+
+.latex-pdf-preview-log summary {
+    cursor: pointer;
+    padding: 8px 12px;
+    color: var(--latex-pdf-text);
+    font-weight: 600;
+}
+
+.latex-pdf-preview-log pre {
+    margin: 0;
+    padding: 0 12px 12px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 11px;
+}
+
+.latex-pdf-result-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 16px;
+    margin-bottom: 12px;
+    border: 1px solid var(--latex-pdf-border);
+    border-radius: 8px;
+    background: var(--latex-pdf-surface);
+    color: var(--latex-pdf-text);
+}
+
+.latex-pdf-result-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: rgba(37, 99, 235, 0.1);
+    color: var(--latex-pdf-accent);
+}
+
+.latex-pdf-result-card.ready .latex-pdf-result-icon {
+    background: rgba(22, 163, 74, 0.12);
+    color: var(--latex-pdf-success);
+}
+
+.latex-pdf-result-card.error .latex-pdf-result-icon {
+    background: rgba(220, 38, 38, 0.12);
+    color: var(--latex-pdf-danger);
+}
+
+.latex-pdf-result-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.latex-pdf-result-title {
+    font-size: 14px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.latex-pdf-result-sub {
+    color: var(--latex-pdf-muted);
+    font-size: 12px;
+    margin-top: 2px;
+}
+
+.latex-pdf-result-btn {
+    border: none;
+    border-radius: 8px;
+    background: var(--latex-pdf-accent);
+    color: #ffffff;
+    min-height: 34px;
+    padding: 0 12px;
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+@media (max-width: 900px) {
+    .latex-pdf-preview-panel {
+        width: 100%;
+        min-width: 0;
+        z-index: 202;
+    }
+
+    body.latex-pdf-preview-open .main-container {
+        margin-right: 0;
+    }
+
+    .latex-pdf-preview-title {
+        max-width: 180px;
+    }
+}
+
+@keyframes latexPdfSpin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes latexPdfPulse {
+    0%, 100% { opacity: 0.55; transform: scale(0.9); }
+    50% { opacity: 1; transform: scale(1.08); }
+}

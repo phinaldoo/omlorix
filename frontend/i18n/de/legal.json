@@ -1,0 +1,11 @@
+{
+  "legal_page_title": "Rechtliches",
+  "legal_navigation_aria": "Rechtsdokumente",
+  "legal_loading": "Rechtsdokumente werden geladen...",
+  "legal_scroll_to_top_aria": "Nach oben scrollen",
+  "legal_toc_title": "Inhaltsverzeichnis",
+  "legal_language_notice_label": "Sprachhinweis",
+  "legal_language_notice_authoritative": "Dieses Rechtsdokument wird auf {language} bereitgestellt. Die Seitenoberfläche kann übersetzt sein, aber das folgende Dokument wird nicht automatisch übersetzt.",
+  "legal_language_notice_operator": "Dieses Rechtsdokument wird in der maßgeblichen Sprache des Betreibers bereitgestellt. Die Seitenoberfläche kann übersetzt sein, aber das folgende Dokument wird nicht automatisch übersetzt.",
+  "legal_language_name_en": "Englisch"
+}

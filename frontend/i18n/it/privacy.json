@@ -1,0 +1,7 @@
+{
+  "privacy_page_title": "Informativa sulla privacy",
+  "privacy_loading": "Caricamento dell'informativa sulla privacy...",
+  "privacy_load_error": "Impossibile caricare l'informativa sulla privacy. Riprova più tardi.",
+  "privacy_default_template_warning_emphasis": "Importante:",
+  "privacy_default_template_warning": "Questa istanza utilizza ancora il modello predefinito dell'informativa sulla privacy. L'operatore deve sostituirlo con contenuti legali specifici per il deployment."
+}

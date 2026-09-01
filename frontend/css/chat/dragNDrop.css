@@ -1,0 +1,120 @@
+/*
+ * Full-page file drop overlay.
+ *
+ * The overlay intentionally mirrors the small drag-and-drop demo: one quiet
+ * backdrop and one obvious drop target. Upload routing remains in the chat and
+ * Workspace Files controllers, so this presentation is shared by both flows.
+ */
+.drop-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: color-mix(in srgb, var(--background) 72%, transparent);
+    backdrop-filter: var(--modal-overlay-backdrop-filter);
+    -webkit-backdrop-filter: var(--modal-overlay-backdrop-filter);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.18s ease;
+}
+
+.drop-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.drop-overlay-dropzone {
+    display: flex;
+    width: min(560px, 86vw);
+    min-height: 280px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 32px;
+    border: 2px dashed var(--border-color);
+    border-radius: 22px;
+    background: var(--surface-elevated);
+    box-shadow: var(--surface-elevated-shadow);
+    color: var(--text-color);
+    text-align: center;
+    transform: scale(0.97);
+    transition:
+        border-color 0.18s ease,
+        transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.drop-overlay.active .drop-overlay-dropzone {
+    border-color: var(--text-color);
+    transform: scale(1);
+}
+
+.drop-overlay-icon {
+    display: inline-flex;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 20px;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-color);
+    animation: drop-overlay-pulse 1.6s ease-in-out infinite;
+}
+
+.drop-overlay-icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+.drop-overlay-dropzone h2 {
+    margin: 0 0 6px;
+    color: var(--text-color);
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+}
+
+.drop-overlay-dropzone p {
+    max-width: 42ch;
+    margin: 0;
+    color: var(--text-color-secondary);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+@media (max-width: 480px), (max-height: 480px) {
+    .drop-overlay {
+        padding: 16px;
+    }
+
+    .drop-overlay-dropzone {
+        min-height: 200px;
+        padding: 32px 24px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .drop-overlay,
+    .drop-overlay-dropzone {
+        transition: none;
+    }
+
+    .drop-overlay-icon {
+        animation: none;
+    }
+}
+
+@media (forced-colors: active) {
+    .drop-overlay {
+        background: Canvas;
+    }
+
+    .drop-overlay-dropzone {
+        border-color: CanvasText;
+        background: Canvas;
+        box-shadow: none;
+        color: CanvasText;
+    }
+}

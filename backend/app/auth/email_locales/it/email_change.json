@@ -1,0 +1,20 @@
+{
+  "verify_subject": "Verifica il tuo nuovo indirizzo email {application_name}",
+  "verify_headline": "Verifica il nuovo indirizzo email",
+  "verify_intro": "Conferma questo indirizzo per completare la modifica dell’email del tuo account {application_name}.",
+  "verify_button": "Verifica indirizzo email",
+  "verify_expires": "Questo link scade tra {expires_in_hours} ore.",
+  "verify_ignore": "Se non hai richiesto questa modifica, non verificarla.",
+  "requested_subject": "{application_name}: modifica email richiesta",
+  "requested_headline": "Modifica dell’indirizzo email richiesta",
+  "requested_intro": "Qualcuno ha richiesto un nuovo indirizzo per il tuo account. L’indirizzo attuale resta attivo finché il nuovo non viene verificato.",
+  "cancel_button": "Annulla modifica email",
+  "requested_action": "Se non sei stato tu, annulla la richiesta e proteggi subito il tuo account.",
+  "changed_subject": "{application_name}: indirizzo email modificato",
+  "changed_headline": "Il tuo indirizzo email è stato modificato",
+  "changed_intro": "L’indirizzo usato per accedere al tuo account {application_name} è cambiato. Tutte le sessioni e i link di reimpostazione esistenti sono stati revocati.",
+  "changed_action": "Se non sei stato tu, proteggi subito il tuo account e contatta un amministratore.",
+  "cancelled_subject": "{application_name}: modifica email annullata",
+  "cancelled_headline": "Modifica email annullata",
+  "cancelled_intro": "La modifica in sospeso è stata annullata. Il tuo indirizzo attuale resta attivo."
+}

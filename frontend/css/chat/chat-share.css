@@ -1,0 +1,758 @@
+.cs-overlay {
+    --shared-modal-z-index: 1100;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.cs-overlay[hidden] {
+    display: none !important;
+}
+
+.cs-overlay.cs-active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.cs-modal.cs-busy {
+    cursor: progress;
+}
+
+.cs-modal.cs-busy .cs-body,
+.cs-modal.cs-busy .cs-footer {
+    pointer-events: none;
+}
+
+/* ----- Header ----- */
+
+.cs-header-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.cs-subtitle {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ----- Body ----- */
+
+.cs-body {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.cs-section,
+.cs-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.cs-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.cs-section-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-color-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+/* ----- Empty state ----- */
+
+.cs-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 6px;
+    padding: 28px 16px 8px;
+}
+
+.cs-empty-icon {
+    width: 48px;
+    height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--hover);
+    color: var(--text-color-secondary);
+    margin-bottom: 6px;
+}
+
+.cs-empty-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.cs-empty-desc {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-color-tertiary);
+    line-height: 1.45;
+}
+
+/* ----- Link card list ----- */
+
+.cs-link-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.cs-link-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--background);
+    transition: border-color 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .cs-link-card:hover {
+        border-color: color-mix(in srgb, var(--text-color) 18%, var(--border-color));
+    }
+}
+
+.cs-link-card-expired {
+    border-color: color-mix(in srgb, var(--red, #dc2626) 35%, var(--border-color));
+    background: color-mix(in srgb, var(--red, #dc2626) 4%, var(--background));
+}
+
+.cs-link-url-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--hover);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 4px 4px 4px 10px;
+}
+
+.cs-link-url {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    background: transparent;
+    padding: 6px 0;
+    font-size: 13px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: var(--text-color);
+    outline: none;
+    text-overflow: ellipsis;
+}
+
+.cs-link-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.cs-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-color-secondary);
+    background: var(--hover);
+    border: 1px solid transparent;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+
+.cs-chip svg {
+    flex-shrink: 0;
+}
+
+.cs-chip-muted {
+    color: var(--text-color-tertiary);
+    background: transparent;
+    border-color: var(--border-color);
+}
+
+.cs-chip-danger {
+    color: var(--red, #dc2626);
+    background: color-mix(in srgb, var(--red, #dc2626) 12%, transparent);
+}
+
+.cs-link-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 2px;
+    padding-top: 2px;
+}
+
+/* ----- Hidden attribute safety for flex children ----- */
+
+.cs-section[hidden],
+.cs-form[hidden],
+.cs-empty[hidden],
+.cs-link-list[hidden] {
+    display: none !important;
+}
+
+/* ----- Form fields ----- */
+
+.cs-field[hidden] {
+    display: none !important;
+}
+
+.cs-field-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-color);
+    margin: 0;
+}
+
+.cs-radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.cs-radio {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--background);
+    cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .cs-radio:hover {
+        border-color: color-mix(in srgb, var(--text-color) 25%, var(--border-color));
+    }
+}
+
+.cs-radio input[type='radio'] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    border: 1.5px solid var(--border-color);
+    border-radius: 50%;
+    background: var(--background);
+    cursor: pointer;
+    position: relative;
+    transition: border-color 0.15s ease;
+}
+
+.cs-radio input[type='radio']:checked {
+    border-color: var(--primary-color);
+}
+
+.cs-radio input[type='radio']:checked::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    transform: translate(-50%, -50%);
+}
+
+.cs-radio:has(input[type='radio']:checked) {
+    border-color: var(--primary-color);
+    background: color-mix(in srgb, var(--primary-color) 6%, var(--background));
+}
+
+.cs-radio-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.cs-radio-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-color);
+    line-height: 1.3;
+}
+
+.cs-radio-desc {
+    font-size: 12px;
+    color: var(--text-color-tertiary);
+    line-height: 1.35;
+}
+
+/* ----- Toggle row + content ----- */
+
+.cs-toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--background);
+    transition: border-color 0.15s ease;
+}
+
+.cs-toggle-row:has(input:checked) {
+    border-color: color-mix(in srgb, var(--primary-color) 50%, var(--border-color));
+    background: color-mix(in srgb, var(--primary-color) 4%, var(--background));
+}
+
+.cs-toggle-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+}
+
+.cs-toggle-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-color);
+    line-height: 1.3;
+}
+
+.cs-toggle-desc {
+    font-size: 12px;
+    color: var(--text-color-tertiary);
+    line-height: 1.4;
+}
+
+.cs-switch {
+    position: relative;
+    display: inline-block;
+    width: 36px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.cs-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.cs-switch-slider {
+    position: absolute;
+    inset: 0;
+    cursor: pointer;
+    background: var(--border-color);
+    border-radius: 999px;
+    transition: background 0.18s ease;
+}
+
+.cs-switch-slider::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.18s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+}
+
+.cs-switch input:checked + .cs-switch-slider {
+    background: var(--primary-color);
+}
+
+.cs-switch input:checked + .cs-switch-slider::before {
+    transform: translateX(16px);
+}
+
+.cs-switch input:focus-visible + .cs-switch-slider {
+    outline: 2px solid color-mix(in srgb, var(--primary-color) 60%, transparent);
+    outline-offset: 2px;
+}
+
+.cs-switch input:disabled + .cs-switch-slider {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.cs-toggle-content {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 14px 0;
+}
+
+.cs-toggle-content[hidden] {
+    display: none;
+}
+
+.cs-input {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 13px;
+    font-family: inherit;
+    color: var(--text-color);
+    background: var(--background);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    box-sizing: border-box;
+}
+
+.cs-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 18%, transparent);
+}
+
+.cs-input:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+.cs-helper {
+    margin: 0;
+    font-size: 11.5px;
+    color: var(--text-color-tertiary);
+    line-height: 1.4;
+}
+
+.cs-field-error {
+    margin: 0;
+    font-size: 12px;
+    color: var(--red, #dc2626);
+    line-height: 1.4;
+}
+
+/* ----- Reviewed chat publication ----- */
+
+.cs-publication-field {
+    gap: 8px;
+}
+
+.cs-publication-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.cs-publication-loading{
+    margin: 0;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    color: var(--text-color-secondary);
+    font-size: 12px;
+}
+
+.cs-publication-turn {
+    min-width: 0;
+    margin: 0;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+}
+
+.cs-publication-turn legend {
+    max-width: 100%;
+    padding: 0 4px;
+    color: var(--text-color);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.cs-publication-version {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 8px;
+    padding: 8px 0;
+}
+
+.cs-publication-version + .cs-publication-version {
+    border-top: 1px solid var(--border-color);
+}
+
+.cs-publication-version-copy {
+    min-width: 0;
+}
+
+.cs-publication-version-title,
+.cs-publication-output-title {
+    display: block;
+    color: var(--text-color);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.cs-publication-version-preview,
+.cs-publication-output-preview {
+    display: block;
+    margin-top: 2px;
+    color: var(--text-color-secondary);
+    font-size: 11.5px;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+.cs-publication-static-outputs {
+    grid-column: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 4px;
+    padding: 8px;
+    border-radius: 8px;
+    background: var(--hover);
+}
+
+.cs-publication-static-outputs[hidden] {
+    display: none !important;
+}
+
+.cs-publication-output {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 8px;
+    align-items: start;
+}
+
+.cs-input-error {
+    border-color: var(--red, #dc2626) !important;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--red, #dc2626) 18%, transparent) !important;
+}
+
+/* ----- Invite users ----- */
+
+.cs-invite-field {
+    gap: 10px;
+}
+
+.cs-invite-search {
+    position: relative;
+}
+
+.cs-invite-search svg {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    width: 15px;
+    height: 15px;
+    color: var(--text-color-tertiary);
+    transform: translateY(-50%);
+    pointer-events: none;
+}
+
+.cs-invite-search-input {
+    padding-left: 34px;
+}
+
+.cs-invite-user-list {
+    max-height: 210px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--background);
+}
+
+.cs-invite-state {
+    padding: 14px;
+    font-size: 12.5px;
+    color: var(--text-color-tertiary);
+    text-align: center;
+}
+
+.cs-invite-user-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 0;
+    border-bottom: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--text-color);
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.cs-invite-user-item:last-child {
+    border-bottom: 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .cs-invite-user-item:hover {
+        background: var(--hover);
+    }
+}
+
+.cs-invite-user-item.is-selected {
+    background: color-mix(in srgb, var(--primary-color) 8%, var(--background));
+}
+
+.cs-invite-avatar {
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--hover);
+    color: var(--text-color-secondary);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.cs-invite-user-info {
+    min-width: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.cs-invite-user-name{
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cs-invite-user-name {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.cs-invite-check {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    color: var(--primary-color);
+    opacity: 0;
+}
+
+.cs-invite-user-item.is-selected .cs-invite-check {
+    opacity: 1;
+}
+
+.cs-invite-selected {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.cs-invite-selected[hidden] {
+    display: none;
+}
+
+.cs-invite-selected-head {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-color-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.cs-invite-selected-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.cs-invite-selected-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    max-width: 100%;
+    padding: 4px 7px;
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    background: var(--hover);
+    font-size: 12px;
+    color: var(--text-color-secondary);
+}
+
+.cs-invite-selected-chip span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cs-invite-selected-chip button {
+    width: 16px;
+    height: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: currentColor;
+    cursor: pointer;
+}
+
+.cs-invite-selected-chip svg {
+    width: 12px;
+    height: 12px;
+}
+
+/* ----- Notice ----- */
+
+.cs-notice {
+    margin: 0;
+    padding: 10px 12px;
+    font-size: 12.5px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    line-height: 1.4;
+}
+
+.cs-notice[aria-hidden="true"] {
+    display: none;
+}
+
+.cs-notice-info {
+    color: var(--text-color-secondary);
+    background: var(--hover);
+}
+
+.cs-notice-error {
+    color: var(--red, #dc2626);
+    background: color-mix(in srgb, var(--red, #dc2626) 10%, transparent);
+    border-color: color-mix(in srgb, var(--red, #dc2626) 35%, transparent);
+}
+
+.cs-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+/* ----- Responsive ----- */
+
+@media (max-width: 640px) {
+    .cs-link-actions {
+        flex-wrap: wrap;
+    }
+}

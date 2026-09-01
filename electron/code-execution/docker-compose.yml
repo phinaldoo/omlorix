@@ -1,0 +1,192 @@
+# Launcher-managed Code Execution runtime.
+#
+# This file intentionally differs from the Code Execution source repository's
+# development Compose file. The Launcher and standalone CLI pull immutable
+# release images themselves, always run the restricted local Docker proxy, and
+# connect the gateway to Omlorix through a private external network.
+services:
+  docker-proxy:
+    # Keep the reviewed, digest-pinned proxy and finite-timeout HAProxy template
+    # used by both Launcher surfaces. The upstream source profile is unsuitable
+    # here because managed instances do not pass the `local-docker` profile.
+    image: ghcr.io/tecnativa/docker-socket-proxy:v0.4.2@sha256:1f3a6f303320723d199d2316a3e82b2e2685d86c275d5e3deeaf182573b47476
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /run:rw,noexec,nosuid,nodev,size=1m
+      - /tmp:rw,noexec,nosuid,nodev,size=8m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg.template:ro
+    environment:
+      LOG_LEVEL: warning
+      EVENTS: "0"
+      POST: "1"
+      CONTAINERS: "1"
+      ALLOW_START: "1"
+      ALLOW_RESTARTS: "1"
+      EXEC: "1"
+      IMAGES: "1"
+      INFO: "1"
+    healthcheck:
+      test: [CMD, wget, -q, -O, "-", "http://localhost:2375/_ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    networks:
+      - control-plane
+
+  redis:
+    # Match the current Code Execution runtime and pin the reviewed artifact so
+    # instance recreation cannot silently select a different image.
+    image: redis:8.8.1-alpine@sha256:8096655e437712b07503796fb64d81359256cfcff0ab29d95a7da72863786efb
+    user: "999:999"
+    restart: unless-stopped
+    command: [redis-server, --save, "", --appendonly, "yes", --appendfsync, everysec]
+    volumes:
+      - redis-data:/data
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    networks:
+      - control-plane
+
+  gateway:
+    # The manager requires a concrete release image and pulls it before Compose
+    # starts. Avoid a floating fallback or source build context in packaged apps.
+    image: ${CODE_EXECUTION_GATEWAY_IMAGE:?CODE_EXECUTION_GATEWAY_IMAGE is required}
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+      docker-proxy:
+        condition: service_healthy
+    env_file:
+      - .env
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    ports:
+      - "${GATEWAY_HOST_BIND:-127.0.0.1}:${GATEWAY_PORT:?GATEWAY_PORT is required}:8000"
+    volumes:
+      - ./.env_sandbox:/etc/code-execution/.env_sandbox:ro
+    # Enumerating the current gateway contract here gives older instance files
+    # deterministic defaults while env_file preserves compatibility with pinned
+    # releases and future settings written by the Launcher or CLI.
+    environment:
+      CODE_EXECUTION_INSTANCE_ID: ${CODE_EXECUTION_INSTANCE_ID:?CODE_EXECUTION_INSTANCE_ID is required}
+      REDIS_SOCKET_CONNECT_TIMEOUT: ${REDIS_SOCKET_CONNECT_TIMEOUT:-5}
+      REDIS_SOCKET_TIMEOUT: ${REDIS_SOCKET_TIMEOUT:-5}
+      REDIS_HEALTH_CHECK_INTERVAL: ${REDIS_HEALTH_CHECK_INTERVAL:-30}
+      SANDBOX_IMAGE: ${SANDBOX_IMAGE:?SANDBOX_IMAGE is required}
+      SANDBOX_USER: ${SANDBOX_USER:-sandbox}
+      MAX_REQUEST_BODY_SIZE: ${MAX_REQUEST_BODY_SIZE:-33554432}
+      MAX_INPUT_FILES: ${MAX_INPUT_FILES:-10}
+      MAX_INPUT_FILE_SIZE: ${MAX_INPUT_FILE_SIZE:-5242880}
+      MAX_INPUT_TOTAL_SIZE: ${MAX_INPUT_TOTAL_SIZE:-20971520}
+      MAX_FILE_NAME_LENGTH: ${MAX_FILE_NAME_LENGTH:-128}
+      MAX_CONCURRENT_EXECUTIONS: ${MAX_CONCURRENT_EXECUTIONS:-10}
+      MAX_ACTIVE_SESSIONS: ${MAX_ACTIVE_SESSIONS:-100}
+      MAX_CONTAINERS_PER_PRINCIPAL: ${MAX_CONTAINERS_PER_PRINCIPAL:-3}
+      CONTAINER_CREATE_GUARD_TIMEOUT: ${CONTAINER_CREATE_GUARD_TIMEOUT:-30}
+      SESSION_TIMEOUT_SECONDS: ${SESSION_TIMEOUT_SECONDS:-1200}
+      MAX_SESSION_LIFETIME_SECONDS: ${MAX_SESSION_LIFETIME_SECONDS:-3600}
+      MAX_EXECUTIONS_PER_SESSION: ${MAX_EXECUTIONS_PER_SESSION:-100}
+      DEFAULT_TIMEOUT: ${DEFAULT_TIMEOUT:-30}
+      FILE_PROVISION_TIMEOUT: ${FILE_PROVISION_TIMEOUT:-30}
+      RATE_LIMIT_REQUESTS_PER_WINDOW: ${RATE_LIMIT_REQUESTS_PER_WINDOW:-30}
+      RATE_LIMIT_WINDOW_SECONDS: ${RATE_LIMIT_WINDOW_SECONDS:-60}
+      CONTAINER_RATE_LIMIT_REQUESTS_PER_WINDOW: ${CONTAINER_RATE_LIMIT_REQUESTS_PER_WINDOW:-10}
+      CONTAINER_RATE_LIMIT_WINDOW_SECONDS: ${CONTAINER_RATE_LIMIT_WINDOW_SECONDS:-60}
+      SANDBOX_MEM_LIMIT: ${SANDBOX_MEM_LIMIT:-512m}
+      SANDBOX_CPU_PERIOD: ${SANDBOX_CPU_PERIOD:-100000}
+      SANDBOX_CPU_QUOTA: ${SANDBOX_CPU_QUOTA:-100000}
+      SANDBOX_PIDS_LIMIT: ${SANDBOX_PIDS_LIMIT:-256}
+      SANDBOX_TMP_ROOT_SIZE: ${SANDBOX_TMP_ROOT_SIZE:-512m}
+      SANDBOX_SHM_SIZE: ${SANDBOX_SHM_SIZE:-128m}
+      SANDBOX_HOME_TMPFS_SIZE: ${SANDBOX_HOME_TMPFS_SIZE:-256m}
+      SANDBOX_READ_ONLY_ROOTFS: ${SANDBOX_READ_ONLY_ROOTFS:-true}
+      SANDBOX_NETWORK_MODE: ${SANDBOX_NETWORK_MODE:-none}
+      ALLOW_PIP_INSTALLS: ${ALLOW_PIP_INSTALLS:-false}
+      MAX_PIP_PACKAGES: ${MAX_PIP_PACKAGES:-5}
+      MAX_PIP_PACKAGE_NAME_LENGTH: ${MAX_PIP_PACKAGE_NAME_LENGTH:-64}
+      MAX_CONCURRENT_RENDERS: ${MAX_CONCURRENT_RENDERS:-2}
+      RENDER_RATE_LIMIT_REQUESTS_PER_WINDOW: ${RENDER_RATE_LIMIT_REQUESTS_PER_WINDOW:-10}
+      RENDER_RATE_LIMIT_WINDOW_SECONDS: ${RENDER_RATE_LIMIT_WINDOW_SECONDS:-60}
+      RENDER_MAX_REQUEST_BODY_BYTES: ${RENDER_MAX_REQUEST_BODY_BYTES:-180000000}
+      RENDER_MAX_HTML_CHARS: ${RENDER_MAX_HTML_CHARS:-2000000}
+      RENDER_MAX_INPUT_FILES: ${RENDER_MAX_INPUT_FILES:-32}
+      RENDER_MAX_SLIDES: ${RENDER_MAX_SLIDES:-200}
+      RENDER_MAX_ASSET_BYTES: ${RENDER_MAX_ASSET_BYTES:-25000000}
+      RENDER_MAX_TOTAL_ASSET_BYTES: ${RENDER_MAX_TOTAL_ASSET_BYTES:-120000000}
+      RENDER_MAX_OUTPUT_BYTES: ${RENDER_MAX_OUTPUT_BYTES:-220000000}
+      RENDER_SANDBOX_MEM_LIMIT: ${RENDER_SANDBOX_MEM_LIMIT:-2g}
+      RENDER_SANDBOX_CPU_PERIOD: ${RENDER_SANDBOX_CPU_PERIOD:-100000}
+      RENDER_SANDBOX_CPU_QUOTA: ${RENDER_SANDBOX_CPU_QUOTA:-200000}
+      RENDER_SANDBOX_PIDS_LIMIT: ${RENDER_SANDBOX_PIDS_LIMIT:-512}
+      RENDER_SANDBOX_TMP_ROOT_SIZE: ${RENDER_SANDBOX_TMP_ROOT_SIZE:-1g}
+      RENDER_SANDBOX_SHM_SIZE: ${RENDER_SANDBOX_SHM_SIZE:-512m}
+      RENDER_SANDBOX_HOME_TMPFS_SIZE: ${RENDER_SANDBOX_HOME_TMPFS_SIZE:-256m}
+      DOCKER_CLIENT_TIMEOUT: ${DOCKER_CLIENT_TIMEOUT:-30}
+      ALLOW_RESTRICTED_LOCAL_DOCKER_PROXY: ${ALLOW_RESTRICTED_LOCAL_DOCKER_PROXY:-true}
+      SANDBOX_RUNTIME: ${SANDBOX_RUNTIME:-}
+      STRONG_SANDBOX_RUNTIMES: ${STRONG_SANDBOX_RUNTIMES:-runsc,kata,kata-runtime,io.containerd.runsc.v1,io.containerd.kata.v2}
+      REQUIRE_STRONG_SANDBOX_ISOLATION: ${REQUIRE_STRONG_SANDBOX_ISOLATION:-false}
+      USE_DOCKER_DEFAULT_SECCOMP: ${USE_DOCKER_DEFAULT_SECCOMP:-true}
+      SECCOMP_PROFILE_DAEMON_PATH: ${SECCOMP_PROFILE_DAEMON_PATH:-}
+      ALLOW_SANDBOX_ENV_INJECTION: ${ALLOW_SANDBOX_ENV_INJECTION:-false}
+      DOCKER_HOST: ${GATEWAY_DOCKER_HOST:-tcp://docker-proxy:2375}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      SANDBOX_ENV_TARGET_PATH: ${SANDBOX_ENV_TARGET_PATH:-/home/sandbox/.env}
+      SANDBOX_ENV_SOURCE_PATH: /etc/code-execution/.env_sandbox
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-127.0.0.1,localhost}
+      API_KEYS: ${API_KEYS:?API_KEYS is required}
+    healthcheck:
+      # /livez deliberately avoids authenticated dependency checks; Launcher and
+      # CLI readiness still use the authenticated /health endpoint.
+      test: [CMD, curl, -fsS, "http://localhost:8000/livez"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    labels:
+      com.omlorix.launcher.kind: code-execution
+      com.omlorix.launcher.instance: ${CODE_EXECUTION_INSTANCE_ID:?CODE_EXECUTION_INSTANCE_ID is required}
+    networks:
+      default: {}
+      control-plane: {}
+      launcher-services:
+        aliases:
+          - ${CODE_EXECUTION_NETWORK_ALIAS:?CODE_EXECUTION_NETWORK_ALIAS is required}
+
+networks:
+  control-plane:
+    internal: true
+  launcher-services:
+    external: true
+    name: omlorix-launcher-services
+
+volumes:
+  redis-data:

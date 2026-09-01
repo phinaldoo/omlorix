@@ -1,0 +1,766 @@
+/* Meeting modal styles. */
+
+/* ============================================================================
+ * Meeting modal — calm, progressive, mobile-first transcription workflow.
+ * The visual hierarchy follows the meeting-modal design demo while all colors,
+ * surfaces, focus states, and motion continue to come from shared theme tokens.
+ * ========================================================================= */
+
+.chat-meeting-modal-overlay {
+    --shared-modal-z-index: 10000;
+}
+
+/* Text creates the hierarchy here; the old decorative badge is intentionally
+   absent so the source choice and the selected recording remain the focus. */
+.chat-meeting-modal__heading {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.chat-meeting-modal__eyebrow,
+.chat-meeting-recorder__eyebrow {
+    color: var(--text-color-tertiary);
+    font-size: 0.69rem;
+    font-weight: 700;
+    letter-spacing: 0.13em;
+    line-height: 1.2;
+    text-transform: uppercase;
+}
+
+.chat-meeting-modal__subtitle {
+    max-width: 42ch;
+}
+
+.chat-meeting-modal__body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.chat-meeting-source-panel[hidden],
+.chat-meeting-selection[hidden],
+.chat-meeting-progress[hidden],
+.chat-meeting-governance[hidden] {
+    display: none !important;
+}
+
+/* ---------- Source picker ---------- */
+
+.chat-meeting-modal__tabs {
+    --meeting-source-index: 0;
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding: 4px;
+    border-radius: 12px;
+    background: var(--input-bg);
+}
+
+.chat-meeting-tab-indicator {
+    position: absolute;
+    z-index: 0;
+    top: 4px;
+    bottom: 4px;
+    inset-inline-start: 4px;
+    width: calc((100% - 8px) / 3);
+    border: 1px solid var(--border-color);
+    border-radius: 9px;
+    background: var(--surface-elevated);
+    box-shadow: 0 1px 4px var(--modal-focus-ring);
+    transform: translateX(calc(var(--meeting-source-index) * 100%));
+    transition: transform 0.24s cubic-bezier(0.3, 0.7, 0.3, 1);
+}
+
+[dir="rtl"] .chat-meeting-tab-indicator {
+    transform: translateX(calc(var(--meeting-source-index) * -100%));
+}
+
+.chat-meeting-tab {
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-width: 0;
+    height: 36px;
+    padding: 0 9px;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--text-color-secondary);
+    cursor: pointer;
+    font-size: 0.81rem;
+    font-weight: 550;
+    transition: color 0.15s ease;
+}
+
+.chat-meeting-tab__icon {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+}
+
+.chat-meeting-tab__icon svg {
+    width: 15px;
+    height: 15px;
+}
+
+.chat-meeting-tab__label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.chat-meeting-tab.is-active {
+    color: var(--text-color);
+    font-weight: 650;
+}
+
+.chat-meeting-tab.is-active .chat-meeting-tab__icon {
+    color: var(--primary-color);
+}
+
+.chat-meeting-tab:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: -2px;
+}
+
+.chat-meeting-tab.is-disabled,
+.chat-meeting-tab:disabled {
+    color: var(--text-color-tertiary);
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .chat-meeting-tab:not([aria-selected="true"]):not(:disabled):hover {
+        color: var(--text-color);
+    }
+}
+
+.chat-meeting-source-panel {
+    display: none;
+}
+
+.chat-meeting-source-panel.is-active {
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-meeting-result-panel.is-active {
+    gap: 16px;
+}
+
+/* ---------- Upload dropzone ---------- */
+
+.chat-meeting-dropzone {
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+    align-items: center;
+    padding: 34px 24px 32px;
+    border: 1.5px dashed var(--modal-border-strong);
+    border-radius: 16px;
+    background: transparent;
+    color: var(--text-color);
+    cursor: pointer;
+    text-align: center;
+    transition: border-color 0.18s ease, background 0.18s ease;
+}
+
+.chat-meeting-dropzone__icon {
+    display: inline-flex;
+    width: 46px;
+    height: 46px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--primary-light);
+    color: var(--primary-color);
+    transition: transform 0.18s ease;
+}
+
+.chat-meeting-dropzone__icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+.chat-meeting-dropzone__title {
+    margin-top: 14px;
+    color: var(--text-color);
+    font-size: 0.94rem;
+    font-weight: 620;
+    letter-spacing: -0.005em;
+}
+
+.chat-meeting-dropzone__copy,
+.chat-meeting-dropzone__hint {
+    max-width: 38ch;
+    color: var(--text-color-tertiary);
+    font-size: 0.78rem;
+    line-height: 1.5;
+}
+
+.chat-meeting-dropzone__copy {
+    margin-top: 5px;
+}
+
+.chat-meeting-dropzone__hint {
+    margin-top: 2px;
+}
+
+.chat-meeting-dropzone:focus-visible {
+    border-color: var(--primary-color);
+    border-style: solid;
+    outline: 0;
+    box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+@media (forced-colors: active) {
+    .chat-meeting-dropzone:focus-visible {
+        outline: 2px solid Highlight;
+        outline-offset: 2px;
+        box-shadow: none;
+    }
+}
+
+.chat-meeting-dropzone.is-dragover {
+    border-color: var(--primary-color);
+    border-style: solid;
+    background: var(--primary-light);
+}
+
+.chat-meeting-dropzone.is-dragover .chat-meeting-dropzone__icon {
+    transform: translateY(-2px) scale(1.05);
+}
+
+.chat-meeting-dropzone:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .chat-meeting-dropzone:hover:not(:disabled) {
+        border-color: var(--primary-color);
+    }
+}
+
+/* ---------- Recorder ---------- */
+
+.chat-meeting-recorder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 6px 0 2px;
+    text-align: center;
+}
+
+.chat-meeting-recorder__timer {
+    margin-top: 14px;
+    color: var(--text-color-tertiary);
+    font-size: 2.625rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 620;
+    letter-spacing: -0.01em;
+    line-height: 1;
+}
+
+.chat-meeting-recorder.is-recording .chat-meeting-recorder__timer {
+    color: var(--text-color);
+}
+
+.chat-meeting-recorder__status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    color: var(--text-color-secondary);
+    font-size: 0.81rem;
+}
+
+.chat-meeting-recorder__dot {
+    position: relative;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-color-tertiary);
+}
+
+.chat-meeting-recorder.is-recording .chat-meeting-recorder__dot {
+    background: var(--error-color);
+}
+
+.chat-meeting-recorder.is-recording .chat-meeting-recorder__dot::after {
+    position: absolute;
+    inset: -4px;
+    border: 1.5px solid var(--error-color);
+    border-radius: 50%;
+    animation: chatMeetingPulse 1.6s ease-out infinite;
+    content: "";
+}
+
+.chat-meeting-recorder__details,
+.chat-meeting-recorder__hint {
+    max-width: 44ch;
+    color: var(--text-color-tertiary);
+    font-size: 0.78rem;
+    line-height: 1.55;
+}
+
+.chat-meeting-recorder__details {
+    margin-top: 6px;
+}
+
+.chat-meeting-recorder__equalizer {
+    display: flex;
+    height: 18px;
+    align-items: center;
+    gap: 4px;
+    margin-top: 16px;
+}
+
+.chat-meeting-recorder__equalizer span {
+    width: 3px;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--primary-color);
+    opacity: 0.35;
+}
+
+.chat-meeting-recorder.is-recording .chat-meeting-recorder__equalizer span {
+    animation: chatMeetingEqualizer 1.1s ease-in-out infinite;
+    opacity: 0.9;
+}
+
+.chat-meeting-recorder.is-recording .chat-meeting-recorder__equalizer span:nth-child(2) { animation-delay: 0.15s; }
+.chat-meeting-recorder.is-recording .chat-meeting-recorder__equalizer span:nth-child(3) { animation-delay: 0.3s; }
+.chat-meeting-recorder.is-recording .chat-meeting-recorder__equalizer span:nth-child(4) { animation-delay: 0.45s; }
+.chat-meeting-recorder.is-recording .chat-meeting-recorder__equalizer span:nth-child(5) { animation-delay: 0.6s; }
+
+.chat-meeting-recorder__actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.chat-meeting-record-button {
+    display: inline-flex;
+    width: 56px;
+    height: 56px;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 50%;
+    background: var(--primary-color);
+    color: var(--modal-primary-text);
+    cursor: pointer;
+    box-shadow: 0 8px 18px -8px color-mix(in srgb, var(--primary-color) 70%, transparent);
+    transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.chat-meeting-record-button__icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: currentColor;
+    transition: width 0.18s ease, height 0.18s ease, border-radius 0.18s ease;
+}
+
+.chat-meeting-recorder.is-recording .chat-meeting-record-button {
+    background: var(--error-color);
+    box-shadow: 0 8px 18px -8px color-mix(in srgb, var(--error-color) 70%, transparent);
+}
+
+.chat-meeting-recorder.is-recording .chat-meeting-record-button__icon {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+}
+
+.chat-meeting-record-button:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 3px;
+}
+
+.chat-meeting-record-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+.chat-meeting-recorder__discard {
+    min-width: 0;
+    padding: 8px 10px;
+}
+
+.chat-meeting-recorder__hint {
+    margin: 16px 0 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .chat-meeting-record-button:hover:not(:disabled) {
+        transform: scale(1.04);
+    }
+
+    .chat-meeting-record-button:active:not(:disabled) {
+        transform: scale(0.97);
+    }
+}
+
+/* ---------- Selected recording ---------- */
+
+.chat-meeting-selection {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    padding: 13px 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 13px;
+    background: var(--surface-elevated);
+}
+
+.chat-meeting-selection__icon {
+    display: inline-flex;
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 11px;
+    background: var(--primary-light);
+    color: var(--primary-color);
+}
+
+.chat-meeting-selection__icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+.chat-meeting-selection__meta {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.chat-meeting-selection__name {
+    overflow: hidden;
+    color: var(--text-color);
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.chat-meeting-selection__details {
+    color: var(--text-color-tertiary);
+    font-size: 0.78rem;
+}
+
+.chat-meeting-selection__remove {
+    display: inline-flex;
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-color-tertiary);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.chat-meeting-selection__remove svg {
+    width: 14px;
+    height: 14px;
+}
+
+.chat-meeting-selection__remove:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .chat-meeting-selection__remove:hover:not(:disabled) {
+        background: var(--hover);
+        color: var(--error-color);
+    }
+}
+
+/* ---------- Progress ---------- */
+
+.chat-meeting-progress {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.chat-meeting-progress__meta {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 0.78rem;
+}
+
+.chat-meeting-progress__meta strong {
+    color: var(--text-color);
+    font-weight: 620;
+}
+
+.chat-meeting-progress__meta span {
+    color: var(--text-color-tertiary);
+    font-variant-numeric: tabular-nums;
+    text-align: end;
+}
+
+.chat-meeting-progress__bar {
+    height: 4px;
+    overflow: hidden;
+    border-radius: 2px;
+    background: var(--input-bg);
+}
+
+.chat-meeting-progress__fill {
+    display: block;
+    width: 0;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--primary-color);
+    transition: width 0.3s ease;
+}
+
+/* ---------- Governance ---------- */
+
+.chat-meeting-governance {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    padding: 17px 17px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 13px;
+    background: var(--surface-muted);
+}
+
+.chat-meeting-governance__header {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.chat-meeting-governance__title {
+    color: var(--text-color);
+    font-size: 0.84rem;
+    font-weight: 650;
+    letter-spacing: -0.005em;
+}
+
+.chat-meeting-governance__copy{
+    margin: 0;
+    color: var(--text-color-secondary);
+    font-size: 0.78rem;
+    line-height: 1.5;
+}
+
+.chat-meeting-governance__checkbox {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    color: var(--text-color-secondary);
+    cursor: pointer;
+    font-size: 0.81rem;
+    line-height: 1.55;
+}
+
+.chat-meeting-governance__checkbox input {
+    display: inline-grid;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    margin: 1px 0 0;
+    place-content: center;
+    appearance: none;
+    -webkit-appearance: none;
+    border: 1.5px solid var(--modal-border-strong);
+    border-radius: 5px;
+    background: var(--surface-elevated);
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.chat-meeting-governance__checkbox input::before {
+    width: 10px;
+    height: 10px;
+    background: var(--modal-primary-text);
+    clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+    content: "";
+    transform: scale(0);
+    transition: transform 0.12s ease;
+}
+
+.chat-meeting-governance__checkbox input:checked {
+    border-color: var(--primary-color);
+    background: var(--primary-color);
+}
+
+.chat-meeting-governance__checkbox input:checked::before {
+    transform: scale(1);
+}
+
+.chat-meeting-governance__checkbox input:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+/* Native system colors keep the custom-drawn checkbox legible when Windows
+   High Contrast or another forced-colors mode replaces the theme palette. */
+@media (forced-colors: active) {
+    .chat-meeting-governance__checkbox input {
+        border-color: CanvasText;
+        background: Canvas;
+        forced-color-adjust: none;
+    }
+
+    .chat-meeting-governance__checkbox input:checked {
+        border-color: Highlight;
+        background: Highlight;
+    }
+
+    .chat-meeting-governance__checkbox input::before {
+        background: HighlightText;
+    }
+
+    .chat-meeting-governance__checkbox input:focus-visible {
+        outline-color: Highlight;
+    }
+}
+
+.chat-meeting-governance__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.chat-meeting-governance__field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.chat-meeting-governance__label {
+    color: var(--text-color-secondary);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.chat-meeting-governance__control,
+.chat-meeting-governance__select .select-trigger,
+.chat-meeting-governance__select .admin-select-trigger {
+    width: 100%;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--surface-elevated);
+    color: var(--text-color);
+    font: inherit;
+    font-size: 0.84rem;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.chat-meeting-governance__control {
+    padding: 9px 12px;
+    line-height: 1.4;
+}
+
+.chat-meeting-governance__select {
+    min-width: 0;
+}
+
+.chat-meeting-governance__select .select-trigger,
+.chat-meeting-governance__select .admin-select-trigger {
+    height: 40px;
+}
+
+.chat-meeting-governance__textarea {
+    min-height: 68px;
+    resize: vertical;
+}
+
+.chat-meeting-governance__control:focus,
+.chat-meeting-governance__control:focus-visible,
+.chat-meeting-governance__select .select-trigger:focus-visible,
+.chat-meeting-governance__select .admin-select-trigger:focus-visible {
+    border-color: var(--primary-color);
+    outline: 0;
+    box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .chat-meeting-governance__control:hover,
+    .chat-meeting-governance__select .select-trigger:hover,
+    .chat-meeting-governance__select .admin-select-trigger:hover {
+        border-color: var(--modal-border-strong);
+    }
+}
+
+/* ---------- Footer ---------- */
+
+.chat-meeting-modal__note {
+    display: flex;
+    min-width: 0;
+    align-items: flex-start;
+    gap: 7px;
+    margin: 0 auto 0 0;
+    color: var(--text-color-tertiary);
+    font-size: 0.75rem;
+    line-height: 1.5;
+}
+
+.chat-meeting-modal__note svg {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+/* ---------- Responsive bottom sheet ---------- */
+
+@media (max-width: 640px) {
+    .chat-meeting-modal__body {
+        gap: 14px;
+    }
+
+    .chat-meeting-recorder__timer {
+        font-size: 2.2rem;
+    }
+
+    .chat-meeting-governance__grid {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+@media (max-width: 480px) {
+    /* Keep the translated labels available to assistive technology while the
+       compact sheet shows only the three source icons. */
+    .chat-meeting-tab__label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+    }
+
+    .chat-meeting-dropzone {
+        padding: 28px 18px 26px;
+    }
+}

@@ -1,0 +1,11 @@
+{
+  "legal_page_title": "法的情報",
+  "legal_navigation_aria": "法的文書",
+  "legal_loading": "法的文書を読み込んでいます...",
+  "legal_scroll_to_top_aria": "一番上へスクロール",
+  "legal_toc_title": "目次",
+  "legal_language_notice_label": "言語に関するお知らせ",
+  "legal_language_notice_authoritative": "この法的文書は{language}で提供されています。ページのインターフェースは翻訳されている場合がありますが、下記の文書は自動翻訳されません。",
+  "legal_language_notice_operator": "この法的文書は運営者が正式とする言語で提供されています。ページのインターフェースは翻訳されている場合がありますが、下記の文書は自動翻訳されません。",
+  "legal_language_name_en": "英語"
+}

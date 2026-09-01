@@ -1,0 +1,401 @@
+/*
+ * Shared modal shell
+ * ------------------
+ * Archived Chats established the application-wide dialog treatment.  Keep
+ * the historic search-modal names for existing consumers, and expose neutral
+ * shared-modal aliases so every feature can reuse the same backdrop, surface,
+ * header, body, footer, and motion without duplicating the frame CSS.
+ */
+.search-modal-overlay,
+.shared-modal-overlay {
+    --search-modal-border: color-mix(in srgb, var(--text-color) 8%, transparent);
+    --search-modal-border-strong: color-mix(in srgb, var(--text-color) 12%, transparent);
+    --search-modal-hover: color-mix(in srgb, var(--text-color) 4%, transparent);
+    --search-modal-selected: var(--surface-muted);
+    --search-modal-vertical-gutter: clamp(16px, 4vh, 48px);
+    position: fixed;
+    inset: 0;
+    z-index: var(--shared-modal-z-index, 2000);
+    box-sizing: border-box;
+    align-items: center;
+    justify-items: center;
+    padding: var(--search-modal-vertical-gutter) 16px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: color-mix(in srgb, var(--text-color) 28%, transparent);
+    backdrop-filter: var(--modal-overlay-backdrop-filter);
+    -webkit-backdrop-filter: var(--modal-overlay-backdrop-filter);
+    animation: search-modal-overlay-in 0.22s ease-out both;
+}
+
+.shared-modal-overlay {
+    display: grid;
+}
+
+/* Dialog controllers use feature-specific state names, but scroll locking is
+   a shared shell responsibility. */
+body.modal-open,
+body.shortcut-palette-open,
+body.us-settings-open,
+body.admin-shared-modal-open,
+body.admin-chat-modal-open,
+body.byok-modal-open,
+body.code-block-preview-modal-open {
+    overflow: hidden;
+}
+
+/* Warning dialogs historically toggle an active class instead of hidden. */
+.warning-overlay.shared-modal-overlay {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    animation: none;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.warning-overlay.shared-modal-overlay > .shared-modal {
+    transform: translateY(8px) scale(0.96);
+    animation: none;
+    transition: transform 0.2s ease;
+}
+
+.warning-overlay.shared-modal-overlay.active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    animation: search-modal-overlay-in 0.22s ease-out both;
+}
+
+.warning-overlay.shared-modal-overlay.active > .shared-modal {
+    transform: translateY(0) scale(1);
+    animation: search-modal-in 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.search-modal-overlay[hidden],
+.shared-modal-overlay[hidden] {
+    display: none;
+}
+
+.search-modal-overlay.is-closing:not([hidden]),
+.shared-modal-overlay.is-closing:not([hidden]) {
+    display: grid;
+    pointer-events: none;
+    animation: search-modal-overlay-out 0.18s ease-in both;
+}
+
+.search-modal-overlay.is-closing:not([hidden]) .search-modal,
+.search-modal-overlay.is-closing:not([hidden]) .shared-modal,
+.shared-modal-overlay.is-closing:not([hidden]) .search-modal,
+.shared-modal-overlay.is-closing:not([hidden]) .shared-modal {
+    animation: search-modal-out 0.18s ease-in both;
+}
+
+.search-modal,
+.shared-modal {
+    position: relative;
+    display: flex;
+    box-sizing: border-box;
+    width: min(var(--shared-modal-width, 560px), 100%);
+    max-width: var(--shared-modal-width, 560px);
+    max-height: calc(100vh - var(--search-modal-vertical-gutter) - var(--search-modal-vertical-gutter));
+    max-height: calc(100dvh - var(--search-modal-vertical-gutter) - var(--search-modal-vertical-gutter));
+    flex-direction: column;
+    overflow: hidden;
+    padding: 0;
+    border: 1px solid color-mix(in srgb, var(--surface-elevated) 65%, var(--search-modal-border-strong));
+    border-radius: var(--modal-border-radius, 16px);
+    color: var(--text-color);
+    background: color-mix(in srgb, var(--surface-elevated) 94%, transparent);
+    backdrop-filter: blur(40px) saturate(1.35);
+    -webkit-backdrop-filter: blur(40px) saturate(1.35);
+    animation: search-modal-in 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Search and list dialogs retain the fixed Archived Chats viewport. */
+.search-modal:not(.search-modal--fit),
+.shared-modal--fixed {
+    height: min(640px, calc(100vh - var(--search-modal-vertical-gutter) - var(--search-modal-vertical-gutter)));
+    height: min(640px, calc(100dvh - var(--search-modal-vertical-gutter) - var(--search-modal-vertical-gutter)));
+}
+
+/* Content-sized dialogs still cap and scroll safely on short viewports. */
+.search-modal--fit,
+.shared-modal--fit {
+    height: auto;
+}
+
+.shared-modal--compact {
+    --shared-modal-width: 480px;
+}
+
+.shared-modal--wide {
+    --shared-modal-width: 720px;
+}
+
+.shared-modal--large {
+    --shared-modal-width: 960px;
+}
+
+/* Forms that own a modal's header/body/footer participate in the same flex
+   layout as direct children of the surface. */
+.shared-modal-form {
+    display: flex;
+    min-height: 0;
+    flex: 1 1 auto;
+    flex-direction: column;
+}
+
+.search-modal-header,
+.shared-modal-header {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    border-bottom: 1px solid var(--search-modal-border);
+}
+
+/* The standard modal header pairs visible heading copy with trailing actions. */
+.search-modal-header--main,
+.shared-modal-header--main {
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 20px;
+}
+
+.shared-modal-heading {
+    min-width: 0;
+}
+
+.search-modal-title,
+.shared-modal-title {
+    margin: 0;
+    color: var(--text-color);
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.35;
+    text-align: start;
+}
+
+.shared-modal-subtitle {
+    margin: 4px 0 0;
+    color: var(--text-color-secondary);
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.search-modal-body,
+.shared-modal-body {
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 20px;
+    overscroll-behavior: contain;
+}
+
+.shared-modal-body--centered {
+    text-align: center;
+}
+
+.search-modal-footer,
+.shared-modal-footer {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    margin: 0;
+    padding: 16px 20px 20px;
+    border-top: 1px solid var(--search-modal-border);
+    background: color-mix(in srgb, var(--surface-elevated) 96%, transparent);
+}
+
+.search-modal-footer .om-button.border,
+.shared-modal-footer .om-button.border {
+    min-width: 96px;
+}
+
+.search-modal-footer .om-button.border.cancel,
+.shared-modal-footer .om-button.border.cancel {
+    border-color: var(--modal-border, var(--border-color));
+    color: var(--modal-secondary-text, var(--text-color-secondary));
+    background: var(--modal-secondary-background, transparent);
+}
+
+.search-modal-footer .om-button.border.submit,
+.shared-modal-footer .om-button.border.submit {
+    border-color: var(--modal-primary-background, var(--primary-color));
+    color: var(--modal-primary-text, #ffffff);
+    background: var(--modal-primary-background, var(--primary-color));
+}
+
+.search-modal-footer .om-button.border:focus-visible,
+.shared-modal-footer .om-button.border:focus-visible {
+    outline: 2px solid var(--modal-border-strong, var(--primary-color));
+    box-shadow: 0 0 0 4px var(--modal-focus-ring, transparent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .search-modal-footer .om-button.border.cancel:hover:not(:disabled),
+    .shared-modal-footer .om-button.border.cancel:hover:not(:disabled) {
+        border-color: var(--modal-border-strong, var(--primary-color));
+        color: var(--modal-secondary-text, var(--text-color));
+        background: var(--modal-secondary-hover, var(--hover));
+    }
+
+    .search-modal-footer .om-button.border.submit:hover:not(:disabled),
+    .shared-modal-footer .om-button.border.submit:hover:not(:disabled) {
+        border-color: var(--modal-primary-hover, var(--primary-hover));
+        background: var(--modal-primary-hover, var(--primary-hover));
+    }
+}
+
+.shared-modal-close {
+    appearance: none;
+    display: inline-grid;
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    place-items: center;
+    padding: 0;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-color);
+    background: transparent;
+    cursor: pointer;
+    font: inherit;
+}
+
+.shared-modal-close:disabled {
+    opacity: 0.38;
+    cursor: not-allowed;
+}
+
+.shared-modal-close svg {
+    width: 20px;
+    height: 20px;
+}
+
+.shared-modal-close:focus-visible {
+    outline: 2px solid var(--modal-border-strong, var(--primary-color));
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px var(--modal-focus-ring, transparent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .shared-modal-close:hover {
+        background: var(--hover);
+    }
+}
+
+/* Search headers preserve the compact Command-K control layout. */
+.search-modal-header--search,
+.shared-modal-header--search {
+    min-height: 58px;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 14px 16px 13px 18px;
+}
+
+/* Shared loading and empty states use the original Archived Chats treatment. */
+.search-modal-loading,
+.search-modal-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    margin: 0;
+    padding: 40px 20px;
+    color: var(--text-color-tertiary);
+    font-size: 14px;
+    text-align: center;
+}
+
+.search-modal-loading[hidden],
+.search-modal-empty[hidden] {
+    display: none;
+}
+
+.search-modal-loading p,
+.search-modal-empty p {
+    margin: 0;
+    font-size: inherit;
+}
+
+/* A pseudo-element lets text-only states share the same loading indicator. */
+.search-modal-loading::before {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--border-color);
+    border-top-color: var(--accent-color);
+    border-radius: 50%;
+    animation: spinTo360 0.8s linear infinite;
+    content: "";
+}
+
+@media (max-width: 640px) {
+    .search-modal-overlay,
+    .shared-modal-overlay {
+        --search-modal-vertical-gutter: 12px;
+        align-items: end;
+    }
+
+    .search-modal,
+    .shared-modal {
+        width: 100%;
+        max-width: none;
+        max-height: min(82vh, 720px);
+        max-height: min(82dvh, 720px);
+        border-radius: var(--modal-border-radius, 16px);
+    }
+
+    .search-modal:not(.search-modal--fit),
+    .shared-modal--fixed {
+        height: min(82vh, 720px);
+        height: min(82dvh, 720px);
+    }
+
+    .search-modal-header--main,
+    .shared-modal-header--main {
+        padding: 14px 16px;
+    }
+
+    .search-modal-body,
+    .shared-modal-body {
+        padding: 16px;
+    }
+
+    .search-modal-footer,
+    .shared-modal-footer {
+        padding: 14px 16px 16px;
+    }
+}
+
+@media (max-width: 600px) {
+    .search-modal-title,
+    .shared-modal-title {
+        font-size: 16px;
+    }
+
+    .search-modal-footer .om-button.border,
+    .shared-modal-footer .om-button.border {
+        min-width: 0;
+        flex: 1 1 0;
+    }
+}
+
+/* Respect the operating-system preference exposed by the browser. */
+@media (prefers-reduced-motion: reduce) {
+    .search-modal-overlay,
+    .shared-modal-overlay,
+    .search-modal,
+    .shared-modal {
+        animation: none !important;
+        transition-duration: 0.01ms !important;
+    }
+
+    .search-modal-loading::before {
+        animation: none !important;
+    }
+}

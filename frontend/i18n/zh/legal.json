@@ -1,0 +1,11 @@
+{
+  "legal_page_title": "法律信息",
+  "legal_navigation_aria": "法律文档",
+  "legal_loading": "正在加载法律文档...",
+  "legal_scroll_to_top_aria": "返回顶部",
+  "legal_toc_title": "目录",
+  "legal_language_notice_label": "语言提示",
+  "legal_language_notice_authoritative": "此法律文档以{language}提供。页面界面可能已翻译，但下方文档不会自动翻译。",
+  "legal_language_notice_operator": "此法律文档以运营者指定的权威语言提供。页面界面可能已翻译，但下方文档不会自动翻译。",
+  "legal_language_name_en": "英语"
+}

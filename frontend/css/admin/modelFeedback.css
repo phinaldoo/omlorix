@@ -1,0 +1,305 @@
+/* Model Feedback Dashboard */
+
+.feedback-stats-kpi-icon.total {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: #fff;
+}
+
+.feedback-stats-kpi-icon.thumbs-up {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #fff;
+}
+
+.feedback-stats-kpi-icon.thumbs-down {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: #fff;
+}
+
+.feedback-stats-kpi-icon.approval {
+    background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+    color: #fff;
+}
+
+.feedback-stats-kpi-icon.comments {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: #fff;
+}
+
+.feedback-stats-kpi-icon.users {
+    background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+    color: #fff;
+}
+
+.feedback-stats-approval-title svg {
+    color: #8b5cf6;
+}
+
+#page-model-feedback .feedback-stats-approval-title svg {
+    color: var(--admin-text);
+}
+
+.feedback-stats-approval-rate {
+    font-size: 32px;
+    font-weight: 700;
+    color: #10b981;
+    letter-spacing: -0.02em;
+}
+
+#page-model-feedback .feedback-stats-approval-rate {
+    color: var(--admin-text);
+}
+
+.feedback-stats-approval-bar-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.feedback-stats-approval-bar {
+    display: flex;
+    height: 12px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--admin-border-subtle);
+}
+
+.feedback-stats-approval-bar-positive {
+    background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+    transition: width 0.5s ease;
+}
+
+.feedback-stats-approval-bar-negative {
+    background: linear-gradient(90deg, #ef4444 0%, #f87171 100%);
+    transition: width 0.5s ease;
+}
+
+.feedback-stats-approval-legend {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.feedback-stats-approval-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--admin-text-secondary);
+}
+
+.feedback-stats-approval-legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+}
+
+.feedback-stats-approval-legend-item.positive .feedback-stats-approval-legend-dot {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.feedback-stats-approval-legend-item.negative .feedback-stats-approval-legend-dot {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.feedback-stats-chart-subtitle {
+    margin: 0;
+}
+
+.feedback-stats-legend-positive::before {
+    background-color: #10b981;
+}
+
+.feedback-stats-legend-negative::before {
+    background-color: #ef4444;
+}
+
+.feedback-stats-section-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.feedback-stats-section-title svg {
+    width: 20px;
+    height: 20px;
+    color: #3b82f6;
+}
+
+#page-model-feedback .feedback-stats-section-title svg {
+    color: var(--admin-text);
+}
+
+.feedback-stats-positive-cell {
+    color: #10b981;
+    font-weight: 500;
+}
+
+.feedback-stats-negative-cell {
+    color: #ef4444;
+    font-weight: 500;
+}
+
+.feedback-stats-approval-cell {
+    font-weight: 600;
+}
+
+.feedback-stats-approval-cell.high {
+    color: #10b981;
+}
+
+.feedback-stats-approval-cell.medium {
+    color: #f59e0b;
+}
+
+.feedback-stats-approval-cell.low {
+    color: #ef4444;
+}
+
+.feedback-stats-list {
+    padding: 0;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.feedback-stats-feedback-item {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--admin-border-subtle);
+    transition: background 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .feedback-stats-feedback-item:hover {
+        background: var(--admin-table-row-hover);
+    }
+}
+
+.feedback-stats-feedback-item:last-child {
+    border-bottom: none;
+}
+
+.feedback-stats-feedback-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.feedback-stats-feedback-reaction {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    font-size: 16px;
+}
+
+.feedback-stats-feedback-reaction.positive {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+}
+
+.feedback-stats-feedback-reaction.negative {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
+
+.feedback-stats-feedback-user {
+    font-size: 12px;
+    color: var(--admin-text-secondary);
+}
+
+.feedback-stats-feedback-comment {
+    font-size: 13px;
+    color: var(--admin-text);
+    background: var(--admin-hover);
+    padding: 12px 14px;
+    border-radius: 10px;
+    border-left: 3px solid #3b82f6;
+    line-height: 1.5;
+    word-break: break-word;
+}
+
+.feedback-stats-feedback-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.feedback-stats-feedback-actions .feedback-stats-delete-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 10px;
+    background-color: rgba(239, 68, 68, 0.08);
+    color: #ef4444;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .feedback-stats-feedback-actions .feedback-stats-delete-btn:hover {
+        border-color: #ef4444;
+        background-color: rgba(239, 68, 68, 0.12);
+        box-shadow: var(--admin-shadow);
+    }
+}
+
+.feedback-stats-feedback-actions .feedback-stats-delete-btn:active {
+    transform: scale(0.97);
+}
+
+.feedback-stats-feedback-actions .feedback-stats-delete-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+.feedback-stats-delete-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 8px;
+    background-color: transparent;
+    color: #ef4444;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .feedback-stats-delete-btn:hover {
+        border-color: #ef4444;
+        background-color: rgba(239, 68, 68, 0.1);
+    }
+}
+
+.feedback-stats-delete-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+.feedback-stats-empty-icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+@media (max-width: 768px) {
+    .feedback-stats-section-controls {
+        flex-wrap: wrap;
+    }
+
+    .feedback-stats-approval-legend {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+}

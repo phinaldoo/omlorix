@@ -1,0 +1,7 @@
+{
+  "privacy_page_title": "隐私政策",
+  "privacy_loading": "正在加载隐私政策...",
+  "privacy_load_error": "无法加载隐私政策。请稍后重试。",
+  "privacy_default_template_warning_emphasis": "重要：",
+  "privacy_default_template_warning": "此实例仍在使用默认隐私政策模板。运营方必须将其替换为与部署场景匹配的法律内容。"
+}

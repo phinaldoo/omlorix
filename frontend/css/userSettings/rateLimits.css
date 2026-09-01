@@ -1,0 +1,303 @@
+
+
+/* ── Grid ────────────────────────────────────────────────────────────── */
+
+.rl-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: 16px;
+    padding-bottom: 80px;
+}
+
+@media (max-width: 480px) {
+    .rl-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ── Card ────────────────────────────────────────────────────────────── */
+
+.rl-card {
+    background: var(--background);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .rl-card:hover {
+        border-color: var(--border-color-hover, var(--border-color));
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+}
+
+.rl-card.rl-status-exceeded {
+    border-color: var(--error-color, #ef4444);
+    background: color-mix(in srgb, var(--error-color, #ef4444) 3%, var(--background));
+}
+
+.rl-card.rl-status-warning {
+    border-color: var(--warning-color, #f59e0b);
+}
+
+/* ── Card Header ─────────────────────────────────────────────────────── */
+
+.rl-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.rl-card-title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.rl-card-icon {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--primary-color, #3b82f6) 10%, var(--background));
+    color: var(--primary-color, #3b82f6);
+}
+
+.rl-card-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+.rl-status-exceeded .rl-card-icon {
+    background: color-mix(in srgb, var(--error-color, #ef4444) 10%, var(--background));
+    color: var(--error-color, #ef4444);
+}
+
+.rl-status-warning .rl-card-icon {
+    background: color-mix(in srgb, var(--warning-color, #f59e0b) 10%, var(--background));
+    color: var(--warning-color, #f59e0b);
+}
+
+.rl-card-title-group {
+    min-width: 0;
+}
+
+.rl-card-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-color);
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.rl-card-period {
+    font-size: 12px;
+    color: var(--text-color-secondary);
+    font-weight: 500;
+}
+
+/* ── Status Badge ────────────────────────────────────────────────────── */
+
+.rl-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.rl-status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.rl-status-badge.rl-status-ok {
+    background: color-mix(in srgb, var(--success-color, #22c55e) 12%, var(--background));
+    color: var(--success-color, #22c55e);
+}
+
+.rl-status-badge.rl-status-ok .rl-status-dot {
+    background: var(--success-color, #22c55e);
+}
+
+.rl-status-badge.rl-status-warning {
+    background: color-mix(in srgb, var(--warning-color, #f59e0b) 12%, var(--background));
+    color: var(--warning-color, #f59e0b);
+}
+
+.rl-status-badge.rl-status-warning .rl-status-dot {
+    background: var(--warning-color, #f59e0b);
+}
+
+.rl-status-badge.rl-status-exceeded {
+    background: color-mix(in srgb, var(--error-color, #ef4444) 12%, var(--background));
+    color: var(--error-color, #ef4444);
+}
+
+.rl-status-badge.rl-status-exceeded .rl-status-dot {
+    background: var(--error-color, #ef4444);
+}
+
+/* ── Progress ────────────────────────────────────────────────────────── */
+
+.rl-progress-section {
+    margin-bottom: 16px;
+}
+
+.rl-progress-header {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.rl-progress-count {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-color);
+    font-variant-numeric: tabular-nums;
+}
+
+.rl-progress-separator {
+    font-weight: 400;
+    color: var(--text-color-secondary);
+    margin: 0 1px;
+}
+
+.rl-progress-label {
+    font-size: 13px;
+    color: var(--text-color-secondary);
+}
+
+.rl-progress-bar-track {
+    width: 100%;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--hover, #f1f5f9);
+    overflow: hidden;
+}
+
+.rl-progress-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    min-width: 0;
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────── */
+
+.rl-card-footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+}
+
+.rl-footer-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-color-secondary);
+    min-width: 0;
+}
+
+.rl-footer-item svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    opacity: 0.6;
+}
+
+.rl-model-names {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 220px;
+}
+
+.rl-countdown {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* ── Notices ──────────────────────────────────────────────────────────── */
+
+.rl-exceeded-notice {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--error-color, #ef4444) 8%, var(--background));
+    color: var(--error-color, #ef4444);
+    font-size: 13px;
+    font-weight: 500;
+}
+
+/* ── Empty State ─────────────────────────────────────────────────────── */
+
+.rl-empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-color-secondary);
+}
+
+.rl-empty-state svg {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 16px;
+    opacity: 0.4;
+}
+
+.rl-empty-state h3 {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text-color);
+    margin: 0 0 6px;
+}
+
+.rl-empty-state p {
+    font-size: 14px;
+    max-width: 320px;
+    margin: 0 auto;
+    line-height: 1.5;
+}
+
+/* ── Loading ─────────────────────────────────────────────────────────── */
+
+.rl-loading {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-color-secondary);
+}
+
+.rl-loading p {
+    font-size: 14px;
+    margin-top: 16px;
+}
+
+.rl-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--border-color);
+    border-top-color: var(--primary-color, #3b82f6);
+    border-radius: 50%;
+    animation: spinTo360 0.8s linear infinite;
+    margin: 0 auto;
+}

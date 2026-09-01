@@ -1,0 +1,245 @@
+.asset-upload-grid-row {
+    display: flex;
+    gap: 16px;
+    width: 100%;
+}
+
+.asset-upload-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius);
+    width: 100%;
+    background: var(--bg-normal);
+    cursor: pointer;
+    text-align: left;
+    color: var(--admin-text);
+    transition: all var(--admin-transition);
+}
+
+@media (max-width: 768px) {
+    .asset-upload-card {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+    }
+}
+
+.asset-upload-card.app-icon {
+    width: auto;
+}
+
+.asset-upload-card:focus-visible {
+    outline: 2px solid var(--admin-text);
+    outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .asset-upload-card:hover {
+        border-color: var(--admin-text-tertiary);
+    }
+}
+
+.asset-upload-preview {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border: 1px dashed var(--admin-border);
+    border-radius: var(--admin-radius-sm);
+    padding: 16px;
+    background: var(--admin-bg);
+    overflow: hidden;
+}
+
+/*
+ * A light-theme logo is normally designed for a light canvas. In dark mode,
+ * give uploaded transparent assets that canvas so dark logo artwork remains
+ * visible without changing the empty upload state.
+ */
+[data-mode="dark"] #logoPreviewLight[data-has-preview="true"] {
+    background: #fff;
+}
+
+#logoPreviewDark {
+    background: #000;
+    border-color: #2b2b2b;
+    color: #fff;
+}
+
+.asset-upload-preview-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+    color: var(--admin-text);
+}
+
+.asset-upload-preview-content img {
+    width: auto;
+    height: 48px;
+    object-fit: contain;
+}
+
+.asset-upload-preview-content .asset-upload-inline-svg {
+    width: auto;
+    height: 48px;
+    max-width: 100%;
+    display: block;
+}
+.asset-upload-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.asset-upload-placeholder {
+    bottom: 8px;
+    left: 8px;
+    right: 8px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--admin-text-secondary);
+    text-align: center;
+    background: var(--admin-hover);
+    border-radius: 4px;
+    padding: 6px 10px;
+}
+
+.settings-section {
+    margin-bottom: 32px;
+}
+
+.settings-section-group {
+    margin-bottom: 40px;
+}
+
+.settings-section-group:last-child {
+    margin-bottom: 0;
+}
+
+.settings-section-group-header {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--admin-border);
+}
+
+.settings-section-group-title {
+    margin: 0;
+    color: var(--admin-text);
+    font-size: 18px;
+    font-weight: 650;
+    letter-spacing: -0.015em;
+}
+
+.settings-section-group-description {
+    margin: 0;
+    color: var(--admin-text-secondary);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.settings-section-group-body > .settings-section:last-child {
+    margin-bottom: 0;
+}
+
+.settings-section:last-child {
+    margin-bottom: 0;
+}
+
+.settings-section--spaced {
+    margin-top: 32px;
+}
+
+.settings-section--compact-spaced {
+    margin-top: 24px;
+}
+
+.settings-section--flush {
+    margin-bottom: 0;
+}
+
+.settings-section-header {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 16px;
+}
+
+.settings-section-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--admin-text);
+    letter-spacing: -0.01em;
+}
+
+.settings-section-description {
+    margin: 0;
+    font-size: 13px;
+    color: var(--admin-text-secondary);
+    line-height: 1.5;
+}
+
+.settings-section-body {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius);
+    background: var(--bg-normal);
+    overflow: visible;
+}
+
+.settings-section-body .settings-row {
+    margin: 0;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--admin-border-subtle);
+}
+
+.settings-section-body .settings-row:first-child {
+    padding-top: 20px;
+}
+
+.settings-section-body .settings-row:last-child {
+    border-bottom: none;
+    padding-bottom: 20px;
+}
+
+.settings-section-body .settings-row.is-last-visible-row {
+    border-bottom: none;
+}
+
+@media (max-width: 768px) {
+    .settings-section-group {
+        margin-bottom: 32px;
+    }
+
+    .settings-section-group-title {
+        font-size: 16px;
+    }
+
+    .settings-section {
+        margin-bottom: 24px;
+    }
+
+    .settings-section--spaced,
+    .settings-section--compact-spaced {
+        margin-top: 24px;
+    }
+
+    .settings-section-title {
+        font-size: 14px;
+    }
+
+    .settings-section-body .settings-row {
+        padding: 16px 20px;
+    }
+}

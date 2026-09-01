@@ -1,0 +1,965 @@
+.model-select {
+    --ms-bg: var(--background);
+    --ms-bg-elevated: var(--background);
+    --ms-surface: color-mix(in srgb, var(--background) 94%, var(--text-color) 6%);
+    --ms-surface-hover: var(--hover);
+    --ms-surface-active: color-mix(in srgb, var(--background) 88%, var(--text-color) 12%);
+    --ms-border: var(--border-color);
+    --ms-border-strong: color-mix(in srgb, var(--border-color) 72%, var(--text-color) 28%);
+    --ms-text: var(--text-color);
+    --ms-text-secondary: var(--text-color-secondary);
+    --ms-text-tertiary: var(--text-color-tertiary);
+    --ms-accent: var(--primary-color, var(--text-color));
+    --ms-accent-soft: color-mix(in srgb, var(--primary-color, var(--text-color)) 12%, transparent);
+    --ms-focus-ring: color-mix(in srgb, var(--primary-color, var(--text-color)) 24%, transparent);
+    --ms-alpha: var(--pending);
+    --ms-alpha-bg: color-mix(in srgb, var(--pending) 14%, transparent);
+    --ms-beta: var(--primary-color, var(--text-color));
+    --ms-beta-bg: color-mix(in srgb, var(--primary-color, var(--text-color)) 10%, transparent);
+    --ms-danger: var(--error-color);
+    --ms-shadow-md: 0 8px 28px var(--shadow-color), 0 2px 6px color-mix(in srgb, var(--shadow-color) 65%, transparent);
+    --ms-shadow-tooltip: 0 14px 40px var(--shadow-color), 0 2px 8px color-mix(in srgb, var(--shadow-color) 70%, transparent);
+    --ms-radius-sm: 8px;
+    --ms-radius-md: 12px;
+    --ms-radius-lg: 16px;
+    --ms-ease: cubic-bezier(0.16, 1, 0.3, 1);
+    --ms-trans: 0.18s var(--ms-ease);
+    position: relative;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+
+
+.model-select-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+    max-width: 220px;
+    overflow: hidden;
+}
+
+/* Header placeholder shown only while the initial model list is unresolved. */
+.model-select-trigger-skeleton {
+    display: block;
+    width: 112px;
+    height: 12px;
+    border-radius: 6px;
+    background-color: var(--ms-border);
+    animation: skeleton-pulse 1.5s infinite ease-in-out;
+    pointer-events: none;
+}
+
+.label-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+.label-icon svg,
+.label-icon img {
+    width: 100%;
+    height: 100%;
+    min-width: 18px;
+    min-height: 18px;
+    object-fit: cover;
+    display: block;
+}
+
+.label-icon img {
+    border-radius: 50%;
+}
+
+.model-select-trigger .label-name,
+.model-select-label .label-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+}
+
+.model-select-trigger-status,
+.model-select-item-status {
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.model-select-trigger-status.alpha,
+.model-select-item-status.alpha {
+    background: var(--ms-alpha-bg);
+    color: var(--ms-alpha);
+}
+
+.model-select-trigger-status.experimental,
+.model-select-trigger-status.beta,
+.model-select-item-status.experimental,
+.model-select-item-status.beta {
+    background: var(--ms-beta-bg);
+    color: var(--ms-beta);
+}
+
+
+.model-select-backdrop {
+    position: fixed;
+    inset: 0;
+    background: transparent;
+    z-index: 1190;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--ms-trans), background var(--ms-trans);
+}
+
+.model-select-backdrop.active {
+    backdrop-filter: var(--modal-overlay-backdrop-filter);
+    -webkit-backdrop-filter: var(--modal-overlay-backdrop-filter);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.model-select-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    width: 380px;
+    max-height: min(560px, 70vh);
+    background: var(--ms-bg-elevated);
+    border: 1px solid var(--ms-border);
+    border-radius: var(--ms-radius-lg);
+    box-shadow: var(--ms-shadow-md);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 1200;
+    opacity: 0;
+    transform: translateY(-6px) scale(0.985);
+    transform-origin: top left;
+    pointer-events: none;
+    visibility: hidden;
+    transition: opacity var(--ms-trans), transform var(--ms-trans), visibility var(--ms-trans);
+}
+
+.model-select-dropdown.open {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+    visibility: visible;
+}
+
+.model-select-dropdown.model-select-dropdown--anchored {
+    position: fixed;
+    top: 0;
+    left: 0;
+}
+
+.model-select-drag-handle,
+.model-select-mobile-header {
+    display: none;
+}
+
+.model-select-main-panel {
+    display: flex;
+    flex-direction: column;
+    /*
+     * The panel must participate in the dropdown's flex sizing. Without this,
+     * WebKit gives the scrolling list its content height and then clips
+     * the last model rows at the bottom of the translated mobile sheet.
+     */
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.model-select-head {
+    padding: 12px 12px 8px;
+    border-bottom: 1px solid var(--ms-border);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.model-select-search-row {
+    width: 100%;
+}
+
+.model-select-search-control {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.model-select-search-icon {
+    position: absolute;
+    left: 12px;
+    width: 14px;
+    height: 14px;
+    color: var(--ms-text-tertiary);
+    pointer-events: none;
+}
+
+.model-select-search-input {
+    width: 100%;
+    height: 38px;
+    padding: 0 36px 0 34px;
+    border: 1px solid var(--ms-border);
+    background: var(--ms-surface);
+    color: var(--ms-text);
+    border-radius: var(--ms-radius-md);
+    font-size: 13.5px;
+    outline: none;
+    transition: background var(--ms-trans), border-color var(--ms-trans), box-shadow var(--ms-trans);
+}
+
+.model-select-search-input::placeholder {
+    color: var(--ms-text-tertiary);
+}
+
+.model-select-search-input:focus {
+    border-color: var(--ms-border-strong);
+    background: var(--ms-bg);
+    box-shadow: 0 0 0 3px var(--ms-focus-ring);
+}
+
+.model-select-search-clear {
+    position: absolute;
+    right: 8px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: transparent;
+    border: none;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    color: var(--ms-text-tertiary);
+    cursor: pointer;
+}
+
+.model-select-search-clear svg {
+    width: 12px;
+    height: 12px;
+}
+
+.model-select-search-clear.is-visible {
+    display: inline-flex;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .model-select-search-clear:hover {
+        background: var(--ms-surface-hover);
+        color: var(--ms-text);
+    }
+}
+
+.model-select-filters {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.model-select-filter-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 1px 0;
+}
+
+.model-select-filter-group::-webkit-scrollbar {
+    display: none;
+}
+
+.model-select-filter-label {
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--ms-text-tertiary);
+    flex-shrink: 0;
+    width: 28px;
+}
+
+.model-select-filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 24px;
+    padding: 0 10px;
+    border-radius: 999px;
+    background: var(--ms-surface);
+    border: 1px solid transparent;
+    color: var(--ms-text-secondary);
+    font-size: 11.5px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background var(--ms-trans), color var(--ms-trans), border-color var(--ms-trans);
+}
+
+.model-select-filter-chip svg {
+    width: 11px;
+    height: 11px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .model-select-filter-chip:hover {
+        background: var(--ms-surface-hover);
+        color: var(--ms-text);
+    }
+}
+
+.model-select-filter-chip.is-active {
+    background: var(--ms-accent);
+    border-color: var(--ms-accent);
+    color: var(--background);
+}
+
+.model-select-list {
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 6px;
+    flex: 1;
+    min-height: 0;
+    overscroll-behavior-y: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--ms-border-strong) transparent;
+}
+
+/* The leaderboard is an optional group-scoped destination. Keeping it in a
+ * dedicated footer makes the action discoverable without competing with model
+ * rows or reducing the search input's usable width on small screens. */
+.model-select-footer {
+    flex-shrink: 0;
+    padding: 12px;
+    border-top: 1px solid var(--ms-border);
+}
+
+.model-select-footer[hidden] {
+    display: none;
+}
+
+.model-select-leaderboard-link {
+    min-height: 36px;
+    padding: 7px 10px;
+    border-radius: var(--ms-radius-md);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--ms-surface);
+    color: var(--ms-text-secondary);
+    font-size: 12.5px;
+    font-weight: 500;
+    line-height: 1.35;
+    text-decoration: none;
+}
+
+.model-select-leaderboard-link:focus-visible {
+    outline: none;
+    color: var(--ms-text);
+    box-shadow: 0 0 0 3px var(--ms-focus-ring);
+}
+
+.model-select-leaderboard-icon {
+    width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.model-select-leaderboard-icon svg {
+    width: 20px;
+    height: 20px;
+    display: block;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .model-select-leaderboard-link:hover {
+        background: var(--ms-surface-hover);
+        color: var(--ms-text);
+    }
+}
+
+.model-select-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.model-select-list::-webkit-scrollbar-thumb {
+    background: var(--ms-border-strong);
+    border-radius: 4px;
+    border: 2px solid var(--ms-bg-elevated);
+}
+
+.model-select-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.model-select-section-label {
+    padding: 10px 12px 6px;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ms-text-tertiary);
+}
+
+.model-select-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: var(--ms-radius-md);
+    cursor: pointer;
+    transition: background var(--ms-trans), box-shadow var(--ms-trans);
+    position: relative;
+    outline: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .model-select-item:hover {
+        background: var(--ms-surface-hover);
+    }
+}
+
+.model-select-item.active {
+    background: var(--ms-accent-soft);
+}
+
+.model-select-item.search-highlight,
+.model-select-item:focus-visible {
+    background: var(--ms-surface-hover);
+    box-shadow: 0 0 0 2px var(--ms-focus-ring);
+}
+
+.model-select-item-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    flex: 1;
+}
+
+.model-select-item-left-svg {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: var(--ms-surface);
+    border: 1px solid var(--ms-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--ms-text-secondary);
+}
+
+.model-select-item-left-svg svg,
+.model-select-item-left-svg img {
+    width: 18px;
+    height: 18px;
+    object-fit: cover;
+    display: block;
+}
+
+.model-select-item-left-svg img {
+    border-radius: 50%;
+}
+
+.model-select-item-left-text {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.model-select-name-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.model-select-name {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--ms-text);
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.model-select-desc {
+    font-size: 11.5px;
+    color: var(--ms-text-secondary);
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.model-select-item-right {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.model-select-check {
+    width: 16px;
+    height: 16px;
+    color: var(--ms-text);
+    opacity: 0;
+    flex-shrink: 0;
+    transition: opacity var(--ms-trans);
+}
+
+.model-select-item.active .model-select-check {
+    opacity: 1;
+}
+
+.model-select-pin-btn {
+    width: 24px;
+    height: 24px;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--ms-text-tertiary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    cursor: pointer;
+    transition: background-color var(--ms-trans), color var(--ms-trans), transform var(--ms-trans);
+}
+
+.model-select-pin-btn svg {
+    width: 14px;
+    height: 14px;
+    display: block;
+}
+
+.model-select-pin-btn:focus-visible {
+    color: var(--ms-accent);
+    background: var(--ms-accent-soft);
+    outline: none;
+}
+
+.model-select-pin-btn:active {
+    transform: scale(0.96);
+}
+
+.model-select-pin-btn.is-pinned {
+    color: var(--ms-accent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .model-select-pin-btn:hover,
+    .model-select-pin-btn.is-pinned:hover {
+        color: var(--ms-accent);
+        background: var(--ms-accent-soft);
+    }
+}
+
+.model-select-warning-container,
+.model-select-capability{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.model-select-capability svg {
+    width: 16px;
+    height: 16px;
+}
+
+.model-select-warning svg {
+    fill: var(--ms-alpha);
+}
+
+.model-select-warning {
+    border: none;
+    background: transparent;
+    padding: 0;
+    cursor: help;
+}
+
+.model-select-warning:focus-visible {
+    border-radius: 2px;
+    outline: 2px solid var(--ms-accent);
+    outline-offset: 2px;
+}
+
+.model-select-empty {
+    text-align: center;
+    padding: 36px 20px;
+    color: var(--ms-text-tertiary);
+    font-size: 12.5px;
+    line-height: 1.5;
+    user-select: none;
+    cursor: default;
+}
+
+@keyframes model-select-skeleton {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.model-select-detail {
+    position: fixed;
+    z-index: 1300;
+    width: 320px;
+    background: var(--ms-bg-elevated);
+    border: 1px solid var(--ms-border);
+    border-radius: var(--ms-radius-lg);
+    box-shadow: var(--ms-shadow-tooltip);
+    padding: 16px;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(-4px);
+    visibility: hidden;
+    transition: opacity var(--ms-trans), transform var(--ms-trans), visibility var(--ms-trans);
+}
+
+.model-select-detail.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+    visibility: visible;
+}
+
+.model-select-detail-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.model-select-detail-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: var(--ms-surface);
+    border: 1px solid var(--ms-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ms-text-secondary);
+    flex-shrink: 0;
+}
+
+.model-select-detail-icon svg,
+.model-select-detail-icon img {
+    width: 20px;
+    height: 20px;
+    display: block;
+    object-fit: cover;
+}
+
+.model-select-detail-icon img {
+    border-radius: 50%;
+}
+
+.model-select-detail-title {
+    flex: 1;
+    min-width: 0;
+}
+
+.model-select-detail-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ms-text);
+    letter-spacing: -0.01em;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.model-select-detail-desc {
+    font-size: 12px;
+    color: var(--ms-text-secondary);
+    line-height: 1.5;
+    margin-bottom: 12px;
+}
+
+.model-select-detail-section {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 10px;
+}
+
+.model-select-detail-section:last-child {
+    margin-bottom: 0;
+}
+
+.model-select-detail-section-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ms-text-tertiary);
+}
+
+.model-select-format-row,
+.model-select-icon-row,
+.model-select-stat-row,
+.model-select-item-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.model-select-format-pill,
+.model-select-icon-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.model-select-format-pill {
+    gap: 4px;
+    height: 22px;
+    padding: 0 8px;
+    background: var(--ms-surface);
+    border: 1px solid var(--ms-border);
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--ms-text-secondary);
+}
+
+.model-select-format-pill svg {
+    width: 11px;
+    height: 11px;
+}
+
+.model-select-connection-pill > span:first-child {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.model-select-connection-pill > span:first-child svg {
+    width: 12px;
+    height: 12px;
+    display: block;
+}
+
+.model-select-arrow {
+    color: var(--ms-text-tertiary);
+    display: inline-flex;
+    align-items: center;
+}
+
+.model-select-arrow svg {
+    width: 12px;
+    height: 12px;
+}
+
+.model-select-icon-chip {
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    background: var(--ms-surface);
+    border: 1px solid var(--ms-border);
+    color: var(--ms-text-secondary);
+}
+
+.model-select-icon-chip svg {
+    width: 13px;
+    height: 13px;
+}
+
+.model-select-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: var(--ms-text);
+    font-weight: 600;
+}
+
+.model-select-stat svg {
+    width: 12px;
+    height: 12px;
+    color: var(--ms-text-tertiary);
+}
+
+.model-select-stat-unit {
+    color: var(--ms-text-tertiary);
+    font-weight: 400;
+}
+
+.model-select-item-meta {
+    display: none;
+}
+
+@media (max-width: 600px) {
+    .model-select-trigger .label-name,
+    .model-select-label .label-name,
+    .model-select-trigger-skeleton,
+    .model-select-trigger-status {
+        display: none;
+    }
+
+    .model-select-trigger {
+        gap: 0;
+    }
+}
+
+@container chat-layout (max-width: 560px) {
+
+    .model-select-trigger .label-name,
+    .model-select-label .label-name,
+    .model-select-trigger-skeleton,
+    .model-select-trigger-status {
+        display: none;
+    }
+
+    .model-select-trigger {
+        gap: 0;
+    }
+}
+
+@media (max-width: 768px) {
+    .model-select-backdrop {
+        background: transparent;
+        transition: background 0.28s var(--ms-ease), opacity 0.28s var(--ms-ease);
+    }
+
+    .model-select-backdrop.active {
+        background: color-mix(in srgb, var(--text-color) 40%, transparent);
+        backdrop-filter: var(--modal-overlay-backdrop-filter);
+        -webkit-backdrop-filter: var(--modal-overlay-backdrop-filter);
+    }
+
+    .model-select-dropdown {
+        position: fixed;
+        top: auto;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        max-width: 100%;
+        max-height: 88vh;
+        max-height: 88dvh;
+        border-radius: 20px 20px 0 0;
+        border-bottom: none;
+        opacity: 1;
+        transform: translateY(100%);
+        transform-origin: bottom center;
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+        transition: transform 0.32s var(--ms-ease), visibility 0.32s var(--ms-ease);
+        will-change: transform;
+    }
+
+    .model-select-dropdown.open {
+        transform: translateY(0);
+    }
+
+    .model-select-drag-handle {
+        display: flex;
+        justify-content: center;
+        padding: 8px 0 0;
+        flex-shrink: 0;
+        touch-action: none;
+    }
+
+    .model-select-drag-handle-bar {
+        width: 38px;
+        height: 4px;
+        border-radius: 2px;
+        background: var(--ms-border-strong);
+    }
+
+    .model-select-mobile-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 16px 4px;
+        flex-shrink: 0;
+    }
+
+    .model-select-mobile-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--ms-text);
+    }
+
+    .model-select-mobile-close {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: var(--ms-surface);
+        border: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--ms-text-secondary);
+        cursor: pointer;
+    }
+
+    .model-select-mobile-close svg {
+        width: 14px;
+        height: 14px;
+    }
+
+    .model-select-head {
+        padding: 8px 12px;
+    }
+
+    .model-select-list {
+        padding: 8px;
+        -webkit-overflow-scrolling: touch;
+        touch-action: pan-y;
+    }
+
+    .model-select-detail {
+        display: none !important;
+    }
+
+    .model-select-item {
+        flex-wrap: wrap;
+        padding: 12px;
+    }
+
+    .model-select-item-meta {
+        display: flex;
+        gap: 8px;
+        margin-top: 8px;
+        width: 100%;
+    }
+}
+
+.model-select-dropdown.dragging {
+    transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .model-select-dropdown,
+    .model-select-backdrop,
+    .model-select-filter-chip,
+    .model-select-search-input,
+    .model-select-detail {
+        transition: none !important;
+    }
+
+    .model-select-trigger-skeleton{
+        animation: none !important;
+    }
+}

@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#1F1F1F" media="(prefers-color-scheme: dark)">
+    <title>Login</title>
+    <link rel="icon" href="/api/v1/settings/icon/get?size=16" sizes="16x16">
+    <link rel="icon" href="/api/v1/settings/icon/get?size=32" sizes="32x32">
+    <link rel="apple-touch-icon" sizes="180x180" href="/api/v1/settings/icon/get?size=180"/>
+    <link rel="manifest" href="/api/v1/settings/site.webmanifest"/>
+    <script src="/js/common/loginBoot.js"></script>
+    <style>
+        /* Fallback CSS Variables for resilience if external CSS fails */
+        :root {
+            --background: #ffffff;
+            --text-color: #111111;
+            --text-color-secondary: #666666;
+            --text-color-tertiary: #757575;
+            --border-color: #e0e0e0;
+            --hover: #f5f5f5;
+            --admin-accent: #007bff;
+            --shadow-color: rgba(0, 0, 0, 0.08);
+        }
+
+        html[data-mode="dark"] {
+            --background: #1F1F1F;
+            --text-color: #ffffff;
+            --text-color-secondary: #aaaaaa;
+            --text-color-tertiary: #999999;
+            --border-color: #333333;
+            --hover: #2a2a2a;
+            --shadow-color: rgba(0, 0, 0, 0.4);
+        }
+
+        html, body {
+            background-color: var(--background) !important;
+            transition: none !important;
+        }
+
+        :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+            outline: 2px solid var(--admin-accent);
+            outline-offset: 2px;
+            border-radius: 4px;
+        }
+
+        .login-layout .login-branding,
+        .login-layout .branding-content,
+        .login-layout .branding-title,
+        .login-layout .branding-subtitle,
+        .login-layout .branding-decoration,
+        .login-layout .decoration-circle {
+            animation: none !important;
+            transition: none !important;
+        }
+
+        .login-layout .login-branding,
+        .login-layout .branding-content,
+        .login-layout .branding-title,
+        .login-layout .branding-subtitle {
+            opacity: 1 !important;
+            transform: none !important;
+            will-change: auto !important;
+        }
+
+        /*
+         * The backend owns the selected login design, so none of the static
+         * fallback layout should be painted until that configuration and a
+         * configured split image are ready. visibility keeps the page's
+         * dimensions stable while also removing its controls from hit testing
+         * and the accessibility tree during this short initialization window.
+         */
+        .login-ui-pending .login-layout {
+            visibility: hidden !important;
+            pointer-events: none !important;
+        }
+
+        @media (min-width: 1024px) {
+            .login-layout.design-split .mobile-logo,
+            .login-layout.design-split-image .mobile-logo {
+                display: none !important;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="/css/fonts.css">
+    <link rel="stylesheet" href="/css/common/animations.css">
+    <link rel="stylesheet" href="/css/common/init.css">
+    <link rel="stylesheet" href="/css/common/elements.css">
+    <link rel="stylesheet" href="/css/common/elementsNew.css">
+    <link rel="stylesheet" href="/css/common/themeSelector.css">
+    <link rel="stylesheet" href="/css/login/menu.css">
+    <link rel="stylesheet" href="/css/common/notification.css">
+    <link rel="stylesheet" href="/css/common/warning.css">
+    <link rel="stylesheet" href="/css/login/style.css">
+    <link rel="stylesheet" href="/css/common/searchModal.css">
+    <script src="/js/common/pwaVersionGuard.js" defer></script>
+    <script src="/js/common/icons.js" defer></script>
+    <script src="/js/common/language.js" defer></script>
+    <script src="/js/common/functions.js" defer></script>
+    <script src="/js/common/formValidation.js" defer></script>
+    <script src="/js/common/theme.js" defer></script>
+    <script src="/js/common/notification.js" defer></script>
+    <script src="/js/common/auth.js" defer></script>
+    <script src="/js/common/passwordRequirements.js" defer></script>
+    <script src="/js/common/webauthn.js" defer></script>
+    <script src="/js/vendor/qrcode.min.js" defer></script>
+    <script src="/js/common/qrcode.js" defer></script>
+    <script src="/js/common/dropdown.js"></script>
+    <script src="/js/login/menu.js"></script>
+    <script src="/js/login/crossSiteRequestBlock.js"></script>
+    <script src="/js/login/authFlowContext.js"></script>
+    <script src="/js/login/federatedTerms.js"></script>
+    <script src="/js/login/socialLoginErrors.js"></script>
+    <script src="/js/login/socialLogin.js"></script>
+    <script src="/js/login/enterpriseSSO.js"></script>
+    <script src="/js/login/twofa.js" defer></script>
+    <script src="/js/login/script.js" defer></script>
+    <script src="/js/login/authentication.js" defer></script>
+    <script src="/js/login/warning.js" defer></script>
+    <script src="/js/login/passwordRequirements.js" defer></script>
+</head>
+<body data-page="login">
+    <noscript>
+        <div class="js-fallback-banner" data-i18n="login_noscript_banner">JavaScript is required for interactive sign-in and reset flows. Basic page content is still visible.</div>
+    </noscript>
+    <div id="loginInitErrorBanner" class="js-fallback-banner" hidden></div>
+
+    <main
+        id="crossSiteRequestBlockedState"
+        class="cross-site-request-state"
+        role="alert"
+        aria-labelledby="crossSiteRequestBlockedTitle"
+        aria-describedby="crossSiteRequestBlockedMessage crossSiteRequestBlockedHelp"
+        tabindex="-1"
+        hidden
+    >
+        <section class="cross-site-request-panel">
+            <div class="cross-site-request-icon" aria-hidden="true">
+                <span data-omlorix-icon="shieldAlert" focusable="false"></span>
+            </div>
+            <h1 id="crossSiteRequestBlockedTitle" data-i18n="cross_site_request_blocked_title">Cross-site request blocked</h1>
+            <p id="crossSiteRequestBlockedMessage" data-i18n="cross_site_request_blocked_message">Omlorix blocked this sign-in request because the page origin does not match the configured public URL.</p>
+            <p id="crossSiteRequestBlockedHelp" data-i18n="cross_site_request_blocked_help">Open Omlorix from the configured public URL, or ask an administrator to update Settings &gt; General &gt; Public URL for this address.</p>
+        </section>
+    </main>
+
+    <!-- Notification Container -->
+    <div id="notificationContainer" class="notification-container" role="region" aria-label="Error notifications" data-i18n-attr="aria-label:notification_errors_aria" aria-live="polite"></div>
+
+    <!-- Login Layout -->
+    <div class="login-layout design-classic">
+        <!-- Left Panel - Branding -->
+        <div class="login-branding" style="animation: none; transition: none; transform: none; opacity: 1;">
+            <div class="branding-content" style="animation: none; transition: none; transform: none; opacity: 1;">
+                <div class="branding-logo" id="logoContainer" aria-label="Logo" data-i18n-attr="aria-label:logo_aria"></div>
+                <div class="branding-text">
+                    <h1 class="branding-title" data-i18n="branding_title" style="animation: none; transition: none; transform: none; opacity: 1;">Welcome back</h1>
+                    <p class="branding-subtitle" data-i18n="branding_subtitle" style="animation: none; transition: none; transform: none; opacity: 1;">Sign in to continue to your account</p>
+                </div>
+            </div>
+            <div class="branding-decoration">
+                <div class="decoration-circle decoration-circle-1"></div>
+                <div class="decoration-circle decoration-circle-2"></div>
+                <div class="decoration-circle decoration-circle-3"></div>
+            </div>
+        </div>
+
+        <!-- Right Panel - Form -->
+        <div class="login-content">
+            <!-- Header with Theme/Language -->
+            <header class="login-header">
+                <div class="header-spacer"></div>
+                <div class="header-actions">
+                    <div class="menu-container">
+                        <button class="menu-toggle" id="menuToggle" aria-label="Open menu" data-i18n-attr="aria-label:menu_open_aria" aria-haspopup="true" aria-expanded="false" aria-controls="dropdownMenu">
+                            <span data-omlorix-icon="ellipsisVertical" height="20px" width="20px"></span>
+                        </button>
+                        <div class="dropdown-menu" id="dropdownMenu" aria-hidden="true" inert>
+                            <div class="menu-section">
+                                <div class="menu-label" data-translate-key="theme_label">Theme</div>
+                                <div class="theme-selector">
+                                    <button class="theme-btn" data-theme="system" aria-label="System theme" data-i18n-attr="aria-label:system_theme_aria">
+                                        <span data-omlorix-icon="desktop"></span>
+                                    </button>
+                                    <button class="theme-btn" data-theme="light" aria-label="Light theme" data-i18n-attr="aria-label:light_theme_aria">
+                                        <span data-omlorix-icon="sun"></span>
+                                    </button>
+                                    <button class="theme-btn" data-theme="dark" aria-label="Dark theme" data-i18n-attr="aria-label:dark_theme_aria">
+                                        <span data-omlorix-icon="night"></span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="menu-section">
+                                <div class="menu-label" data-translate-key="language_label">Language</div>
+                                <div class="language-selector">
+                                    <select id="languageSelect" aria-label="Language" data-i18n-attr="aria-label:language_label"></select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>    
+                </div>
+            </header>
+
+            <!-- Main Form Area -->
+            <main class="login-main container">
+                <div class="login-card">
+                    <!-- Mobile Logo -->
+                    <div class="mobile-logo" id="mobileLogoContainer" aria-label="Logo" data-i18n-attr="aria-label:logo_aria"></div>
+
+                    <!-- Tabs -->
+                    <div class="login-tabs" id="switchTabs" role="tablist" aria-label="Authentication" data-i18n-attr="aria-label:authentication_tabs_aria">
+                        <button class="login-tab active" id="tabLogin" role="tab" tabindex="0" aria-selected="true" aria-controls="loginFormContainer" data-tab="login" data-i18n="tab_login">Sign In</button>
+                        <button class="login-tab" id="tabRegister" role="tab" tabindex="-1" aria-selected="false" aria-controls="registerFormContainer" data-tab="register" data-i18n="tab_register">Register</button>
+                    </div>
+
+                    <!-- Disabled State -->
+                    <div class="disabled-state" id="disabledState">
+                        <div class="disabled-icon">
+                            <span data-omlorix-icon="settings"></span>
+                        </div>
+                        <h2 id="disabledStateTitle" data-i18n="disabled_title">Sign In Temporarily Disabled</h2>
+                        <p id="disabledStateMessage" data-i18n="disabled_message">Sign-in and registration are currently unavailable. Please try again later.</p>
+                    </div>
+
+                    <button type="button" id="adminLoginButton" class="btn btn-primary admin-login-btn" data-i18n="btn_admin_login" style="display: none;">Admin Login</button>
+                    
+                    <!-- Form Container -->
+                    <div class="form-container">
+                        <!-- Login Form -->
+                        <div class="form-content active" id="loginFormContainer" role="tabpanel" aria-labelledby="tabLogin" aria-hidden="false">
+                            <h2 id="loginFormTitle" class="sr-only" data-i18n="tab_login">Sign In</h2>
+                            <form id="loginForm" aria-labelledby="loginFormTitle">
+                                <div class="signin-stage active" id="signinEntryStage">
+                                    <div class="form-group">
+                                        <label for="signinEmail" class="form-label" data-i18n="signin_email_label">Email</label>
+                                        <div class="input-wrapper">
+                                            <input type="text" id="signinEmail" class="form-input" autocomplete="email" required data-i18n-attr="placeholder:signin_email_placeholder" placeholder="Enter your email" />
+                                            <span class="last-used-badge" id="lastUsedEmail" style="display: none;" data-i18n="last_used">Last used</span>
+                                        </div>
+                                    </div>
+                                    <p id="ldapLoginHint" class="form-hint" style="display: none;" data-i18n="ldap_login_hint">
+                                        LDAP sign-in is enabled. Use your directory email with your normal password.
+                                    </p>
+
+                                    <button type="submit" id="signinContinueButton" class="btn btn-primary">
+                                        <span data-i18n="btn_continue">Continue</span>
+                                        <span data-omlorix-icon="chevronRight" class="btn-icon"></span>
+                                    </button>
+
+                                    <button type="button" id="forgotPasswordEntryLink" class="link-btn forgot-link" style="display: none;" data-i18n="password_reset_cta">Reset password</button>
+
+                                    <!-- Social Login Section -->
+                                    <div class="social-divider" id="socialLoginDivider" style="display: none;">
+                                        <span data-i18n="social_divider">or</span>
+                                    </div>
+                                    <div class="social-buttons" id="socialLoginButtons">
+                                        <!-- Google Login Button -->
+                                        <button type="button" class="social-btn google" id="googleLoginBtn" style="display: none;">
+                                            <span class="last-used-badge" id="lastUsedGoogle" style="display: none;" data-i18n="last_used">Last used</span>
+                                            <span data-omlorix-icon="google" class="social-icon" width="20" height="20"></span>
+                                            <span id="googleBtnText" data-i18n="social_google" data-auth-label="true">Continue with Google</span>
+                                        </button>
+
+                                        <!-- Microsoft Login Button -->
+                                        <button type="button" class="social-btn microsoft" id="microsoftLoginBtn" style="display: none;">
+                                            <span class="last-used-badge" id="lastUsedMicrosoft" style="display: none;" data-i18n="last_used">Last used</span>
+                                            <span data-omlorix-icon="microsoft" class="social-icon" width="20" height="20"></span>
+                                            <span id="microsoftBtnText" data-i18n="social_microsoft" data-auth-label="true">Continue with Microsoft</span>
+                                        </button>
+
+                                        <!-- Apple Login Button -->
+                                        <button type="button" class="social-btn apple" id="appleLoginBtn" style="display: none;">
+                                            <span class="last-used-badge" id="lastUsedApple" style="display: none;" data-i18n="last_used">Last used</span>
+                                            <span data-omlorix-icon="apple" class="social-icon" width="20" height="20"></span>
+                                            <span id="appleBtnText" data-i18n="social_apple" data-auth-label="true">Continue with Apple</span>
+                                        </button>
+
+                                        <!-- GitHub Login Button -->
+                                        <button type="button" class="social-btn github" id="githubLoginBtn" style="display: none;">
+                                            <span class="last-used-badge" id="lastUsedGithub" style="display: none;" data-i18n="last_used">Last used</span>
+                                            <span data-omlorix-icon="github" class="social-icon" width="20" height="20"></span>
+                                            <span id="githubBtnText" data-i18n="social_github" data-auth-label="true">Continue with GitHub</span>
+                                        </button>
+
+                                        <!-- Slack Login Button -->
+                                        <button type="button" class="social-btn slack" id="slackLoginBtn" style="display: none;">
+                                            <span class="last-used-badge" id="lastUsedSlack" style="display: none;" data-i18n="last_used">Last used</span>
+                                            <span data-omlorix-icon="slack" class="social-icon" width="20" height="20" aria-hidden="true" focusable="false"></span>
+                                            <span id="slackBtnText" data-i18n="social_slack" data-auth-label="true">Sign in with Slack</span>
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Enterprise SSO Section -->
+                                    <div class="social-divider" id="ssoLoginDivider" style="display: none;">
+                                        <span data-i18n="sso_divider">or continue with</span>
+                                    </div>
+                                    <div class="social-buttons" id="ssoLoginButtons">
+                                        <!-- SAML SSO Button -->
+                                        <button type="button" class="social-btn sso" id="samlLoginBtn" style="display: none;">
+                                            <span data-omlorix-icon="security" class="social-icon" width="20" height="20"></span>
+                                            <span id="samlBtnText" data-i18n="sso_saml" data-auth-label="true">Sign in with SSO</span>
+                                        </button>
+                                        
+                                        <!-- OIDC SSO Button -->
+                                        <button type="button" class="social-btn sso" id="oidcLoginBtn" style="display: none;">
+                                            <span data-omlorix-icon="security" class="social-icon" width="20" height="20"></span>
+                                            <span id="oidcBtnText" data-i18n="sso_oidc" data-auth-label="true">Sign in with SSO</span>
+                                        </button>
+
+                                    </div>
+                                </div>
+
+                                <div class="signin-stage" id="signinMethodStage" hidden>
+                                    <div class="signin-stage-header">
+                                        <p class="stage-label" data-i18n="signin_selected_identifier_label">Signing in as</p>
+                                        <div class="identifier-card">
+                                            <div class="identifier-avatar">
+                                                <span data-omlorix-icon="user"></span>
+                                            </div>
+                                            <strong id="signinSelectedIdentifier"></strong>
+                                        </div>
+                                        <button type="button" id="changeSigninIdentifierButton" class="link-btn" data-i18n="signin_use_another_identifier">Use another email</button>
+                                    </div>
+
+                                    <div class="form-group" id="signinPasswordGroup">
+                                        <label for="signinPassword" class="form-label" data-i18n="signin_password_label">Password</label>
+                                        <input type="password" id="signinPassword" class="form-input" autocomplete="current-password" data-i18n-attr="placeholder:signin_password_placeholder" placeholder="Enter your password" />
+                                    </div>
+
+                                    <button type="submit" id="signinButton" class="btn btn-primary">
+                                        <span data-i18n="btn_signin">Sign In</span>
+                                    </button>
+
+                                    <div class="method-divider" id="signinMethodDivider" hidden>
+                                        <span data-i18n="social_divider">or</span>
+                                    </div>
+
+                                    <button type="button" id="passkeySigninButton" class="btn btn-secondary" hidden>
+                                        <span class="last-used-badge" id="lastUsedPasskey" style="display: none;" data-i18n="last_used">Last used</span>
+                                        <span data-omlorix-icon="passkey" class="btn-icon-left"></span>
+                                        <span data-i18n="btn_signin_passkey">Try a passkey</span>
+                                    </button>
+
+                                    <button type="button" id="forgotPasswordLink" class="link-btn forgot-link" style="display: none;" data-i18n="password_reset_cta">Reset password</button>
+                                </div>
+
+                                <div class="signin-stage forgot-password-reset" id="forgotPasswordReset" hidden>
+                                    <div class="stage-header">
+                                        <h2 class="stage-title" data-i18n="password_reset_title">Reset password</h2>
+                                        <p class="stage-desc" data-i18n="password_reset_desc">Enter your email to receive a password reset link.</p>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="passwordResetIdentifier" class="form-label" data-i18n="password_reset_identifier_label">Email</label>
+                                        <input type="text" id="passwordResetIdentifier" class="form-input" autocomplete="email" data-i18n-attr="placeholder:password_reset_identifier_placeholder" placeholder="Enter your email" />
+                                    </div>
+                                    <button type="button" id="passwordResetRequestBtn" class="btn btn-primary">
+                                        <span data-i18n="password_reset_send_btn">Send Reset Link</span>
+                                    </button>
+                                    <p id="passwordResetRequestStatus" class="form-status" role="status" aria-live="polite" style="display: none;"></p>
+                                    <button type="button" id="cancelPasswordResetButton" class="link-btn forgot-link" data-i18n="password_reset_back_login">Back to sign in</button>
+                                </div>
+                            </form>
+
+                            <!-- Reset, required-change, and first-password setup share this form. -->
+                            <div class="signin-stage password-action" id="passwordResetConfirmStage" hidden aria-live="polite">
+                                <div class="signin-stage active" id="resetPasswordLoading">
+                                    <div class="stage-header">
+                                        <h2 class="stage-title" data-i18n="password_reset_title">Reset password</h2>
+                                        <p class="stage-desc" data-i18n="password_reset_intro">Enter your new password below.</p>
+                                    </div>
+                                    <p class="form-status reset-password-status" role="status" data-i18n="password_reset_checking">Checking reset link...</p>
+                                </div>
+
+                                <form id="resetPasswordForm" hidden aria-labelledby="passwordActionTitle">
+                                    <div class="stage-header">
+                                        <h2 class="stage-title" id="passwordActionTitle" data-i18n="password_reset_title">Reset password</h2>
+                                        <p class="stage-desc" id="passwordActionDescription" data-i18n="password_reset_intro">Enter your new password below.</p>
+                                    </div>
+                                    <div class="form-group" id="currentPasswordGroup" hidden>
+                                        <label for="currentPassword" class="form-label" data-i18n="change_password_modal_label_current">Current Password</label>
+                                        <input id="currentPassword" class="form-input" type="password" autocomplete="current-password" data-password-role="current" data-i18n-attr="placeholder:change_password_modal_placeholder_current" placeholder="Current Password" aria-invalid="false" />
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="newPassword" class="form-label" data-i18n="password_reset_new_label">New Password</label>
+                                        <input id="newPassword" class="form-input" type="password" autocomplete="new-password" data-password-role="new" data-i18n-attr="placeholder:password_reset_new_placeholder" placeholder="New Password" required aria-invalid="false" aria-describedby="passwordRequirements" />
+                                        <div id="passwordRequirements" class="password-requirements" aria-live="polite"></div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="resetConfirmPassword" class="form-label" data-i18n="password_reset_confirm_label">Confirm New Password</label>
+                                        <input id="resetConfirmPassword" class="form-input" type="password" autocomplete="new-password" data-password-role="confirm" data-i18n-attr="placeholder:password_reset_confirm_placeholder" placeholder="Confirm New Password" required aria-invalid="false" />
+                                        <p id="passwordConfirmError" role="alert" hidden></p>
+                                    </div>
+                                    <button type="submit" id="changePasswordBtn" class="btn btn-primary" disabled>
+                                        <span id="passwordActionSubmitText" data-i18n="password_reset_submit">Reset Password</span>
+                                    </button>
+                                </form>
+
+                                <div class="signin-stage" id="resetPasswordInvalidState" hidden>
+                                    <div class="stage-header">
+                                        <h2 class="stage-title" data-i18n="password_reset_title">Reset password</h2>
+                                        <p class="form-status reset-password-status reset-password-invalid" id="resetPasswordInvalid" data-i18n="password_reset_invalid">This reset link is invalid or expired. Request a new one from the sign-in page.</p>
+                                    </div>
+                                </div>
+
+                                <button type="button" id="resetPasswordBackLoginButton" class="btn btn-secondary reset-back-link" data-i18n="password_reset_back_login">Back to sign in</button>
+                            </div>
+
+                            <div class="signin-stage password-action" id="emailChangeStage" hidden aria-live="polite" aria-labelledby="emailChangeTitle">
+                                <div class="stage-header">
+                                    <h2 class="stage-title" id="emailChangeTitle" data-i18n="email_change_page_title">Email address update</h2>
+                                    <p class="form-status reset-password-status" id="emailChangeStatus" role="status" data-i18n="email_change_confirm_prompt">Confirm that you want to use the new email address.</p>
+                                </div>
+                                <button type="button" id="emailChangeActionButton" class="btn btn-primary" data-i18n="email_change_confirm_action">Confirm email change</button>
+                                <button type="button" id="emailChangeBackLoginButton" class="btn btn-secondary reset-back-link" data-i18n="email_change_back_login">Back to sign in</button>
+                            </div>
+                        </div>
+
+                        <!-- Register Form -->
+                        <div class="form-content" id="registerFormContainer" role="tabpanel" aria-labelledby="tabRegister" aria-hidden="true" hidden>
+                            <h2 id="registerFormTitle" class="sr-only" data-i18n="tab_register">Register</h2>
+                            <form id="registerForm" aria-labelledby="registerFormTitle">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="firstName" class="form-label" data-i18n="signup_first_label">First name</label>
+                                        <input type="text" id="firstName" class="form-input" autocomplete="given-name" required data-i18n-attr="placeholder:signup_first_placeholder" placeholder="First name" />
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="lastName" class="form-label" data-i18n="signup_last_label">Last name</label>
+                                        <input type="text" id="lastName" class="form-input" autocomplete="family-name" required data-i18n-attr="placeholder:signup_last_placeholder" placeholder="Last name" />
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="signupEmail" class="form-label" data-i18n="signup_email_label">Email</label>
+                                    <input type="email" id="signupEmail" class="form-input" autocomplete="email" maxlength="100" required aria-describedby="signupEmailError" aria-invalid="false" data-i18n-attr="placeholder:signup_email_placeholder" placeholder="you@example.com" />
+                                    <p id="signupEmailError" class="signup-field-error" role="alert" hidden></p>
+                                </div>
+                                <div class="form-group">
+                                    <label for="signupPassword" class="form-label" data-i18n="signup_password_label">Password</label>
+                                    <input type="password" id="signupPassword" class="form-input" autocomplete="new-password" required data-i18n-attr="placeholder:signup_password_placeholder" placeholder="Create a password" />
+                                    <div id="signupPasswordRequirements" class="password-requirements" aria-live="polite">
+                                        <div class="pw-req-header">
+                                            <span class="pw-req-text" data-i18n="password_requirements">Password Requirements</span>
+                                            <button type="button" class="pw-info-btn pw-not-met" id="pwInfoBtn" aria-label="View password requirements" data-i18n-attr="aria-label:password_requirements_aria" aria-describedby="pwReqTooltip">
+                                                <span data-omlorix-icon="info" class="pw-info-icon"></span>
+                                            </button>
+                                        </div>
+                                        <div class="pw-req-tooltip" id="pwReqTooltip" role="tooltip" aria-hidden="true">
+                                            <div class="pw-req-tooltip-content">
+                                                <div class="pw-checklist" id="pwChecklist"></div>
+                                            </div>
+                                            <div class="pw-tooltip-arrow"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="confirmPassword" class="form-label" data-i18n="signup_confirm_label">Confirm password</label>
+                                    <input type="password" id="confirmPassword" class="form-input" autocomplete="new-password" required data-i18n-attr="placeholder:signup_confirm_placeholder" placeholder="Confirm your password" />
+                                </div>
+                                <div class="form-group signup-consent" id="signupTermsConsent" hidden>
+                                    <div class="signup-consent-row">
+                                        <input
+                                            type="checkbox"
+                                            id="signupTermsConsentCheckbox"
+                                            class="form-checkbox"
+                                            aria-describedby="signupTermsConsentHint"
+                                        />
+                                        <label for="signupTermsConsentCheckbox" class="signup-consent-label" data-i18n="signup_terms_accept_prefix">
+                                            I accept the current Terms of Service.
+                                        </label>
+                                    </div>
+                                    <p class="signup-consent-hint" id="signupTermsConsentHint">
+                                        <a
+                                            id="signupTermsConsentLink"
+                                            href="/terms"
+                                            target="_blank"
+                                            rel="noopener"
+                                            data-i18n="signup_terms_accept_link"
+                                        >
+                                            Read Terms of Service
+                                        </a>
+                                    </p>
+                                </div>
+                                
+                                <button type="submit" id="signupButton" class="btn btn-primary">
+                                    <span data-i18n="btn_signup">Create Account</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Privacy Notice -->
+                <div class="privacy-notice" id="privacyNotice" role="contentinfo" aria-live="polite" hidden>
+                    <p id="privacyNoticeRow" hidden>
+                        <span id="privacyNoticeInfo" data-i18n="privacy_notice_info">Need more information about privacy?</span>
+                        <a id="privacyNoticeLink" href="/privacy" data-i18n="privacy_notice_link">Click here</a>.
+                    </p>
+                    <p id="termsNoticeRow" hidden>
+                        <span id="termsNoticeInfo" data-i18n="terms_notice_info" hidden>Want to review our terms of service?</span>
+                        <a id="termsNoticeLink" href="/terms" data-i18n="terms_notice_link" hidden>Read terms</a>.
+                    </p>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Pending Social/SSO Terms Confirmation Overlay -->
+    <div class="shared-modal-overlay login-modal-overlay" id="federatedTermsOverlay" aria-hidden="true" inert hidden>
+        <section class="shared-modal shared-modal--fit shared-modal--compact" id="federatedTermsModal" role="dialog" aria-modal="true" aria-labelledby="federatedTermsTitle" aria-describedby="federatedTermsMessage" tabindex="-1">
+            <header class="shared-modal-header shared-modal-header--main">
+                <div class="shared-modal-heading">
+                    <h2 class="shared-modal-title" id="federatedTermsTitle" data-i18n="federated_terms_title">Accept Terms of Service</h2>
+                </div>
+                <button type="button" class="shared-modal-close" id="federatedTermsCloseButton" aria-label="Close" data-i18n-attr="aria-label:common_close">
+                    <span data-omlorix-icon="close" aria-hidden="true"></span>
+                </button>
+            </header>
+            <div class="shared-modal-body">
+                <p class="warning-message" id="federatedTermsMessage" data-i18n="federated_terms_message">
+                    To create your account with this sign-in provider, review and accept the current Terms of Service.
+                </p>
+                <p class="warning-message">
+                    <a href="/terms" target="_blank" rel="noopener" data-i18n="signup_terms_accept_link">Read Terms of Service</a>
+                </p>
+            </div>
+            <footer class="shared-modal-footer">
+                <button type="button" class="om-button border cancel" id="federatedTermsCancelButton" data-i18n="btn_cancel">Cancel</button>
+                <button type="button" class="om-button border submit" id="federatedTermsConfirmButton">
+                    <span data-i18n="federated_terms_confirm">Accept and continue</span>
+                </button>
+            </footer>
+        </section>
+    </div>
+
+    <!-- Warning Overlay (Account Locked) -->
+    <div class="shared-modal-overlay login-modal-overlay" id="warningOverlay" aria-hidden="true" inert hidden>
+        <section class="shared-modal shared-modal--fit shared-modal--compact" id="warningModal" role="dialog" aria-modal="true" aria-labelledby="warningHeaderTitle" aria-describedby="warningMessage" tabindex="-1">
+            <header class="shared-modal-header shared-modal-header--main">
+                <div class="shared-modal-heading">
+                    <h2 class="shared-modal-title" id="warningHeaderTitle" data-i18n="lock_title">Account Temporarily Locked</h2>
+                </div>
+                <button type="button" class="shared-modal-close" id="warningCloseButton" aria-label="Close" data-i18n-attr="aria-label:common_close">
+                    <span data-omlorix-icon="close" aria-hidden="true"></span>
+                </button>
+            </header>
+            <div class="shared-modal-body">
+                <div class="warning-message" id="warningMessage" data-i18n="lock_message">
+                    Your account has been temporarily locked due to <strong>multiple failed login attempts</strong>.
+                    This is a security measure to protect your account from unauthorized access.
+                </div>
+                <div class="warning-timer-section">
+                    <div class="warning-timer-label" id="warningTimerLabel" data-i18n="lock_time_remaining">Time Remaining</div>
+                    <div class="warning-timer-display" id="timerDisplay">00:00:00</div>
+                    <div class="warning-progress-container">
+                        <div class="warning-progress-bar"></div>
+                    </div>
+                </div>
+            </div>
+            <footer class="shared-modal-footer">
+                <a class="om-button border cancel" id="warningContactSupport" href="#" data-i18n-attr="aria-label:contact_support_aria">
+                    <span data-omlorix-icon="email" width="16" height="16" aria-hidden="true"></span>
+                    <span data-i18n="btn_contact_support">Contact Support</span>
+                </a>
+                <button type="button" class="om-button border submit" id="warningBackToLoginButton" data-i18n-attr="aria-label:back_to_login_aria">
+                    <span data-i18n="btn_back_to_login">Back to Login</span>
+                </button>
+            </footer>
+        </section>
+    </div>
+
+    <!-- Account Pending Notification Overlay -->
+    <div class="shared-modal-overlay login-modal-overlay" id="pendingOverlay" aria-hidden="true" inert hidden>
+        <section class="shared-modal shared-modal--fit shared-modal--compact" id="pendingModal" role="dialog" aria-modal="true" aria-labelledby="pendingHeaderTitle" aria-describedby="pendingStatusDescription" tabindex="-1">
+            <header class="shared-modal-header shared-modal-header--main">
+                <div class="shared-modal-heading">
+                    <h2 class="shared-modal-title" id="pendingHeaderTitle" data-i18n="pending_title">Account Pending Activation</h2>
+                </div>
+                <button type="button" class="shared-modal-close" id="pendingCloseButton" aria-label="Close" data-i18n-attr="aria-label:common_close">
+                    <span data-omlorix-icon="close" aria-hidden="true"></span>
+                </button>
+            </header>
+            <div class="shared-modal-body">
+                <div class="pending-status-section">
+                    <div class="pending-status-display">
+                        <span data-i18n="pending_status">Pending Review</span>
+                    </div>
+                    <div class="pending-status-description" id="pendingStatusDescription" data-i18n="pending_message">
+                        Your account has been created successfully, but it requires administrator approval.
+                    </div>
+                </div>
+            </div>
+            <footer class="shared-modal-footer">
+                <a class="om-button border cancel" id="pendingContactSupport" href="#" data-i18n-attr="aria-label:contact_support_aria">
+                    <span data-omlorix-icon="email" width="16" height="16" aria-hidden="true"></span>
+                    <span data-i18n="btn_contact_support">Contact Support</span>
+                </a>
+                <button type="button" class="om-button border submit" id="pendingBackToLoginButton" data-i18n-attr="aria-label:back_to_login_aria">
+                    <span data-i18n="btn_back_to_login">Back to Login</span>
+                </button>
+            </footer>
+        </section>
+    </div>
+
+    <!-- 2FA Setup Overlay -->
+    <div class="shared-modal-overlay login-modal-overlay" id="tfaSetupOverlay" aria-hidden="true" inert hidden>
+        <section class="shared-modal shared-modal--fit" id="tfaSetupModal" role="dialog" aria-modal="true" aria-labelledby="tfaSetupHeaderTitle" aria-describedby="tfaSetupInstructionsTitle tfaStep1 tfaStep2 tfaStep3" tabindex="-1">
+            <header class="shared-modal-header shared-modal-header--main">
+                <div class="shared-modal-heading">
+                    <h2 class="shared-modal-title" id="tfaSetupHeaderTitle" data-i18n="tfa_setup_title">Setup Two-Factor Authentication</h2>
+                </div>
+                <button type="button" class="shared-modal-close" id="tfaSetupCloseButton" aria-label="Close" data-i18n-attr="aria-label:common_close">
+                    <span data-omlorix-icon="close" aria-hidden="true"></span>
+                </button>
+            </header>
+            <div class="shared-modal-body">
+                <div class="tfa-setup-content" id="tfaSetupVisuals" hidden>
+                    <div class="tfa-qr-container">
+                        <div id="tfaQrCode" class="tfa-qr-code"></div>
+                        <p id="tfaQrCopyHint" class="tfa-qr-copy-hint" aria-live="polite"></p>
+                    </div>
+                    <div class="tfa-right">
+                        <h3 class="tfa-section-title" id="tfaSetupInstructionsTitle" data-i18n="tfa_setup_instructions_title">Setup Instructions</h3>
+                        <ul class="tfa-step-list">
+                            <li id="tfaStep1" data-i18n="tfa_step_1">Download an authenticator app like Google Authenticator.</li>
+                            <li id="tfaStep2" data-i18n="tfa_step_2">Scan the QR code with your authenticator app.</li>
+                            <li id="tfaStep3" data-i18n="tfa_step_3">Enter the 6-digit verification code generated by your app below.</li>
+                        </ul>
+                    </div>
+                </div>
+                <p id="tfaSetupDeliveryHint" class="tfa-delivery-hint" hidden></p>
+                <div class="tfa-verification-section">
+                    <div class="tfa-code-input-group">
+                        <input type="text" class="tfa-digit" maxlength="1" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]*" data-digit-index="1">
+                        <input type="text" class="tfa-digit" maxlength="1" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]*" data-digit-index="2">
+                        <input type="text" class="tfa-digit" maxlength="1" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]*" data-digit-index="3">
+                        <input type="text" class="tfa-digit" maxlength="1" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]*" data-digit-index="4">
+                        <input type="text" class="tfa-digit" maxlength="1" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]*" data-digit-index="5">
+                        <input type="text" class="tfa-digit" maxlength="1" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]*" data-digit-index="6">
+                    </div>
+                </div>
+            </div>
+            <footer class="shared-modal-footer">
+                <button type="button" class="om-button border cancel" id="tfaSetupCancelButton" data-i18n-attr="aria-label:cancel_aria">
+                    <span id="tfaSetupCancelText" data-i18n="btn_cancel">Cancel</span>
+                </button>
+                <button type="button" class="om-button border submit" id="tfaSetupPrimaryButton" data-i18n-attr="aria-label:tfa_verify_enable_aria">
+                    <span id="tfaSetupPrimaryText" data-i18n="btn_verify_enable">Verify and Enable</span>
+                </button>
+            </footer>
+        </section>
+    </div>
+
+    <!-- 2FA Verification Overlay -->
+    <div class="shared-modal-overlay login-modal-overlay" id="tfaVerifyOverlay" aria-hidden="true" inert hidden>
+        <section class="shared-modal shared-modal--fit shared-modal--compact" id="tfaVerifyModal" role="dialog" aria-modal="true" aria-labelledby="tfaVerifyTitle" aria-describedby="tfaVerifyInstruction" tabindex="-1">
+            <header class="shared-modal-header shared-modal-header--main">
+                <div class="shared-modal-heading">
+                    <h2 class="shared-modal-title" id="tfaVerifyTitle" data-i18n="tfa_verify_title">Two-Factor Authentication</h2>
+                </div>
+                <button type="button" class="shared-modal-close" id="tfaVerifyCloseButton" aria-label="Close" data-i18n-attr="aria-label:common_close">
+                    <span data-omlorix-icon="close" aria-hidden="true"></span>
+                </button>
+            </header>
+            <div class="shared-modal-body">
+                <p class="warning-message" id="tfaVerifyInstruction" data-i18n="tfa_verify_instruction">Enter the 6-digit code from your authenticator app.</p>
+                <div class="tfa-code-input-group">
+                    <input type="text" class="tfa-digit" maxlength="1" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]*" data-digit-index="1">
+                    <input type="text" class="tfa-digit" maxlength="1" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]*" data-digit-index="2">
+                    <input type="text" class="tfa-digit" maxlength="1" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]*" data-digit-index="3">
+                    <input type="text" class="tfa-digit" maxlength="1" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]*" data-digit-index="4">
+                    <input type="text" class="tfa-digit" maxlength="1" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]*" data-digit-index="5">
+                    <input type="text" class="tfa-digit" maxlength="1" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]*" data-digit-index="6">
+                </div>
+            </div>
+            <footer class="shared-modal-footer">
+                <button type="button" class="om-button border cancel" id="tfaVerifyCancelButton" data-i18n-attr="aria-label:cancel_aria">
+                    <span id="tfaVerifyCancelText" data-i18n="btn_cancel">Cancel</span>
+                </button>
+                <button type="button" class="om-button border submit" id="tfaVerifyPrimaryButton" data-i18n-attr="aria-label:verify_aria">
+                    <span id="tfaVerifyPrimaryText" data-i18n="btn_verify">Verify</span>
+                </button>
+            </footer>
+        </section>
+    </div>
+
+    <!-- Access Time Blocked Overlay -->
+    <div class="shared-modal-overlay login-modal-overlay" id="accessBlockedOverlay" aria-hidden="true" inert hidden>
+        <section class="shared-modal shared-modal--fit shared-modal--compact app-access-blocked-card" id="accessBlockedModal" role="dialog" aria-modal="true" aria-labelledby="accessBlockedTitle" aria-describedby="accessBlockedMessage" tabindex="-1">
+            <header class="shared-modal-header shared-modal-header--main">
+                <div class="shared-modal-heading">
+                    <h2 class="shared-modal-title" id="accessBlockedTitle" data-i18n="access_blocked_title">Access Currently Unavailable</h2>
+                </div>
+                <button type="button" class="shared-modal-close" id="accessBlockedCloseButton" aria-label="Close" data-i18n-attr="aria-label:common_close">
+                    <span data-omlorix-icon="close" aria-hidden="true"></span>
+                </button>
+            </header>
+            <div class="shared-modal-body shared-modal-body--centered">
+                <div class="access-blocked-icon">
+                    <span data-omlorix-icon="clock" width="48" height="48" aria-hidden="true"></span>
+                </div>
+                <div class="warning-content">
+                    <div class="warning-message" id="accessBlockedMessage" data-i18n="access_blocked_message">
+                        Sign-in is not available at this time due to access restrictions set by your organization.
+                    </div>
+                    <div class="access-blocked-custom-message" id="accessBlockedCustomMessage" style="display: none;"></div>
+                    <div class="access-blocked-timer-section" id="accessBlockedTimerSection" style="display: none;">
+                        <div class="access-blocked-next-label" data-i18n="access_blocked_next_available">Access will be available again at:</div>
+                        <div class="access-blocked-next-time" id="accessBlockedNextTime"></div>
+                        <div class="access-blocked-countdown-label" data-i18n="access_blocked_countdown">Time remaining:</div>
+                        <div class="access-blocked-countdown" id="accessBlockedCountdown">--:--:--</div>
+                    </div>
+                </div>
+            </div>
+            <footer class="shared-modal-footer">
+                <a class="om-button border cancel" id="accessBlockedContactSupport" href="#" data-i18n-attr="aria-label:contact_support_aria" style="display: none;">
+                    <span data-omlorix-icon="email" width="16" height="16" aria-hidden="true"></span>
+                    <span data-i18n="btn_contact_support">Contact Support</span>
+                </a>
+                <button type="button" class="om-button border submit" id="accessBlockedBackButton" data-i18n-attr="aria-label:back_to_login_aria">
+                    <span data-i18n="btn_back_to_login">Back to Login</span>
+                </button>
+            </footer>
+        </section>
+    </div>
+</body>
+</html>

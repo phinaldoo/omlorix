@@ -1,0 +1,2069 @@
+<!DOCTYPE html>
+<!-- Keep the dashboard hidden until setup-flow.js has resolved the persisted
+     setup state. This prevents the dashboard from flashing before first-run
+     setup takes over. -->
+<html lang="en" class="setup-state-pending">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self';">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)">
+  <title>Omlorix Server</title>
+  <link rel="stylesheet" href="launcher.css">
+  <link rel="stylesheet" href="setup-flow.css">
+  <script src="launcher-init.js" defer></script>
+</head>
+<body>
+  <div class="app">
+    <!-- ── Left Sidebar ── -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <span data-omlorix-icon="admin_sidebar_chat"></span>
+          </div>
+          <div class="brand-text">
+            <h1>Omlorix Server</h1>
+          </div>
+        </div>
+        <p class="brand-sub" id="serverHomeLabel" hidden>Preparing server directory</p>
+      </div>
+
+      <nav class="nav sidebar-nav" aria-label="Sections">
+        <a href="#status" class="nav-item nav-link is-active" data-section="status" aria-current="page">
+          <span data-omlorix-icon="uptime" class="nav-icon" aria-hidden="true"></span>
+          <span>Status</span>
+        </a>
+        <a href="#settings" class="nav-item nav-link" data-section="settings">
+          <span data-omlorix-icon="settings" class="nav-icon" aria-hidden="true"></span>
+          <span>Settings</span>
+        </a>
+        <a href="#secrets" class="nav-item nav-link" data-section="secrets">
+          <span data-omlorix-icon="key" class="nav-icon" aria-hidden="true"></span>
+          <span data-setup-i18n="nav_secrets">Secrets</span>
+        </a>
+        <a href="#proxy" class="nav-item nav-link" data-section="proxy">
+          <span data-omlorix-icon="proxy" class="nav-icon" aria-hidden="true"></span>
+          <span>Proxy</span>
+        </a>
+        <a href="#environment" class="nav-item nav-link" data-section="environment">
+          <span data-omlorix-icon="code_execution" class="nav-icon" aria-hidden="true"></span>
+          <span>Environment</span>
+        </a>
+        <a href="#services" class="nav-item nav-link" data-section="services">
+          <span data-omlorix-icon="server" class="nav-icon" aria-hidden="true"></span>
+          <span>Services</span>
+        </a>
+        <a href="#code-execution" class="nav-item nav-link" data-section="code-execution">
+          <span data-omlorix-icon="code" class="nav-icon" aria-hidden="true"></span>
+          <span>Code Execution</span>
+        </a>
+        <a href="#console" class="nav-item nav-link" data-section="console">
+          <span data-omlorix-icon="code_execution" class="nav-icon" aria-hidden="true"></span>
+          <span>Console</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-foot sidebar-footer">
+        <div class="health-row">
+          <span id="overallDot" class="dot muted" aria-hidden="true"></span>
+          <span id="overallBadge" class="tag badge badge-muted">Checking</span>
+          <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle theme" title="Toggle theme">
+            <span data-omlorix-icon="sun" id="themeIcon" aria-hidden="true"></span>
+          </button>
+        </div>
+        <div class="sidebar-actions">
+          <button class="btn btn-primary" id="openButton" type="button">
+            <span data-omlorix-icon="arrow_right" aria-hidden="true"></span>
+            <span>Open Omlorix</span>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ── Content Panel ── -->
+    <main class="content app-content">
+
+      <!-- Status Section -->
+      <section id="status" class="view content-section is-active" aria-labelledby="statusTitle">
+        <div class="hero" id="statusHero">
+          <div class="hero-top">
+            <div class="hero-pulse" id="statusHeroIcon" aria-hidden="true">
+              <span data-omlorix-icon="checkCircle"></span>
+            </div>
+            <div>
+              <h2 id="statusTitle" class="hero-headline section-title">Checking Omlorix</h2>
+              <p class="hero-meta section-subtitle" id="statusHeroMeta">Health of Docker, the stack, and the public endpoint.</p>
+            </div>
+          </div>
+
+          <div class="hero-stats metric-grid">
+            <div class="hstat metric metric-status-muted" id="dockerMetric">
+              <div class="hstat-label metric-label">Docker</div>
+              <div class="hstat-value">
+                <span class="dot status-lamp" id="dockerStatusLamp" aria-hidden="true"></span>
+                <strong id="dockerStatus">Checking</strong>
+              </div>
+              <div class="hstat-detail metric-detail" id="dockerStatusDetail">Checking Docker availability.</div>
+            </div>
+            <div class="hstat metric metric-status-muted" id="stackMetric">
+              <div class="hstat-label metric-label">Stack</div>
+              <div class="hstat-value">
+                <span class="dot status-lamp" id="stackStatusLamp" aria-hidden="true"></span>
+                <strong id="stackStatus">Checking</strong>
+              </div>
+              <div class="hstat-detail metric-detail" id="stackStatusDetail">Checking container services.</div>
+            </div>
+            <div class="hstat metric metric-status-muted" id="endpointMetric">
+              <div class="hstat-label metric-label">Endpoint</div>
+              <div class="hstat-value">
+                <span class="dot status-lamp" id="endpointStatusLamp" aria-hidden="true"></span>
+                <strong id="endpointStatus">Checking</strong>
+              </div>
+              <div class="hstat-detail metric-detail" id="endpointStatusDetail">Checking the public URL.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Launcher and server releases are checked independently. Keeping
+             both notices together makes simultaneous updates visible while
+             still allowing a server release to explain a launcher dependency. -->
+        <div class="server-update-banner" id="launcherUpdateBanner" role="status" aria-live="polite" aria-atomic="true" hidden>
+          <div class="server-update-copy">
+            <span class="server-update-label" id="launcherUpdateLabel">Launcher update</span>
+            <div>
+              <strong id="launcherUpdateTitle">A new Server Launcher version is available</strong>
+              <p id="launcherUpdateDescription"></p>
+            </div>
+          </div>
+          <div class="server-update-actions">
+            <button class="btn btn-primary btn-sm" id="launcherUpdateButton" type="button">Update launcher</button>
+          </div>
+        </div>
+
+        <div class="server-update-banner" id="serverUpdateBanner" role="status" aria-live="polite" aria-atomic="true" hidden>
+          <div class="server-update-copy">
+            <span class="server-update-label" id="serverUpdateLabel">Server update</span>
+            <div>
+              <strong id="serverUpdateTitle">A new Omlorix version is available</strong>
+              <p id="serverUpdateDescription"></p>
+              <p class="server-update-note" id="serverUpdateNote" hidden></p>
+            </div>
+          </div>
+          <div class="server-update-actions">
+            <button class="btn btn-primary btn-sm" id="serverUpdateButton" type="button">Update Omlorix</button>
+          </div>
+        </div>
+
+        <div class="docker-setup-card" id="dockerSetupCard" role="status" aria-live="polite" hidden>
+          <div class="docker-setup-copy">
+            <strong id="dockerSetupTitle">Docker setup needed</strong>
+            <p id="dockerSetupDescription">Install Docker, start it, then refresh this status.</p>
+            <ol id="dockerSetupSteps" class="docker-setup-steps"></ol>
+          </div>
+          <div class="docker-setup-actions">
+            <button class="btn btn-ghost btn-sm" id="startDockerDesktopButton" type="button" hidden>Start Docker</button>
+            <button class="btn btn-ghost btn-sm" id="openDockerSetupButton" type="button">Install manually</button>
+          </div>
+        </div>
+
+        <div class="env-requirements-card" id="envRequirementsCard" role="status" aria-live="polite" hidden>
+          <div class="env-requirements-copy">
+            <strong id="envRequirementsTitle">Environment needs setup</strong>
+            <p id="envRequirementsDescription">Set the required .env variables before running server actions.</p>
+            <div id="envRequirementsList" class="env-requirements-list"></div>
+          </div>
+          <div class="env-requirements-actions">
+            <button class="btn btn-primary btn-sm" id="envRequirementsSetupButton" type="button">Run setup</button>
+            <button class="btn btn-ghost btn-sm" id="envRequirementsButton" type="button">Open .env editor</button>
+          </div>
+        </div>
+
+        <div class="visitor-ip-card" id="visitorIpCard">
+          <div class="visitor-ip-copy">
+            <div class="visitor-ip-title-row">
+              <span class="visitor-ip-dot" id="visitorIpDot" aria-hidden="true"></span>
+              <strong id="visitorIpTitle">Visitor IPs</strong>
+            </div>
+            <p id="visitorIpDescription">Checking whether Omlorix can use real visitor IP addresses.</p>
+          </div>
+          <button class="btn btn-ghost btn-sm" id="fixVisitorIpsButton" type="button">Open proxy settings</button>
+        </div>
+
+        <div class="subsection">
+          <h3 class="subsection-title">Actions</h3>
+
+          <!-- The action workspace uses a compact operations column beside the
+               larger backup panel. Keeping the same semantic groups means the
+               controls remain easy to navigate with assistive technology while
+               the visual layout can adapt independently at narrower widths. -->
+          <div class="action-groups">
+
+            <!-- Server lifecycle controls (start / stop / restart). -->
+            <div class="action-group server-action-group" aria-labelledby="actionGroupServerLabel">
+              <span class="action-group-label" id="actionGroupServerLabel">Server</span>
+              <div class="action-row" role="group" aria-label="Server controls">
+                <button class="btn btn-primary action-btn" id="startButton" type="button">
+                  <span data-omlorix-icon="play" aria-hidden="true"></span>
+                  <span>Start</span>
+                </button>
+                <button class="btn btn-ghost action-btn" id="stopButton" type="button">
+                  <span data-omlorix-icon="stop" aria-hidden="true"></span>
+                  <span>Stop</span>
+                </button>
+                <button class="btn btn-ghost action-btn" id="restartButton" type="button">
+                  <span data-omlorix-icon="refresh" aria-hidden="true"></span>
+                  <span>Restart</span>
+                </button>
+                <button class="btn btn-ghost action-btn refresh-button" id="refreshButton" type="button">
+                  <span data-omlorix-icon="refreshSpinning" class="refresh-icon" aria-hidden="true"></span>
+                  <span>Refresh</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Less frequent server utilities are separated from lifecycle
+                 controls so the primary Start/Stop actions stay predictable. -->
+            <div class="action-group maintenance-action-group" aria-labelledby="actionGroupMaintenanceLabel">
+              <span class="action-group-label" id="actionGroupMaintenanceLabel">Maintenance</span>
+              <div class="action-row" role="group" aria-label="Maintenance actions">
+                <button class="btn btn-ghost action-btn" id="updateButton" type="button">
+                  <span data-omlorix-icon="download" aria-hidden="true"></span>
+                  <span>Update Omlorix</span>
+                </button>
+                <button class="btn btn-ghost action-btn" id="openFolderButton" type="button">
+                  <span data-omlorix-icon="folder" aria-hidden="true"></span>
+                  <span>Server files</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Backup creation mirrors Admin destinations while restore remains
+                 a separate recovery action that can guide the service shutdown. -->
+            <div class="action-group backup-action-group" id="dashboardBackupSettings" tabindex="-1" aria-labelledby="actionGroupDataLabel">
+              <span class="action-group-label" id="actionGroupDataLabel">Backup &amp; recovery</span>
+
+              <div class="backup-availability-notice" id="backupAvailabilityNotice" role="status" aria-live="polite" aria-atomic="true">
+                <strong id="backupAvailabilityTitle">Server backups require Omlorix to be running</strong>
+                <span id="backupAvailabilityDescription">Start Omlorix and wait until it is ready to load backup destinations.</span>
+                <button class="btn btn-ghost backup-retry-button" id="backupOptionsRetryButton" type="button" hidden>Try again</button>
+              </div>
+
+              <div class="backup-create-controls" id="backupCreateControls" hidden>
+                <p class="backup-create-description" id="backupCreateDescription">Create a full server backup using the destinations configured in Omlorix Admin.</p>
+                <label class="field backup-destination-field" for="backupDestinationSelect">
+                  <span class="field-label" id="backupDestinationLabel">Destination</span>
+                  <select id="backupDestinationSelect" name="backupDestination" aria-describedby="backupCreateDescription">
+                    <option value="">Local storage (server disk)</option>
+                  </select>
+                </label>
+                <label class="opt option-toggle-row backup-encryption-option" id="backupEncryptionOption">
+                  <span>
+                    <strong id="backupEncryptionTitle">Archive encryption</strong>
+                    <small id="backupEncryptionDescription">Encrypt the backup archive with this server's configured backup passphrase.</small>
+                  </span>
+                  <span class="switch">
+                    <input id="backupEncryptionEnabled" type="checkbox" checked>
+                    <span class="switch-track" aria-hidden="true"></span>
+                  </span>
+                </label>
+                <button class="btn btn-primary action-btn" id="backupButton" type="button">
+                  <span data-omlorix-icon="database" aria-hidden="true"></span>
+                  <span>Create server backup</span>
+                </button>
+              </div>
+
+              <div class="backup-result" id="backupResult" role="status" aria-live="polite" aria-atomic="true" hidden>
+                <strong id="backupResultTitle">Backup created</strong>
+                <span id="backupResultDescription"></span>
+                <code id="backupResultJob"></code>
+              </div>
+
+              <div class="backup-download-controls" id="backupDownloadControls" aria-labelledby="backupDownloadTitle">
+                <strong id="backupDownloadTitle">Download a completed backup</strong>
+                <p id="backupDownloadDescription">Choose a successful catalogued backup and save its validated archive to this computer.</p>
+                <label class="field" for="backupDownloadSelect">
+                  <span class="field-label" id="backupDownloadLabel">Completed backup</span>
+                  <select id="backupDownloadSelect" name="backupDownload" aria-describedby="backupDownloadDescription">
+                    <option value="">Loading backup history…</option>
+                  </select>
+                </label>
+                <div class="backup-download-actions">
+                  <button class="btn btn-ghost" id="backupDownloadRefreshButton" type="button">Refresh list</button>
+                  <button class="btn btn-primary" id="backupDownloadButton" type="button">Download selected backup</button>
+                </div>
+                <div class="backup-download-status" id="backupDownloadStatus" role="status" aria-live="polite" aria-atomic="true" hidden></div>
+              </div>
+
+              <div class="action-row backup-recovery-actions" role="group" aria-labelledby="actionGroupDataLabel">
+                <button class="btn btn-ghost action-btn" id="restoreButton" type="button">
+                  <span data-omlorix-icon="refresh" aria-hidden="true"></span>
+                  <span>Restore backup</span>
+                </button>
+                <button class="btn btn-ghost action-btn" id="verifyBackupButton" type="button">
+                  <span data-omlorix-icon="protection" aria-hidden="true"></span>
+                  <span>Verify backup</span>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- Settings Section -->
+      <section id="settings" class="view content-section" aria-labelledby="settingsTitle">
+        <div class="view-head section-header">
+          <div>
+            <h2 id="settingsTitle" class="view-title section-title">Settings</h2>
+            <p class="view-sub section-subtitle">Core deployment configuration for the active profile.</p>
+          </div>
+        </div>
+
+        <form id="settingsForm" class="card card-pad settings-form">
+          <div class="settings-grid">
+            <label class="field">
+              <span class="field-label">Compose project name</span>
+              <input id="composeProjectNameInput" name="composeProjectName" type="text" autocomplete="off" spellcheck="false" placeholder="omlorix">
+            </label>
+            <label class="field">
+              <span class="field-label">Mode</span>
+              <select id="modeSelect" name="mode">
+                <option value="production">Production</option>
+                <option value="dev">Development</option>
+              </select>
+            </label>
+            <label class="field">
+              <span class="field-label">Update channel</span>
+              <select id="updateChannelSelect" name="updateChannel">
+                <option value="stable">Stable</option>
+                <option value="beta">Beta</option>
+              </select>
+            </label>
+            <label class="field">
+              <span class="field-label">Version</span>
+              <select id="versionInput" name="version">
+                <option value="stable">Stable</option>
+              </select>
+            </label>
+          </div>
+        </form>
+
+        <div class="subsection" id="serverSecretsSubsection">
+          <h3 class="subsection-title">Secrets</h3>
+          <p class="subsection-hint">
+            Core server secrets used for authentication, encrypted settings, and password reset privacy.
+          </p>
+
+          <div class="connection-settings-grid">
+            <details class="connection-panel">
+              <summary>
+                <span class="toggle-icon" aria-hidden="true">
+                  <span data-omlorix-icon="shieldPlus"></span>
+                </span>
+                <span class="toggle-text">
+                  <strong class="toggle-title">Server secrets</strong>
+                  <small class="toggle-desc">Keep these values backed up securely and private.</small>
+                </span>
+              </summary>
+              <div class="connection-panel-body">
+                <div class="connection-fields-grid">
+                  <div class="field">
+                    <label class="field-label" for="jwtSecretKeyInput">JWT secret key</label>
+                    <div class="secret-input-wrap">
+                      <input id="jwtSecretKeyInput" name="jwtSecretKey" type="password" autocomplete="new-password" spellcheck="false" placeholder="At least 64 bytes">
+                      <button class="secret-reveal-button" type="button" data-secret-toggle-for="jwtSecretKeyInput" aria-label="Show JWT secret key" aria-pressed="false"></button>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label class="field-label" for="encryptionKeyInput">Encryption key</label>
+                    <div class="secret-input-wrap">
+                      <input id="encryptionKeyInput" name="encryptionKey" type="password" autocomplete="new-password" spellcheck="false" placeholder="Fernet key">
+                      <button class="secret-reveal-button" type="button" data-secret-toggle-for="encryptionKeyInput" aria-label="Show encryption key" aria-pressed="false"></button>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label class="field-label" for="passwordResetSaltInput">Password reset salt</label>
+                    <div class="secret-input-wrap">
+                      <input id="passwordResetSaltInput" name="passwordResetSalt" type="password" autocomplete="new-password" spellcheck="false" placeholder="Unique random salt">
+                      <button class="secret-reveal-button" type="button" data-secret-toggle-for="passwordResetSaltInput" aria-label="Show password reset salt" aria-pressed="false"></button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </details>
+          </div>
+        </div>
+
+        <div class="subsection">
+          <h3 class="subsection-title">What Omlorix runs for you</h3>
+          <p class="subsection-hint">
+            Omlorix can run everything it needs on this computer, or connect to services you already
+            have.
+          </p>
+
+          <div class="connection-settings-grid">
+            <details class="connection-panel">
+              <summary>
+                <span class="toggle-icon" aria-hidden="true">
+                  <span data-omlorix-icon="database"></span>
+                </span>
+                <span class="toggle-text">
+                  <strong class="toggle-title">Database connection</strong>
+                  <small class="toggle-desc">Choose whether Omlorix runs PostgreSQL in Docker or connects to your own database.</small>
+                </span>
+              </summary>
+              <input type="checkbox" id="toggleBundledDB" data-toggle="useBundledDB" checked hidden>
+              <div class="connection-panel-body">
+                <div class="segmented-choice" role="radiogroup" aria-label="Database connection mode">
+                  <label>
+                    <input type="radio" name="databaseConnectionMode" value="bundled" data-connection-toggle="useBundledDB" data-connection-value="true">
+                    <span>Bundled PostgreSQL</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="databaseConnectionMode" value="external" data-connection-toggle="useBundledDB" data-connection-value="false">
+                    <span>External PostgreSQL</span>
+                  </label>
+                </div>
+                <p class="connection-mode-note" data-mode-note="useBundledDB" data-mode-value="true">
+                  The launcher starts the PostgreSQL container and uses the Docker service name internally.
+                </p>
+                <p class="connection-mode-note" data-mode-note="useBundledDB" data-mode-value="false" hidden>
+                  Provide a PostgreSQL connection string for the database Omlorix should use.
+                </p>
+                <div class="connection-fields-grid" data-mode-note="useBundledDB" data-mode-value="true">
+                  <label class="field">
+                    <span class="field-label">Database name</span>
+                    <input id="databaseNameInput" name="databaseName" type="text" autocomplete="off" spellcheck="false" placeholder="omlorix">
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Database user</span>
+                    <input id="databaseUserInput" name="databaseUser" type="text" autocomplete="off" spellcheck="false" placeholder="postgres">
+                  </label>
+                  <div class="field">
+                    <label class="field-label" for="databasePasswordInput">Database password</label>
+                    <div class="secret-input-wrap">
+                      <input id="databasePasswordInput" name="databasePassword" type="password" autocomplete="new-password" spellcheck="false" placeholder="Required">
+                      <button class="secret-reveal-button" type="button" data-secret-toggle-for="databasePasswordInput" aria-label="Show database password" aria-pressed="false"></button>
+                    </div>
+                  </div>
+                  <details class="connection-advanced">
+                    <summary>Advanced Docker endpoint</summary>
+                    <div class="connection-fields-grid">
+                      <label class="field">
+                        <span class="field-label">Container database host</span>
+                        <input id="databaseHostOverrideInput" name="databaseHostOverride" type="text" autocomplete="off" spellcheck="false" placeholder="postgres">
+                      </label>
+                      <label class="field">
+                        <span class="field-label">Container database port</span>
+                        <input id="databasePortOverrideInput" name="databasePortOverride" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="5432">
+                      </label>
+                      <label class="field">
+                        <span class="field-label">Development host port</span>
+                        <input id="devDatabaseHostPortInput" name="devDatabaseHostPort" type="number" min="1" max="65535" step="1" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="5432">
+                      </label>
+                    </div>
+                  </details>
+                </div>
+                <div class="connection-fields-grid" data-mode-note="useBundledDB" data-mode-value="false" hidden>
+                  <div class="field">
+                    <label class="field-label" for="databaseUrlInput">PostgreSQL URL</label>
+                    <div class="secret-input-wrap">
+                      <input id="databaseUrlInput" name="databaseUrl" type="password" autocomplete="off" spellcheck="false" placeholder="postgresql://omlorix:secret@db.example.com:5432/omlorix">
+                      <button class="secret-reveal-button" type="button" data-secret-toggle-for="databaseUrlInput" aria-label="Show PostgreSQL URL" aria-pressed="false"></button>
+                    </div>
+                  </div>
+                </div>
+                <details class="connection-advanced">
+                  <summary>Advanced database settings</summary>
+                  <div class="connection-fields-grid">
+                    <label class="field">
+                      <span class="field-label">Database host</span>
+                      <input id="databaseHostInput" name="databaseHost" type="text" autocomplete="off" spellcheck="false" placeholder="localhost">
+                    </label>
+                    <label class="field">
+                      <span class="field-label">Database port</span>
+                      <input id="databasePortInput" name="databasePort" type="number" min="1" max="65535" step="1" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="5432">
+                    </label>
+                    <label class="field">
+                      <span class="field-label">Application schema</span>
+                      <input id="databaseSchemaInput" name="databaseSchema" type="text" autocomplete="off" spellcheck="false" placeholder="app">
+                    </label>
+                    <label class="field">
+                      <span class="field-label">Audit log schema</span>
+                      <input id="databaseAuditLogSchemaInput" name="databaseAuditLogSchema" type="text" autocomplete="off" spellcheck="false" placeholder="audit">
+                    </label>
+                    <label class="field">
+                      <span class="field-label">Operational logs schema</span>
+                      <input id="databaseLogsSchemaInput" name="databaseLogsSchema" type="text" autocomplete="off" spellcheck="false" placeholder="logs">
+                    </label>
+                    <label class="opt option-toggle-row storage-checkbox-row">
+                      <span class="opt-body">
+                        <span class="opt-title">Auto-create databases</span>
+                        <span class="opt-desc">Disable when the target database is provisioned externally or the database user cannot create databases.</span>
+                      </span>
+                      <span class="switch">
+                        <input id="autoCreateDatabasesInput" name="autoCreateDatabases" type="checkbox">
+                        <span class="switch-track" aria-hidden="true"></span>
+                      </span>
+                    </label>
+                  </div>
+                </details>
+                <div class="toggle-error" data-toggle-error-for="useBundledDB" hidden></div>
+              </div>
+            </details>
+
+            <details class="connection-panel" data-visible-when-toggle="useBundledDB" data-visible-when-value="true">
+              <summary>
+                <span class="toggle-icon" aria-hidden="true">
+                  <span data-omlorix-icon="branch"></span>
+                </span>
+                <span class="toggle-text">
+                  <strong class="toggle-title">Database traffic manager</strong>
+                  <small class="toggle-desc">Use PgBouncer to pool PostgreSQL connections for larger teams or busier servers.</small>
+                </span>
+              </summary>
+              <input type="checkbox" id="togglePgbouncer" data-toggle="usePgbouncer" hidden>
+              <div class="connection-panel-body">
+                <div class="segmented-choice" role="radiogroup" aria-label="Database traffic manager mode">
+                  <label>
+                    <input type="radio" name="pgbouncerMode" value="off" data-connection-toggle="usePgbouncer" data-connection-value="false">
+                    <span>Off</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="pgbouncerMode" value="enabled" data-connection-toggle="usePgbouncer" data-connection-value="true">
+                    <span>PgBouncer</span>
+                  </label>
+                </div>
+                <p class="connection-mode-note" data-mode-note="usePgbouncer" data-mode-value="false">
+                  Omlorix connects directly to PostgreSQL.
+                </p>
+                <p class="connection-mode-note" data-mode-note="usePgbouncer" data-mode-value="true" hidden>
+                  PgBouncer sits between Omlorix and PostgreSQL to reuse database connections.
+                </p>
+                <div class="connection-fields-grid" data-mode-note="usePgbouncer" data-mode-value="true" hidden>
+                  <label class="field">
+                    <span class="field-label">Pool mode</span>
+                    <select id="pgbouncerPoolModeSelect" name="pgbouncerPoolMode">
+                      <option value="transaction">Transaction</option>
+                      <option value="session">Session</option>
+                    </select>
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Max client connections</span>
+                    <input id="pgbouncerMaxClientConnInput" name="pgbouncerMaxClientConn" type="number" min="1" step="1" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="200">
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Default pool size</span>
+                    <input id="pgbouncerDefaultPoolSizeInput" name="pgbouncerDefaultPoolSize" type="number" min="1" step="1" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="40">
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Reserve pool size</span>
+                    <input id="pgbouncerReservePoolSizeInput" name="pgbouncerReservePoolSize" type="number" min="0" step="1" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="10">
+                  </label>
+                  <details class="connection-advanced">
+                    <summary>Advanced host endpoint</summary>
+                    <div class="connection-fields-grid">
+                      <label class="field">
+                        <span class="field-label">Host bind address</span>
+                        <input id="pgbouncerHostBindInput" name="pgbouncerHostBind" type="text" autocomplete="off" spellcheck="false" placeholder="127.0.0.1">
+                      </label>
+                      <label class="field">
+                        <span class="field-label">Host port</span>
+                        <input id="pgbouncerHostPortInput" name="pgbouncerHostPort" type="number" min="1" max="65535" step="1" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="6432">
+                      </label>
+                    </div>
+                  </details>
+                </div>
+                <div class="toggle-error" data-toggle-error-for="usePgbouncer" hidden></div>
+              </div>
+            </details>
+
+            <details class="connection-panel">
+              <summary>
+                <span class="toggle-icon" aria-hidden="true">
+                  <span data-omlorix-icon="lightning"></span>
+                </span>
+                <span class="toggle-text">
+                  <strong class="toggle-title">Redis connection</strong>
+                  <small class="toggle-desc">Choose whether Omlorix runs Redis in Docker or connects to your own Redis service.</small>
+                </span>
+              </summary>
+              <input type="checkbox" id="toggleBundledRedis" data-toggle="useBundledRedis" checked hidden>
+              <input type="checkbox" id="redisEnabledInput" name="redisEnabled" checked hidden>
+              <div class="connection-panel-body">
+                <div class="segmented-choice segmented-choice-three" role="radiogroup" aria-label="Redis connection mode">
+                  <label>
+                    <input type="radio" name="redisConnectionMode" value="off" data-redis-mode="off">
+                    <span>Off</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="redisConnectionMode" value="bundled" data-redis-mode="bundled">
+                    <span>Bundled Redis</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="redisConnectionMode" value="external" data-redis-mode="external">
+                    <span>External Redis</span>
+                  </label>
+                </div>
+                <p class="connection-mode-note" data-redis-mode-panel="bundled">
+                  The launcher starts Redis and manages the internal Redis URL from the generated password.
+                </p>
+                <p class="connection-mode-note" data-redis-mode-panel="external" hidden>
+                  Provide a Redis URL for your external cache, queue, stream, and background-job service.
+                </p>
+                <div class="connection-fields-grid" data-redis-mode-panel="bundled">
+                  <div class="field">
+                    <label class="field-label" for="redisPasswordInput">Redis password</label>
+                    <div class="secret-input-wrap">
+                      <input id="redisPasswordInput" name="redisPassword" type="password" autocomplete="new-password" spellcheck="false" placeholder="Required">
+                      <button class="secret-reveal-button" type="button" data-secret-toggle-for="redisPasswordInput" aria-label="Show Redis password" aria-pressed="false"></button>
+                    </div>
+                  </div>
+                  <details class="connection-advanced">
+                    <summary>Advanced host endpoint</summary>
+                    <div class="connection-fields-grid">
+                      <label class="field">
+                        <span class="field-label">Development host port</span>
+                        <input id="devRedisHostPortInput" name="devRedisHostPort" type="number" min="1" max="65535" step="1" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="6379">
+                      </label>
+                    </div>
+                  </details>
+                </div>
+                <div class="connection-fields-grid" data-redis-mode-panel="external" hidden>
+                  <div class="field">
+                    <label class="field-label" for="redisUrlInput">Redis URL</label>
+                    <div class="secret-input-wrap">
+                      <input id="redisUrlInput" name="redisUrl" type="password" autocomplete="off" spellcheck="false" placeholder="rediss://:secret@redis.example.com:6380/0">
+                      <button class="secret-reveal-button" type="button" data-secret-toggle-for="redisUrlInput" aria-label="Show Redis URL" aria-pressed="false"></button>
+                    </div>
+                  </div>
+                </div>
+                <div class="toggle-error" data-toggle-error-for="useBundledRedis" hidden></div>
+              </div>
+            </details>
+
+            <details class="connection-panel">
+              <summary>
+                <span class="toggle-icon" aria-hidden="true">
+                  <span data-omlorix-icon="storageDrive"></span>
+                </span>
+                <span class="toggle-text">
+                  <strong class="toggle-title">File storage</strong>
+                  <small class="toggle-desc">Choose where uploads, generated images, and user files are stored.</small>
+                </span>
+              </summary>
+              <input type="checkbox" id="toggleBundledStorage" data-toggle="useBundledStorage" hidden>
+              <input type="hidden" id="fileStorageModeInput" value="local">
+              <div class="connection-panel-body">
+                <div class="segmented-choice segmented-choice-three" role="radiogroup" aria-label="File storage mode">
+                  <label>
+                    <input type="radio" name="fileStorageMode" value="local" data-storage-mode="local">
+                    <span>Local storage</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="fileStorageMode" value="bundled" data-storage-mode="bundled">
+                    <span>Bundled MinIO</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="fileStorageMode" value="external" data-storage-mode="external">
+                    <span>External service</span>
+                  </label>
+                </div>
+
+                <p class="connection-mode-note" data-storage-mode-panel="local">
+                  Store files in Omlorix's persistent Docker volume on this server.
+                </p>
+                <div class="storage-location-summary" data-storage-mode-panel="local">
+                  <span>Docker volume</span>
+                  <code>app_data</code>
+                  <input id="fileStorageLocalBasePathInput" name="fileStorageLocalBasePath" type="hidden">
+                </div>
+
+                <p class="connection-mode-note" data-storage-mode-panel="bundled" hidden>
+                  Run a private MinIO service with Omlorix. Files stay on this server in a separate persistent volume.
+                </p>
+                <div class="connection-fields-grid" data-storage-mode-panel="bundled" hidden>
+                  <label class="field">
+                    <span class="field-label">MinIO admin user</span>
+                    <input id="minioRootUserInput" name="minioRootUser" type="text" autocomplete="off" spellcheck="false" placeholder="omlorix-admin">
+                  </label>
+                  <div class="field">
+                    <label class="field-label" for="minioRootPasswordInput">MinIO admin password</label>
+                    <div class="secret-input-wrap">
+                      <input id="minioRootPasswordInput" name="minioRootPassword" type="password" autocomplete="new-password" spellcheck="false" placeholder="Required">
+                      <button class="secret-reveal-button" type="button" data-secret-toggle-for="minioRootPasswordInput" aria-label="Show MinIO admin password" aria-pressed="false"></button>
+                    </div>
+                  </div>
+                  <label class="field">
+                    <span class="field-label">Bucket</span>
+                    <input id="fileStorageS3BucketInput" name="fileStorageS3Bucket" type="text" autocomplete="off" spellcheck="false" placeholder="omlorix-user-files">
+                  </label>
+                  <details class="connection-advanced">
+                    <summary>Advanced MinIO endpoints</summary>
+                    <div class="connection-fields-grid">
+                      <label class="field">
+                        <span class="field-label">API bind address</span>
+                        <input id="minioApiHostBindInput" name="minioApiHostBind" type="text" autocomplete="off" spellcheck="false" placeholder="127.0.0.1">
+                      </label>
+                      <label class="field">
+                        <span class="field-label">API host port</span>
+                        <input id="minioApiHostPortInput" name="minioApiHostPort" type="number" min="1" max="65535" step="1" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="9000">
+                      </label>
+                      <label class="field">
+                        <span class="field-label">Console bind address</span>
+                        <input id="minioConsoleHostBindInput" name="minioConsoleHostBind" type="text" autocomplete="off" spellcheck="false" placeholder="127.0.0.1">
+                      </label>
+                      <label class="field">
+                        <span class="field-label">Console host port</span>
+                        <input id="minioConsoleHostPortInput" name="minioConsoleHostPort" type="number" min="1" max="65535" step="1" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="9001">
+                      </label>
+                    </div>
+                  </details>
+                </div>
+
+                <p class="connection-mode-note" data-storage-mode-panel="external" hidden>
+                  Connect an existing object-storage or WebDAV service. Files are not kept in Omlorix's local volume.
+                </p>
+                <div class="connection-fields-grid" data-storage-mode-panel="external" hidden>
+                  <label class="field">
+                    <span class="field-label">External provider</span>
+                    <select id="fileStorageProviderSelect" name="fileStorageProvider">
+                      <option value="s3">S3-compatible</option>
+                      <option value="gcs">Google Cloud Storage</option>
+                      <option value="azure">Azure Blob Storage</option>
+                      <option value="webdav">WebDAV</option>
+                    </select>
+                  </label>
+
+                  <div class="storage-provider-panel" data-storage-provider-panel="s3" hidden>
+                    <div class="connection-fields-grid">
+                      <label class="field">
+                        <span class="field-label">Bucket</span>
+                        <input id="fileStorageS3ExternalBucketInput" name="fileStorageS3ExternalBucket" type="text" autocomplete="off" spellcheck="false" placeholder="omlorix-user-files">
+                      </label>
+                      <label class="field">
+                        <span class="field-label">Region</span>
+                        <input id="fileStorageS3RegionInput" name="fileStorageS3Region" type="text" autocomplete="off" spellcheck="false" placeholder="us-east-1">
+                      </label>
+                      <label class="field">
+                        <span class="field-label">Prefix</span>
+                        <input id="fileStorageS3PrefixInput" name="fileStorageS3Prefix" type="text" autocomplete="off" spellcheck="false" placeholder="optional/folder">
+                      </label>
+                      <label class="field">
+                        <span class="field-label">Endpoint URL</span>
+                        <input id="fileStorageS3EndpointUrlInput" name="fileStorageS3EndpointUrl" type="url" autocomplete="off" spellcheck="false" placeholder="https://s3.example.com">
+                      </label>
+                      <div class="field">
+                        <label class="field-label" for="fileStorageS3AccessKeyIdInput">Access key ID</label>
+                        <div class="secret-input-wrap">
+                          <input id="fileStorageS3AccessKeyIdInput" name="fileStorageS3AccessKeyId" type="password" autocomplete="off" spellcheck="false">
+                          <button class="secret-reveal-button" type="button" data-secret-toggle-for="fileStorageS3AccessKeyIdInput" aria-label="Show S3 access key ID" aria-pressed="false"></button>
+                        </div>
+                      </div>
+                      <div class="field">
+                        <label class="field-label" for="fileStorageS3SecretAccessKeyInput">Secret access key</label>
+                        <div class="secret-input-wrap">
+                          <input id="fileStorageS3SecretAccessKeyInput" name="fileStorageS3SecretAccessKey" type="password" autocomplete="off" spellcheck="false">
+                          <button class="secret-reveal-button" type="button" data-secret-toggle-for="fileStorageS3SecretAccessKeyInput" aria-label="Show S3 secret access key" aria-pressed="false"></button>
+                        </div>
+                      </div>
+                      <div class="field">
+                        <label class="field-label" for="fileStorageS3SessionTokenInput">Session token</label>
+                        <div class="secret-input-wrap">
+                          <input id="fileStorageS3SessionTokenInput" name="fileStorageS3SessionToken" type="password" autocomplete="off" spellcheck="false">
+                          <button class="secret-reveal-button" type="button" data-secret-toggle-for="fileStorageS3SessionTokenInput" aria-label="Show S3 session token" aria-pressed="false"></button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="storage-provider-panel" data-storage-provider-panel="gcs" hidden>
+                    <div class="connection-fields-grid">
+                      <label class="field">
+                        <span class="field-label">Bucket</span>
+                        <input id="fileStorageGcsBucketInput" name="fileStorageGcsBucket" type="text" autocomplete="off" spellcheck="false" placeholder="omlorix-user-files">
+                      </label>
+                      <label class="field">
+                        <span class="field-label">Project</span>
+                        <input id="fileStorageGcsProjectInput" name="fileStorageGcsProject" type="text" autocomplete="off" spellcheck="false">
+                      </label>
+                      <label class="field">
+                        <span class="field-label">Prefix</span>
+                        <input id="fileStorageGcsPrefixInput" name="fileStorageGcsPrefix" type="text" autocomplete="off" spellcheck="false">
+                      </label>
+                      <label class="field">
+                        <span class="field-label">Credentials JSON</span>
+                        <textarea id="fileStorageGcsCredentialsJsonInput" name="fileStorageGcsCredentialsJson" rows="5" autocomplete="off" spellcheck="false"></textarea>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="storage-provider-panel" data-storage-provider-panel="azure" hidden>
+                    <div class="connection-fields-grid">
+                      <label class="field">
+                        <span class="field-label">Container</span>
+                        <input id="fileStorageAzureContainerInput" name="fileStorageAzureContainer" type="text" autocomplete="off" spellcheck="false" placeholder="omlorix-user-files">
+                      </label>
+                      <label class="field">
+                        <span class="field-label">Prefix</span>
+                        <input id="fileStorageAzurePrefixInput" name="fileStorageAzurePrefix" type="text" autocomplete="off" spellcheck="false">
+                      </label>
+                      <div class="field">
+                        <label class="field-label" for="fileStorageAzureConnectionStringInput">Connection string</label>
+                        <div class="secret-input-wrap">
+                          <input id="fileStorageAzureConnectionStringInput" name="fileStorageAzureConnectionString" type="password" autocomplete="off" spellcheck="false">
+                          <button class="secret-reveal-button" type="button" data-secret-toggle-for="fileStorageAzureConnectionStringInput" aria-label="Show Azure connection string" aria-pressed="false"></button>
+                        </div>
+                      </div>
+                      <label class="field">
+                        <span class="field-label">Account URL</span>
+                        <input id="fileStorageAzureAccountUrlInput" name="fileStorageAzureAccountUrl" type="url" autocomplete="off" spellcheck="false" placeholder="https://account.blob.core.windows.net">
+                      </label>
+                      <div class="field">
+                        <label class="field-label" for="fileStorageAzureCredentialInput">Credential</label>
+                        <div class="secret-input-wrap">
+                          <input id="fileStorageAzureCredentialInput" name="fileStorageAzureCredential" type="password" autocomplete="off" spellcheck="false">
+                          <button class="secret-reveal-button" type="button" data-secret-toggle-for="fileStorageAzureCredentialInput" aria-label="Show Azure credential" aria-pressed="false"></button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="storage-provider-panel" data-storage-provider-panel="webdav" hidden>
+                    <div class="connection-fields-grid">
+                      <label class="field">
+                        <span class="field-label">WebDAV URL</span>
+                        <input id="fileStorageWebdavUrlInput" name="fileStorageWebdavUrl" type="url" autocomplete="off" spellcheck="false" placeholder="https://cloud.example.com/remote.php/dav/files/user">
+                      </label>
+                      <label class="field">
+                        <span class="field-label">Username</span>
+                        <input id="fileStorageWebdavUsernameInput" name="fileStorageWebdavUsername" type="text" autocomplete="off" spellcheck="false">
+                      </label>
+                      <div class="field">
+                        <label class="field-label" for="fileStorageWebdavPasswordInput">Password</label>
+                        <div class="secret-input-wrap">
+                          <input id="fileStorageWebdavPasswordInput" name="fileStorageWebdavPassword" type="password" autocomplete="off" spellcheck="false">
+                          <button class="secret-reveal-button" type="button" data-secret-toggle-for="fileStorageWebdavPasswordInput" aria-label="Show WebDAV password" aria-pressed="false"></button>
+                        </div>
+                      </div>
+                      <label class="field">
+                        <span class="field-label">Prefix</span>
+                        <input id="fileStorageWebdavPrefixInput" name="fileStorageWebdavPrefix" type="text" autocomplete="off" spellcheck="false">
+                      </label>
+                      <label class="field">
+                        <span class="field-label">Timeout seconds</span>
+                        <input id="fileStorageWebdavTimeoutInput" name="fileStorageWebdavTimeout" type="number" min="1" step="1" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="30">
+                      </label>
+                      <label class="opt option-toggle-row storage-checkbox-row">
+                        <span class="opt-body">
+                          <span class="opt-title">Verify TLS certificates</span>
+                          <span class="opt-desc">Keep enabled unless this WebDAV server uses a trusted private certificate setup.</span>
+                        </span>
+                        <span class="switch">
+                          <input id="fileStorageWebdavVerifySslInput" name="fileStorageWebdavVerifySsl" type="checkbox">
+                          <span class="switch-track" aria-hidden="true"></span>
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+                <div class="toggle-error" data-toggle-error-for="useBundledStorage" hidden></div>
+              </div>
+            </details>
+
+            <div class="settings-related-action" aria-labelledby="storageMigrationEntryTitle">
+              <div class="settings-related-action-copy">
+                <strong id="storageMigrationEntryTitle">Storage migration</strong>
+                <span>Move existing user files and generated artifacts between configured providers. Run a dry run first.</span>
+              </div>
+              <button
+                class="btn btn-ghost"
+                id="openStorageMigrationButton"
+                type="button"
+                aria-controls="storage-migration"
+                data-open-section="storage-migration"
+                data-section-focus="storageMigrationLabel"
+              >Open storage migration</button>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="subsection">
+          <h3 class="subsection-title">Observability</h3>
+          <p class="subsection-hint">
+            Run the built-in OpenTelemetry, Prometheus, Jaeger, Alertmanager, and Grafana stack, or tune the telemetry settings Omlorix exports.
+          </p>
+
+          <div class="connection-settings-grid">
+            <details class="connection-panel">
+              <summary>
+                <span class="toggle-icon" aria-hidden="true">
+                  <span data-omlorix-icon="stats_arrow"></span>
+                </span>
+                <span class="toggle-text">
+                  <strong class="toggle-title">Observability stack</strong>
+                  <small class="toggle-desc">Collect traces, metrics, and logs with the bundled monitoring services.</small>
+                </span>
+              </summary>
+              <input type="checkbox" id="toggleObservability" data-toggle="observabilityEnabled" hidden>
+              <div class="connection-panel-body">
+                <div class="segmented-choice" role="radiogroup" aria-label="Observability mode">
+                  <label>
+                    <input type="radio" name="observabilityMode" value="off" data-connection-toggle="observabilityEnabled" data-connection-value="false">
+                    <span>Off</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="observabilityMode" value="enabled" data-connection-toggle="observabilityEnabled" data-connection-value="true">
+                    <span>Enabled</span>
+                  </label>
+                </div>
+                <p class="connection-mode-note" data-mode-note="observabilityEnabled" data-mode-value="false">
+                  Omlorix runs without the bundled observability services.
+                </p>
+                <p class="connection-mode-note" data-mode-note="observabilityEnabled" data-mode-value="true" hidden>
+                  The launcher starts Grafana, Prometheus, Jaeger, Alertmanager, and OpenTelemetry Collector. Linux also gets hardened host metrics; macOS and Windows safely omit node-exporter.
+                </p>
+
+                <div class="connection-fields-grid" data-mode-note="observabilityEnabled" data-mode-value="true" hidden>
+                  <label class="field">
+                    <span class="field-label">Service name</span>
+                    <input id="otelServiceNameInput" name="otelServiceName" type="text" autocomplete="off" spellcheck="false" placeholder="omlorix-backend">
+                  </label>
+                  <label class="field">
+                    <span class="field-label">OTLP endpoint</span>
+                    <input id="otelExporterOtlpEndpointInput" name="otelExporterOtlpEndpoint" type="url" autocomplete="off" spellcheck="false" placeholder="https://otel-collector:4317">
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Trace sampler</span>
+                    <select id="otelTracesSamplerSelect" name="otelTracesSampler">
+                      <option value="parentbased_traceidratio">Parent-based ratio</option>
+                      <option value="traceidratio">Trace ID ratio</option>
+                      <option value="always_on">Always on</option>
+                      <option value="always_off">Always off</option>
+                    </select>
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Sampler argument</span>
+                    <input id="otelTracesSamplerArgInput" name="otelTracesSamplerArg" type="text" autocomplete="off" spellcheck="false" placeholder="1.0">
+                  </label>
+
+                  <label class="opt option-toggle-row storage-checkbox-row">
+                    <span class="opt-body">
+                      <span class="opt-title">Allow insecure OTLP</span>
+                      <span class="opt-desc">Use plaintext OTLP only for trusted local collectors.</span>
+                    </span>
+                    <span class="switch">
+                      <input id="otelExporterOtlpInsecureInput" name="otelExporterOtlpInsecure" type="checkbox">
+                      <span class="switch-track" aria-hidden="true"></span>
+                    </span>
+                  </label>
+                  <label class="opt option-toggle-row storage-checkbox-row">
+                    <span class="opt-body">
+                      <span class="opt-title">Traces</span>
+                      <span class="opt-desc">Record request and background-work spans.</span>
+                    </span>
+                    <span class="switch">
+                      <input id="otelTracesEnabledInput" name="otelTracesEnabled" type="checkbox">
+                      <span class="switch-track" aria-hidden="true"></span>
+                    </span>
+                  </label>
+                  <label class="opt option-toggle-row storage-checkbox-row">
+                    <span class="opt-body">
+                      <span class="opt-title">Metrics</span>
+                      <span class="opt-desc">Collect runtime and application metrics.</span>
+                    </span>
+                    <span class="switch">
+                      <input id="otelMetricsEnabledInput" name="otelMetricsEnabled" type="checkbox">
+                      <span class="switch-track" aria-hidden="true"></span>
+                    </span>
+                  </label>
+                  <label class="opt option-toggle-row storage-checkbox-row">
+                    <span class="opt-body">
+                      <span class="opt-title">Prometheus exporter</span>
+                      <span class="opt-desc">Expose OpenTelemetry metrics for Prometheus scraping.</span>
+                    </span>
+                    <span class="switch">
+                      <input id="otelPrometheusExporterEnabledInput" name="otelPrometheusExporterEnabled" type="checkbox">
+                      <span class="switch-track" aria-hidden="true"></span>
+                    </span>
+                  </label>
+                  <label class="opt option-toggle-row storage-checkbox-row">
+                    <span class="opt-body">
+                      <span class="opt-title">Logs</span>
+                      <span class="opt-desc">Attach telemetry context to logs.</span>
+                    </span>
+                    <span class="switch">
+                      <input id="otelLogsEnabledInput" name="otelLogsEnabled" type="checkbox">
+                      <span class="switch-track" aria-hidden="true"></span>
+                    </span>
+                  </label>
+
+                  <details class="connection-advanced">
+                    <summary>Instrumentation and privacy</summary>
+                    <div class="connection-fields-grid">
+                      <label class="opt option-toggle-row storage-checkbox-row">
+                        <span class="opt-body"><span class="opt-title">FastAPI instrumentation</span></span>
+                        <span class="switch"><input id="otelInstrumentFastapiInput" name="otelInstrumentFastapi" type="checkbox"><span class="switch-track" aria-hidden="true"></span></span>
+                      </label>
+                      <label class="opt option-toggle-row storage-checkbox-row">
+                        <span class="opt-body"><span class="opt-title">SQLAlchemy instrumentation</span></span>
+                        <span class="switch"><input id="otelInstrumentSqlalchemyInput" name="otelInstrumentSqlalchemy" type="checkbox"><span class="switch-track" aria-hidden="true"></span></span>
+                      </label>
+                      <label class="opt option-toggle-row storage-checkbox-row">
+                        <span class="opt-body"><span class="opt-title">HTTP client instrumentation</span></span>
+                        <span class="switch"><input id="otelInstrumentHttpClientsInput" name="otelInstrumentHttpClients" type="checkbox"><span class="switch-track" aria-hidden="true"></span></span>
+                      </label>
+                      <label class="opt option-toggle-row storage-checkbox-row">
+                        <span class="opt-body"><span class="opt-title">SQL commenter</span><span class="opt-desc">Leave off unless your database policy allows SQL comments.</span></span>
+                        <span class="switch"><input id="otelSqlCommenterEnabledInput" name="otelSqlCommenterEnabled" type="checkbox"><span class="switch-track" aria-hidden="true"></span></span>
+                      </label>
+                      <label class="opt option-toggle-row storage-checkbox-row">
+                        <span class="opt-body"><span class="opt-title">Capture HTTP route</span></span>
+                        <span class="switch"><input id="otelCaptureHttpRouteInput" name="otelCaptureHttpRoute" type="checkbox"><span class="switch-track" aria-hidden="true"></span></span>
+                      </label>
+                      <label class="opt option-toggle-row storage-checkbox-row">
+                        <span class="opt-body"><span class="opt-title">Capture User-Agent</span><span class="opt-desc">Can be privacy-sensitive.</span></span>
+                        <span class="switch"><input id="otelCaptureHttpUserAgentInput" name="otelCaptureHttpUserAgent" type="checkbox"><span class="switch-track" aria-hidden="true"></span></span>
+                      </label>
+                      <label class="opt option-toggle-row storage-checkbox-row">
+                        <span class="opt-body"><span class="opt-title">Hash User-Agent</span></span>
+                        <span class="switch"><input id="otelHashHttpUserAgentInput" name="otelHashHttpUserAgent" type="checkbox"><span class="switch-track" aria-hidden="true"></span></span>
+                      </label>
+                    </div>
+                  </details>
+
+                  <details class="connection-advanced">
+                    <summary>Service host ports</summary>
+                    <div class="connection-fields-grid">
+                      <label class="field"><span class="field-label">OTel gRPC bind</span><input id="otelGrpcHostBindInput" name="otelGrpcHostBind" type="text" autocomplete="off" spellcheck="false" placeholder="127.0.0.1"></label>
+                      <label class="field"><span class="field-label">OTel gRPC port</span><input id="otelGrpcHostPortInput" name="otelGrpcHostPort" type="number" min="1" max="65535" step="1" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="4317"></label>
+                      <label class="field"><span class="field-label">OTel HTTP bind</span><input id="otelHttpHostBindInput" name="otelHttpHostBind" type="text" autocomplete="off" spellcheck="false" placeholder="127.0.0.1"></label>
+                      <label class="field"><span class="field-label">OTel HTTP port</span><input id="otelHttpHostPortInput" name="otelHttpHostPort" type="number" min="1" max="65535" step="1" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="4318"></label>
+                      <label class="field"><span class="field-label">OTel Prometheus bind</span><input id="otelPrometheusHostBindInput" name="otelPrometheusHostBind" type="text" autocomplete="off" spellcheck="false" placeholder="127.0.0.1"></label>
+                      <label class="field"><span class="field-label">OTel Prometheus port</span><input id="otelPrometheusHostPortInput" name="otelPrometheusHostPort" type="number" min="1" max="65535" step="1" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="8889"></label>
+                      <label class="field"><span class="field-label">OTel health bind</span><input id="otelHealthcheckHostBindInput" name="otelHealthcheckHostBind" type="text" autocomplete="off" spellcheck="false" placeholder="127.0.0.1"></label>
+                      <label class="field"><span class="field-label">OTel health port</span><input id="otelHealthcheckHostPortInput" name="otelHealthcheckHostPort" type="number" min="1" max="65535" step="1" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="13133"></label>
+                      <label class="field"><span class="field-label">Jaeger UI bind</span><input id="jaegerUiHostBindInput" name="jaegerUiHostBind" type="text" autocomplete="off" spellcheck="false" placeholder="127.0.0.1"></label>
+                      <label class="field"><span class="field-label">Jaeger UI port</span><input id="jaegerUiHostPortInput" name="jaegerUiHostPort" type="number" min="1" max="65535" step="1" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="16686"></label>
+                      <label class="field"><span class="field-label">Jaeger collector bind</span><input id="jaegerCollectorHostBindInput" name="jaegerCollectorHostBind" type="text" autocomplete="off" spellcheck="false" placeholder="127.0.0.1"></label>
+                      <label class="field"><span class="field-label">Jaeger collector port</span><input id="jaegerCollectorHostPortInput" name="jaegerCollectorHostPort" type="number" min="1" max="65535" step="1" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="14268"></label>
+                      <label class="field"><span class="field-label">Prometheus bind</span><input id="prometheusHostBindInput" name="prometheusHostBind" type="text" autocomplete="off" spellcheck="false" placeholder="127.0.0.1"></label>
+                      <label class="field"><span class="field-label">Prometheus port</span><input id="prometheusHostPortInput" name="prometheusHostPort" type="number" min="1" max="65535" step="1" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="9090"></label>
+                      <label class="field"><span class="field-label">Alertmanager bind</span><input id="alertmanagerHostBindInput" name="alertmanagerHostBind" type="text" autocomplete="off" spellcheck="false" placeholder="127.0.0.1"></label>
+                      <label class="field"><span class="field-label">Alertmanager port</span><input id="alertmanagerHostPortInput" name="alertmanagerHostPort" type="number" min="1" max="65535" step="1" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="9093"></label>
+                      <label class="field"><span class="field-label">Grafana bind</span><input id="grafanaHostBindInput" name="grafanaHostBind" type="text" autocomplete="off" spellcheck="false" placeholder="127.0.0.1"></label>
+                      <label class="field"><span class="field-label">Grafana port</span><input id="grafanaHostPortInput" name="grafanaHostPort" type="number" min="1" max="65535" step="1" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="3001"></label>
+                    </div>
+                  </details>
+
+                  <details class="connection-advanced">
+                    <summary>Grafana and exporters</summary>
+                    <div class="connection-fields-grid">
+                      <label class="field">
+                        <span class="field-label">Grafana admin user</span>
+                        <input id="grafanaAdminUserInput" name="grafanaAdminUser" type="text" autocomplete="off" spellcheck="false" placeholder="omlorix-admin">
+                      </label>
+                      <div class="field">
+                        <label class="field-label" for="grafanaAdminPasswordInput">Grafana admin password</label>
+                        <div class="secret-input-wrap">
+                          <input id="grafanaAdminPasswordInput" name="grafanaAdminPassword" type="password" autocomplete="new-password" spellcheck="false" placeholder="Required">
+                          <button class="secret-reveal-button" type="button" data-secret-toggle-for="grafanaAdminPasswordInput" aria-label="Show Grafana admin password" aria-pressed="false"></button>
+                        </div>
+                      </div>
+                      <label class="field">
+                        <span class="field-label">Grafana root URL</span>
+                        <input id="grafanaRootUrlInput" name="grafanaRootUrl" type="url" autocomplete="off" spellcheck="false" placeholder="http://localhost:3001">
+                      </label>
+                      <label class="field">
+                        <span class="field-label">Postgres exporter URI</span>
+                        <input id="postgresExporterDataSourceUriInput" name="postgresExporterDataSourceUri" type="text" autocomplete="off" spellcheck="false" placeholder="postgres:5432/omlorix?sslmode=disable">
+                      </label>
+                      <label class="field">
+                        <span class="field-label">Postgres exporter user</span>
+                        <input id="postgresExporterDataSourceUserInput" name="postgresExporterDataSourceUser" type="text" autocomplete="off" spellcheck="false" placeholder="postgres">
+                      </label>
+                      <div class="field">
+                        <label class="field-label" for="postgresExporterDataSourcePassInput">Postgres exporter password</label>
+                        <div class="secret-input-wrap">
+                          <input id="postgresExporterDataSourcePassInput" name="postgresExporterDataSourcePass" type="password" autocomplete="off" spellcheck="false">
+                          <button class="secret-reveal-button" type="button" data-secret-toggle-for="postgresExporterDataSourcePassInput" aria-label="Show Postgres exporter password" aria-pressed="false"></button>
+                        </div>
+                      </div>
+                      <label class="field">
+                        <span class="field-label">Redis exporter address</span>
+                        <input id="redisExporterAddrInput" name="redisExporterAddr" type="url" autocomplete="off" spellcheck="false" placeholder="redis://redis:6379">
+                      </label>
+                    </div>
+                  </details>
+                </div>
+              </div>
+            </details>
+          </div>
+        </div>
+
+        <section class="automatic-updates-panel" aria-labelledby="automaticUpdatesTitle">
+          <div class="automatic-updates-header">
+            <div>
+              <h3 id="automaticUpdatesTitle" class="card-title">Automatic updates</h3>
+              <p class="card-subtitle">Install Omlorix server updates during a quiet maintenance window.</p>
+            </div>
+            <span id="autoUpdateBadge" class="badge badge-muted">Off</span>
+          </div>
+
+          <form id="autoUpdateForm" class="automatic-updates-form">
+            <label class="opt option-toggle-row">
+              <span class="opt-body">
+                <span class="opt-title">Enable automatic server updates</span>
+                <span class="opt-desc">The launcher updates Omlorix server containers only. Launcher app updates still require your approval.</span>
+              </span>
+              <span class="switch">
+                <input id="autoUpdateEnabledInput" type="checkbox">
+                <span class="switch-track" aria-hidden="true"></span>
+              </span>
+            </label>
+
+            <div id="autoUpdateSettings" class="auto-update-settings" hidden>
+              <div class="settings-grid auto-update-grid">
+                <label class="field">
+                  <span class="field-label">Schedule</span>
+                  <select id="autoUpdateScheduleSelect">
+                    <option value="daily">Every day</option>
+                    <option value="weekends">Weekends</option>
+                    <option value="custom">Custom days</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span class="field-label">Time</span>
+                  <input id="autoUpdateTimeInput" type="time" step="60">
+                </label>
+              </div>
+
+              <fieldset id="autoUpdateWeekdaysFieldset" class="weekday-picker" aria-describedby="autoUpdateWeekdaysHelp" hidden>
+                <legend>Days</legend>
+                <p id="autoUpdateWeekdaysHelp">Choose at least one day for custom schedules.</p>
+                <div class="weekday-options">
+                  <label><input type="checkbox" value="1" data-auto-update-weekday>Mon</label>
+                  <label><input type="checkbox" value="2" data-auto-update-weekday>Tue</label>
+                  <label><input type="checkbox" value="3" data-auto-update-weekday>Wed</label>
+                  <label><input type="checkbox" value="4" data-auto-update-weekday>Thu</label>
+                  <label><input type="checkbox" value="5" data-auto-update-weekday>Fri</label>
+                  <label><input type="checkbox" value="6" data-auto-update-weekday>Sat</label>
+                  <label><input type="checkbox" value="0" data-auto-update-weekday>Sunday</label>
+                </div>
+              </fieldset>
+
+              <div class="auto-update-guards">
+                <div class="auto-update-backup-option">
+                  <label class="opt option-toggle-row" aria-describedby="autoUpdateBackupReferenceText">
+                    <span class="opt-body">
+                      <span class="opt-title">Create a backup before updating</span>
+                      <span class="opt-desc" id="autoUpdateBackupReferenceText">Uses the backup destination and archive encryption configured on the Dashboard.</span>
+                    </span>
+                    <span class="switch">
+                      <input id="autoUpdateBackupInput" type="checkbox">
+                      <span class="switch-track" aria-hidden="true"></span>
+                    </span>
+                  </label>
+                  <button class="auto-update-backup-link" id="autoUpdateBackupSettingsButton" type="button" aria-controls="dashboardBackupSettings">
+                    Review backup settings
+                  </button>
+                </div>
+                <label class="opt option-toggle-row">
+                  <span class="opt-body">
+                    <span class="opt-title">Only update when Docker and Omlorix are healthy</span>
+                  </span>
+                  <span class="switch">
+                    <input id="autoUpdateHealthyInput" type="checkbox">
+                    <span class="switch-track" aria-hidden="true"></span>
+                  </span>
+                </label>
+              </div>
+
+              <div class="auto-update-status" role="status" aria-live="polite">
+                <div>
+                  <span>Next check</span>
+                  <strong id="autoUpdateNextRun">Not scheduled</strong>
+                </div>
+                <div>
+                  <span>Last result</span>
+                  <strong id="autoUpdateLastMessage">Automatic updates are disabled.</strong>
+                </div>
+                <div>
+                  <span>Versions</span>
+                  <strong id="autoUpdateVersions">Unknown</strong>
+                </div>
+              </div>
+
+              <div id="autoUpdateBlockedPanel" class="auto-update-blocked" hidden>
+                <strong>Launcher update required</strong>
+                <p id="autoUpdateBlockedMessage">An Omlorix release requires a newer Server Launcher before automatic updates can continue.</p>
+                <details class="auto-update-debug">
+                  <summary>Debug metadata</summary>
+                  <pre id="autoUpdateBlockedDebug"></pre>
+                </details>
+                <button class="btn btn-primary btn-sm" id="autoUpdateLauncherButton" type="button">Update launcher</button>
+              </div>
+
+              <p id="autoUpdateValidation" class="field-error" hidden></p>
+
+              <div class="form-footer automatic-updates-actions">
+                <button class="btn btn-ghost" id="autoUpdateRunNowButton" type="button">Run update check now</button>
+                <p class="field-hint auto-update-run-now-note" id="autoUpdateRunNowNote" hidden></p>
+              </div>
+            </div>
+          </form>
+        </section>
+      </section>
+
+      <!-- Storage Migration Section -->
+      <section id="storage-migration" class="view content-section" data-parent-section="settings" aria-labelledby="storageMigrationLabel">
+        <div class="detail-page-navigation">
+          <button
+            class="btn btn-ghost btn-sm"
+            id="storageMigrationBackButton"
+            type="button"
+            data-open-section="settings"
+            data-section-focus="openStorageMigrationButton"
+          >Back to settings</button>
+        </div>
+
+        <div class="action-group storage-migration-action-group" aria-labelledby="storageMigrationLabel">
+          <h2 class="action-group-label" id="storageMigrationLabel" tabindex="-1">Storage migration</h2>
+          <p class="storage-migration-description" id="storageMigrationDescription">Move existing user files and generated artifacts between configured providers. Run a dry run first.</p>
+
+          <div class="storage-migration-notice" id="storageMigrationNotice" role="status" aria-live="polite" aria-atomic="true" hidden>
+            <strong id="storageMigrationNoticeTitle"></strong>
+            <span id="storageMigrationNoticeDescription"></span>
+          </div>
+
+          <div class="storage-migration-controls" id="storageMigrationControls">
+            <div class="storage-migration-provider-grid">
+              <label class="field" for="storageMigrationSource">
+                <span class="field-label">Source provider</span>
+                <select id="storageMigrationSource" aria-describedby="storageMigrationDescription">
+                  <option value="local">Local storage</option>
+                  <option value="s3">S3-compatible</option>
+                  <option value="gcs">Google Cloud Storage</option>
+                  <option value="azure">Azure Blob Storage</option>
+                  <option value="webdav">WebDAV</option>
+                </select>
+              </label>
+              <label class="field" for="storageMigrationDestination">
+                <span class="field-label">Destination provider</span>
+                <select id="storageMigrationDestination" aria-describedby="storageMigrationDescription">
+                  <option value="local">Local storage</option>
+                  <option value="s3">S3-compatible</option>
+                  <option value="gcs">Google Cloud Storage</option>
+                  <option value="azure">Azure Blob Storage</option>
+                  <option value="webdav">WebDAV</option>
+                </select>
+              </label>
+              <label class="field" for="storageMigrationScope">
+                <span class="field-label">Scope</span>
+                <select id="storageMigrationScope" aria-describedby="storageMigrationDescription">
+                  <option value="all">All files and artifacts</option>
+                  <option value="files">User files only</option>
+                  <option value="deep-research">Deep Research</option>
+                  <option value="presentations">Presentations</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="storage-migration-options">
+              <label class="opt option-toggle-row">
+                <span class="opt-body">
+                  <span class="opt-title">Dry run</span>
+                  <span class="opt-desc">Report matches without copying files or changing database records.</span>
+                </span>
+                <span class="switch"><input id="storageMigrationDryRun" type="checkbox" checked><span class="switch-track" aria-hidden="true"></span></span>
+              </label>
+              <label class="opt option-toggle-row">
+                <span class="opt-body">
+                  <span class="opt-title">Delete verified source objects</span>
+                  <span class="opt-desc">Delete only after destination verification and database commit.</span>
+                </span>
+                <span class="switch"><input id="storageMigrationDeleteSource" type="checkbox"><span class="switch-track" aria-hidden="true"></span></span>
+              </label>
+              <label class="opt option-toggle-row">
+                <span class="opt-body">
+                  <span class="opt-title">Overwrite destination conflicts</span>
+                  <span class="opt-desc">Replace a destination object when its existing bytes do not match.</span>
+                </span>
+                <span class="switch"><input id="storageMigrationForce" type="checkbox"><span class="switch-track" aria-hidden="true"></span></span>
+              </label>
+            </div>
+
+            <p class="storage-migration-validation" id="storageMigrationValidation" role="status" aria-live="polite"></p>
+            <div class="action-row storage-migration-actions" role="group" aria-labelledby="storageMigrationLabel">
+              <button class="btn btn-ghost action-btn" id="storageProbeButton" type="button">Probe configured storage</button>
+              <button class="btn btn-primary action-btn" id="storageMigrateButton" type="button">Preview migration</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Secrets Section -->
+      <section id="secrets" class="view content-section" aria-labelledby="secretsTitle">
+        <div class="view-head section-header">
+          <div>
+            <h2 id="secretsTitle" class="view-title section-title" data-setup-i18n="secrets_title">Secrets</h2>
+            <p class="view-sub section-subtitle" data-setup-i18n="secrets_subtitle">Manage server credentials and the automatic .env recovery copy.</p>
+          </div>
+          <div class="env-actions secret-header-actions">
+            <button class="btn btn-ghost btn-sm" id="downloadSecretsBackupButton" type="button" data-setup-i18n="save_now">Save now</button>
+            <button class="btn btn-ghost btn-sm" id="changeEnvBackupLocationButton" type="button" data-setup-i18n="change_backup_location">Change location</button>
+            <button class="btn btn-ghost btn-sm" id="disableAutomaticEnvBackupButton" type="button" data-setup-i18n="disable_automatic_backup" hidden>Disable automatic backup</button>
+            <button class="btn btn-ghost btn-sm" id="importSecretsBackupButton" type="button" data-setup-i18n="restore_complete_env">Restore complete .env</button>
+          </div>
+        </div>
+
+        <div class="setup-warning" id="automaticEnvBackupWarning" role="status" aria-live="polite" aria-atomic="true" hidden>
+          <strong id="automaticEnvBackupWarningTitle"></strong>
+          <span id="automaticEnvBackupWarningDescription"></span>
+        </div>
+
+        <div id="serverSecretsMount"></div>
+
+        <div class="subsection secret-management-section">
+          <h3 class="subsection-title" data-setup-i18n="secret_actions_title">Secret management</h3>
+          <p class="subsection-hint" id="secretManagementDescription" data-setup-i18n="secret_actions_desc">Regenerating secrets can sign users out or disconnect services. Before first launch it is safe to regenerate the complete set.</p>
+          <div class="setup-secret-list" id="permanentSecretList"></div>
+          <p class="field-hint" id="secretManagementMessage" role="status" aria-live="polite"></p>
+        </div>
+      </section>
+
+      <!-- Proxy Section -->
+      <section id="proxy" class="view content-section" aria-labelledby="proxyTitle">
+        <div class="view-head section-header">
+          <div>
+            <h2 id="proxyTitle" class="view-title section-title">Proxy</h2>
+            <p class="view-sub section-subtitle">Run a local reverse proxy in front of Omlorix with optional HTTPS.</p>
+          </div>
+          <span id="proxyBadge" class="tag badge badge-muted">Stopped</span>
+        </div>
+
+        <div class="hero-stats proxy-status-panel" id="proxyStatusPanel" role="status" aria-live="polite">
+          <div>
+            <span>Public address</span>
+            <strong id="proxyPublicUrl">Not configured</strong>
+          </div>
+          <div>
+            <span>Target</span>
+            <strong id="proxyTargetUrl">Local Omlorix port</strong>
+          </div>
+          <div>
+            <span>Runtime</span>
+            <strong id="proxyRuntimeStatus">Stopped</strong>
+          </div>
+        </div>
+
+        <div class="visitor-ip-card" id="proxyVisitorIpCard" role="status" aria-live="polite" aria-atomic="true" tabindex="-1">
+          <div class="visitor-ip-copy">
+            <div class="visitor-ip-title-row">
+              <span class="visitor-ip-dot" id="proxyVisitorIpDot" aria-hidden="true"></span>
+              <strong id="proxyVisitorIpTitle">Visitor IPs</strong>
+            </div>
+            <p id="proxyVisitorIpDescription">Configure trusted proxy headers so Omlorix can use real visitor IP addresses.</p>
+          </div>
+          <button class="btn btn-ghost btn-sm" id="proxyFixVisitorIpsButton" type="button" aria-describedby="proxyVisitorIpDescription">Fix automatically</button>
+        </div>
+
+        <form id="proxyForm" class="settings-form proxy-form">
+          <div class="card card-pad proxy-settings">
+            <div class="automatic-updates-header">
+              <div>
+                <h3 class="card-title">Visitor IP and trusted headers</h3>
+                <p class="card-subtitle">Configure which proxy headers Omlorix trusts for visitor IPs, host checks, authentication, and rate limiting.</p>
+              </div>
+            </div>
+
+            <label class="opt option-toggle-row proxy-enable-row">
+              <span class="opt-body">
+                <span class="opt-title">Trust proxy headers</span>
+                <span class="opt-desc">Enable when Omlorix is behind a trusted reverse proxy, load balancer, or tunnel that sets forwarded headers.</span>
+              </span>
+              <span class="switch">
+                <input id="trustProxyHeadersInput" type="checkbox">
+                <span class="switch-track" aria-hidden="true"></span>
+              </span>
+            </label>
+
+            <div class="settings-grid">
+              <label class="field field-wide">
+                <span class="field-label">Trusted proxies</span>
+                <input id="trustedProxiesInput" autocomplete="off" spellcheck="false" placeholder="127.0.0.0/8,::1/128">
+              </label>
+              <label class="field field-wide">
+                <span class="field-label">Trusted hosts</span>
+                <input id="trustedHostsInput" autocomplete="off" spellcheck="false" placeholder="chat.example.com,localhost">
+              </label>
+              <label class="field field-wide">
+                <span class="field-label">Uvicorn forwarded allow IPs</span>
+                <input id="uvicornForwardedAllowIpsInput" autocomplete="off" spellcheck="false" placeholder="127.0.0.1,::1">
+              </label>
+              <label class="field field-wide">
+                <span class="field-label">Rate limit trusted proxies</span>
+                <input id="rateLimitTrustedProxiesInput" autocomplete="off" spellcheck="false">
+              </label>
+              <label class="field field-wide">
+                <span class="field-label">Auth trusted proxies</span>
+                <input id="authTrustedProxiesInput" autocomplete="off" spellcheck="false">
+              </label>
+              <label class="field">
+                <span class="field-label">Proxy settings cache seconds</span>
+                <input id="rateLimitProxySettingsCacheSecondsInput" type="number" min="0" step="1" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="60">
+              </label>
+            </div>
+          </div>
+
+          <label class="opt option-toggle-row proxy-enable-row">
+            <span class="opt-body">
+              <span class="opt-title">Enable launcher proxy</span>
+              <span class="opt-desc">Publishes Omlorix through the launcher and forwards HTTP, HTTPS, API, and WebSocket traffic to the Docker frontend.</span>
+            </span>
+            <span class="switch">
+              <input id="proxyEnabledInput" type="checkbox">
+              <span class="switch-track" aria-hidden="true"></span>
+            </span>
+          </label>
+
+          <div id="proxySettings" class="card card-pad proxy-settings" hidden>
+            <div class="settings-grid">
+              <label class="field">
+                <span class="field-label">Bind address</span>
+                <input id="proxyBindInput" autocomplete="off" spellcheck="false" placeholder="0.0.0.0">
+                <p class="field-error" id="proxyBindError" hidden></p>
+              </label>
+              <label class="field">
+                <span class="field-label">HTTP port</span>
+                <input id="proxyHttpPortInput" inputmode="numeric" autocomplete="off" placeholder="8081">
+                <p class="field-error" id="proxyHttpPortError" hidden></p>
+              </label>
+            </div>
+
+            <div class="proxy-option-grid">
+              <label class="opt option-toggle-row">
+                <span class="opt-body">
+                  <span class="opt-title">Start proxy when the launcher opens</span>
+                </span>
+                <span class="switch">
+                  <input id="proxyAutostartInput" type="checkbox">
+                  <span class="switch-track" aria-hidden="true"></span>
+                </span>
+              </label>
+              <label class="opt option-toggle-row">
+                <span class="opt-body">
+                  <span class="opt-title">Enable HTTPS listener</span>
+                </span>
+                <span class="switch">
+                  <input id="proxyHttpsInput" type="checkbox">
+                  <span class="switch-track" aria-hidden="true"></span>
+                </span>
+              </label>
+              <label class="opt option-toggle-row">
+                <span class="opt-body">
+                  <span class="opt-title">Redirect HTTP to HTTPS</span>
+                </span>
+                <span class="switch">
+                  <input id="proxyRedirectInput" type="checkbox">
+                  <span class="switch-track" aria-hidden="true"></span>
+                </span>
+              </label>
+            </div>
+
+            <fieldset id="proxyHttpsSettings" class="proxy-https-settings" hidden>
+              <legend>HTTPS</legend>
+              <div class="settings-grid">
+                <label class="field">
+                  <span class="field-label">HTTPS port</span>
+                  <input id="proxyHttpsPortInput" inputmode="numeric" autocomplete="off" placeholder="8443">
+                  <p class="field-error" id="proxyHttpsPortError" hidden></p>
+                </label>
+                <div class="field">
+                  <label class="field-label" for="proxyTlsCertInput">Certificate file</label>
+                  <span class="path-picker">
+                    <input id="proxyTlsCertInput" autocomplete="off" spellcheck="false" placeholder="/path/to/fullchain.pem">
+                    <button class="btn btn-ghost btn-sm" id="proxyTlsCertChooseButton" type="button" aria-label="Choose TLS certificate file">Choose file</button>
+                  </span>
+                  <small class="field-hint">Stores the selected system path; the file is not copied.</small>
+                  <p class="field-error" id="proxyTlsCertError" hidden></p>
+                </div>
+                <div class="field">
+                  <label class="field-label" for="proxyTlsKeyInput">Private key file</label>
+                  <span class="path-picker">
+                    <input id="proxyTlsKeyInput" autocomplete="off" spellcheck="false" placeholder="/path/to/privkey.pem">
+                    <button class="btn btn-ghost btn-sm" id="proxyTlsKeyChooseButton" type="button" aria-label="Choose TLS private key file">Choose file</button>
+                  </span>
+                  <small class="field-hint">Stores the selected system path; the file is not copied.</small>
+                  <p class="field-error" id="proxyTlsKeyError" hidden></p>
+                </div>
+                <div class="field">
+                  <label class="field-label" for="proxyTlsCaInput">CA chain file</label>
+                  <span class="path-picker">
+                    <input id="proxyTlsCaInput" autocomplete="off" spellcheck="false" placeholder="Optional">
+                    <button class="btn btn-ghost btn-sm" id="proxyTlsCaChooseButton" type="button" aria-label="Choose TLS CA chain file">Choose file</button>
+                  </span>
+                  <small class="field-hint">Optional. Stores the selected system path; the file is not copied.</small>
+                  <p class="field-error" id="proxyTlsCaError" hidden></p>
+                </div>
+                <div class="field">
+                  <label class="field-label" for="proxyTlsPassphraseInput">Key passphrase</label>
+                  <div class="secret-input-wrap">
+                    <input id="proxyTlsPassphraseInput" type="password" autocomplete="new-password" placeholder="Leave unchanged">
+                    <button class="secret-reveal-button" type="button" data-secret-toggle-for="proxyTlsPassphraseInput" aria-label="Show secret value" aria-pressed="false"></button>
+                  </div>
+                </div>
+                <label class="check-field proxy-clear-passphrase">
+                  <input id="proxyClearPassphraseInput" type="checkbox">
+                  <span>Clear saved key passphrase</span>
+                </label>
+              </div>
+            </fieldset>
+
+            <details class="connection-advanced">
+              <summary>Advanced frontend and API ports</summary>
+              <div class="settings-grid">
+                <label class="field">
+                  <span class="field-label">Frontend bind address</span>
+                  <input id="frontendHttpHostBindInput" autocomplete="off" spellcheck="false" placeholder="0.0.0.0">
+                </label>
+                <label class="field">
+                  <span class="field-label">Frontend HTTP port</span>
+                  <input id="frontendHttpHostPortInput" type="number" min="1" max="65535" step="1" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="8080">
+                </label>
+                <label class="field">
+                  <span class="field-label">Traefik API LB port</span>
+                  <input id="apiLbTraefikWebHostPortInput" type="number" min="1" max="65535" step="1" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="8080">
+                </label>
+                <label class="field">
+                  <span class="field-label">Traefik dashboard port</span>
+                  <input id="apiLbTraefikDashboardHostPortInput" type="number" min="1" max="65535" step="1" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="8081">
+                </label>
+              </div>
+            </details>
+
+            <p id="proxyValidation" class="field-error" hidden></p>
+
+            <div class="form-footer proxy-actions">
+              <span id="proxyServiceStatus" class="field-hint" role="status" aria-live="polite" tabindex="-1"></span>
+              <button class="btn btn-ghost" id="proxyInstallServiceButton" type="button" hidden></button>
+              <button class="btn btn-ghost" id="proxyUninstallServiceButton" type="button" hidden></button>
+            </div>
+
+            <div class="form-footer proxy-actions">
+              <button class="btn btn-ghost" id="proxyStopButton" type="button">Stop proxy</button>
+              <button class="btn btn-ghost" id="proxyRestartButton" type="button">Restart proxy</button>
+              <button class="btn btn-primary" id="proxyStartButton" type="button">Start proxy</button>
+            </div>
+          </div>
+        </form>
+      </section>
+
+      <!-- Environment Section -->
+      <section id="environment" class="view content-section" aria-labelledby="envEditorTitle">
+        <div class="view-head section-header">
+          <div>
+            <h2 id="envEditorTitle" class="view-title section-title">Environment</h2>
+            <p id="envEditorPath" class="view-sub section-subtitle">Loading environment file</p>
+          </div>
+          <div class="env-actions">
+            <button class="btn btn-ghost btn-sm" id="exportEnvButton" type="button">Export .env</button>
+            <button class="btn btn-ghost btn-sm" id="importEnvButton" type="button">Import .env</button>
+          </div>
+        </div>
+        <span id="envEditorSaved" aria-live="polite" hidden>Ready</span>
+
+        <div class="toolbar env-toolbar">
+          <label class="field">
+            <span class="field-label">Search</span>
+            <input id="envSearchInput" type="search" autocomplete="off" spellcheck="false" placeholder="Key or description">
+          </label>
+          <label class="field">
+            <span class="field-label">Section</span>
+            <select id="envSectionFilter"></select>
+          </label>
+        </div>
+
+        <div id="envValidationSummary" class="validation-summary" role="status" aria-live="polite" hidden></div>
+
+        <section id="envImportReview" class="card env-import-review" aria-labelledby="envImportReviewTitle" hidden>
+          <div class="env-import-header">
+            <div class="env-import-heading-copy">
+              <h3 id="envImportReviewTitle">Review imported .env</h3>
+              <p><code id="envImportSource" dir="ltr">No file selected</code></p>
+            </div>
+            <span id="envImportBadge" class="badge badge-muted" role="status">Pending</span>
+          </div>
+          <label class="opt env-import-mode" for="replaceMissingEnvInput">
+            <span class="env-import-mode-copy">
+              <strong>Reset variables missing from the file</strong>
+              <small>Known variables return to launcher defaults; custom variables not in the file are removed. Launcher-managed security values stay protected.</small>
+            </span>
+            <span class="switch">
+              <input id="replaceMissingEnvInput" type="checkbox" aria-describedby="envImportReplacementImpact">
+              <span class="switch-track" aria-hidden="true"></span>
+            </span>
+          </label>
+          <p id="envImportReplacementImpact" class="env-import-mode-impact" role="status" aria-live="polite"></p>
+          <dl id="envImportSummary" class="env-import-summary"></dl>
+          <div id="envImportDetails" class="env-import-details"></div>
+          <div class="env-import-actions">
+            <button class="btn btn-ghost btn-sm" id="cancelEnvImportButton" type="button">Cancel</button>
+            <button class="btn btn-primary btn-sm" id="applyEnvImportButton" type="button">Apply import</button>
+          </div>
+        </section>
+
+        <div id="envImportResult" class="env-import-result" role="status" aria-live="polite" aria-atomic="true" hidden>
+          <strong id="envImportResultTitle"></strong>
+          <p id="envImportResultMessage"></p>
+        </div>
+
+        <form id="envEditorForm" class="card card-pad env-editor-form">
+          <div id="envFields" class="env-fields" aria-live="polite"></div>
+
+          <details class="disclosure add-env-variable">
+            <summary>
+              <span>Add custom variable</span>
+              <span data-omlorix-icon="chevron" class="disclosure-icon"></span>
+            </summary>
+            <div class="disclosure-body custom-env-grid">
+              <label class="field">
+                <span class="field-label">Key</span>
+                <input id="customEnvKeyInput" autocomplete="off" spellcheck="false" placeholder="MY_CUSTOM_SETTING" aria-describedby="customEnvKeyError">
+                <p id="customEnvKeyError" class="field-error" hidden></p>
+              </label>
+              <label class="field">
+                <span class="field-label">Value</span>
+                <input id="customEnvValueInput" autocomplete="off" spellcheck="false">
+              </label>
+              <button class="btn btn-ghost" id="addCustomEnvButton" type="button">Add variable</button>
+            </div>
+          </details>
+        </form>
+      </section>
+
+      <!-- Services Section -->
+      <section id="services" class="view content-section" aria-labelledby="servicesTitle">
+        <div class="view-head section-header">
+          <div>
+            <h2 id="servicesTitle" class="view-title section-title">Services</h2>
+            <p class="view-sub section-subtitle" id="servicesSubtitle">Expected services and their current container state.</p>
+          </div>
+          <div class="service-heading-status">
+            <span id="serviceAutoRefreshStatus" class="service-auto-refresh-status">Updates every 10 seconds</span>
+            <span id="serviceCount" class="tag muted quiet-label">0/0 running</span>
+          </div>
+        </div>
+        <div class="card table-wrap">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>Service</th>
+                <th>State</th>
+                <th>Health</th>
+                <th>Uptime</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="servicesBody">
+              <tr><td colspan="5" class="empty-cell">No services yet</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Independently managed Code Execution deployments. These are separate
+           Compose projects, not rows in the Omlorix application stack above. -->
+      <section id="code-execution" class="view content-section" aria-labelledby="codeExecutionTitle">
+        <div class="view-head section-header code-execution-heading">
+          <div>
+            <h2 id="codeExecutionTitle" class="view-title section-title">Code Execution</h2>
+            <p class="view-sub section-subtitle">Run and connect isolated execution services managed by this launcher.</p>
+          </div>
+          <div class="code-execution-heading-actions">
+            <button class="btn btn-ghost btn-sm" id="codeExecutionRefreshButton" type="button">Refresh</button>
+            <button class="btn btn-primary btn-sm" id="codeExecutionAddButton" type="button">Add service</button>
+          </div>
+        </div>
+
+        <div class="code-execution-notice" role="note">
+          <span data-omlorix-icon="security" aria-hidden="true"></span>
+          <div>
+            <strong>Container isolation is not a virtual machine boundary</strong>
+            <p>Use dedicated hosts or a stronger runtime before serving arbitrary hostile users.</p>
+          </div>
+        </div>
+
+        <div class="metric-grid code-execution-metrics" aria-label="Code Execution summary">
+          <div class="metric metric-status-muted">
+            <div class="metric-label">Managed services</div>
+            <strong class="code-execution-metric-value" id="codeExecutionTotal">0</strong>
+            <div class="metric-detail">Configured in this launcher</div>
+          </div>
+          <div class="metric metric-status-muted">
+            <div class="metric-label">Running</div>
+            <strong class="code-execution-metric-value" id="codeExecutionRunning">0</strong>
+            <div class="metric-detail">Gateway containers online</div>
+          </div>
+          <div class="metric metric-status-muted">
+            <div class="metric-label">Healthy</div>
+            <strong class="code-execution-metric-value" id="codeExecutionHealthy">0</strong>
+            <div class="metric-detail">Ready to accept work</div>
+          </div>
+        </div>
+
+        <div id="codeExecutionFeedback" class="code-execution-feedback" role="status" aria-live="polite" aria-atomic="true"></div>
+        <div id="codeExecutionInstances" class="code-execution-instance-grid"></div>
+
+        <div id="codeExecutionEmpty" class="card code-execution-empty" hidden>
+          <div class="code-execution-empty-icon" aria-hidden="true">
+            <span data-omlorix-icon="code"></span>
+          </div>
+          <h3>No Code Execution services yet</h3>
+          <p>Create a local service with a private API key and safe sandbox defaults.</p>
+          <button class="btn btn-primary" id="codeExecutionEmptyAddButton" type="button">Add your first service</button>
+        </div>
+      </section>
+
+      <!-- Console Section -->
+      <section id="console" class="view content-section" aria-labelledby="consoleTitle">
+        <div class="view-head section-header">
+          <div>
+            <h2 id="consoleTitle" class="view-title section-title">Console</h2>
+            <p class="view-sub section-subtitle">Output from launcher operations and container logs.</p>
+          </div>
+        </div>
+        <div class="console-log-controls" aria-label="Log controls">
+          <label class="field console-log-scope-field" for="logServiceSelect">
+            <span class="field-label">Scope</span>
+            <select id="logServiceSelect">
+              <option value="">All services</option>
+            </select>
+          </label>
+          <label class="field console-log-lines-field" for="logLinesInput">
+            <span class="field-label">Lines</span>
+            <input id="logLinesInput" type="number" min="1" max="5000" step="1" value="220" inputmode="numeric" aria-describedby="logOptionsHint logControlStatus">
+          </label>
+          <label class="field console-log-since-field" for="logSinceInput">
+            <span class="field-label">Since</span>
+            <input id="logSinceInput" type="text" maxlength="128" placeholder="5m or 2026-08-23T10:30:00Z" spellcheck="false" autocomplete="off" aria-describedby="logOptionsHint logControlStatus">
+          </label>
+          <div class="console-actions">
+            <button class="btn btn-ghost btn-sm" id="loadLogsButton" type="button">Load snapshot</button>
+            <button class="btn btn-primary btn-sm" id="startLogFollowButton" type="button">Start following</button>
+            <button class="btn btn-ghost btn-sm" id="stopLogFollowButton" type="button" disabled>Stop following</button>
+            <button class="btn btn-ghost btn-sm" id="clearConsoleButton" type="button">Clear</button>
+          </div>
+        </div>
+        <p class="console-log-hint" id="logOptionsHint">Show 1–5000 recent lines. Since accepts a relative duration or timestamp.</p>
+        <p class="console-log-status" id="logControlStatus" role="status" aria-live="polite" aria-atomic="true"></p>
+        <div class="console-output-shell">
+          <pre class="console" id="consoleOutput" tabindex="0" aria-label="Console output" aria-live="polite" aria-describedby="consoleEmpty"></pre>
+          <p class="console-empty" id="consoleEmpty">Console output will appear here.</p>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- First-run server setup. This full-window layer is hidden for configured
+       installations and preserves the normal launcher underneath it. -->
+  <div class="setup-overlay" id="setupOverlay" hidden>
+    <div class="setup-shell">
+      <aside class="setup-rail" aria-label="Server setup steps" data-setup-i18n-aria-label="setup_steps_label">
+        <div class="setup-brand">
+          <div class="setup-brand-mark" aria-hidden="true">C</div>
+          <div><strong>Omlorix Server</strong><span data-setup-i18n="first_run_setup">First-run setup</span></div>
+        </div>
+        <ol class="setup-step-list" id="setupStepList"></ol>
+        <p class="setup-rail-note" data-setup-i18n="change_later">You can change these settings later in the launcher.</p>
+      </aside>
+
+      <section class="setup-stage" aria-labelledby="setupPanelTitle">
+        <div class="setup-mobile-progress"><span id="setupMobileStep"></span><div><i id="setupMobileProgress"></i></div></div>
+        <div class="setup-stage-body" id="setupStageBody">
+          <div class="setup-announcement sr-only" id="setupAnnouncement" aria-live="polite" aria-atomic="true"></div>
+
+          <article class="setup-panel" data-setup-panel="0">
+            <div class="setup-welcome-mark" aria-hidden="true">C</div>
+            <p class="setup-eyebrow" data-setup-i18n="welcome_eyebrow">Private AI, under your control</p>
+            <h1 id="setupPanelTitle" data-setup-i18n="welcome_title">Set up your Omlorix server</h1>
+            <p class="setup-lead" data-setup-i18n="welcome_desc">We’ll prepare secure defaults, your data services, network access, and a required recovery backup. No command line is needed.</p>
+            <div class="setup-readiness" id="setupReadiness" role="status"></div>
+          </article>
+
+          <article class="setup-panel" data-setup-panel="1" hidden>
+            <p class="setup-eyebrow" data-setup-i18n="step_1">Step 1 · Setup type</p>
+            <h2 data-setup-i18n="type_title">Choose how much to configure</h2>
+            <p class="setup-lead" data-setup-i18n="type_desc">Recommended setup is ready for most private servers. Custom setup exposes external services and developer options.</p>
+            <div class="setup-choice-grid" role="radiogroup" aria-label="Setup type" data-setup-i18n-aria-label="type_title">
+              <label class="setup-choice"><input type="radio" name="setupType" value="recommended" checked><span><b data-setup-i18n="recommended">Recommended</b><small data-setup-i18n="recommended_desc">Production mode, stable updates, and services managed by Omlorix.</small></span></label>
+              <label class="setup-choice"><input type="radio" name="setupType" value="custom"><span><b data-setup-i18n="custom">Custom</b><small data-setup-i18n="custom_desc">Use external services or review advanced deployment choices.</small></span></label>
+            </div>
+            <section class="setup-advanced" id="setupRuntimeAdvanced" hidden>
+              <h3 class="setup-advanced-title" data-setup-i18n="advanced_runtime">Advanced release settings</h3>
+              <div class="setup-field-grid">
+                <label class="field"><span class="field-label" data-setup-i18n="mode">Mode</span><select id="setupMode"><option value="production" data-setup-i18n="production">Production</option><option value="dev" data-setup-i18n="development">Development</option></select></label>
+                <label class="field"><span class="field-label" data-setup-i18n="update_channel">Update channel</span><select id="setupUpdateChannel"><option value="stable" data-setup-i18n="stable">Stable</option><option value="beta" data-setup-i18n="beta">Beta</option></select></label>
+              </div>
+            </section>
+          </article>
+
+          <article class="setup-panel" data-setup-panel="2" hidden>
+            <p class="setup-eyebrow" data-setup-i18n="step_2">Step 2 · Data and storage</p>
+            <h2 data-setup-i18n="data_title">Where should your data live?</h2>
+            <p class="setup-lead" data-setup-i18n="data_desc">Keep the recommended built-in services or connect infrastructure you already manage.</p>
+
+            <div class="setup-service-card">
+              <div><b data-setup-i18n="database">Database</b><span data-setup-i18n="database_desc">Stores accounts, conversations, settings, and audit history.</span></div>
+              <div class="setup-segmented"><label><input type="radio" name="setupDatabase" value="bundled" checked><span data-setup-i18n="built_in">Built in</span></label><label><input type="radio" name="setupDatabase" value="external"><span data-setup-i18n="external">External</span></label></div>
+              <div class="field setup-conditional" data-show-when="setupDatabase:external" hidden>
+                <label class="field-label" for="setupDatabaseUrl" data-setup-i18n="postgres_url">PostgreSQL connection URL</label>
+                <div class="setup-connection-input secret-input-wrap">
+                  <input id="setupDatabaseUrl" type="password" autocomplete="off" spellcheck="false" aria-describedby="setupDatabaseUrlError" placeholder="postgresql://user:password@host:5432/omlorix">
+                  <button class="secret-reveal-button" id="setupDatabaseUrlRevealButton" type="button" data-setup-reveal-for="setupDatabaseUrl" data-show-aria-key="show_postgres_url" data-hide-aria-key="hide_postgres_url" aria-label="Show PostgreSQL URL" aria-pressed="false"></button>
+                </div>
+                <span class="field-error" id="setupDatabaseUrlError" role="alert"></span>
+              </div>
+            </div>
+
+            <div class="setup-service-card">
+              <div><b data-setup-i18n="cache">Cache and background work</b><span data-setup-i18n="cache_desc">Keeps sessions and scheduled tasks responsive.</span></div>
+              <div class="setup-segmented"><label><input type="radio" name="setupRedis" value="bundled" checked><span data-setup-i18n="built_in">Built in</span></label><label><input type="radio" name="setupRedis" value="external"><span data-setup-i18n="external">External</span></label></div>
+              <div class="field setup-conditional" data-show-when="setupRedis:external" hidden>
+                <label class="field-label" for="setupRedisUrl" data-setup-i18n="redis_url">Redis connection URL</label>
+                <div class="setup-connection-input secret-input-wrap">
+                  <input id="setupRedisUrl" type="password" autocomplete="off" spellcheck="false" aria-describedby="setupRedisUrlError" placeholder="rediss://:password@host:6379/0">
+                  <button class="secret-reveal-button" id="setupRedisUrlRevealButton" type="button" data-setup-reveal-for="setupRedisUrl" data-show-aria-key="show_redis_url" data-hide-aria-key="hide_redis_url" aria-label="Show Redis URL" aria-pressed="false"></button>
+                </div>
+                <span class="field-error" id="setupRedisUrlError" role="alert"></span>
+              </div>
+            </div>
+
+            <div class="setup-service-card">
+              <div><b data-setup-i18n="file_storage">File storage</b><span data-setup-i18n="file_storage_desc">Stores uploads, attachments, and generated files.</span></div>
+              <select id="setupStorageMode" data-select-menu-portal="true"><option value="local" data-setup-i18n="local_folder">Omlorix data folder</option><option value="bundled" data-setup-i18n="built_in_storage">Built-in object storage</option><option value="s3">S3-compatible</option><option value="gcs">Google Cloud Storage</option><option value="azure">Azure Blob Storage</option><option value="webdav">WebDAV</option></select>
+              <p class="field-error" id="setupStorageError" role="alert"></p>
+              <div class="setup-storage-fields" id="setupStorageFields"></div>
+            </div>
+          </article>
+
+          <article class="setup-panel setup-access-panel" data-setup-panel="3" hidden>
+            <p class="setup-eyebrow" data-setup-i18n="step_3">Step 3 · Access and proxy</p>
+            <h2 data-setup-i18n="access_title">Who should be able to connect?</h2>
+            <p class="setup-lead" data-setup-i18n="access_desc">Choose the closest match. Advanced proxy controls appear only when you need them.</p>
+            <div class="setup-choice-grid setup-choice-grid-three setup-access-choice-grid" role="radiogroup" aria-label="Server access" data-setup-i18n-aria-label="access_title">
+              <label class="setup-choice"><input type="radio" name="setupAccess" value="local" checked><span><b data-setup-i18n="this_computer">Only this computer</b><small data-setup-i18n="this_computer_desc">Safest for personal testing.</small></span></label>
+              <label class="setup-choice"><input type="radio" name="setupAccess" value="lan"><span><b data-setup-i18n="local_network">Local network</b><small data-setup-i18n="local_network_desc">Other devices on your trusted network can connect.</small></span></label>
+              <label class="setup-choice"><input type="radio" name="setupAccess" value="public"><span><b data-setup-i18n="public_domain">Domain or public address</b><small data-setup-i18n="public_domain_desc">Use HTTPS and a trusted proxy for internet access.</small></span></label>
+            </div>
+            <div class="setup-field-grid setup-section-gap setup-access-core-fields">
+              <label class="field"><span class="field-label" data-setup-i18n="http_port">Omlorix port</span><input id="setupFrontendPort" type="number" min="1" max="65535" value="8080" aria-describedby="setupFrontendPortError"><span class="field-error" id="setupFrontendPortError" role="alert"></span></label>
+              <label class="field setup-public-field" hidden><span class="field-label" data-setup-i18n="public_host">Public host name</span><input id="setupPublicHost" placeholder="chat.example.com" required aria-describedby="setupPublicHostError"><span class="field-error" id="setupPublicHostError" role="alert"></span></label>
+            </div>
+            <div class="setup-public-field setup-section-gap setup-access-proxy-choice" hidden>
+              <span class="field-label" data-setup-i18n="proxy_choice">How is HTTPS handled?</span>
+              <div class="setup-segmented setup-segmented-wide"><label><input type="radio" name="setupProxy" value="launcher" checked><span data-setup-i18n="launcher_proxy">Launcher proxy</span></label><label><input type="radio" name="setupProxy" value="external"><span data-setup-i18n="existing_proxy">Existing proxy or tunnel</span></label></div>
+            </div>
+            <div class="setup-conditional setup-section-gap setup-access-details setup-access-details-external" data-show-when="setupProxy:external" hidden>
+              <label class="field"><span class="field-label" data-setup-i18n="trusted_proxies">Trusted proxy addresses</span><input id="setupTrustedProxies" placeholder="127.0.0.1, 10.0.0.0/8" required aria-describedby="setupTrustedProxiesHint setupTrustedProxiesError"><span class="field-hint" id="setupTrustedProxiesHint" data-setup-i18n="trusted_proxies_hint">Only these systems may report a visitor’s real address.</span><span class="field-error" id="setupTrustedProxiesError" role="alert"></span></label>
+            </div>
+            <div class="setup-conditional setup-section-gap setup-access-details setup-access-details-launcher" data-show-when="setupProxy:launcher" hidden>
+              <div class="setup-field-grid"><label class="field"><span class="field-label" data-setup-i18n="proxy_http_port">Public HTTP port</span><input id="setupProxyPort" type="number" min="1" max="65535" value="8081" aria-describedby="setupProxyPortError"><span class="field-error" id="setupProxyPortError" role="alert"></span></label><label class="field"><span class="field-label" data-setup-i18n="proxy_https_port">Public HTTPS port</span><input id="setupProxyHttpsPort" type="number" min="1" max="65535" value="8443" aria-describedby="setupProxyHttpsPortError"><span class="field-error" id="setupProxyHttpsPortError" role="alert"></span></label></div>
+              <label class="setup-inline-toggle"><input id="setupProxyHttps" type="checkbox"><span><b data-setup-i18n="enable_https">Enable HTTPS now</b><small data-setup-i18n="enable_https_desc">Choose an existing certificate and private key for your public host.</small></span></label>
+              <div class="setup-tls-fields" id="setupTlsFields" hidden>
+                <div class="setup-file-field"><span class="field-label" data-setup-i18n="certificate_file">Certificate file</span><div><input id="setupTlsCertificate" readonly><button class="btn btn-ghost" id="setupChooseTlsCertificate" type="button" data-setup-i18n="choose_file">Choose</button></div></div>
+                <div class="setup-file-field"><span class="field-label" data-setup-i18n="private_key_file">Private key file</span><div><input id="setupTlsKey" type="text" readonly spellcheck="false"><button class="btn btn-ghost" id="setupChooseTlsKey" type="button" data-setup-i18n="choose_file">Choose</button></div></div>
+                <p class="field-error" id="setupTlsError" role="alert"></p>
+              </div>
+              <p class="setup-notice" id="setupTlsLaterNotice" data-setup-i18n="tls_later">The launcher proxy starts with HTTP. Add a certificate on the Proxy page before exposing it to the internet.</p>
+            </div>
+            <p class="field-error setup-access-error" id="setupAccessError" role="alert"></p>
+          </article>
+
+          <article class="setup-panel" data-setup-panel="4" hidden>
+            <p class="setup-eyebrow" data-setup-i18n="step_4">Step 4 · Secrets</p>
+            <h2 data-setup-i18n="protect_title">Protect and back up your server</h2>
+            <p class="setup-lead" data-setup-i18n="protect_desc">Choose a separate .env backup file once. The launcher will automatically update that copy whenever a setting changes.</p>
+            <div class="setup-warning setup-backup-location">
+              <strong data-setup-i18n="recovery_warning_title">Choose a secure backup location</strong>
+              <span data-setup-i18n="recovery_warning_desc">The .env copy contains credentials and encryption keys. Store it outside the Omlorix server folder on a protected device or vault.</span>
+              <!-- Keep the location picker and its live result together so the
+                   operator sees the outcome beside the action that caused it. -->
+              <div class="setup-backup-location-control">
+                <div class="setup-backup-confirm" id="setupBackupConfirm" data-state="missing" role="status"></div>
+                <button class="btn btn-primary" id="setupDownloadSecretsButton" type="button" data-setup-i18n="choose_backup_location">Choose backup location</button>
+              </div>
+            </div>
+            <div class="setup-secret-list" id="setupSecretList"></div>
+            <div class="setup-secret-actions"><button class="btn btn-ghost" id="setupRegenerateSecretsButton" type="button" data-setup-i18n="regenerate_all">Regenerate secrets</button><button class="btn btn-ghost" id="setupImportBackupButton" type="button" data-setup-i18n="restore_existing">Restore from an existing .env backup</button></div>
+          </article>
+
+          <article class="setup-panel" data-setup-panel="5" hidden>
+            <p class="setup-eyebrow" data-setup-i18n="step_5">Step 5 · Review</p>
+            <h2 data-setup-i18n="review_title">Review and start your server</h2>
+            <p class="setup-lead" data-setup-i18n="review_desc">Everything required is ready. You can return to any previous step before starting.</p>
+            <div class="setup-review" id="setupReview"></div>
+            <div class="setup-readiness" id="setupLaunchReadiness"></div>
+          </article>
+
+          <article class="setup-panel" data-setup-panel="6" hidden>
+            <div class="setup-done-mark" id="setupDoneMark" aria-hidden="true">✓</div>
+            <h2 id="setupDoneTitle" data-setup-i18n="done_title">Your server is ready</h2>
+            <p class="setup-lead" id="setupDoneDescription" data-setup-i18n="done_desc">Open Omlorix to configure the website and create the first administrator.</p>
+            <div class="setup-launch-log" id="setupLaunchLog" role="log" aria-live="polite" tabindex="0"></div>
+            <div class="setup-complete-actions"><button class="btn btn-primary" id="setupOpenOmlorixButton" type="button" data-setup-i18n="open_omlorix">Open Omlorix</button><button class="btn btn-primary" id="setupRetryButton" type="button" hidden data-setup-i18n="retry_start">Try starting again</button><button class="btn btn-ghost" id="setupDashboardButton" type="button" data-setup-i18n="open_dashboard">Open launcher dashboard</button></div>
+          </article>
+        </div>
+
+        <footer class="setup-footer">
+          <div class="setup-footer-progress"><span id="setupStepCount"></span><div><i id="setupProgressFill"></i></div></div>
+          <button class="btn btn-ghost" id="setupBackButton" type="button" data-setup-i18n="back">Back</button>
+          <button class="btn btn-ghost" id="setupReviewDashboardButton" type="button" hidden data-setup-i18n="open_dashboard">Open launcher dashboard</button>
+          <button class="btn btn-primary" id="setupNextButton" type="button" data-setup-i18n="get_started">Get started</button>
+        </footer>
+      </section>
+    </div>
+  </div>
+
+  <div class="launcher-dialog-overlay" id="launcherDialogOverlay" hidden>
+    <section class="launcher-dialog" role="dialog" aria-modal="true" aria-labelledby="launcherDialogTitle" aria-describedby="launcherDialogMessage">
+      <div>
+        <h2 id="launcherDialogTitle">Confirm action</h2>
+        <p id="launcherDialogMessage">Continue?</p>
+      </div>
+      <label class="field" id="launcherDialogInputField" hidden>
+        <span class="field-label" id="launcherDialogInputLabel">Value</span>
+        <input id="launcherDialogInput" autocomplete="off" spellcheck="false">
+      </label>
+      <div class="launcher-dialog-actions">
+        <button class="btn btn-ghost" id="launcherDialogCancelButton" type="button">Cancel</button>
+        <button class="btn btn-primary" id="launcherDialogConfirmButton" type="button">Continue</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="launcher-dialog-overlay" id="codeExecutionEditorOverlay" hidden>
+    <section class="launcher-dialog code-execution-editor" role="dialog" aria-modal="true" aria-labelledby="codeExecutionEditorTitle" aria-describedby="codeExecutionEditorDescription">
+      <div>
+        <h2 id="codeExecutionEditorTitle">Add Code Execution service</h2>
+        <p id="codeExecutionEditorDescription">Create an independently managed gateway and sandbox pool.</p>
+      </div>
+      <form id="codeExecutionEditorForm" class="code-execution-form" novalidate>
+        <div class="settings-grid">
+          <label class="field">
+            <span class="field-label">Service name</span>
+            <input id="codeExecutionNameInput" maxlength="80" autocomplete="off" required placeholder="Local Code Execution">
+          </label>
+          <div class="field">
+            <label class="field-label" for="codeExecutionVersionSelect">Version</label>
+            <select id="codeExecutionVersionSelect" aria-describedby="codeExecutionVersionStatus" disabled>
+              <option value="">Loading versions…</option>
+            </select>
+            <div class="field code-execution-custom-version" id="codeExecutionCustomVersionField" hidden>
+              <label class="field-label" for="codeExecutionCustomVersionInput">Custom version</label>
+              <input id="codeExecutionCustomVersionInput" inputmode="text" autocomplete="off" spellcheck="false" aria-describedby="codeExecutionVersionStatus" placeholder="For example, 1.2.3">
+            </div>
+            <div class="code-execution-version-help">
+              <small id="codeExecutionVersionStatus" role="status" aria-live="polite" aria-busy="true">Loading published Code Execution releases…</small>
+              <button class="btn btn-ghost btn-sm" id="codeExecutionVersionRetryButton" type="button" hidden>Retry</button>
+            </div>
+          </div>
+          <label class="field">
+            <span class="field-label">Local health port</span>
+            <input id="codeExecutionPortInput" type="number" min="1" max="65535" value="8000" required>
+          </label>
+          <label class="field">
+            <span class="field-label">Sandbox memory</span>
+            <select id="codeExecutionMemoryInput">
+              <option value="256m">256 MB</option>
+              <option value="512m" selected>512 MB</option>
+              <option value="1g">1 GB</option>
+              <option value="2g">2 GB</option>
+              <option value="4g">4 GB</option>
+              <option value="8g">8 GB</option>
+            </select>
+          </label>
+          <label class="field">
+            <span class="field-label">Concurrent executions</span>
+            <input id="codeExecutionConcurrencyInput" type="number" min="1" max="100" value="10" required>
+          </label>
+          <label class="field">
+            <span class="field-label">Idle session timeout in seconds</span>
+            <input id="codeExecutionSessionTimeoutInput" type="number" min="60" max="86400" value="1200" required>
+          </label>
+        </div>
+
+        <div class="code-execution-policy-options">
+          <label class="toggle-option compact-toggle-option">
+            <span class="toggle-copy"><strong>Allow sandbox network access</strong><small>Executed code can connect to external network destinations.</small></span>
+            <span class="switch"><input id="codeExecutionNetworkInput" type="checkbox"><span class="switch-track" aria-hidden="true"></span></span>
+          </label>
+          <label class="toggle-option compact-toggle-option">
+            <span class="toggle-copy"><strong>Allow requested pip packages</strong><small>Models can install additional packages from configured indexes.</small></span>
+            <span class="switch"><input id="codeExecutionPipInput" type="checkbox"><span class="switch-track" aria-hidden="true"></span></span>
+          </label>
+        </div>
+        <p class="field-error" id="codeExecutionEditorError" role="alert" tabindex="-1" hidden></p>
+        <div class="launcher-dialog-actions">
+          <button class="btn btn-ghost" id="codeExecutionEditorCancelButton" type="button">Cancel</button>
+          <button class="btn btn-primary" id="codeExecutionEditorSaveButton" type="submit">Create service</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <div class="launcher-dialog-overlay" id="codeExecutionLogsOverlay" hidden>
+    <section class="launcher-dialog code-execution-logs-dialog" role="dialog" aria-modal="true" aria-labelledby="codeExecutionLogsTitle">
+      <div class="code-execution-dialog-head">
+        <div>
+          <h2 id="codeExecutionLogsTitle">Code Execution logs</h2>
+          <p>Recent gateway, Redis, and Docker proxy output.</p>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="codeExecutionLogsCloseButton" type="button">Close</button>
+      </div>
+      <pre class="console code-execution-log-output" id="codeExecutionLogsOutput" tabindex="0"></pre>
+    </section>
+  </div>
+
+  <div class="update-required-overlay" id="launcherRequiredOverlay" hidden>
+    <section class="update-required-dialog" role="dialog" aria-modal="true" aria-labelledby="launcherRequiredTitle" aria-describedby="launcherRequiredMessage">
+      <div class="update-required-icon" aria-hidden="true">
+        <span data-omlorix-icon="download"></span>
+      </div>
+      <div class="update-required-copy">
+        <p class="update-required-eyebrow">Launcher update required</p>
+        <h2 id="launcherRequiredTitle">Update the launcher before updating Omlorix.</h2>
+        <p id="launcherRequiredMessage">This Omlorix release needs a newer Omlorix Server Launcher so the environment and deployment files stay compatible.</p>
+        <div class="update-required-version-grid" aria-label="Version requirement">
+          <span>Installed launcher</span>
+          <strong id="launcherRequiredCurrentVersion">Unknown</strong>
+          <span>Required launcher</span>
+          <strong id="launcherRequiredMinimumVersion">Unknown</strong>
+          <span>Omlorix target</span>
+          <strong id="launcherRequiredTargetVersion">Unknown</strong>
+        </div>
+        <p class="update-required-note" id="launcherRequiredNotes" hidden></p>
+      </div>
+      <div class="update-required-actions">
+        <button class="btn btn-ghost" id="dismissLauncherRequiredButton" type="button">Not now</button>
+        <button class="btn btn-primary" id="openLauncherRequiredUpdateButton" type="button">Update launcher</button>
+      </div>
+    </section>
+  </div>
+
+  <script src="env-paste.js"></script>
+  <script src="setup-flow-translations.js"></script>
+  <script src="launcher-env-translations.js"></script>
+  <script src="launcher-translations.js"></script>
+  <script src="../../frontend/js/common/icons.js"></script>
+  <script src="launcher-icons.js"></script>
+  <script src="terminal-output.js"></script>
+  <script src="setup-flow.js"></script>
+  <script src="launcher.js"></script>
+  <script src="code-execution-page.js"></script>
+</body>
+</html>

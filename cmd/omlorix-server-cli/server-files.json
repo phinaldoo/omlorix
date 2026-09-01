@@ -1,0 +1,37 @@
+{
+  "common": [
+    "THIRD_PARTY_NOTICES.md",
+    ".env.example",
+    "electron/required-env.json",
+    "electron/env-metadata.json",
+    "docker-compose.server.yml",
+    "docker-compose.frontend-port.yml",
+    "docker-compose.dev-ports.yml",
+    "docker-compose.managed-cloud.yml",
+    "docker-compose.observability.yml",
+    "docker-compose.observability-linux.yml",
+    "docker-compose.launcher-services.yml",
+    "otel/alertmanager.yml",
+    "otel/grafana/dashboards/omlorix-database.json",
+    "otel/grafana/dashboards/omlorix-overview.json",
+    "otel/grafana/provisioning/dashboards/dashboards.yml",
+    "otel/grafana/provisioning/datasources/datasources.yml",
+    "otel/otel-collector-config.yaml",
+    "otel/prometheus-host-metrics-empty.yml",
+    "otel/prometheus-host-metrics-linux.yml",
+    "otel/prometheus-rules/omlorix.yml",
+    "otel/prometheus.yml",
+    "script/compose.sh",
+    "script/validate-production-env.sh",
+    "script/validate-external-services-env.sh",
+    "script/validate-external-storage-env.sh",
+    "script/server-launcher/start.sh",
+    "script/server-launcher/start.ps1"
+  ],
+  "cliOnly": [
+    "electron/code-execution/docker-compose.yml",
+    "electron/code-execution/haproxy.cfg",
+    "electron/code-execution/TECNATIVA_DOCKER_SOCKET_PROXY_LICENSE.txt",
+    "electron/code-execution/.env.example"
+  ]
+}

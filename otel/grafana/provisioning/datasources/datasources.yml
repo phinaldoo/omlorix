@@ -1,0 +1,60 @@
+# Grafana Datasources Configuration for Omlorix
+# Auto-provisions Prometheus, Alertmanager, and Jaeger as data sources
+
+apiVersion: 1
+
+datasources:
+  # Prometheus for metrics
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      timeInterval: "15s"
+      httpMethod: POST
+      exemplarTraceIdDestinations:
+        - name: traceID
+          datasourceUid: jaeger
+
+  # Jaeger for traces
+  - name: Jaeger
+    type: jaeger
+    access: proxy
+    url: http://jaeger:16686
+    uid: jaeger
+    editable: false
+    jsonData:
+      tracesToLogsV2:
+        datasourceUid: ''
+        tags: ['service.name']
+      tracesToMetrics:
+        datasourceUid: 'prometheus'
+        tags:
+          - key: 'service.name'
+            value: 'service_name'
+        queries:
+          - name: 'Request rate'
+            query: 'sum(rate(http_server_request_duration_seconds_count{$$__tags}[5m]))'
+          - name: 'Error rate'
+            query: 'sum(rate(http_server_request_duration_seconds_count{$$__tags,http_status_code=~"5.."}[5m]))'
+      nodeGraph:
+        enabled: true
+      traceQuery:
+        timeShiftEnabled: true
+        spanStartTimeShift: '-30m'
+        spanEndTimeShift: '30m'
+      spanBar:
+        type: 'Tag'
+        tag: 'http.status_code'
+
+  # Alertmanager for alert inspection
+  - name: Alertmanager
+    type: alertmanager
+    access: proxy
+    url: http://alertmanager:9093
+    uid: alertmanager
+    editable: false
+    jsonData:
+      implementation: prometheus

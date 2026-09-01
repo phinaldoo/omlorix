@@ -1,0 +1,391 @@
+.admin-notifications-container {
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-lg);
+    overflow: hidden;
+}
+
+/* Toolbar with filter buttons */
+.admin-notifications-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px;
+    border-bottom: 1px solid var(--admin-border-subtle);
+    flex-wrap: wrap;
+}
+
+.admin-notifications-type-multiselect,
+.admin-notifications-category-multiselect {
+    width: auto;
+    flex: 0 0 auto;
+}
+
+.admin-notifications-type-multiselect {
+    min-width: 200px;
+}
+
+.admin-notifications-category-multiselect {
+    min-width: 260px;
+    max-width: 320px;
+}
+
+.admin-notifications-category-multiselect-menu {
+    max-width: 320px;
+}
+
+.admin-notifications-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.admin-notifications-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.admin-notifications-list::-webkit-scrollbar-thumb {
+    background: var(--admin-scrollbar);
+    border-radius: 6px;
+}
+
+/* List Container */
+.admin-notifications-list {
+    display: flex;
+    flex-direction: column;
+    min-height: 200px;
+    max-height: 520px;
+    overflow-y: auto;
+    position: relative;
+    transition: opacity 0.2s ease;
+}
+
+/* List Loading State - subtle opacity reduction during filter changes */
+.admin-notifications-list.is-loading {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.admin-notifications-list.is-loading::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 32px;
+    height: 32px;
+    margin: -16px 0 0 -16px;
+    border: 3px solid var(--admin-border-subtle);
+    border-top-color: var(--admin-accent, #3b82f6);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    z-index: 10;
+}
+
+.admin-notification-item {
+    display: flex;
+    gap: 16px;
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--admin-border-subtle);
+    transition: background-color 0.15s ease;
+    align-items: flex-start;
+}
+
+.admin-notification-item:last-child {
+    border-bottom: none;
+}
+
+/* Type Icon (left side indicator) */
+.admin-notification-type-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: var(--admin-accent-subtle);
+    color: var(--admin-text);
+    transition: all 0.2s ease;
+}
+
+.admin-notification-type-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* Type-specific icon colors */
+.admin-notification-type-icon[data-type="info"] {
+    background: var(--admin-info-bg);
+    color: var(--admin-info);
+}
+
+.admin-notification-type-icon[data-type="warning"] {
+    background: var(--admin-warning-bg);
+    color: var(--admin-warning);
+}
+
+.admin-notification-type-icon[data-type="error"] {
+    background: var(--admin-error-bg);
+    color: var(--admin-error);
+}
+
+/* Content */
+.admin-notification-content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.admin-notification-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.admin-notification-badges {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* Type Badge */
+.admin-notification-type-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 5px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.admin-notification-type-badge[data-type="info"] {
+    background: var(--admin-info-bg);
+    color: var(--admin-info);
+}
+
+.admin-notification-type-badge[data-type="warning"] {
+    background: var(--admin-warning-bg);
+    color: var(--admin-warning);
+}
+
+.admin-notification-type-badge[data-type="error"] {
+    background: var(--admin-error-bg);
+    color: var(--admin-error);
+}
+
+.admin-notification-category {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: var(--admin-accent-subtle);
+    color: var(--admin-text);
+}
+
+.admin-notification-time {
+    font-size: 12px;
+    color: var(--admin-text-tertiary);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.admin-notification-time svg {
+    width: 14px;
+    height: 14px;
+    opacity: 0.7;
+}
+
+.admin-notification-message {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--admin-text);
+    line-height: 1.5;
+    word-break: break-word;
+}
+
+/* Expandable Message Wrapper */
+.admin-notification-message-wrapper {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    min-width: 0;
+}
+
+.admin-notification-message-wrapper .admin-notification-message {
+    display: block;
+    white-space: pre-wrap;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    max-height: calc(1.5em * 3);
+}
+
+.admin-notification-message-wrapper.is-expanded .admin-notification-message {
+    max-height: none;
+    overflow: visible;
+}
+
+/* Expand/Collapse Button */
+.admin-notification-expand-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 6px;
+    padding: 4px 10px;
+    border: none;
+    border-radius: 6px;
+    background: var(--admin-accent-subtle);
+    color: var(--admin-accent, #3b82f6);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    align-self: flex-start;
+}
+
+.admin-notification-expand-btn[hidden] {
+    display: none !important;
+}
+
+.admin-notification-expand-btn:active {
+    transform: scale(0.97);
+}
+
+.admin-notification-expand-btn svg {
+    width: 14px;
+    height: 14px;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.admin-notification-message-wrapper.is-expanded .admin-notification-expand-btn svg {
+    transform: rotate(180deg);
+}
+
+.admin-notification-details {
+    margin: 0;
+    font-size: 13px;
+    color: var(--admin-text-secondary);
+    line-height: 1.5;
+}
+
+/* Pagination */
+.admin-notifications-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 20px;
+    background: var(--admin-bg);
+    border-top: 1px solid var(--admin-border-subtle);
+}
+
+.admin-notifications-pagination[hidden] {
+    display: none;
+}
+
+.admin-notifications-pagination-info {
+    font-size: 14px;
+    color: var(--admin-text-secondary);
+    font-weight: 500;
+}
+
+.admin-notifications-pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .admin-notifications-list.is-loading::after {
+        animation: none;
+    }
+
+    .admin-notification-expand-btn,
+    .admin-notification-expand-btn svg {
+        transition: none;
+    }
+
+    .admin-notification-expand-btn:active,
+    .admin-notification-message-wrapper.is-expanded .admin-notification-expand-btn svg {
+        transform: none;
+    }
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .admin-notification-expand-btn:hover {
+        background: rgba(59, 130, 246, 0.15);
+        color: var(--admin-accent, #3b82f6);
+    }
+    .admin-notifications-list::-webkit-scrollbar-thumb:hover {
+        background: var(--admin-scrollbar-hover);
+    }
+    .admin-notification-item:hover {
+        background: var(--admin-hover);
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .admin-notification-item {
+        flex-direction: row;
+        gap: 12px;
+    }
+
+    .admin-notification-type-icon {
+        width: 36px;
+        height: 36px;
+    }
+
+    .admin-notification-type-icon svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    .admin-notification-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .admin-notifications-type-multiselect {
+        min-width: 180px;
+    }
+
+    .admin-notifications-category-multiselect {
+        min-width: 220px;
+        max-width: 280px;
+    }
+
+    .admin-notifications-pagination {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .admin-notifications-pagination-controls {
+        width: 100%;
+        justify-content: space-between;
+    }
+}
+
+@media (max-width: 480px) {
+    .admin-notifications-container {
+        border-radius: 12px;
+    }
+
+    .admin-notification-item {
+        padding: 14px 16px;
+    }
+}

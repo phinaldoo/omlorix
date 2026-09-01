@@ -1,0 +1,411 @@
+/* Workspace memory settings, editor, and import workflow */
+
+.memories-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.memories-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.memories-card {
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.projects-memory-toggle-card {
+    cursor: pointer;
+}
+
+.memories-setting-row{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+}
+
+.memories-setting-row span{
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.memories-setting-row small{
+    color: var(--text-color-secondary);
+    line-height: 1.45;
+}
+
+.memories-setting-row input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+.memories-form-meta {
+    margin: 0;
+    color: var(--text-color-secondary);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.memories-list-state {
+    color: var(--text-color-secondary);
+    padding: 8px 2px;
+}
+
+.memories-import-inline {
+    /* This wrapper sits between the modal's flex column and its scrollable
+       body. It must be allowed to shrink below its content height so the body
+       receives a constrained height instead of being clipped by the card. */
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    max-width: 920px;
+}
+
+.memories-import-overlay {
+    --shared-modal-z-index: 1200;
+}
+
+.memories-import-overlay[hidden] {
+    display: none;
+}
+
+.memories-import-modal-title-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.memories-import-modal-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: var(--primary-color);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.memories-import-modal-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* Form fields intentionally reuse the shared warning-modal form primitives.
+   These rules cover only the layout that is unique to a multiline memory. */
+.memories-editor-form {
+    margin: 0;
+}
+
+.memories-editor-textarea {
+    min-height: 120px;
+    resize: vertical;
+    line-height: 1.5;
+}
+
+.memories-import-modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.memories-import-step {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr);
+    gap: 12px;
+}
+
+.memories-import-step-marker {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: transparent;
+    background: color-mix(in srgb, var(--primary-color) 15%, transparent);
+    color: var(--primary-color);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.memories-import-step-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-bottom: 4px;
+}
+
+.memories-import-step-content h4 {
+    margin: 0;
+    font-size: 16px;
+    line-height: 1.2;
+}
+
+.memories-import-step-content p {
+    margin: 0;
+    color: var(--text-color-secondary);
+    line-height: 1.5;
+}
+
+.memories-import-prompt-card {
+    position: relative;
+    padding: 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background: var(--hover);
+}
+
+.memories-import-prompt-viewport {
+    position: relative;
+    max-height: 220px;
+    overflow: hidden;
+}
+
+/* The fade communicates that the prompt continues without hiding the copy
+   action or making the collapsed preview depend on animation. */
+.memories-import-prompt-card[data-expanded="false"] .memories-import-prompt-viewport::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 64px;
+    pointer-events: none;
+    background: linear-gradient(to bottom, transparent, var(--hover) 88%);
+}
+
+.memories-import-prompt-card[data-expanded="true"] .memories-import-prompt-viewport {
+    max-height: none;
+}
+
+.memories-import-prompt-text {
+    margin: 0;
+    white-space: pre-wrap;
+    font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text-color);
+}
+
+.memories-import-prompt-toggle {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    margin-top: 10px;
+    padding: 6px 8px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-color-secondary);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.memories-import-prompt-toggle:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .memories-import-prompt-toggle:hover {
+        background: var(--background);
+        color: var(--text-color);
+    }
+}
+
+.memories-import-textarea-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.memories-import-textarea {
+    width: 100%;
+    min-height: 220px;
+    padding: 14px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background: var(--background);
+    color: var(--text-color);
+    font-size: 14px;
+    line-height: 1.6;
+    resize: vertical;
+    box-sizing: border-box;
+}
+
+.memories-import-textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.memories-import-note {
+    font-size: 13px;
+}
+
+.memories-import-error {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    background: rgba(239, 68, 68, 0.06);
+    color: #ef4444;
+}
+
+.memories-import-error[hidden] {
+    display: none;
+}
+
+.memories-import-error-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+.memories-import-error-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+.memories-import-error p {
+    margin: 0;
+    line-height: 1.5;
+    color: inherit;
+}
+
+.memories-import-preview {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px;
+    border-radius: 10px;
+    border: 1px solid var(--primary-color);
+    border: 1px solid color-mix(in srgb, var(--primary-color) 20%, transparent);
+    background: transparent;
+    background: color-mix(in srgb, var(--primary-color) 5%, transparent);
+}
+
+.memories-import-preview[hidden] {
+    display: none;
+}
+
+.memories-import-preview-summary,
+.memories-import-preview-meta {
+    margin: 0;
+}
+
+.memories-import-preview-summary {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-color);
+}
+
+.memories-import-preview-meta {
+    margin-top: 4px;
+    font-size: 13px;
+    color: var(--text-color-secondary);
+}
+
+.memories-import-preview-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.memories-import-preview-item {
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background: var(--background);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.memories-import-preview-item-date {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: transparent;
+    background: color-mix(in srgb, var(--primary-color) 20%, transparent);
+    color: var(--primary-color);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.memories-import-preview-item-content {
+    margin: 0;
+    color: var(--text-color);
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.memories-import-preview-more {
+    grid-column: 1 / -1;
+    padding: 8px 10px 2px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-color-secondary);
+}
+
+@media (max-width: 1080px) {
+    .memories-import-preview-list {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 680px) {
+    .workspace-control-panel {
+        grid-template-columns: 1fr;
+        align-items: stretch;
+    }
+
+    .memories-header-actions,
+.memories-setting-row{
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .memory-item-footer {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .memories-import-modal-title-row {
+        flex-direction: column;
+    }
+
+    .memories-import-step {
+        grid-template-columns: 1fr;
+    }
+
+    .memories-import-textarea-header{
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .memories-import-prompt-card {
+        padding: 14px;
+    }
+     }

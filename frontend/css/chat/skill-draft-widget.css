@@ -1,0 +1,457 @@
+
+
+/* Canvas owns the panel geometry and transition. These rules only connect the
+   skill-specific open state to the same reserved chat-column width. */
+.skill-draft-preview-panel {
+    border-left: 0;
+    border-inline-start: 1px solid var(--border-color);
+}
+
+body.skill-draft-preview-open .main-container {
+    margin-inline-end: var(--canvas-markdown-resolved-preview-width);
+    transition: margin-inline-end 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body.skill-draft-preview-resizing {
+    cursor: col-resize;
+    user-select: none;
+}
+
+body.skill-draft-preview-resizing .main-container,
+body.skill-draft-preview-resizing .skill-draft-preview-panel {
+    transition: none !important;
+}
+
+[dir="rtl"] .skill-draft-preview-panel {
+    transform: translateX(-100%);
+}
+
+[dir="rtl"] .skill-draft-preview-panel.visible {
+    transform: translateX(0);
+}
+
+/* The shared Canvas tab control uses flex, so explicitly preserve the native
+   hidden state while a non-manifest file is selected. */
+.skill-draft-preview-view-toggle[hidden],
+.skill-draft-action-btn[hidden] {
+    display: none;
+}
+
+/* The Canvas workspace and track classes supply the border, flex sizing,
+   scrolling, and scrollbar treatment. Skill content is a vertical track. */
+.skill-draft-preview-body {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+/* File browser ----------------------------------------------------------- */
+.skill-draft-files-block {
+    flex: 0 0 auto;
+    padding: 16px 18px 14px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.skill-draft-block-label {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    margin: 0 8px 8px;
+    color: var(--canvas-md-text-secondary);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.skill-draft-block-label-count {
+    font-weight: 400;
+}
+
+.skill-draft-file-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.skill-draft-file-row {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    border-radius: 8px;
+    color: var(--canvas-md-text-secondary);
+}
+
+.skill-draft-file-row.is-active {
+    background: var(--hover);
+}
+
+.skill-draft-file-row .skill-draft-file-row-select {
+    width: auto;
+    min-width: 0;
+    flex: 1 1 auto;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    text-align: start;
+}
+
+.skill-draft-file-row-icon {
+    display: inline-flex;
+    width: 16px;
+    height: 16px;
+    flex: 0 0 auto;
+    color: var(--canvas-md-text-secondary);
+}
+
+.skill-draft-file-row-icon svg {
+    width: 16px;
+    height: 16px;
+}
+
+.skill-draft-file-row-name {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+    color: var(--canvas-md-text-primary);
+    font-size: 13px;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.skill-draft-file-row-meta {
+    flex: 0 0 auto;
+    color: var(--canvas-md-text-secondary);
+    font-size: 11px;
+}
+
+.skill-draft-file-row[data-locked="true"] .skill-draft-file-row-meta {
+    color: var(--canvas-md-accent);
+}
+
+.skill-draft-file-row-remove,
+.skill-draft-editor-remove {
+    width: 30px;
+    min-width: 30px;
+    height: 30px;
+    flex: 0 0 auto;
+    padding: 5px;
+    color: var(--canvas-md-text-secondary);
+}
+
+.skill-draft-file-row-remove {
+    margin-inline-end: 3px;
+    opacity: 0;
+}
+
+.skill-draft-file-row-remove svg,
+.skill-draft-editor-remove svg {
+    width: 15px;
+    height: 15px;
+}
+
+.skill-draft-file-row:focus-within .skill-draft-file-row-remove,
+.skill-draft-file-row-remove:focus-visible {
+    opacity: 1;
+}
+
+.skill-draft-file-add {
+    width: 100%;
+    justify-content: flex-start;
+    margin-top: 8px;
+    border-style: dashed;
+    color: var(--canvas-md-text-secondary);
+}
+
+.skill-draft-file-add svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* Editor ---------------------------------------------------------------- */
+.skill-draft-editor-block {
+    flex: 0 0 auto;
+    padding: 18px clamp(18px, 4vw, 40px) 32px;
+}
+
+.skill-draft-editor-head {
+    display: flex;
+    min-height: 30px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.skill-draft-editor-head-left {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 8px;
+}
+
+.skill-draft-editor-badge {
+    flex: 0 0 auto;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: var(--canvas-md-input-bg);
+    color: var(--canvas-md-text-secondary);
+    font-size: 10.5px;
+    font-weight: 600;
+}
+
+.skill-draft-editor-badge[data-tone="accent"] {
+    background: color-mix(in srgb, var(--canvas-md-accent) 12%, transparent);
+    color: var(--canvas-md-accent);
+}
+
+.skill-draft-editor-path {
+    overflow: hidden;
+    color: var(--canvas-md-text-secondary);
+    font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.skill-draft-editor-fields {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 150px;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.skill-draft-editor-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    color: var(--canvas-md-text-secondary);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.skill-draft-editor-select-wrap {
+    position: relative;
+    display: block;
+}
+
+.skill-draft-editor-block .skill-draft-editor-select {
+    appearance: none;
+    padding-inline-end: 34px;
+    cursor: pointer;
+}
+
+.skill-draft-editor-select-wrap > span {
+    position: absolute;
+    top: 50%;
+    inset-inline-end: 12px;
+    display: inline-flex;
+    width: 16px;
+    height: 16px;
+    color: var(--canvas-md-text-secondary);
+    pointer-events: none;
+    transform: translateY(-50%);
+}
+
+.skill-draft-editor-select-wrap svg {
+    width: 16px;
+    height: 16px;
+}
+
+.skill-draft-editor-block .skill-draft-editor-textarea {
+    min-height: 340px;
+    resize: vertical;
+    caret-color: var(--canvas-md-accent);
+    font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
+    font-size: 13px;
+    line-height: 1.65;
+    tab-size: 4;
+}
+
+.skill-draft-editor-input:disabled,
+.skill-draft-editor-select:disabled,
+.skill-draft-editor-textarea:disabled {
+    opacity: 0.65;
+}
+
+/* Linked files and manifest preview ------------------------------------- */
+.skill-draft-linked-card,
+.skill-draft-frontmatter-card {
+    border: 1px solid var(--canvas-md-card-border);
+    border-radius: 10px;
+    background: var(--canvas-md-input-bg);
+}
+
+.skill-draft-linked-card {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 14px;
+}
+
+.skill-draft-linked-preview {
+    display: flex;
+    min-height: 150px;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    overflow: hidden;
+    border: 1px solid var(--canvas-md-card-border);
+    border-radius: 8px;
+    color: var(--canvas-md-text-secondary);
+    font-size: 13px;
+}
+
+.skill-draft-linked-preview img {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.skill-draft-linked-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.skill-draft-linked-grid span {
+    display: block;
+    color: var(--canvas-md-text-secondary);
+    font-size: 11px;
+}
+
+.skill-draft-linked-grid strong {
+    display: block;
+    margin-top: 2px;
+    color: var(--canvas-md-text-primary);
+    font-size: 13px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.skill-draft-linked-card p {
+    margin: 0;
+    color: var(--canvas-md-text-secondary);
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+.skill-draft-frontmatter-card {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin-bottom: 22px;
+    padding: 12px 14px;
+}
+
+.skill-draft-frontmatter-row {
+    display: flex;
+    gap: 12px;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.skill-draft-frontmatter-key {
+    flex: 0 0 96px;
+    color: var(--canvas-md-text-secondary);
+    font-weight: 600;
+}
+
+.skill-draft-frontmatter-value {
+    min-width: 0;
+    color: var(--canvas-md-text-primary);
+    overflow-wrap: anywhere;
+}
+
+.skill-draft-markdown-preview > :first-child {
+    margin-top: 0;
+}
+
+.skill-draft-markdown-preview > :last-child {
+    margin-bottom: 0;
+}
+
+/* Footer ---------------------------------------------------------------- */
+.skill-draft-preview-footer {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--border-color);
+    background: var(--background);
+}
+
+.skill-draft-footer-status {
+    min-width: 0;
+    font-size: 12px;
+}
+
+.skill-draft-footer-status-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.skill-draft-footer-actions {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Shared controls already own hover feedback. Only reveal the contextual
+   remove action on hover-capable devices. */
+@media (hover: hover) and (pointer: fine) {
+    .skill-draft-file-row:hover .skill-draft-file-row-remove {
+        opacity: 1;
+    }
+}
+
+@container canvas-preview (max-width: 560px) {
+    .skill-draft-editor-fields {
+        grid-template-columns: 1fr;
+    }
+
+    .skill-draft-linked-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 900px) {
+    body.skill-draft-preview-open .main-container {
+        margin-inline-end: 0;
+    }
+
+    [dir="rtl"] .skill-draft-preview-panel {
+        transform: translateY(100%);
+    }
+
+    [dir="rtl"] .skill-draft-preview-panel.visible {
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 520px) {
+    .skill-draft-preview-footer {
+        align-items: stretch;
+        flex-direction: column;
+        padding-bottom: max(12px, env(safe-area-inset-bottom));
+    }
+
+    .skill-draft-footer-actions {
+        justify-content: flex-end;
+    }
+
+    .skill-draft-linked-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skill-draft-result-card,
+    .skill-draft-preview-panel,
+    body.skill-draft-preview-open .main-container,
+    .skill-draft-file-row-remove {
+        transition: none;
+    }
+}

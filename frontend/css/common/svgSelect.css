@@ -1,0 +1,157 @@
+/* ============================================================================
+   SVG icon selector
+   Minimal, modern dropdown shared by skills, tasks, projects, admin skills.
+   ============================================================================ */
+
+.svg-select {
+    position: relative;
+}
+
+/* ---------- Trigger button ---------- */
+.svg-select-button {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color, #e5e7eb);
+    color: var(--text-color, #333);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: border-color 0.15s ease, background-color 0.15s ease,
+                box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.svg-select-button svg {
+    display: block;
+    flex: 0 0 auto;
+    width: 22px;
+    height: 22px;
+}
+
+.svg-select-button > span {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    line-height: 1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .svg-select-button:hover {
+        border-color: var(--primary-color, #4CAF50);
+        background: var(--hover, rgba(0, 0, 0, 0.04));
+    }
+}
+
+.svg-select-button:focus-visible {
+    outline: none;
+    border-color: var(--primary-color, #4CAF50);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color, #4CAF50) 25%, transparent);
+}
+
+/* ---------- Dropdown panel ---------- */
+.select-dropdown.svg-select-dropdown {
+    --select-dropdown-transform-origin: top left;
+    width: 296px;
+    padding: 14px;
+    z-index: 1000;
+}
+
+.select-dropdown.svg-select-dropdown.upward {
+    --select-dropdown-transform-origin: bottom left;
+}
+
+.svg-select-dropdown-panel {
+    display: none;
+}
+
+.svg-select-dropdown-panel.active {
+    display: block;
+}
+
+/* ---------- Icon grid ---------- */
+.svg-select-dropdown-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: 14px;
+}
+
+.svg-select-dropdown-grid-svg-item {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-color-secondary, #666);
+    border: 1px solid transparent;
+    background: transparent;
+    transition: background-color 0.12s ease, color 0.12s ease,
+                border-color 0.12s ease;
+}
+
+.svg-select-dropdown-grid-svg-item svg {
+    width: 18px;
+    height: 18px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .svg-select-dropdown-grid-svg-item:hover {
+        background: var(--hover, rgba(0, 0, 0, 0.05));
+        color: var(--text-color, #333);
+    }
+}
+
+.svg-select-dropdown-grid-svg-item.selected {
+    background: var(--primary-color, #4CAF50);
+    color: #ffffff;
+    border-color: var(--primary-color, #4CAF50);
+}
+
+/* ---------- Color picker row ---------- */
+.svg-select-dropdown-color-row {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 4px;
+    margin-bottom: 14px;
+    padding: 8px 4px;
+    border-top: 1px solid var(--border-color, #e5e7eb);
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+
+.svg-select-dropdown-color-item {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+    justify-self: center;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .svg-select-dropdown-color-item:hover {
+        transform: scale(1.15);
+    }
+}
+
+.svg-select-dropdown-color-item.selected {
+    border-color: var(--background, #ffffff);
+    box-shadow:
+        inset 0 0 0 1px rgba(0, 0, 0, 0.08),
+        0 0 0 2px var(--text-color, #333);
+}
+
+/* ---------- Mobile / narrow screens ---------- */
+@media (max-width: 480px) {
+    .select-dropdown.svg-select-dropdown {
+        width: calc(100vw - 24px);
+        max-width: 320px;
+    }
+}

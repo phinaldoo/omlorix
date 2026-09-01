@@ -1,0 +1,75 @@
+# Launcher-only connectivity overlay.
+#
+# The desktop launcher creates this external network before starting Omlorix.
+# Independently managed helper services attach to the same network under unique
+# aliases, so the backend can reach them without exposing helper APIs to the LAN.
+services:
+  fastapi:
+    networks:
+      - omlorix-network
+      - launcher-services
+
+  email_worker:
+    networks:
+      - omlorix-network
+      - launcher-services
+
+  operations_worker:
+    networks:
+      - omlorix-network
+      - launcher-services
+
+  generation_worker:
+    networks:
+      - omlorix-network
+      - launcher-services
+
+  research_worker:
+    networks:
+      - omlorix-network
+      - launcher-services
+
+  file_processing_worker:
+    networks:
+      - omlorix-network
+      - launcher-services
+
+  account_lifecycle_worker:
+    networks:
+      - omlorix-network
+      - launcher-services
+
+  maintenance_worker:
+    networks:
+      - omlorix-network
+      - launcher-services
+
+  rendering_worker:
+    networks:
+      - omlorix-network
+      - launcher-services
+
+  media_worker:
+    networks:
+      - omlorix-network
+      - launcher-services
+
+  connector_worker:
+    networks:
+      - omlorix-network
+      - launcher-services
+
+  audit_event_worker:
+    networks:
+      - omlorix-network
+      - launcher-services
+
+  realtime_gateway:
+    networks:
+      - omlorix-network
+      - launcher-services
+
+networks:
+  launcher-services:
+    external: true
+    name: omlorix-launcher-services

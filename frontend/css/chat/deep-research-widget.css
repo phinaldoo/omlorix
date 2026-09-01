@@ -1,0 +1,966 @@
+:root {
+    --deep-research-accent: var(--accent-color, var(--text-link));
+    --deep-research-transition: 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* The chat only carries a compact launch/status card. The report itself lives
+   in the dedicated detail sidebar below. */
+.deep-research-widget {
+    position: relative;
+    display: grid;
+    grid-template-columns: 2.5rem minmax(0, 1fr) 1.25rem;
+    gap: 0.8rem;
+    align-items: start;
+    width: 100%;
+    margin-block: 0.65rem;
+    padding: 1rem;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    border-radius: calc(var(--border-radius, 8px) + 4px);
+    background: var(--background-secondary, var(--surface-elevated));
+    color: var(--text-color);
+}
+
+.deep-research-widget::before {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+    background: var(--deep-research-accent);
+    content: "";
+}
+
+.deep-research-widget[data-status="completed"]::before {
+    background: var(--success-color, #2e9b63);
+}
+
+.deep-research-widget[data-status="failed"]::before,
+.deep-research-widget[data-status="error"]::before {
+    background: var(--error-color);
+}
+
+.deep-research-widget[data-status="cancelled"]::before {
+    background: var(--text-color-tertiary, var(--text-color-secondary));
+}
+
+.deep-research-card-icon {
+    display: grid;
+    place-items: center;
+    color: var(--deep-research-accent);
+}
+
+.deep-research-card-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.75rem;
+    background: color-mix(in srgb, var(--deep-research-accent) 12%, transparent);
+}
+
+.deep-research-card-icon svg {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+.deep-research-card-body {
+    display: grid;
+    min-width: 0;
+    gap: 0.45rem;
+}
+
+.deep-research-card-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.deep-research-title {
+    margin: 0;
+    color: var(--text-color);
+    font-size: 0.95rem;
+    font-weight: 650;
+    line-height: 1.35;
+}
+
+.deep-research-status {
+    flex: 0 0 auto;
+    max-width: 55%;
+    overflow: hidden;
+    color: var(--deep-research-accent);
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.4;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.deep-research-query {
+    display: -webkit-box;
+    margin: 0;
+    overflow: hidden;
+    color: var(--text-color);
+    font-size: 0.86rem;
+    line-height: 1.45;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.deep-research-progress {
+    width: 100%;
+    height: 0.3rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--border-color);
+}
+
+.deep-research-progress-bar {
+    display: block;
+    width: 4%;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--deep-research-accent);
+    transition: width var(--deep-research-transition);
+}
+
+.deep-research-open {
+    justify-self: start;
+    min-height: 2rem;
+    margin-top: 0.15rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--deep-research-accent);
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.deep-research-card-chevron {
+    display: grid;
+    align-self: center;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-color-secondary);
+    cursor: pointer;
+}
+
+.deep-research-card-chevron svg {
+    width: 1rem;
+    height: 1rem;
+    transition: transform var(--deep-research-transition);
+}
+
+.deep-research-card-chevron[aria-expanded="true"] svg {
+    transform: rotate(180deg);
+}
+
+.deep-research-card-chevron:focus-visible {
+    outline: 2px solid var(--deep-research-accent);
+    outline-offset: 2px;
+}
+
+.deep-research-error {
+    margin: 0;
+    color: var(--error-color);
+    font-size: 0.78rem;
+    line-height: 1.4;
+}
+
+/* Research sidebar */
+.deep-research-sidebar {
+    position: fixed;
+    inset: 0 0 0 auto;
+    z-index: 40;
+    display: flex;
+    flex-direction: column;
+    width: clamp(
+        var(--canvas-markdown-preview-min-width),
+        var(--canvas-markdown-preview-width),
+        calc(100vw - var(--canvas-markdown-preview-min-main-width))
+    );
+    min-width: var(--canvas-markdown-preview-min-width);
+    max-width: none;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    border-left: 1px solid var(--border-color);
+    background: var(--background);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(100%);
+    transition:
+        transform var(--deep-research-transition),
+        opacity var(--deep-research-transition),
+        width 0.18s ease;
+}
+
+.deep-research-sidebar.is-open {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0);
+}
+
+body.deep-research-preview-open .main-container {
+    margin-right: clamp(
+        var(--canvas-markdown-preview-min-width),
+        var(--canvas-markdown-preview-width),
+        calc(100vw - var(--canvas-markdown-preview-min-main-width))
+    );
+    transition: margin-right var(--deep-research-transition);
+}
+
+body.canvas-markdown-preview-resizing .deep-research-sidebar {
+    transition: none !important;
+}
+
+.deep-research-sidebar-header {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    box-sizing: border-box;
+    height: 50px;
+    min-height: 50px;
+    padding: 0.65rem 1rem;
+    background: var(--background);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.deep-research-sidebar-heading {
+    min-width: 0;
+}
+
+.deep-research-sidebar-heading h2 {
+    margin: 0;
+    color: var(--text-color);
+    font-size: 1.05rem;
+    line-height: 1.35;
+}
+
+.deep-research-sidebar-close {
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    padding: 0;
+    border: 0;
+    border-radius: 0.6rem;
+    background: transparent;
+    color: var(--text-color-secondary);
+    cursor: pointer;
+}
+
+.deep-research-sidebar-close svg {
+    width: 1.15rem;
+    height: 1.15rem;
+}
+
+.deep-research-sidebar-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.deep-research-sidebar-summary {
+    display: grid;
+    gap: 0.55rem;
+    padding: 0.9rem 1.4rem 0.8rem;
+}
+
+.deep-research-query-disclosure {
+    min-width: 0;
+    border-top: 1px solid var(--border-color);
+}
+
+.deep-research-query-disclosure summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding-top: 0.55rem;
+    color: var(--text-color-secondary);
+    font-size: 0.72rem;
+    font-weight: 600;
+    line-height: 1.4;
+    cursor: pointer;
+    list-style: none;
+}
+
+.deep-research-query-disclosure summary::-webkit-details-marker {
+    display: none;
+}
+
+.deep-research-query-chevron {
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 1rem;
+    height: 1rem;
+}
+
+.deep-research-query-chevron svg {
+    width: 1rem;
+    height: 1rem;
+    transition: transform var(--deep-research-transition);
+}
+
+.deep-research-query-disclosure[open] .deep-research-query-chevron svg {
+    transform: rotate(180deg);
+}
+
+.deep-research-sidebar-query {
+    margin: 0.55rem 0 0;
+    padding: 0.65rem 0.75rem;
+    border-radius: var(--border-radius, 8px);
+    background: var(--background-secondary);
+    color: var(--text-color);
+    font-size: 0.8rem;
+    line-height: 1.45;
+    white-space: pre-wrap;
+}
+
+.deep-research-sidebar-error {
+    margin: 0;
+    color: var(--error-color);
+    font-size: 0.74rem;
+    line-height: 1.4;
+}
+
+.deep-research-tabs {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    padding-inline: 1.4rem;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--background);
+}
+
+.deep-research-tabs button {
+    position: relative;
+    min-width: 0;
+    min-height: 2.85rem;
+    padding: 0.65rem 0.35rem;
+    overflow: hidden;
+    border: 0;
+    background: transparent;
+    color: var(--text-color-secondary);
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.deep-research-tabs button[aria-selected="true"] {
+    color: var(--text-color);
+}
+
+.deep-research-tabs button[aria-selected="true"]::after {
+    position: absolute;
+    right: 0.35rem;
+    bottom: -1px;
+    left: 0.35rem;
+    height: 2px;
+    border-radius: 999px 999px 0 0;
+    background: var(--deep-research-accent);
+    content: "";
+}
+
+.deep-research-tab-panel {
+    padding: 1.25rem 1.4rem 2rem;
+}
+
+.deep-research-inline-empty {
+    padding: 0.9rem;
+    border: 1px dashed var(--border-color);
+    border-radius: var(--border-radius, 8px);
+    color: var(--text-color-secondary);
+    text-align: center;
+}
+
+.deep-research-inline-empty[hidden] {
+    display: none;
+}
+
+.deep-research-inline-empty p {
+    margin: 0;
+    font-size: 0.78rem;
+    line-height: 1.45;
+}
+
+.deep-research-request-streams {
+    display: grid;
+    gap: 0.8rem;
+}
+
+.deep-research-request {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    border-radius: calc(var(--border-radius, 8px) + 2px);
+    background: var(--background-secondary);
+}
+
+.deep-research-request > summary {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 0.7rem;
+    min-height: 2.75rem;
+    padding: 0.55rem 0.7rem;
+    background: var(--background);
+    list-style: none;
+    cursor: pointer;
+}
+
+.deep-research-request > summary::-webkit-details-marker {
+    display: none;
+}
+
+.deep-research-request[open] > summary {
+    border-bottom: 1px solid var(--border-color);
+}
+
+.deep-research-request-chevron {
+    display: grid;
+    place-items: center;
+    width: 1rem;
+    height: 1rem;
+}
+
+.deep-research-request-chevron svg {
+    width: 1rem;
+    height: 1rem;
+    transition: transform 140ms ease;
+}
+
+.deep-research-request[open] .deep-research-request-chevron svg {
+    transform: rotate(180deg);
+}
+
+.deep-research-request > summary > div {
+    display: grid;
+    grid-template-columns: 1.45rem minmax(0, 1fr);
+    align-items: center;
+    min-width: 0;
+    gap: 0.5rem;
+}
+
+.deep-research-request-ordinal {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 1.45rem;
+    height: 1.45rem;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--deep-research-accent) 12%, transparent);
+    color: var(--deep-research-accent);
+    font-size: 0.67rem;
+    font-weight: 750;
+}
+
+.deep-research-request.is-running .deep-research-request-ordinal {
+    background: transparent;
+}
+
+.deep-research-request-ordinal > svg {
+    display: block;
+    width: 1.45rem;
+    height: 1.45rem;
+    color: inherit;
+    opacity: 1;
+}
+
+.deep-research-request[data-status="completed"] .deep-research-request-ordinal {
+    background: var(--deep-research-accent);
+    color: var(--background);
+}
+
+.deep-research-request[data-status="failed"] .deep-research-request-ordinal {
+    background: color-mix(in srgb, var(--error-color) 12%, transparent);
+    color: var(--error-color);
+}
+
+.deep-research-request h3 {
+    margin: 0;
+    overflow: hidden;
+    color: var(--text-color);
+    font-size: 0.78rem;
+    font-weight: 650;
+    line-height: 1.35;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.deep-research-request-status {
+    flex: 0 0 auto;
+    padding: 0.2rem 0.45rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--deep-research-accent) 10%, transparent);
+    color: var(--deep-research-accent);
+    font-size: 0.64rem;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.deep-research-request-status[data-status="completed"] {
+    background: color-mix(in srgb, var(--success-color, #2e9b63) 10%, transparent);
+    color: var(--success-color, #2e9b63);
+}
+
+.deep-research-request-status[data-status="failed"] {
+    background: color-mix(in srgb, var(--error-color) 10%, transparent);
+    color: var(--error-color);
+}
+
+.deep-research-request[data-status="pending"] .deep-research-request-ordinal,
+.deep-research-request-status[data-status="pending"] {
+    background: var(--background-secondary);
+    color: var(--text-color-secondary);
+}
+
+.deep-research-request-body {
+    min-width: 0;
+}
+
+.deep-research-request-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.45rem 0.7rem 0.7rem;
+}
+
+/* Reuse the main-chat assistant stream component without introducing a
+   second visual language inside the Research preview. */
+.deep-research-request-timeline > .assistant-thinking,
+.deep-research-request-timeline > .assistant-message {
+    width: 100%;
+    min-width: 0;
+}
+
+.deep-research-stream-content {
+    padding: 0.25rem 0.5rem 0.45rem;
+}
+
+.deep-research-stream-content .assistant-message-content {
+    min-width: 0;
+    color: var(--text-color);
+    font-size: 0.78rem;
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+}
+
+.deep-research-stream-content .assistant-message-content > :first-child {
+    margin-top: 0;
+}
+
+.deep-research-stream-content .assistant-message-content > :last-child {
+    margin-bottom: 0;
+}
+
+.deep-research-stream-activity {
+    display: grid;
+    grid-template-columns: 0.8rem minmax(0, 1fr);
+    align-items: start;
+    gap: 0.45rem;
+    padding-block: 0.35rem;
+}
+
+.deep-research-stream-activity .deep-research-activity-marker {
+    margin-top: 0.35rem;
+}
+
+.deep-research-stream-activity time {
+    color: var(--text-color-tertiary, var(--text-color-secondary));
+    font-size: 0.68rem;
+}
+
+.deep-research-panel-empty {
+    display: grid;
+    place-items: center;
+    min-height: 13rem;
+    padding: 2rem;
+    color: var(--text-color-secondary);
+    text-align: center;
+}
+
+.deep-research-panel-empty[hidden] {
+    display: none;
+}
+
+.deep-research-panel-empty-icon {
+    display: grid;
+    place-items: center;
+    width: 2.8rem;
+    height: 2.8rem;
+    margin-bottom: 0.5rem;
+    border-radius: 50%;
+    background: var(--background-secondary);
+}
+
+.deep-research-panel-empty-icon svg {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+.deep-research-panel-empty p {
+    max-width: 19rem;
+    margin: 0;
+    font-size: 0.85rem;
+    line-height: 1.55;
+}
+
+.deep-research-sidebar-source-list,
+.deep-research-sidebar-file-list{
+    display: grid;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.deep-research-activity-marker {
+    position: relative;
+    z-index: 1;
+    width: 0.75rem;
+    height: 0.75rem;
+    margin-top: 0.25rem;
+    border: 2px solid var(--deep-research-accent);
+    border-radius: 50%;
+    background: var(--background);
+}
+
+.deep-research-sidebar-report {
+    color: var(--text-color);
+    font-size: 0.9rem;
+    line-height: 1.65;
+}
+
+.deep-research-sidebar-report:empty {
+    display: none;
+}
+
+.deep-research-sidebar-report img {
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--border-radius, 8px);
+}
+
+.deep-research-sidebar-source-list {
+    gap: 0.7rem;
+}
+
+.deep-research-sidebar-source-list li {
+    display: grid;
+    grid-template-columns: 1.65rem minmax(0, 1fr);
+    gap: 0.65rem;
+    padding: 0.8rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius, 8px);
+    background: var(--background-secondary);
+}
+
+.deep-research-source-number {
+    display: grid;
+    place-items: center;
+    width: 1.65rem;
+    height: 1.65rem;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--deep-research-accent) 12%, transparent);
+    color: var(--deep-research-accent);
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.deep-research-sidebar-source-list a {
+    color: var(--text-color);
+    font-size: 0.82rem;
+    font-weight: 600;
+    line-height: 1.4;
+    text-decoration: none;
+}
+
+.deep-research-sidebar-source-list p {
+    display: -webkit-box;
+    margin: 0.3rem 0 0;
+    overflow: hidden;
+    color: var(--text-color-secondary);
+    font-size: 0.74rem;
+    line-height: 1.45;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+}
+
+.deep-research-sidebar-file-list {
+    gap: 0.5rem;
+}
+
+.deep-research-sidebar-file-list li {
+    display: grid;
+    grid-template-columns: 1.8rem minmax(0, 1fr) 2rem;
+    align-items: center;
+    gap: 0.6rem;
+    min-height: 3.2rem;
+    padding: 0.55rem 0.65rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius, 8px);
+    background: var(--background-secondary);
+}
+
+.deep-research-file-icon {
+    display: grid;
+    place-items: center;
+    color: var(--text-color-secondary);
+}
+
+.deep-research-file-icon svg,
+.deep-research-file-download svg {
+    width: 1.1rem;
+    height: 1.1rem;
+}
+
+.deep-research-file-name {
+    overflow: hidden;
+    color: var(--text-color);
+    font-size: 0.8rem;
+    font-weight: 550;
+    text-decoration: none;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.deep-research-file-download {
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.45rem;
+    color: var(--text-color-secondary);
+}
+
+.deep-research-sidebar-footer {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.65rem;
+    min-height: 4.6rem;
+    padding: 0.75rem 1.25rem;
+    border-top: 1px solid var(--border-color);
+    background: var(--background);
+}
+
+.deep-research-sidebar-cancel {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.45rem;
+    padding: 0.55rem 0.85rem;
+    border-radius: var(--border-radius, 8px);
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.deep-research-sidebar-cancel {
+    border: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--error-color);
+}
+
+.deep-research-export-controls {
+    flex: 0 0 auto;
+    min-width: 0;
+    /* The canvas/notes control supplies the pill shell. Logical padding keeps
+       the same compact leading inset in both LTR and RTL layouts. */
+    padding: 0;
+    padding-inline-start: 0.6rem;
+}
+
+.deep-research-export-format {
+    width: auto;
+    min-width: 5.25rem;
+    height: 2.125rem;
+    padding: 0 0.25rem;
+    text-align: center;
+    text-align-last: center;
+}
+
+.deep-research-export-button {
+    flex: 0 0 auto;
+    width: 2.125rem;
+    min-width: 2.125rem;
+    height: 2.125rem;
+    padding: 0.4rem;
+    border: 0;
+    background: transparent;
+    color: var(--text-color-secondary);
+}
+
+.deep-research-export-button.disabled {
+    cursor: not-allowed;
+}
+
+.deep-research-export-button.is-busy {
+    cursor: wait;
+}
+
+.deep-research-export-button svg {
+    width: 1.05rem;
+    height: 1.05rem;
+}
+
+/* The global compact-header breakpoint hides nested button spans. This span
+   is the icon host, so keep only it visible while the label stays sr-only. */
+.deep-research-export-button .deep-research-export-icon {
+    display: inline-flex;
+    padding: 0;
+}
+
+/* Keep the shared circular button from adding visible padding to the hidden
+   accessible label. */
+.deep-research-export-button .deep-research-export-label {
+    padding: 0;
+}
+
+.deep-research-export-button:focus-visible,
+.deep-research-export-format:focus-visible {
+    position: relative;
+    z-index: 1;
+    outline: 2px solid var(--deep-research-accent);
+    outline-offset: 2px;
+}
+
+.deep-research-sidebar [hidden] {
+    display: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .deep-research-open:hover,
+    .deep-research-sidebar-source-list a:hover,
+    .deep-research-file-name:hover {
+        text-decoration: underline;
+        text-underline-offset: 0.15em;
+    }
+
+    .deep-research-sidebar-close:hover,
+    .deep-research-card-chevron:hover,
+    .deep-research-tabs button:hover,
+    .deep-research-file-download:hover,
+    .deep-research-request > summary:hover,
+    .deep-research-query-disclosure summary:hover {
+        background: var(--background-secondary);
+        color: var(--text-color);
+    }
+
+    .deep-research-sidebar-cancel:hover {
+        background: color-mix(in srgb, var(--error-color) 8%, transparent);
+    }
+
+    .deep-research-export-format:not(:disabled):hover,
+    .deep-research-export-button:not(.disabled):hover {
+        color: var(--deep-research-accent);
+    }
+}
+
+@media (max-width: 900px) {
+    .deep-research-sidebar {
+        inset: auto 0 0;
+        width: 100%;
+        min-width: unset;
+        height: 85vh;
+        border-left: 0;
+        border-top: 1px solid var(--border-color);
+        border-radius: 16px 16px 0 0;
+        transform: translateY(100%);
+        z-index: 200;
+    }
+
+    .deep-research-sidebar.is-open {
+        transform: translateY(0);
+    }
+
+    body.deep-research-preview-open .main-container {
+        margin-right: 0;
+    }
+
+    .deep-research-preview-resizer {
+        display: none;
+    }
+
+    .deep-research-sidebar-header {
+        padding-top: max(0.9rem, env(safe-area-inset-top));
+    }
+
+    .deep-research-sidebar-footer {
+        padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+    }
+
+}
+
+@media (max-width: 520px) {
+    .deep-research-widget {
+        grid-template-columns: 2.25rem minmax(0, 1fr) 2rem;
+        gap: 0.7rem;
+        padding: 0.85rem;
+    }
+
+    .deep-research-card-icon {
+        width: 2.25rem;
+        height: 2.25rem;
+    }
+
+    .deep-research-card-heading {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.2rem;
+    }
+
+    .deep-research-status {
+        max-width: 100%;
+    }
+
+    .deep-research-sidebar-summary,
+    .deep-research-tab-panel {
+        padding-inline: 1rem;
+    }
+
+    .deep-research-tabs {
+        padding-inline: 1rem;
+    }
+
+    .deep-research-sidebar-footer {
+        padding-inline: 1rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .deep-research-progress-bar,
+    .deep-research-query-chevron svg,
+    .deep-research-request-chevron svg,
+    .deep-research-card-chevron svg,
+    .deep-research-request-timeline .assistant-thinking,
+    .deep-research-request-timeline .assistant-thinking-content,
+    .deep-research-sidebar {
+        transition: none;
+    }
+
+    .deep-research-request-timeline .assistant-thinking-shimmer {
+        animation: none;
+    }
+}

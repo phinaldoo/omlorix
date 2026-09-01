@@ -1,0 +1,379 @@
+{
+    "version": "v1.0.0",
+    "type": "user",
+    "schema": {
+        "sections": [
+            {
+                "id": "quick_start",
+                "pages": [
+                    { "id": "getting_started", "path": "/en/user/1_quick_start/1_start.md" },
+                    { "id": "first_time_setup", "path": "/en/user/1_quick_start/2_first_time_setup.md" },
+                    { "id": "first_chat", "path": "/en/user/1_quick_start/3_first_chat.md" },
+                    { "id": "best_practices", "path": "/en/user/1_quick_start/4_best_practices.md" }
+                ]
+            },
+            {
+                "id": "chat_features",
+                "pages": [
+                    { "id": "chat_interface", "path": "/en/user/2_chat_features/1_chat_interface.md" },
+                    { "id": "temporary_chats", "path": "/en/user/2_chat_features/2_temporary_chats.md" },
+                    { "id": "reasoning_effort_control", "path": "/en/user/2_chat_features/3_reasoning_effort.md" },
+                    { "id": "message_queue", "path": "/en/user/2_chat_features/4_message_queue.md" },
+                    { "id": "file_attachments", "path": "/en/user/2_chat_features/21_file_attachments.md" },
+                    { "id": "split_screen", "path": "/en/user/2_chat_features/29_split_screen.md" },
+                    { "id": "model_feedback", "path": "/en/user/2_chat_features/11_model_feedback.md" }
+                ]
+            },
+            {
+                "id": "research_and_agents",
+                "pages": [
+                    { "id": "web_search", "path": "/en/user/2_chat_features/20_web_search.md" },
+                    { "id": "deep_research", "path": "/en/user/2_chat_features/5_deep_research.md" },
+                    { "id": "subagent_delegation", "path": "/en/user/2_chat_features/6_subagent_delegation.md" },
+                    { "id": "mcp_apps", "path": "/en/user/2_chat_features/8_mcp_apps.md" }
+                ]
+            },
+            {
+                "id": "create_and_present",
+                "pages": [
+                    { "id": "slide_presentations", "path": "/en/user/2_chat_features/7_slide_presentations.md" },
+                    { "id": "canvas", "path": "/en/user/2_chat_features/22_canvas.md" },
+                    { "id": "visualizations", "path": "/en/user/2_chat_features/23_visualizations.md" },
+                    { "id": "image_generation", "path": "/en/user/2_chat_features/24_image_generation.md" },
+                    { "id": "video_generation", "path": "/en/user/2_chat_features/25_video_generation.md" },
+                    { "id": "audio_generation", "path": "/en/user/2_chat_features/26_audio_generation.md" },
+                    { "id": "music_generation", "path": "/en/user/2_chat_features/27_music_generation.md" },
+                    { "id": "code_execution", "path": "/en/user/2_chat_features/31_code_execution.md" },
+                    { "id": "code_highlighting", "path": "/en/user/2_chat_features/30_code_highlighting.md" },
+                    { "id": "interactive_quizzes", "path": "/en/user/2_chat_features/9_quizzes.md" },
+                    { "id": "flashcards", "path": "/en/user/2_chat_features/10_flashcards.md" }
+                ]
+            },
+            {
+                "id": "voice_and_meetings",
+                "pages": [
+                    { "id": "voice_dictation", "path": "/en/user/2_chat_features/15_voice_dictation.md" },
+                    { "id": "assistant_read_aloud", "path": "/en/user/2_chat_features/16_read_aloud.md" },
+                    { "id": "meeting_transcripts", "path": "/en/user/2_chat_features/17_meeting_transcripts.md" },
+                    { "id": "realtime_call", "path": "/en/user/2_chat_features/18_realtime_call.md" }
+                ]
+            },
+            {
+                "id": "sharing",
+                "pages": [
+                    { "id": "chat_share", "path": "/en/user/2_chat_features/13_chat_share.md" },
+                    { "id": "artifact_sharing", "path": "/en/user/2_chat_features/14_artifact_sharing.md" }
+                ]
+            },
+            {
+                "id": "chat_conversations",
+                "pages": [
+                    { "id": "regenerate_message", "path": "/en/user/4_chat_conversations/1_regenerate_message.md" },
+                    { "id": "chat_search", "path": "/en/user/4_chat_conversations/2_chat_search.md" },
+                    { "id": "archived_chats", "path": "/en/user/4_chat_conversations/3_archived_chats.md" },
+                    { "id": "chat_bookmarks", "path": "/en/user/4_chat_conversations/4_chat_bookmarks.md" },
+                    { "id": "chat_title_generation", "path": "/en/user/4_chat_conversations/5_chat_title_generation.md" },
+                    { "id": "download_chats", "path": "/en/user/4_chat_conversations/6_download_chats.md" },
+                    { "id": "skills_in_chats", "path": "/en/user/4_chat_conversations/7_skills.md" },
+                    { "id": "notes_in_chats", "path": "/en/user/4_chat_conversations/8_notes.md" },
+                    { "id": "skill_draft_widget", "path": "/en/user/4_chat_conversations/9_skill_draft_widget.md" }
+                ]
+            },
+            {
+                "id": "models",
+                "pages": [
+                    { "id": "understanding_ai_models", "path": "/en/user/5_models/1_understanding_models.md" },
+                    { "id": "model_select", "path": "/en/user/5_models/2_model_select.md" },
+                    { "id": "model_settings", "path": "/en/user/5_models/3_model_settings.md" },
+                    { "id": "leaderboard", "path": "/en/user/5_models/4_leaderboard.md" }
+                ]
+            },
+            {
+                "id": "workspace",
+                "pages": [
+                    { "id": "workspace_introduction", "path": "/en/user/10_workspace/1_introduction.md" },
+                    { "id": "workspace_projects", "path": "/en/user/10_workspace/2_projects.md" },
+                    { "id": "workspace_files", "path": "/en/user/10_workspace/6_files.md" },
+                    { "id": "workspace_file_folders", "path": "/en/user/10_workspace/7_file_folders.md" },
+                    { "id": "workspace_cloud_file_imports", "path": "/en/user/10_workspace/5_cloud_file_imports_sync.md" },
+                    { "id": "workspace_connections", "path": "/en/user/10_workspace/4_connections.md" },
+                    { "id": "personal_mcp_servers", "path": "/en/user/10_workspace/4_personal_mcp_servers.md" },
+                    { "id": "workspace_skills", "path": "/en/user/10_workspace/8_skills.md" },
+                    { "id": "workspace_agents", "path": "/en/user/10_workspace/9_agents.md" },
+                    { "id": "workspace_prompts", "path": "/en/user/10_workspace/13_prompts.md" },
+                    { "id": "workspace_memories", "path": "/en/user/10_workspace/12_memories.md" },
+                    { "id": "workspace_notes", "path": "/en/user/10_workspace/11_notes.md" },
+                    { "id": "workspace_todo", "path": "/en/user/10_workspace/10_todo.md" },
+                    { "id": "workspace_bookmarks", "path": "/en/user/10_workspace/14_bookmarks.md" },
+                    { "id": "workspace_notifications", "path": "/en/user/10_workspace/3_notifications.md" }
+                ]
+            },
+            {
+                "id": "customization",
+                "pages": [
+                    { "id": "settings_overview", "path": "/en/user/3_user_settings/1_settings_overview.md" },
+                    { "id": "profile_settings", "path": "/en/user/3_user_settings/2_profile_settings.md" },
+                    { "id": "security_privacy", "path": "/en/user/3_user_settings/3_security_privacy.md" },
+                    { "id": "passkeys", "path": "/en/user/3_user_settings/4_passkeys.md" },
+                    { "id": "change_password", "path": "/en/user/3_user_settings/17_change_password.md" },
+                    { "id": "account_switching", "path": "/en/user/3_user_settings/16_account_switching.md" },
+                    { "id": "general_preferences", "path": "/en/user/3_user_settings/5_general_preferences.md" },
+                    { "id": "theme_appearance", "path": "/en/user/3_user_settings/6_theme_appearance.md" },
+                    { "id": "chat_settings", "path": "/en/user/3_user_settings/7_chat_settings.md" },
+                    { "id": "chat_personality", "path": "/en/user/3_user_settings/9_chat_personality.md" },
+                    { "id": "memory_settings", "path": "/en/user/3_user_settings/11_memory_settings.md" },
+                    { "id": "bring_your_own_key", "path": "/en/user/3_user_settings/12_bring_your_own_key.md" },
+                    { "id": "usage_limits", "path": "/en/user/3_user_settings/14_usage_limits.md" },
+                    { "id": "keyboard_shortcuts", "path": "/en/user/3_user_settings/15_keyboard_shortcuts.md" },
+                    { "id": "managed_groups", "path": "/en/user/3_user_settings/8_managed_groups.md" }
+                ]
+            },
+            {
+                "id": "notifications_and_automation",
+                "pages": [
+                    { "id": "automated_tasks", "path": "/en/user/7_notifications_automation/1_automated_tasks.md" },
+                    { "id": "automation_webhooks", "path": "/en/user/7_notifications_automation/2_automation_webhooks.md" }
+                ]
+            },
+            {
+                "id": "privacy_and_data",
+                "pages": [
+                    { "id": "data_controls", "path": "/en/user/6_privacy_data/2_data_controls.md" },
+                    { "id": "shared_items", "path": "/en/user/6_privacy_data/3_shared_items.md" },
+                    { "id": "access_denied", "path": "/en/user/6_privacy_data/1_access_denied.md" }
+                ]
+            },
+            {
+                "id": "widgets",
+                "pages": [
+                    { "id": "weather", "path": "/en/user/9_widgets/2_weather.md" }
+                ]
+            },
+            {
+                "id": "experience",
+                "pages": [
+                    { "id": "pwa", "path": "/en/user/8_experience/1_pwa.md" },
+                    { "id": "accessibility", "path": "/en/user/8_experience/2_accessibility.md" }
+                ]
+            },
+            {
+                "id": "release_notes",
+                "pages": [
+                    { "id": "changelog", "href": "/changelog", "external": true }
+                ]
+            },
+            {
+                "id": "community_support",
+                "pages": [
+                    { "id": "sponsor", "path": "/en/common/support.md" }
+                ]
+            }
+        ],
+        "en": {
+            "release_notes": "Release Notes",
+            "changelog": "Changelog",
+            "community_support": "Community Support",
+            "sponsor": "Help & Support",
+            "quick_start": "Quick Start",
+            "getting_started": "Get Started with Omlorix",
+            "first_time_setup": "First-Time User Setup",
+            "first_chat": "Your First Chat",
+            "understanding_ai_models": "Understanding AI Models",
+            "chat_features": "Chat Basics",
+            "research_and_agents": "Research & Agents",
+            "create_and_present": "Create & Present",
+            "voice_and_meetings": "Voice & Meetings",
+            "sharing": "Sharing",
+            "chat_interface": "Chat Interface",
+            "temporary_chats": "Temporary Chats",
+            "reasoning_effort_control": "Thinking & Reasoning Effort",
+            "chat_share": "Chat Sharing",
+            "message_queue": "Message Queue",
+            "deep_research": "Deep Research",
+            "subagent_delegation": "Subagent Delegation",
+            "slide_presentations": "Slide Presentations",
+            "mcp_apps": "MCP Apps in Chat",
+            "interactive_quizzes": "Interactive Quizzes",
+            "flashcards": "Flashcards",
+            "model_feedback": "Model Feedback & Ratings",
+            "chat_conversations": "Manage Conversations",
+            "artifact_sharing": "Canvas Sharing",
+            "regenerate_message": "Edit, Revise & Branch",
+            "chat_search": "Chat Search",
+            "archived_chats": "Archived Chats",
+            "chat_bookmarks": "Chat Message Bookmarks",
+            "chat_title_generation": "Name, Pin & Organize Chats",
+            "download_chats": "Download Chats",
+            "skills_in_chats": "Skills in Chats",
+            "notes_in_chats": "Notes in Chats",
+            "skill_draft_widget": "Skill Draft Widget",
+            "models": "Models",
+            "model_select": "Selecting a Model",
+            "model_settings": "Model Settings",
+            "leaderboard": "AI Model Leaderboard",
+            "voice_dictation": "Voice Dictation",
+            "assistant_read_aloud": "Assistant Read Aloud",
+            "meeting_transcripts": "Meeting Transcripts",
+            "realtime_call": "Realtime Call",
+            "web_search": "Web Search",
+            "file_attachments": "File Attachments",
+            "canvas": "Canvas",
+            "image_generation": "Image Generation & Editing",
+            "video_generation": "Video Generation",
+            "audio_generation": "Audio Generation",
+            "music_generation": "Music Generation",
+            "code_execution": "Code Execution",
+            "split_screen": "Split Screen",
+            "code_highlighting": "Code Highlighting & Previews",
+            "customization": "Settings & Account",
+            "settings_overview": "Settings Overview",
+            "profile_settings": "Profile",
+            "security_privacy": "Security",
+            "passkeys": "Passkeys",
+            "general_preferences": "General",
+            "theme_appearance": "Appearance",
+            "chat_settings": "Chat",
+            "managed_groups": "Managed Groups",
+            "chat_personality": "Personality",
+            "memory_settings": "Memory",
+            "bring_your_own_key": "Bring Your Own Key",
+            "personal_mcp_servers": "Personal MCP Servers",
+            "usage_limits": "Usage Limits",
+            "keyboard_shortcuts": "Help & Keyboard Shortcuts",
+            "accessibility": "Accessibility in Omlorix",
+            "account_switching": "Accounts & Switching",
+            "best_practices": "Prompt-writing Best Practices",
+            "change_password": "Change or Set Password",
+            "visualizations": "Interactive Visualizations",
+            "privacy_and_data": "Data & Sharing",
+            "access_denied": "Access Restrictions",
+            "data_controls": "Data Control",
+            "shared_items": "Shared Items",
+            "notifications_and_automation": "Automation & Webhooks",
+            "automated_tasks": "Automations",
+            "automation_webhooks": "Automation Webhooks",
+            "experience": "Web App & Accessibility",
+            "pwa": "Install Omlorix as a Web App",
+            "widgets": "Information Widgets",
+            "weather": "Weather Widget",
+            "workspace": "Workspace",
+            "workspace_introduction": "Workspace Overview",
+            "workspace_projects": "Projects",
+            "workspace_files": "Files",
+            "workspace_notes": "Notes",
+            "workspace_notifications": "Notifications",
+            "workspace_skills": "Skills",
+            "workspace_todo": "Todo",
+            "workspace_connections": "Connections",
+            "workspace_cloud_file_imports": "Cloud File Imports",
+            "workspace_file_folders": "File Folders",
+            "workspace_agents": "Agents",
+            "workspace_memories": "Memories",
+            "workspace_prompts": "Prompt Library",
+            "workspace_bookmarks": "Message Bookmarks"
+        },
+        "de": {
+            "release_notes": "Versionshinweise",
+            "changelog": "Änderungsprotokoll",
+            "community_support": "Community-Support",
+            "sponsor": "Hilfe & Support",
+            "quick_start": "Schnellstart",
+            "getting_started": "Mit Omlorix starten",
+            "first_time_setup": "Ersteinrichtung für Benutzer",
+            "first_chat": "Dein erster Chat",
+            "understanding_ai_models": "KI-Modelle verstehen",
+            "chat_features": "Chat-Grundlagen",
+            "research_and_agents": "Recherche & Agenten",
+            "create_and_present": "Erstellen & Präsentieren",
+            "voice_and_meetings": "Sprache & Meetings",
+            "sharing": "Teilen",
+            "chat_interface": "Chat-Oberfläche",
+            "temporary_chats": "Temporäre Chats",
+            "reasoning_effort_control": "Denken & Reasoning-Aufwand",
+            "chat_share": "Chats teilen",
+            "message_queue": "Nachrichtenwarteschlange",
+            "deep_research": "Tiefenrecherche",
+            "subagent_delegation": "Subagent-Delegation",
+            "slide_presentations": "Folienpräsentationen",
+            "mcp_apps": "MCP-Apps im Chat",
+            "interactive_quizzes": "Interaktive Quizze",
+            "flashcards": "Karteikarten",
+            "model_feedback": "Modellfeedback & Bewertungen",
+            "chat_conversations": "Chats verwalten",
+            "artifact_sharing": "Canvas-Freigabe",
+            "regenerate_message": "Bearbeiten, Überarbeiten & Verzweigen",
+            "chat_search": "Chat-Suche",
+            "archived_chats": "Archivierte Chats",
+            "chat_bookmarks": "Chat-Nachrichten-Lesezeichen",
+            "chat_title_generation": "Chats benennen, anheften & organisieren",
+            "download_chats": "Chats herunterladen",
+            "skills_in_chats": "Skills in Chats verwenden",
+            "notes_in_chats": "Notizen in Chats",
+            "skill_draft_widget": "Skill-Entwurfs-Widget",
+            "models": "Modelle",
+            "model_select": "Modell auswählen",
+            "model_settings": "Modelleinstellungen",
+            "leaderboard": "KI-Modell-Bestenliste",
+            "voice_dictation": "Sprachdiktat",
+            "assistant_read_aloud": "Assistent laut vorlesen",
+            "meeting_transcripts": "Meeting-Transkripte",
+            "realtime_call": "Realtime-Anruf",
+            "web_search": "Websuche",
+            "file_attachments": "Dateianhänge",
+            "canvas": "Canvas",
+            "image_generation": "Bildgenerierung & -bearbeitung",
+            "video_generation": "Video-Generierung",
+            "audio_generation": "Audiogenerierung",
+            "music_generation": "Musikgenerierung",
+            "code_execution": "Code-Ausführung",
+            "split_screen": "Geteilter Bildschirm",
+            "code_highlighting": "Code-Hervorhebung & Vorschauen",
+            "customization": "Einstellungen & Konto",
+            "settings_overview": "Einstellungsübersicht",
+            "profile_settings": "Profil",
+            "security_privacy": "Sicherheit",
+            "passkeys": "Passkeys",
+            "general_preferences": "Allgemein",
+            "theme_appearance": "Darstellung",
+            "chat_settings": "Chat",
+            "managed_groups": "Verwaltete Gruppen",
+            "chat_personality": "Persönlichkeit",
+            "memory_settings": "Memory",
+            "bring_your_own_key": "Eigene API-Schlüssel",
+            "personal_mcp_servers": "Persönliche MCP-Server",
+            "usage_limits": "Nutzungslimits",
+            "keyboard_shortcuts": "Hilfe & Tastenkürzel",
+            "accessibility": "Barrierefreiheit in Omlorix",
+            "account_switching": "Konten & Kontowechsel",
+            "best_practices": "Best Practices für Prompts",
+            "change_password": "Passwort festlegen oder ändern",
+            "visualizations": "Interaktive Visualisierungen",
+            "privacy_and_data": "Daten & Freigaben",
+            "access_denied": "Zugriffsbeschränkungen",
+            "data_controls": "Datenkontrolle",
+            "shared_items": "Freigegebene Elemente",
+            "notifications_and_automation": "Automatisierungen & Webhooks",
+            "automated_tasks": "Automatisierungen",
+            "automation_webhooks": "Automatisierungs-Webhooks",
+            "experience": "Web-App & Barrierefreiheit",
+            "pwa": "Omlorix als Web-App installieren",
+            "widgets": "Informations-Widgets",
+            "weather": "Wetter-Widget",
+            "workspace": "Arbeitsbereich",
+            "workspace_introduction": "Arbeitsbereich im Überblick",
+            "workspace_projects": "Projekte",
+            "workspace_files": "Dateien",
+            "workspace_notes": "Notizen",
+            "workspace_notifications": "Benachrichtigungen",
+            "workspace_skills": "Skills",
+            "workspace_todo": "Todo",
+            "workspace_connections": "Verbindungen",
+            "workspace_cloud_file_imports": "Cloud-Dateiimporte",
+            "workspace_file_folders": "Dateiordner",
+            "workspace_agents": "Agenten",
+            "workspace_memories": "Erinnerungen",
+            "workspace_prompts": "Prompt-Bibliothek",
+            "workspace_bookmarks": "Workspace-Nachrichten-Lesezeichen"
+        }
+    }
+}

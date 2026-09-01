@@ -1,0 +1,20 @@
+{
+  "verify_subject": "Verifica tu nueva dirección de correo de {application_name}",
+  "verify_headline": "Verifica tu nueva dirección de correo",
+  "verify_intro": "Confirma esta dirección para terminar de cambiar el correo de tu cuenta de {application_name}.",
+  "verify_button": "Verificar dirección de correo",
+  "verify_expires": "Este enlace caduca en {expires_in_hours} horas.",
+  "verify_ignore": "Si no solicitaste este cambio, no lo verifiques.",
+  "requested_subject": "{application_name}: cambio de correo solicitado",
+  "requested_headline": "Cambio de dirección de correo solicitado",
+  "requested_intro": "Alguien solicitó una dirección nueva para tu cuenta. La dirección actual seguirá activa hasta que se verifique la nueva.",
+  "cancel_button": "Cancelar cambio de correo",
+  "requested_action": "Si no fuiste tú, cancela la solicitud y protege tu cuenta de inmediato.",
+  "changed_subject": "{application_name}: dirección de correo cambiada",
+  "changed_headline": "Se cambió tu dirección de correo",
+  "changed_intro": "Cambió la dirección utilizada para iniciar sesión en tu cuenta de {application_name}. Se revocaron todas las sesiones y enlaces de restablecimiento existentes.",
+  "changed_action": "Si no fuiste tú, protege tu cuenta de inmediato y contacta con un administrador.",
+  "cancelled_subject": "{application_name}: cambio de correo cancelado",
+  "cancelled_headline": "Cambio de correo cancelado",
+  "cancelled_intro": "Se canceló el cambio pendiente. Tu dirección actual sigue activa."
+}

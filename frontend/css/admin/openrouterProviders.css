@@ -1,0 +1,344 @@
+/* OpenRouter Provider Selection Cards */
+
+.openrouter-providers-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px 0;
+    max-height: 520px;
+    overflow-y: auto;
+}
+
+.openrouter-providers-container[hidden],
+.openrouter-provider-sort-row[hidden],
+.openrouter-provider-mode-hint[hidden] {
+    display: none !important;
+}
+
+.openrouter-provider-mode {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 12px;
+    margin: 16px 0 12px;
+}
+
+.openrouter-provider-mode-option {
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-sm);
+    padding: 12px 14px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    background: var(--bg-normal);
+    cursor: pointer;
+    transition: all var(--admin-transition);
+}
+
+.openrouter-provider-mode-option input[type="radio"] {
+    margin-top: 6px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .openrouter-provider-mode-option:hover {
+        border-color: var(--admin-text-tertiary);
+        background: var(--bg-normal-elevated);
+    }
+}
+
+.openrouter-provider-mode-option input:checked + .openrouter-provider-mode-content,
+.openrouter-provider-mode-option input:focus-visible + .openrouter-provider-mode-content {
+    outline: none;
+}
+
+.openrouter-provider-mode-option input:checked ~ .openrouter-provider-mode-content,
+.openrouter-provider-mode-option input:checked + .openrouter-provider-mode-content {
+    color: var(--admin-text);
+}
+
+.openrouter-provider-mode-option input:checked ~ .openrouter-provider-mode-content .openrouter-provider-mode-title {
+    color: var(--admin-text);
+}
+
+.openrouter-provider-mode-content {
+    flex: 1;
+}
+
+.openrouter-provider-mode-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--admin-text);
+    margin-bottom: 4px;
+}
+
+.openrouter-provider-mode-desc {
+    font-size: 13px;
+    color: var(--admin-text-secondary);
+    line-height: 1.5;
+}
+
+.openrouter-provider-sort-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin: 0 0 12px;
+}
+
+.openrouter-provider-sort-row label {
+    font-size: 13px;
+    color: var(--admin-text-secondary);
+}
+
+.openrouter-provider-sort-row select {
+    flex: 1;
+    padding: 8px 10px;
+    border-radius: var(--admin-radius-sm);
+    border: 1px solid var(--admin-border);
+    background: var(--bg-normal);
+    color: var(--admin-text);
+}
+
+.openrouter-provider-mode-hint {
+    font-size: 13px;
+    color: var(--admin-text-secondary);
+    margin-bottom: 12px;
+}
+
+.openrouter-providers-empty {
+    text-align: center;
+    padding: 48px 24px;
+    color: var(--admin-text-secondary);
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.openrouter-providers-empty-hint {
+    color: var(--admin-text-tertiary);
+    font-size: 13px;
+    margin-top: 8px;
+}
+
+/* Provider Card */
+
+.openrouter-provider-card {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    background: var(--bg-normal);
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-sm);
+    cursor: pointer;
+    transition: all var(--admin-transition);
+    outline: none;
+    position: relative;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .openrouter-provider-card:hover {
+        border-color: var(--admin-text-tertiary);
+        background: var(--bg-normal-elevated);
+    }
+}
+
+.openrouter-provider-card:focus-visible {
+    outline: 2px solid var(--admin-accent);
+    outline-offset: 2px;
+}
+
+.openrouter-provider-card.selected {
+    border-color: var(--admin-accent);
+    background: var(--admin-accent-subtle);
+    box-shadow: var(--admin-shadow-sm);
+}
+
+/* Card Left: Info */
+
+.openrouter-provider-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+}
+
+.openrouter-provider-card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.openrouter-provider-card-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--admin-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.openrouter-provider-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 99px;
+    text-transform: capitalize;
+    letter-spacing: 0.02em;
+    line-height: 1.4;
+    flex-shrink: 0;
+}
+
+.openrouter-provider-status-badge::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.openrouter-provider-status-badge.status-up {
+    background: var(--admin-success-bg);
+    color: var(--admin-success);
+}
+
+.openrouter-provider-status-badge.status-up::before {
+    background: var(--admin-success);
+}
+
+.openrouter-provider-status-badge.status-down {
+    background: var(--admin-error-bg);
+    color: var(--admin-error);
+}
+
+.openrouter-provider-status-badge.status-down::before {
+    background: var(--admin-error);
+}
+
+.openrouter-provider-status-badge.status-limited {
+    background: var(--admin-warning-bg);
+    color: var(--admin-warning);
+}
+
+.openrouter-provider-status-badge.status-limited::before {
+    background: var(--admin-warning);
+}
+
+.openrouter-provider-status-badge.status-unknown {
+    background: var(--admin-accent-subtle);
+    color: var(--admin-text-tertiary);
+}
+
+.openrouter-provider-status-badge.status-unknown::before {
+    background: var(--admin-text-tertiary);
+}
+
+/* Stats Row */
+
+.openrouter-provider-card-stats {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.openrouter-provider-stat {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: var(--admin-text-secondary);
+}
+
+.openrouter-provider-stat-icon {
+    width: 14px;
+    height: 14px;
+    color: var(--admin-text-tertiary);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.openrouter-provider-stat-icon svg {
+    width: 14px;
+    height: 14px;
+}
+
+.openrouter-provider-stat-value {
+    font-weight: 500;
+    color: var(--admin-text);
+    font-variant-numeric: tabular-nums;
+}
+
+.openrouter-provider-stat-divider {
+    width: 1px;
+    height: 12px;
+    background: var(--admin-border);
+    flex-shrink: 0;
+}
+
+/* Tags */
+
+.openrouter-provider-tags {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.openrouter-provider-tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: var(--admin-accent-subtle);
+    color: var(--admin-text-secondary);
+    line-height: 1.4;
+}
+
+/* Card Right: Check Indicator */
+
+.openrouter-provider-card-check {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid var(--admin-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all var(--admin-transition);
+    color: transparent;
+}
+
+.openrouter-provider-card-check svg {
+    width: 12px;
+    height: 12px;
+}
+
+.openrouter-provider-card.selected .openrouter-provider-card-check {
+    border-color: var(--admin-accent);
+    background: var(--admin-accent);
+    color: var(--admin-bg);
+}
+
+/* Responsive */
+
+@media (max-width: 600px) {
+    .openrouter-provider-card {
+        padding: 14px 16px;
+        gap: 12px;
+    }
+
+    .openrouter-provider-card-stats {
+        gap: 10px;
+    }
+
+    .openrouter-provider-stat {
+        font-size: 11px;
+    }
+}

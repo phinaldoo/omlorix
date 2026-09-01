@@ -1,0 +1,259 @@
+:root {
+    --font-inter: 'Inter', system-ui, sans-serif;
+    --font-system: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-verdana: Verdana, Geneva, sans-serif;
+    --font-georgia: Georgia, 'Times New Roman', serif;
+    --font-times: 'Times New Roman', Times, serif;
+    --font-courier: 'Courier New', Courier, monospace;
+    --pending: #e67e22;
+    --svg-size: 20px;
+    --border-radius: 8px;
+    --app-font-family: var(--font-inter);
+    --modal-overlay-backdrop-filter: blur(8px) saturate(1.2);
+    --modal-border-radius: 16px;
+    /* Dialogs are shared by chat, admin, authentication, and setup pages. */
+    --modal-backdrop: rgba(24, 24, 27, 0.42);
+    --modal-background: #ffffff;
+    --modal-surface: #f7f7f8;
+    --modal-border: #e4e4e7;
+    --modal-border-strong: #a1a1aa;
+    --modal-divider: #ececef;
+    --modal-shadow: 0 24px 70px rgba(0, 0, 0, 0.18), 0 2px 12px rgba(0, 0, 0, 0.08);
+    --modal-focus-ring: rgba(24, 24, 27, 0.14);
+    --modal-primary-background: #18181b;
+    --modal-primary-text: #ffffff;
+    --modal-primary-hover: #27272a;
+    --modal-secondary-background: #f4f4f5;
+    --modal-secondary-text: #3f3f46;
+    --modal-secondary-hover: #e4e4e7;
+}
+
+[data-mode="light"] {
+    --text-color: #333333;
+    --text-color-secondary: #787774;
+    --text-color-tertiary: #9b9a97;
+    --background: #ffffff;
+    --border-color: #e9e9e7; /* rgb(0,0,0,0,0.05) */
+    --scrollbar-thumb: #8A8986;
+    /*
+     * Application controls always use the monochrome palette. The selected
+     * message color is defined separately below and cannot recolor the UI.
+     */
+    --primary-color: #333333;
+    --primary-light: rgba(58, 58, 60, 0.1);
+    --primary-hover: #555555;
+    --accent-color: #111111;
+    --shadow-color: rgba(0, 0, 0, 0.05);
+    --error-color: #e74c3c;
+    --error-background: rgba(239, 68, 68, 0.1);
+    --error-border: rgba(239, 68, 68, 0.3);
+    --error-hover-bg: rgb(104, 30, 12);
+    --danger-hover-bg: rgb(251, 241, 240);
+    --success-color: #2ecc71;
+    --success-background: rgba(34, 197, 94, 0.1);
+    --success-contrast-text: #102a1a;
+
+    --hover: rgba(0, 0, 0, 0.05);
+    --warning-color: #f59e0b;
+    --warning-background: rgba(245, 158, 11, 0.1);
+    --warning-border: rgba(245, 158, 11, 0.3);
+    --input-bg: #F5F5F5;
+    --surface-elevated: #ffffff;
+    --surface-elevated-border: #dedee2;
+    --surface-muted: #f4f4f5;
+    --surface-interactive-hover: #ebebed;
+    --surface-interactive-active: #e4e4e7;
+    --surface-control: #f5f5f5;
+    --surface-control-button: #ffffff;
+    --surface-control-border: #e4e4e7;
+    --surface-elevated-shadow: 0 18px 48px rgba(0, 0, 0, 0.14), 0 2px 10px rgba(0, 0, 0, 0.06);
+    /* Soft Greige composer palette. Keep these tokens scoped to chat input
+     * surfaces so the warmer treatment does not recolor the whole app. */
+    --chat-composer-background: #EFEDE8;
+    --chat-composer-border: #DCD9D2;
+    --chat-composer-control: #E5E2DC;
+    --chat-composer-control-hover: #DAD6CE;
+    --chat-composer-placeholder: #6F6B64;
+    --chat-composer-primary-control-background: #000000;
+    --chat-composer-primary-control-hover: #202020;
+    --chat-composer-primary-control-text: #FFFFFF;
+    --chat-composer-shadow: 0 8px 24px rgba(54, 50, 43, 0.07), 0 1px 3px rgba(54, 50, 43, 0.04);
+}
+
+[data-mode="dark"] {
+    --text-color: #F4F4F5;
+    --text-color-secondary: #B4B4BA;
+    --text-color-tertiary: #929299;
+    --background: #1F1F1F;
+    --scrollbar-thumb: #929299;
+
+
+    --primary-color: #88888E;
+    --primary-light: rgba(164, 164, 170, 0.16);
+    --primary-hover: #A4A4AA;
+    --accent-color: #68686E;
+    --shadow-color: rgba(0, 0, 0, 0.45);
+    --error-color: #F28B82;
+    --error-background: rgba(248, 113, 113, 0.15);
+    --error-border: rgba(248, 113, 113, 0.4);
+    /* Filled danger buttons need a distinct hover state and strong white-text contrast. */
+    --error-hover-bg: #B8443B;
+    --danger-hover-bg: rgba(206, 64, 53, 0.15);
+    --success-color: #81C995;
+    --success-background: rgba(74, 222, 128, 0.15);
+    --success-contrast-text: #102a1a;
+    --border-color: #3F3F46;
+    --hover: rgba(255, 255, 255, 0.09);
+    --hover-bg: rgba(255, 255, 255, 0.09);
+    --warning-color: #fbbf24;
+    --warning-background: rgba(251, 191, 36, 0.15);
+    --warning-border: rgba(251, 191, 36, 0.4);
+    /* Inputs stay neutral and consistent across every accent palette. */
+    --input-bg: #29292C;
+    /*
+     * Layer dark surfaces with visible neutral steps. The stronger hover token
+     * remains theme-neutral and works for every accent color on index.html.
+     */
+    --surface-elevated: #242428;
+    --surface-elevated-border: #45454d;
+    --surface-muted: #2d2d32;
+    --surface-interactive-hover: #39393f;
+    --surface-interactive-active: #424249;
+    --surface-control: #29292e;
+    --surface-control-button: #202023;
+    --surface-control-border: #3d3d44;
+    --surface-elevated-shadow: 0 20px 52px rgba(0, 0, 0, 0.56), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+    /* Dark companion values preserve the same warm-neutral Soft Greige hue
+     * while maintaining visible separation between composer layers. */
+    --chat-composer-background: #2D2C29;
+    --chat-composer-border: #494743;
+    --chat-composer-control: #393733;
+    --chat-composer-control-hover: #44413C;
+    --chat-composer-placeholder: #AAA7A0;
+    --chat-composer-primary-control-background: #FFFFFF;
+    --chat-composer-primary-control-hover: #E7E7E7;
+    --chat-composer-primary-control-text: #000000;
+    --chat-composer-shadow: 0 10px 28px rgba(0, 0, 0, 0.24), 0 1px 0 rgba(255, 255, 255, 0.025) inset;
+    --modal-backdrop: rgba(5, 5, 7, 0.7);
+    --modal-background: #202023;
+    --modal-surface: #29292e;
+    --modal-border: #414148;
+    --modal-border-strong: #71717a;
+    --modal-divider: #35353b;
+    --modal-shadow: 0 28px 80px rgba(0, 0, 0, 0.58), 0 0 0 1px rgba(255, 255, 255, 0.025);
+    --modal-focus-ring: rgba(244, 244, 245, 0.16);
+    --modal-primary-background: #f4f4f5;
+    --modal-primary-text: #18181b;
+    --modal-primary-hover: #ffffff;
+    --modal-secondary-background: #2a2a2f;
+    --modal-secondary-text: #d4d4d8;
+    --modal-secondary-hover: #33333a;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: var(--app-font-family, var(--font-inter));
+}
+
+html {
+    background: var(--background, #ffffff);
+    height: 100%;
+    color: var(--text-color, #333333);
+}
+
+body {
+    height: 100%;
+    background: var(--background, #ffffff);
+    color: var(--text-color, #333333);
+}
+
+/* Text Selection - ensures copied text has standard colors for pasting */
+::selection {
+    background-color: rgba(59, 130, 246, 0.35);
+    color: #000000;
+}
+
+::-moz-selection {
+    background-color: rgba(59, 130, 246, 0.35);
+    color: #000000;
+}
+
+[data-mode="dark"] ::selection {
+    background-color: rgba(96, 165, 250, 0.4);
+    color: #ffffff;
+}
+
+[data-mode="dark"] ::-moz-selection {
+    background-color: rgba(96, 165, 250, 0.4);
+    color: #ffffff;
+}
+
+/* Button Reset */
+button {
+    border: none;
+    background: none;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    font-size: inherit;
+}
+/* Link (a) Reset */
+a {
+    text-decoration: none;
+    color: inherit;
+}
+textarea {
+    border: none;
+    background: none;
+    padding: 0;
+    margin: 0;
+    font-size: inherit;
+    font-family: inherit;
+    width: 100%;
+    height: auto;
+    resize: none; /* prevent manual resizing */
+}
+
+/* Keep a visible focus indicator for keyboard users on every textarea. */
+textarea:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
+
+/* Accessibility - Screen reader only text */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* During theme switching, disable transitions to avoid delayed text updates without restarting animations */
+.theme-switching,
+.theme-switching * {
+    transition-property: none !important;
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation: none !important;
+        transition: none !important;
+        scroll-behavior: auto !important;
+    }
+}

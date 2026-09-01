@@ -1,0 +1,155 @@
+/* Canvas share content layout. Public canvas links keep the shared password,
+   loading, and error states, then show only the shared canvas itself. */
+
+.chat-share-page[data-view="canvas"] .chat-share-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
+.canvas-share-page,
+.canvas-share-content {
+    box-sizing: border-box;
+    width: 100%;
+}
+
+.canvas-share-content {
+    flex: 1;
+    min-height: 100vh;
+    overflow: auto;
+}
+
+.canvas-share-html-frame,
+.canvas-share-pdf-frame {
+    display: block;
+    width: 100%;
+    min-height: 100vh;
+    border: none;
+    background: var(--background);
+}
+
+.canvas-share-html-shell {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-height: 100vh;
+}
+
+.canvas-share-html-shell .canvas-share-html-frame {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.canvas-share-html-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 48px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--background);
+    color: var(--text-color);
+}
+
+.canvas-share-html-toolbar-status {
+    flex: 1 1 auto;
+    min-width: 0;
+    color: var(--text-color-secondary);
+    font-size: 13px;
+}
+
+.canvas-share-html-permission-btn {
+    flex: 0 0 auto;
+    min-height: 32px;
+    padding: 6px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--background);
+    color: var(--text-color);
+    font: inherit;
+    cursor: pointer;
+}
+
+.canvas-share-html-permission-btn.is-active {
+    border-color: var(--primary-color);
+    background: var(--primary-light);
+    color: var(--primary-color);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .canvas-share-html-permission-btn:hover {
+        background: var(--hover);
+    }
+}
+
+@media (max-width: 640px) {
+    .canvas-share-html-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .canvas-share-html-toolbar-status {
+        width: 100%;
+    }
+}
+
+.canvas-share-markdown,
+.canvas-share-css-view {
+    box-sizing: border-box;
+    width: min(980px, calc(100% - 40px));
+    margin: 0 auto;
+    padding-block: 24px;
+}
+
+.canvas-share-markdown h1,
+.canvas-share-markdown h2,
+.canvas-share-markdown h3 {
+    color: var(--text-color);
+}
+
+.canvas-share-markdown pre,
+.canvas-share-css-view {
+    overflow: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--hover);
+}
+
+.canvas-share-css-view {
+    min-height: 100vh;
+    padding: 16px;
+}
+
+.canvas-share-css-view code {
+    font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+}
+
+.canvas-share-markdown .mermaid-block,
+.canvas-share-markdown .mermaid-diagram {
+    width: 100%;
+}
+
+.canvas-share-markdown .mermaid-diagram {
+    display: flex;
+    justify-content: center;
+    overflow-x: auto;
+    padding: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--background);
+}
+
+.canvas-share-markdown .mermaid-diagram svg {
+    max-width: 100%;
+    height: auto;
+}
+
+.canvas-share-markdown .mermaid-diagram.mermaid-diagram-error {
+    justify-content: flex-start;
+    color: var(--error-color);
+}
+
+.canvas-share-mermaid-source {
+    margin-top: 16px;
+}

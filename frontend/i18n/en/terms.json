@@ -1,0 +1,7 @@
+{
+  "terms_page_title": "Terms of Service",
+  "terms_loading": "Loading Terms of Service...",
+  "terms_load_error": "Failed to load Terms of Service. Please try again later.",
+  "terms_default_template_warning_emphasis": "Important:",
+  "terms_default_template_warning": "This instance is still using the default Terms of Service template. The operator must replace it with deployment-specific legal content before public signup is enabled."
+}

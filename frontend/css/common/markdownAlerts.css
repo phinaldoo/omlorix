@@ -1,0 +1,108 @@
+:root {
+    /* Dedicated semantic alert colors keep the five alert types recognizable
+       regardless of the user's selected Omlorix accent theme. */
+    --markdown-alert-note-color: #0969da;
+    --markdown-alert-tip-color: #1a7f37;
+    --markdown-alert-important-color: #8250df;
+    --markdown-alert-warning-color: #9a6700;
+    --markdown-alert-caution-color: #cf222e;
+}
+
+[data-mode="dark"] {
+    --markdown-alert-note-color: #4493f8;
+    --markdown-alert-tip-color: #3fb950;
+    --markdown-alert-important-color: #ab7df8;
+    --markdown-alert-warning-color: #d29922;
+    --markdown-alert-caution-color: #f85149;
+}
+
+blockquote.markdown-alert {
+    --markdown-alert-color: var(--markdown-alert-note-color);
+    min-width: 0;
+    max-width: 100%;
+    margin: 1em 0;
+    padding: 0.85em 1em;
+    border: 0;
+    border-inline-start: 4px solid var(--markdown-alert-color);
+    border-radius: 0 6px 6px 0;
+    background: color-mix(in srgb, var(--markdown-alert-color) 7%, transparent);
+    color: var(--text-color);
+    font-style: normal;
+    overflow-wrap: anywhere;
+}
+
+[dir="rtl"] blockquote.markdown-alert {
+    border-radius: 6px 0 0 6px;
+}
+
+blockquote.markdown-alert-tip {
+    --markdown-alert-color: var(--markdown-alert-tip-color);
+}
+
+blockquote.markdown-alert-important {
+    --markdown-alert-color: var(--markdown-alert-important-color);
+}
+
+blockquote.markdown-alert-warning {
+    --markdown-alert-color: var(--markdown-alert-warning-color);
+}
+
+blockquote.markdown-alert-caution {
+    --markdown-alert-color: var(--markdown-alert-caution-color);
+}
+
+blockquote.markdown-alert > .markdown-alert-title {
+    display: flex;
+    align-items: center;
+    gap: 0.55em;
+    margin: 0 0 0.65em;
+    color: var(--markdown-alert-color);
+    font-size: 1em;
+    font-style: normal;
+    font-weight: 650;
+    line-height: 1.35;
+}
+
+blockquote.markdown-alert > .markdown-alert-title:last-child {
+    margin-bottom: 0;
+}
+
+blockquote.markdown-alert > :not(.markdown-alert-title) {
+    color: var(--text-color);
+    font-style: normal;
+}
+
+blockquote.markdown-alert > :last-child {
+    margin-bottom: 0;
+}
+
+blockquote.markdown-alert > :nth-child(2) {
+    margin-top: 0;
+}
+
+.markdown-alert-icon {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 1.25em;
+    height: 1.25em;
+    color: currentColor;
+}
+
+.markdown-alert-icon svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.markdown-alert-label {
+    min-width: 0;
+}
+
+@media (forced-colors: active) {
+    blockquote.markdown-alert {
+        border-inline-start-color: currentColor;
+        background: Canvas;
+    }
+}

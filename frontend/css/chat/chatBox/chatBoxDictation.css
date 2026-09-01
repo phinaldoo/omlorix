@@ -1,0 +1,71 @@
+.chat-box-dictation-visualizer {
+    margin-top: 6px;
+    margin-bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 8px;
+}
+
+.chat-box-dictation-visualizer[hidden] {
+    display: none !important;
+}
+
+.chat-box-dictation-bars {
+    --dictation-bar-count: 84;
+    display: grid;
+    grid-template-columns: repeat(var(--dictation-bar-count), minmax(1px, 1fr));
+    align-items: center;
+    align-content: center;
+    gap: clamp(1px, 0.18vw, 4px);
+    width: 100%;
+    min-height: 24px;
+    height: 24px;
+}
+
+.chat-box-dictation-bar {
+    --dictation-bar-level: 0.08;
+    width: 100%;
+    justify-self: stretch;
+    align-self: center;
+    min-height: 3px;
+    height: calc(2px + (var(--dictation-bar-level) * 14px));
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--text-color-secondary) 68%, transparent);
+    opacity: calc(0.44 + (var(--dictation-bar-level) * 0.52));
+    transition: height 80ms linear, opacity 120ms ease;
+    will-change: height, opacity;
+}
+
+.chat-box-top.dictation-transcribing .chat-box-dictation-bar {
+    transition-duration: 110ms;
+}
+
+@media (max-width: 768px) {
+    .chat-box-dictation-visualizer {
+        margin-top: 6px;
+        margin-bottom: 14px;
+        min-height: 32px;
+        gap: 6px;
+    }
+
+    .chat-box-dictation-bar {
+        min-height: 2px;
+        height: calc(2px + (var(--dictation-bar-level) * 12px));
+    }
+}
+
+/* Disable the composer while an audio recording is being transcribed. */
+.chat-box-top-input.is-transcribing {
+    pointer-events: none;
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Stop icon shown in the recording state. */
+.dictation-stop-icon {
+    width: 12px;
+    height: 12px;
+    background-color: currentColor;
+    border-radius: 2px;
+}

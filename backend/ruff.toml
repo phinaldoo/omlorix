@@ -1,0 +1,2 @@
+# Keep lint semantics aligned with the oldest Python version in the backend CI matrix.
+target-version = "py313"

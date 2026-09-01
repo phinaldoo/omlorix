@@ -1,0 +1,148 @@
+.om-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    gap: 8px;
+    height: 36px;
+    padding: 8px;
+    border-radius: 8px;
+    color: var(--text-color);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.om-button.border {
+    border: 1px solid var(--border-color);
+}
+
+.om-button.border.cancel {
+    color: var(--text-color-secondary);
+}
+
+.om-button.border.submit,
+.om-button.border.primary {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
+
+.om-button.border.danger {
+    background: var(--error-color, #dc3545);
+    border-color: var(--error-color, #dc3545);
+    color: white;
+}
+
+.om-button.border.danger-nofill {
+    background: transparent;
+    border-color: var(--admin-error-border, var(--error-color, #ef4444));
+    color: var(--admin-error, var(--error-color, #ef4444));
+}
+
+.om-button.border.ghost {
+    background: transparent;
+    border-style: dashed;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .om-button:hover:not(:disabled):not(.disabled):not(.is-disabled) {
+        background-color: var(--hover);
+    }
+
+    .om-button.border.submit:hover:not(:disabled):not(.disabled):not(.is-disabled),
+    .om-button.border.primary:hover:not(:disabled):not(.disabled):not(.is-disabled) {
+        background: var(--primary-hover, var(--primary-color));
+    }
+
+    .om-button.border.danger:hover:not(:disabled):not(.disabled):not(.is-disabled) {
+        background: var(--error-hover-bg, #c82333);
+        border-color: var(--error-hover-bg, #c82333);
+        color: white;
+    }
+
+    .om-button.border.danger-nofill:hover:not(:disabled):not(.disabled):not(.is-disabled) {
+        background: var(--admin-error-bg, color-mix(in srgb, var(--error-color, #ef4444) 8%, transparent));
+        border-color: var(--admin-error, var(--error-color, #ef4444));
+        color: var(--admin-error, var(--error-color, #ef4444));
+    }
+}
+
+.om-button:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+.om-button.active {
+    background-color: color-mix(in srgb, var(--primary-color) 18%, transparent);
+}
+
+.om-button:disabled,
+.om-button.disabled,
+.om-button.is-disabled {
+    opacity: 0.38;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.om-button.loading {
+    pointer-events: none;
+}
+
+.om-button.loading::before {
+    content: "";
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    border: 2px solid color-mix(in srgb, currentColor 35%, transparent);
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+
+.om-button.is-loading svg.refresh-icon {
+    animation: spin 1s linear infinite;
+}
+
+.om-button.is-success {
+    border-color: var(--admin-success, var(--success-color, #22c55e));
+    color: var(--admin-success, var(--success-color, #22c55e));
+}
+
+.om-button.is-success svg.check-icon {
+    color: var(--admin-success, var(--success-color, #22c55e));
+}
+
+.om-button.hidden {
+    display: none;
+}
+
+.om-button[hidden] {
+    display: none !important;
+}
+
+.om-button svg {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+}
+
+.om-button svg[hidden] {
+    display: none;
+}
+
+.om-button .chevron {
+    width: 14px;
+    height: 14px;
+    color: var(--text-color-tertiary);
+    transition: transform 0.18s var(--ms-ease);
+}
+
+.om-button[aria-expanded="true"] .chevron {
+    transform: rotate(180deg);
+}

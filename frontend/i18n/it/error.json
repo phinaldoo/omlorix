@@ -1,0 +1,7 @@
+{
+  "page_title": "Errore",
+  "message": "Qualcosa è andato storto",
+  "description": "Non è stato possibile caricare la pagina che stai cercando. Potrebbe trattarsi di un problema temporaneo: riprova oppure torna alla home page.",
+  "btn_home": "Torna alla home",
+  "help_text": "Se il problema persiste, prova a svuotare la cache del browser o contatta il tuo amministratore."
+}

@@ -1,0 +1,729 @@
+{
+  "fields": {
+    "JWT_SECRET_KEY": {
+      "section": "Required",
+      "description": "Signs Omlorix authentication tokens. Use a unique random value containing at least 64 bytes and keep it private."
+    },
+    "PASSWORD_RESET_IDENTIFIER_HASH_SALT": {
+      "section": "Required",
+      "description": "Salt used to hash password reset identifiers for throttling and audit correlation. Change it for real deployments."
+    },
+    "LOG_IP_HASH_SALT": {
+      "section": "Required",
+      "description": "Independent salt for stable pseudonymous audit and password-reset IP fingerprints. Do not reuse the JWT signing key."
+    },
+    "ENCRYPTION_KEY": {
+      "section": "Required",
+      "description": "Fernet key used to encrypt stored secrets such as API keys. Back it up securely; encrypted data cannot be recovered without it."
+    },
+    "ALLOW_LOCAL_OR_PRIVATE_ORIGINS": {
+      "section": "Auth origin policy",
+      "description": "Allow browser origins from localhost, loopback, or private IP addresses. Keep this off unless this server is intentionally reached from those origins."
+    },
+    "DATABASE_USER": {
+      "section": "Backend Database",
+      "description": "PostgreSQL username used by the bundled database and backend connection settings."
+    },
+    "DATABASE_PASSWORD": {
+      "section": "Backend Database",
+      "description": "Password for the bundled PostgreSQL database. The launcher can generate it; rotate it before production use."
+    },
+    "DATABASE_HOST": {
+      "section": "Backend Database",
+      "description": "Host name or address the backend uses when connecting to PostgreSQL outside Docker-internal overrides."
+    },
+    "DATABASE_PORT": {
+      "section": "Backend Database",
+      "description": "PostgreSQL port used by host-facing tools and non-override backend settings."
+    },
+    "DATABASE_NAME": {
+      "section": "Backend Database",
+      "description": "Application database name used by Omlorix."
+    },
+    "DATABASE_SCHEMA": {
+      "section": "Backend Database",
+      "description": "PostgreSQL schema for application tables."
+    },
+    "DATABASE_AUDIT_LOG_SCHEMA": {
+      "section": "Backend Database",
+      "description": "PostgreSQL schema for audit log tables."
+    },
+    "DATABASE_LOGS_SCHEMA": {
+      "section": "Backend Database",
+      "description": "PostgreSQL schema for operational log tables."
+    },
+    "OMLORIX_AUTO_CREATE_DATABASES": {
+      "section": "Backend Database",
+      "description": "Controls automatic PostgreSQL database creation. Enabled by default; set false when the target database is provisioned externally."
+    },
+    "DATABASE_HOST_OVERRIDE": {
+      "section": "Backend Database",
+      "description": "Docker Compose internal PostgreSQL host override. Keep this pointed at the Compose service unless you know the container network layout."
+    },
+    "DATABASE_PORT_OVERRIDE": {
+      "section": "Backend Database",
+      "description": "Docker Compose internal PostgreSQL port override used by containers."
+    },
+    "DATABASE_URL": {
+      "section": "Backend Database",
+      "description": "External PostgreSQL connection URL used when the built-in database is off."
+    },
+    "COMPOSE_PROJECT_NAME": {
+      "section": "Release and images",
+      "description": "Docker Compose project name. Fresh Launcher and CLI homes receive a stable unique value automatically."
+    },
+    "OMLORIX_VERSION": {
+      "section": "Release and images",
+      "description": "Omlorix server version deployed by the launcher. Pin to a reviewed release instead of a moving tag for stable deployments."
+    },
+    "OMLORIX_USE_BUNDLED_DB": {
+      "section": "Release and images",
+      "description": "Start the built-in PostgreSQL service. Turn off only when using an external PostgreSQL database."
+    },
+    "OMLORIX_USE_BUNDLED_REDIS": {
+      "section": "Release and images",
+      "description": "Use the built-in Redis service when Redis-backed features are enabled."
+    },
+    "OMLORIX_USE_PGBOUNCER": {
+      "section": "Release and images",
+      "description": "Start PgBouncer to pool PostgreSQL connections for busier servers."
+    },
+    "OMLORIX_USE_BUNDLED_STORAGE": {
+      "section": "Release and images",
+      "description": "Start built-in MinIO object storage. Turn off when using S3, GCS, Azure, WebDAV, or local file storage."
+    },
+    "FRONTEND_HTTP_HOST_BIND": {
+      "section": "Host Port Bindings",
+      "description": "Network address for the HTTP frontend port. The default is 127.0.0.1; choose 0.0.0.0 only for intentional direct LAN/public access with an appropriate firewall, trusted-host policy, and reverse-proxy/TLS design."
+    },
+    "FRONTEND_HTTP_HOST_PORT": {
+      "section": "Host Port Bindings",
+      "description": "Host port mapped to the frontend HTTP endpoint."
+    },
+    "DEV_DATABASE_HOST_PORT": {
+      "section": "Host Port Bindings",
+      "description": "Host port exposed for the development PostgreSQL service."
+    },
+    "DEV_REDIS_HOST_PORT": {
+      "section": "Host Port Bindings",
+      "description": "Host port exposed for the development Redis service."
+    },
+    "PGBOUNCER_HOST_BIND": {
+      "section": "Host Port Bindings",
+      "description": "Address PgBouncer binds to on the host. Keep localhost unless exposing through a trusted network boundary."
+    },
+    "PGBOUNCER_HOST_PORT": {
+      "section": "Host Port Bindings",
+      "description": "Host port for PgBouncer."
+    },
+    "MINIO_API_HOST_BIND": {
+      "section": "Host Port Bindings",
+      "description": "Address for the MinIO S3-compatible API on the host. Keep localhost unless protected by firewall, VPN, or proxy."
+    },
+    "MINIO_API_HOST_PORT": {
+      "section": "Host Port Bindings",
+      "description": "Host port for the MinIO S3-compatible API."
+    },
+    "MINIO_CONSOLE_HOST_BIND": {
+      "section": "Host Port Bindings",
+      "description": "Address for the MinIO admin console on the host. Keep localhost unless access is protected."
+    },
+    "MINIO_CONSOLE_HOST_PORT": {
+      "section": "Host Port Bindings",
+      "description": "Host port for the MinIO admin console."
+    },
+    "API_LB_TRAEFIK_WEB_HOST_PORT": {
+      "section": "Host Port Bindings",
+      "description": "Host port for the optional Traefik API load balancer."
+    },
+    "API_LB_TRAEFIK_DASHBOARD_HOST_PORT": {
+      "section": "Host Port Bindings",
+      "description": "Host port for the optional Traefik dashboard."
+    },
+    "OTEL_GRPC_HOST_BIND": {
+      "section": "Host Port Bindings",
+      "description": "Host bind address for the OpenTelemetry gRPC collector endpoint."
+    },
+    "OTEL_GRPC_HOST_PORT": {
+      "section": "Host Port Bindings",
+      "description": "Host port for the OpenTelemetry gRPC collector endpoint."
+    },
+    "OTEL_HTTP_HOST_BIND": {
+      "section": "Host Port Bindings",
+      "description": "Host bind address for the OpenTelemetry HTTP collector endpoint."
+    },
+    "OTEL_HTTP_HOST_PORT": {
+      "section": "Host Port Bindings",
+      "description": "Host port for the OpenTelemetry HTTP collector endpoint."
+    },
+    "OTEL_PROMETHEUS_HOST_BIND": {
+      "section": "Host Port Bindings",
+      "description": "Host bind address for the OpenTelemetry Prometheus exporter."
+    },
+    "OTEL_PROMETHEUS_HOST_PORT": {
+      "section": "Host Port Bindings",
+      "description": "Host port for the OpenTelemetry Prometheus exporter."
+    },
+    "OTEL_HEALTHCHECK_HOST_BIND": {
+      "section": "Host Port Bindings",
+      "description": "Host bind address for the OpenTelemetry collector health endpoint."
+    },
+    "OTEL_HEALTHCHECK_HOST_PORT": {
+      "section": "Host Port Bindings",
+      "description": "Host port for the OpenTelemetry collector health endpoint."
+    },
+    "JAEGER_UI_HOST_BIND": {
+      "section": "Host Port Bindings",
+      "description": "Host bind address for the Jaeger UI. Keep localhost unless protected."
+    },
+    "JAEGER_UI_HOST_PORT": {
+      "section": "Host Port Bindings",
+      "description": "Host port for the Jaeger UI."
+    },
+    "JAEGER_COLLECTOR_HOST_BIND": {
+      "section": "Host Port Bindings",
+      "description": "Host bind address for the Jaeger collector."
+    },
+    "JAEGER_COLLECTOR_HOST_PORT": {
+      "section": "Host Port Bindings",
+      "description": "Host port for the Jaeger collector."
+    },
+    "PROMETHEUS_HOST_BIND": {
+      "section": "Host Port Bindings",
+      "description": "Host bind address for Prometheus. Keep localhost unless protected."
+    },
+    "PROMETHEUS_HOST_PORT": {
+      "section": "Host Port Bindings",
+      "description": "Host port for Prometheus."
+    },
+    "ALERTMANAGER_HOST_BIND": {
+      "section": "Host Port Bindings",
+      "description": "Host bind address for Alertmanager. Keep localhost unless protected."
+    },
+    "ALERTMANAGER_HOST_PORT": {
+      "section": "Host Port Bindings",
+      "description": "Host port for Alertmanager."
+    },
+    "GRAFANA_HOST_BIND": {
+      "section": "Host Port Bindings",
+      "description": "Host bind address for Grafana. Keep localhost unless protected."
+    },
+    "GRAFANA_HOST_PORT": {
+      "section": "Host Port Bindings",
+      "description": "Host port for Grafana."
+    },
+    "FRONTEND_TRUSTED_UPSTREAMS": {
+      "section": "Server Launcher Proxy",
+      "description": "Exact external proxy IP addresses or CIDRs allowed to supply one canonical visitor address."
+    },
+    "REDIS_PASSWORD": {
+      "section": "Redis",
+      "description": "Password for the built-in Redis service. Keep it in sync with REDIS_URL when Redis is bundled."
+    },
+    "REDIS_URL": {
+      "section": "Redis",
+      "description": "Redis connection URL used by Omlorix for cache, queues, streams, and background jobs."
+    },
+    "REDIS_ENABLED": {
+      "section": "Redis",
+      "description": "Enable Redis-backed runtime features. Most launcher deployments should leave this on."
+    },
+    "SETTINGS_CACHE_NAMESPACE": {
+      "section": "Redis",
+      "description": "Optional deployment identifier used to isolate settings-cache keys when multiple Omlorix deployments intentionally share Redis and a database."
+    },
+    "AUTOMATION_QUEUE_NAME": {
+      "section": "Redis",
+      "description": "Redis queue name used for automation jobs."
+    },
+    "AUTOMATION_SCHEDULER_ENABLED": {
+      "section": "Redis",
+      "description": "Enable the automation scheduler service."
+    },
+    "PGBOUNCER_POOL_MODE": {
+      "section": "Single Server Plus",
+      "description": "PgBouncer pooling mode. Transaction is the recommended default for most Omlorix deployments."
+    },
+    "PGBOUNCER_MAX_CLIENT_CONN": {
+      "section": "Single Server Plus",
+      "description": "Maximum client connections PgBouncer accepts."
+    },
+    "PGBOUNCER_DEFAULT_POOL_SIZE": {
+      "section": "Single Server Plus",
+      "description": "Default number of PostgreSQL server connections PgBouncer keeps per pool."
+    },
+    "PGBOUNCER_RESERVE_POOL_SIZE": {
+      "section": "Single Server Plus",
+      "description": "Extra PgBouncer server connections reserved for short traffic spikes."
+    },
+    "MINIO_ROOT_USER": {
+      "section": "Single Server Plus",
+      "description": "Admin username for built-in MinIO object storage."
+    },
+    "MINIO_ROOT_PASSWORD": {
+      "section": "Single Server Plus",
+      "description": "Admin password for built-in MinIO object storage. Use a strong unique secret."
+    },
+    "BACKUP_LOCAL_DIR": {
+      "section": "Backup / Restore",
+      "description": "Directory inside the backend container where local backup files are written."
+    },
+    "BACKUP_SCHEDULER_ENABLED": {
+      "section": "Backup / Restore",
+      "description": "Enable scheduled backup jobs."
+    },
+    "BACKUP_SCHEDULER_INTERVAL_SECONDS": {
+      "section": "Backup / Restore",
+      "description": "How often the backup scheduler wakes up to check for due jobs."
+    },
+    "BACKUP_WRITE_FREEZE_MAX_SECONDS": {
+      "section": "Backup / Restore",
+      "description": "Maximum time writes may be frozen while creating a consistent backup."
+    },
+    "BACKUP_RESTORE_LOCK_TIMEOUT_SECONDS": {
+      "section": "Backup / Restore",
+      "description": "Maximum time a PostgreSQL restore waits for a relation lock before failing safely."
+    },
+    "BACKUP_RESTORE_COMMAND_TIMEOUT_SECONDS": {
+      "section": "Backup / Restore",
+      "description": "Maximum total runtime for each PostgreSQL restore command."
+    },
+    "OMLORIX_ERASURE_LEDGER_PATH": {
+      "section": "Backup / Restore",
+      "description": "Path inside the backend container for the restore-resistant completed user-erasure ledger. Leave blank to use Omlorix's persistent data directory; custom paths must use durable storage outside backup replacement."
+    },
+    "BACKUP_ARCHIVE_ENCRYPTION_PASSPHRASE": {
+      "section": "Backup / Restore",
+      "description": "Passphrase for encrypted backup archives. Store it separately from backups and keep the original ENCRYPTION_KEY too."
+    },
+    "BACKUP_ALLOW_PLAINTEXT_ARCHIVES": {
+      "section": "Backup / Restore",
+      "description": "Allow unencrypted backup archives. Keep disabled except for temporary compatibility scenarios."
+    },
+    "FILE_TEMP_CLEANUP_INTERVAL_SECONDS": {
+      "section": "Files",
+      "description": "How often temporary file cleanup runs."
+    },
+    "FILE_TEMP_MAX_AGE_SECONDS": {
+      "section": "Files",
+      "description": "Maximum age for ordinary temporary files before cleanup removes them."
+    },
+    "FILE_MATERIALIZED_TEMP_MAX_AGE_SECONDS": {
+      "section": "Files",
+      "description": "Maximum age for materialized temporary files before cleanup removes them."
+    },
+    "FILE_STORAGE_PROVIDER": {
+      "section": "User File Storage",
+      "description": "Storage backend for user uploads when built-in storage is off. Choose local, s3, gcs, azure, or webdav."
+    },
+    "FILE_STORAGE_LOCAL_BASE_PATH": {
+      "section": "User File Storage",
+      "description": "Local path inside the backend container for user-uploaded files when using local storage."
+    },
+    "FILE_STORAGE_S3_BUCKET": {
+      "section": "User File Storage",
+      "description": "S3-compatible bucket name for user file storage."
+    },
+    "FILE_STORAGE_S3_PREFIX": {
+      "section": "User File Storage",
+      "description": "Optional S3 key prefix for all stored user files."
+    },
+    "FILE_STORAGE_S3_REGION": {
+      "section": "User File Storage",
+      "description": "S3 region for the bucket."
+    },
+    "FILE_STORAGE_S3_ENDPOINT_URL": {
+      "section": "User File Storage",
+      "description": "Custom S3-compatible endpoint URL, such as MinIO or Cloudflare R2."
+    },
+    "FILE_STORAGE_S3_ACCESS_KEY_ID": {
+      "section": "User File Storage",
+      "description": "Access key ID for S3-compatible storage."
+    },
+    "FILE_STORAGE_S3_SECRET_ACCESS_KEY": {
+      "section": "User File Storage",
+      "description": "Secret access key for S3-compatible storage."
+    },
+    "FILE_STORAGE_S3_SESSION_TOKEN": {
+      "section": "User File Storage",
+      "description": "Optional temporary session token for S3-compatible storage."
+    },
+    "FILE_STORAGE_GCS_BUCKET": {
+      "section": "User File Storage",
+      "description": "Google Cloud Storage bucket name for user files."
+    },
+    "FILE_STORAGE_GCS_PREFIX": {
+      "section": "User File Storage",
+      "description": "Optional Google Cloud Storage object prefix for all user files."
+    },
+    "FILE_STORAGE_GCS_PROJECT": {
+      "section": "User File Storage",
+      "description": "Google Cloud project ID for the storage bucket."
+    },
+    "FILE_STORAGE_GCS_CREDENTIALS_JSON": {
+      "section": "User File Storage",
+      "description": "Service account credentials JSON for Google Cloud Storage. Treat as a secret."
+    },
+    "FILE_STORAGE_AZURE_CONTAINER": {
+      "section": "User File Storage",
+      "description": "Azure Blob Storage container name for user files."
+    },
+    "FILE_STORAGE_AZURE_PREFIX": {
+      "section": "User File Storage",
+      "description": "Optional Azure blob prefix for all user files."
+    },
+    "FILE_STORAGE_AZURE_CONNECTION_STRING": {
+      "section": "User File Storage",
+      "description": "Azure Storage connection string. Treat as a secret."
+    },
+    "FILE_STORAGE_AZURE_ACCOUNT_URL": {
+      "section": "User File Storage",
+      "description": "Azure Storage account URL used when authenticating without a connection string."
+    },
+    "FILE_STORAGE_AZURE_CREDENTIAL": {
+      "section": "User File Storage",
+      "description": "Azure credential value used with the account URL. Treat as a secret."
+    },
+    "FILE_STORAGE_WEBDAV_URL": {
+      "section": "User File Storage",
+      "description": "WebDAV endpoint URL for user file storage."
+    },
+    "FILE_STORAGE_WEBDAV_USERNAME": {
+      "section": "User File Storage",
+      "description": "WebDAV username for user file storage."
+    },
+    "FILE_STORAGE_WEBDAV_PASSWORD": {
+      "section": "User File Storage",
+      "description": "WebDAV password for user file storage."
+    },
+    "FILE_STORAGE_WEBDAV_PREFIX": {
+      "section": "User File Storage",
+      "description": "Optional WebDAV path prefix for all user files."
+    },
+    "FILE_STORAGE_WEBDAV_VERIFY_SSL": {
+      "section": "User File Storage",
+      "description": "Verify TLS certificates when connecting to WebDAV storage. Keep enabled unless using a trusted private certificate setup."
+    },
+    "FILE_STORAGE_WEBDAV_TIMEOUT": {
+      "section": "User File Storage",
+      "description": "WebDAV request timeout in seconds."
+    },
+    "DB_MIGRATIONS_MODE": {
+      "section": "Database Migration Orchestration",
+      "description": "Controls database migrations for this container. Use off for app containers when migrations run in a dedicated job."
+    },
+    "DB_MIGRATIONS_LOCK_TIMEOUT_SECONDS": {
+      "section": "Database Migration Orchestration",
+      "description": "How long the migration runner waits for the PostgreSQL advisory lock."
+    },
+    "POSTGRES_VOLUME_MOUNT_PATH": {
+      "section": "PostgreSQL data directory",
+      "description": "Path where the postgres_data volume is mounted inside the PostgreSQL container."
+    },
+    "POSTGRES_PGDATA": {
+      "section": "PostgreSQL data directory",
+      "description": "PostgreSQL data directory inside the mounted volume. Keep stable across upgrades."
+    },
+    "MODE": {
+      "section": "Mode",
+      "description": "Runtime mode. Production disables developer-only API docs; dev enables local development conveniences."
+    },
+    "TRUST_PROXY_HEADERS": {
+      "section": "Visitor IPs / Trusted Proxies",
+      "description": "Trust forwarded headers from known reverse proxies so Omlorix can see real visitor IP addresses."
+    },
+    "FRONTEND_TRUST_PROXY_HEADERS": {
+      "section": "Visitor IPs / Trusted Proxies",
+      "description": "Preserve an upstream X-Forwarded-For chain at nginx only when the frontend port is restricted to a trusted proxy that overwrites client-supplied forwarding headers."
+    },
+    "OMLORIX_DISABLE_IP_RESTRICTIONS": {
+      "section": "Visitor IPs / Trusted Proxies",
+      "description": "Emergency bypass for admin-managed IP restrictions and IP bans. Enable only long enough to recover access."
+    },
+    "TRUSTED_PROXIES": {
+      "section": "Visitor IPs / Trusted Proxies",
+      "description": "Comma-separated proxy CIDRs allowed to set X-Forwarded-For. Keep this limited to infrastructure you control."
+    },
+    "TRUSTED_HOSTS": {
+      "section": "Visitor IPs / Trusted Proxies",
+      "description": "Comma-separated Host header values accepted by the backend in addition to configured public URLs."
+    },
+    "UVICORN_FORWARDED_ALLOW_IPS": {
+      "section": "Visitor IPs / Trusted Proxies",
+      "description": "Proxy IPs or CIDRs Uvicorn trusts for forwarded headers. Avoid broad private ranges in production."
+    },
+    "RATE_LIMIT_ENABLED": {
+      "section": "API rate limiting",
+      "description": "Enable Redis-backed API rate limiting."
+    },
+    "RATE_LIMIT_DEFAULT_RPM": {
+      "section": "API rate limiting",
+      "description": "Default requests-per-minute limit for routes without a more specific limit."
+    },
+    "RATE_LIMIT_CHAT_RPM": {
+      "section": "API rate limiting",
+      "description": "Requests-per-minute limit for chat endpoints."
+    },
+    "RATE_LIMIT_HEAVY_RPM": {
+      "section": "API rate limiting",
+      "description": "Requests-per-minute limit for expensive routes."
+    },
+    "RATE_LIMIT_WIDGET_FRAME_RPM": {
+      "section": "API rate limiting",
+      "description": "Requests-per-minute limit for creating interactive widget frames. Keep it high enough to hydrate chats containing multiple widgets while limiting abuse."
+    },
+    "RATE_LIMIT_AUTH_RPM": {
+      "section": "API rate limiting",
+      "description": "Requests-per-minute limit for authentication routes."
+    },
+    "RATE_LIMIT_TRUSTED_PROXIES": {
+      "section": "API rate limiting",
+      "description": "Optional proxy CIDRs used only by the rate limiter when parsing forwarded visitor IPs."
+    },
+    "AUTH_TRUSTED_PROXIES": {
+      "section": "API rate limiting",
+      "description": "Optional proxy CIDRs used by authentication flows when evaluating forwarded request metadata."
+    },
+    "RATE_LIMIT_PROXY_SETTINGS_CACHE_SECONDS": {
+      "section": "API rate limiting",
+      "description": "How long rate limiting caches proxy trust settings before reloading them."
+    },
+    "OTEL_ENABLED": {
+      "section": "OpenTelemetry",
+      "description": "Enable OpenTelemetry instrumentation and export."
+    },
+    "OTEL_SERVICE_NAME": {
+      "section": "OpenTelemetry",
+      "description": "Service name reported in OpenTelemetry traces, metrics, and logs."
+    },
+    "OTEL_EXPORTER_OTLP_INSECURE": {
+      "section": "OpenTelemetry",
+      "description": "Allow plaintext OTLP exporter connections. Keep false unless sending to a trusted local collector."
+    },
+    "OTEL_TRACES_ENABLED": {
+      "section": "OpenTelemetry",
+      "description": "Enable trace collection and export."
+    },
+    "OTEL_TRACES_SAMPLER": {
+      "section": "OpenTelemetry",
+      "description": "Sampling strategy for traces."
+    },
+    "OTEL_TRACES_SAMPLER_ARG": {
+      "section": "OpenTelemetry",
+      "description": "Argument for the selected trace sampler, such as a sampling ratio."
+    },
+    "OTEL_METRICS_ENABLED": {
+      "section": "OpenTelemetry",
+      "description": "Enable metrics collection and export."
+    },
+    "OTEL_PROMETHEUS_EXPORTER_ENABLED": {
+      "section": "OpenTelemetry",
+      "description": "Expose Prometheus metrics from OpenTelemetry instrumentation."
+    },
+    "OTEL_LOGS_ENABLED": {
+      "section": "OpenTelemetry",
+      "description": "Enable OpenTelemetry log correlation and export."
+    },
+    "OTEL_INSTRUMENT_FASTAPI": {
+      "section": "OpenTelemetry",
+      "description": "Instrument FastAPI request handling."
+    },
+    "OTEL_INSTRUMENT_SQLALCHEMY": {
+      "section": "OpenTelemetry",
+      "description": "Instrument SQLAlchemy database calls."
+    },
+    "OTEL_INSTRUMENT_HTTP_CLIENTS": {
+      "section": "OpenTelemetry",
+      "description": "Instrument outbound HTTP client calls."
+    },
+    "OTEL_SQL_COMMENTER_ENABLED": {
+      "section": "OpenTelemetry",
+      "description": "Attach SQL comment metadata for observability. Leave off unless your database policy allows it."
+    },
+    "OTEL_CAPTURE_HTTP_ROUTE": {
+      "section": "OpenTelemetry",
+      "description": "Capture HTTP route attributes in telemetry."
+    },
+    "OTEL_CAPTURE_HTTP_USER_AGENT": {
+      "section": "OpenTelemetry",
+      "description": "Capture raw User-Agent values in telemetry. This can be privacy-sensitive."
+    },
+    "OTEL_HASH_HTTP_USER_AGENT": {
+      "section": "OpenTelemetry",
+      "description": "Hash User-Agent values before recording them in telemetry."
+    },
+    "GRAFANA_ADMIN_USER": {
+      "section": "Grafana",
+      "description": "Admin username for the bundled Grafana dashboard."
+    },
+    "GRAFANA_ADMIN_PASSWORD": {
+      "section": "Grafana",
+      "description": "Admin password for the bundled Grafana dashboard. Replace the placeholder before enabling observability."
+    }
+  },
+  "translations": {
+    "sections": {
+      "General": "launcher_ui_env_section_general",
+      "Required": "launcher_ui_required",
+      "Auth origin policy": "launcher_ui_env_section_auth_origin_policy",
+      "Backend Database": "launcher_ui_env_section_backend_database",
+      "Release and images": "launcher_ui_env_section_release_and_images",
+      "Host Port Bindings": "launcher_ui_env_section_host_port_bindings",
+      "Server Launcher Proxy": "launcher_ui_env_section_server_launcher_proxy",
+      "Redis": "launcher_ui_env_section_redis",
+      "Single Server Plus": "launcher_ui_env_section_single_server_plus",
+      "Backup / Restore": "launcher_ui_env_section_backup_restore",
+      "Files": "launcher_ui_env_section_files",
+      "User File Storage": "launcher_ui_env_section_user_file_storage",
+      "Database Migration Orchestration": "launcher_ui_env_section_database_migration_orchestration",
+      "PostgreSQL data directory": "launcher_ui_env_section_postgresql_data_directory",
+      "Mode": "launcher_ui_mode",
+      "Visitor IPs / Trusted Proxies": "launcher_ui_env_section_visitor_ips_trusted_proxies",
+      "API rate limiting": "launcher_ui_env_section_api_rate_limiting",
+      "OpenTelemetry": "launcher_ui_env_section_opentelemetry",
+      "Grafana": "launcher_ui_env_section_grafana"
+    },
+    "descriptions": {
+      "JWT_SECRET_KEY": "launcher_ui_env_description_jwt_secret_key",
+      "PASSWORD_RESET_IDENTIFIER_HASH_SALT": "launcher_ui_env_description_password_reset_identifier_hash_salt",
+      "LOG_IP_HASH_SALT": "launcher_ui_env_description_log_ip_hash_salt",
+      "ENCRYPTION_KEY": "launcher_ui_env_description_encryption_key",
+      "ALLOW_LOCAL_OR_PRIVATE_ORIGINS": "launcher_ui_env_description_allow_local_or_private_origins",
+      "DATABASE_USER": "launcher_ui_env_description_database_user",
+      "DATABASE_PASSWORD": "launcher_ui_env_description_database_password",
+      "DATABASE_HOST": "launcher_ui_env_description_database_host",
+      "DATABASE_PORT": "launcher_ui_env_description_database_port",
+      "DATABASE_NAME": "launcher_ui_env_description_database_name",
+      "DATABASE_SCHEMA": "launcher_ui_env_description_database_schema",
+      "DATABASE_AUDIT_LOG_SCHEMA": "launcher_ui_env_description_database_audit_log_schema",
+      "DATABASE_LOGS_SCHEMA": "launcher_ui_env_description_database_logs_schema",
+      "OMLORIX_AUTO_CREATE_DATABASES": "launcher_ui_env_description_omlorix_auto_create_databases",
+      "DATABASE_HOST_OVERRIDE": "launcher_ui_env_description_database_host_override",
+      "DATABASE_PORT_OVERRIDE": "launcher_ui_env_description_database_port_override",
+      "DATABASE_URL": "launcher_ui_env_description_database_url",
+      "COMPOSE_PROJECT_NAME": "launcher_ui_env_description_compose_project_name",
+      "OMLORIX_VERSION": "launcher_ui_env_description_omlorix_version",
+      "OMLORIX_USE_BUNDLED_DB": "launcher_ui_env_description_omlorix_use_bundled_db",
+      "OMLORIX_USE_BUNDLED_REDIS": "launcher_ui_env_description_omlorix_use_bundled_redis",
+      "OMLORIX_USE_PGBOUNCER": "launcher_ui_env_description_omlorix_use_pgbouncer",
+      "OMLORIX_USE_BUNDLED_STORAGE": "launcher_ui_env_description_omlorix_use_bundled_storage",
+      "FRONTEND_HTTP_HOST_BIND": "launcher_ui_env_description_frontend_http_host_bind",
+      "FRONTEND_HTTP_HOST_PORT": "launcher_ui_env_description_frontend_http_host_port",
+      "DEV_DATABASE_HOST_PORT": "launcher_ui_env_description_dev_database_host_port",
+      "DEV_REDIS_HOST_PORT": "launcher_ui_env_description_dev_redis_host_port",
+      "PGBOUNCER_HOST_BIND": "launcher_ui_env_description_pgbouncer_host_bind",
+      "PGBOUNCER_HOST_PORT": "launcher_ui_env_description_pgbouncer_host_port",
+      "MINIO_API_HOST_BIND": "launcher_ui_env_description_minio_api_host_bind",
+      "MINIO_API_HOST_PORT": "launcher_ui_env_description_minio_api_host_port",
+      "MINIO_CONSOLE_HOST_BIND": "launcher_ui_env_description_minio_console_host_bind",
+      "MINIO_CONSOLE_HOST_PORT": "launcher_ui_env_description_minio_console_host_port",
+      "API_LB_TRAEFIK_WEB_HOST_PORT": "launcher_ui_env_description_api_lb_traefik_web_host_port",
+      "API_LB_TRAEFIK_DASHBOARD_HOST_PORT": "launcher_ui_env_description_api_lb_traefik_dashboard_host_port",
+      "OTEL_GRPC_HOST_BIND": "launcher_ui_env_description_otel_grpc_host_bind",
+      "OTEL_GRPC_HOST_PORT": "launcher_ui_env_description_otel_grpc_host_port",
+      "OTEL_HTTP_HOST_BIND": "launcher_ui_env_description_otel_http_host_bind",
+      "OTEL_HTTP_HOST_PORT": "launcher_ui_env_description_otel_http_host_port",
+      "OTEL_PROMETHEUS_HOST_BIND": "launcher_ui_env_description_otel_prometheus_host_bind",
+      "OTEL_PROMETHEUS_HOST_PORT": "launcher_ui_env_description_otel_prometheus_host_port",
+      "OTEL_HEALTHCHECK_HOST_BIND": "launcher_ui_env_description_otel_healthcheck_host_bind",
+      "OTEL_HEALTHCHECK_HOST_PORT": "launcher_ui_env_description_otel_healthcheck_host_port",
+      "JAEGER_UI_HOST_BIND": "launcher_ui_env_description_jaeger_ui_host_bind",
+      "JAEGER_UI_HOST_PORT": "launcher_ui_env_description_jaeger_ui_host_port",
+      "JAEGER_COLLECTOR_HOST_BIND": "launcher_ui_env_description_jaeger_collector_host_bind",
+      "JAEGER_COLLECTOR_HOST_PORT": "launcher_ui_env_description_jaeger_collector_host_port",
+      "PROMETHEUS_HOST_BIND": "launcher_ui_env_description_prometheus_host_bind",
+      "PROMETHEUS_HOST_PORT": "launcher_ui_env_description_prometheus_host_port",
+      "ALERTMANAGER_HOST_BIND": "launcher_ui_env_description_alertmanager_host_bind",
+      "ALERTMANAGER_HOST_PORT": "launcher_ui_env_description_alertmanager_host_port",
+      "GRAFANA_HOST_BIND": "launcher_ui_env_description_grafana_host_bind",
+      "GRAFANA_HOST_PORT": "launcher_ui_env_description_grafana_host_port",
+      "FRONTEND_TRUSTED_UPSTREAMS": "launcher_ui_env_description_frontend_trusted_upstreams",
+      "REDIS_PASSWORD": "launcher_ui_env_description_redis_password",
+      "REDIS_URL": "launcher_ui_env_description_redis_url",
+      "REDIS_ENABLED": "launcher_ui_env_description_redis_enabled",
+      "SETTINGS_CACHE_NAMESPACE": "launcher_ui_env_description_settings_cache_namespace",
+      "AUTOMATION_QUEUE_NAME": "launcher_ui_env_description_automation_queue_name",
+      "AUTOMATION_SCHEDULER_ENABLED": "launcher_ui_env_description_automation_scheduler_enabled",
+      "PGBOUNCER_POOL_MODE": "launcher_ui_env_description_pgbouncer_pool_mode",
+      "PGBOUNCER_MAX_CLIENT_CONN": "launcher_ui_env_description_pgbouncer_max_client_conn",
+      "PGBOUNCER_DEFAULT_POOL_SIZE": "launcher_ui_env_description_pgbouncer_default_pool_size",
+      "PGBOUNCER_RESERVE_POOL_SIZE": "launcher_ui_env_description_pgbouncer_reserve_pool_size",
+      "MINIO_ROOT_USER": "launcher_ui_env_description_minio_root_user",
+      "MINIO_ROOT_PASSWORD": "launcher_ui_env_description_minio_root_password",
+      "BACKUP_LOCAL_DIR": "launcher_ui_env_description_backup_local_dir",
+      "BACKUP_SCHEDULER_ENABLED": "launcher_ui_env_description_backup_scheduler_enabled",
+      "BACKUP_SCHEDULER_INTERVAL_SECONDS": "launcher_ui_env_description_backup_scheduler_interval_seconds",
+      "BACKUP_WRITE_FREEZE_MAX_SECONDS": "launcher_ui_env_description_backup_write_freeze_max_seconds",
+      "BACKUP_RESTORE_LOCK_TIMEOUT_SECONDS": "launcher_ui_env_description_backup_restore_lock_timeout_seconds",
+      "BACKUP_RESTORE_COMMAND_TIMEOUT_SECONDS": "launcher_ui_env_description_backup_restore_command_timeout_seconds",
+      "OMLORIX_ERASURE_LEDGER_PATH": "launcher_ui_env_description_omlorix_erasure_ledger_path",
+      "BACKUP_ARCHIVE_ENCRYPTION_PASSPHRASE": "launcher_ui_env_description_backup_archive_encryption_passphrase",
+      "BACKUP_ALLOW_PLAINTEXT_ARCHIVES": "launcher_ui_env_description_backup_allow_plaintext_archives",
+      "FILE_TEMP_CLEANUP_INTERVAL_SECONDS": "launcher_ui_env_description_file_temp_cleanup_interval_seconds",
+      "FILE_TEMP_MAX_AGE_SECONDS": "launcher_ui_env_description_file_temp_max_age_seconds",
+      "FILE_MATERIALIZED_TEMP_MAX_AGE_SECONDS": "launcher_ui_env_description_file_materialized_temp_max_age_seconds",
+      "FILE_STORAGE_PROVIDER": "launcher_ui_env_description_file_storage_provider",
+      "FILE_STORAGE_LOCAL_BASE_PATH": "launcher_ui_env_description_file_storage_local_base_path",
+      "FILE_STORAGE_S3_BUCKET": "launcher_ui_env_description_file_storage_s3_bucket",
+      "FILE_STORAGE_S3_PREFIX": "launcher_ui_env_description_file_storage_s3_prefix",
+      "FILE_STORAGE_S3_REGION": "launcher_ui_env_description_file_storage_s3_region",
+      "FILE_STORAGE_S3_ENDPOINT_URL": "launcher_ui_env_description_file_storage_s3_endpoint_url",
+      "FILE_STORAGE_S3_ACCESS_KEY_ID": "launcher_ui_env_description_file_storage_s3_access_key_id",
+      "FILE_STORAGE_S3_SECRET_ACCESS_KEY": "launcher_ui_env_description_file_storage_s3_secret_access_key",
+      "FILE_STORAGE_S3_SESSION_TOKEN": "launcher_ui_env_description_file_storage_s3_session_token",
+      "FILE_STORAGE_GCS_BUCKET": "launcher_ui_env_description_file_storage_gcs_bucket",
+      "FILE_STORAGE_GCS_PREFIX": "launcher_ui_env_description_file_storage_gcs_prefix",
+      "FILE_STORAGE_GCS_PROJECT": "launcher_ui_env_description_file_storage_gcs_project",
+      "FILE_STORAGE_GCS_CREDENTIALS_JSON": "launcher_ui_env_description_file_storage_gcs_credentials_json",
+      "FILE_STORAGE_AZURE_CONTAINER": "launcher_ui_env_description_file_storage_azure_container",
+      "FILE_STORAGE_AZURE_PREFIX": "launcher_ui_env_description_file_storage_azure_prefix",
+      "FILE_STORAGE_AZURE_CONNECTION_STRING": "launcher_ui_env_description_file_storage_azure_connection_string",
+      "FILE_STORAGE_AZURE_ACCOUNT_URL": "launcher_ui_env_description_file_storage_azure_account_url",
+      "FILE_STORAGE_AZURE_CREDENTIAL": "launcher_ui_env_description_file_storage_azure_credential",
+      "FILE_STORAGE_WEBDAV_URL": "launcher_ui_env_description_file_storage_webdav_url",
+      "FILE_STORAGE_WEBDAV_USERNAME": "launcher_ui_env_description_file_storage_webdav_username",
+      "FILE_STORAGE_WEBDAV_PASSWORD": "launcher_ui_env_description_file_storage_webdav_password",
+      "FILE_STORAGE_WEBDAV_PREFIX": "launcher_ui_env_description_file_storage_webdav_prefix",
+      "FILE_STORAGE_WEBDAV_VERIFY_SSL": "launcher_ui_env_description_file_storage_webdav_verify_ssl",
+      "FILE_STORAGE_WEBDAV_TIMEOUT": "launcher_ui_env_description_file_storage_webdav_timeout",
+      "DB_MIGRATIONS_MODE": "launcher_ui_env_description_db_migrations_mode",
+      "DB_MIGRATIONS_LOCK_TIMEOUT_SECONDS": "launcher_ui_env_description_db_migrations_lock_timeout_seconds",
+      "POSTGRES_VOLUME_MOUNT_PATH": "launcher_ui_env_description_postgres_volume_mount_path",
+      "POSTGRES_PGDATA": "launcher_ui_env_description_postgres_pgdata",
+      "MODE": "launcher_ui_env_description_mode",
+      "TRUST_PROXY_HEADERS": "launcher_ui_env_description_trust_proxy_headers",
+      "FRONTEND_TRUST_PROXY_HEADERS": "launcher_ui_env_description_frontend_trust_proxy_headers",
+      "OMLORIX_DISABLE_IP_RESTRICTIONS": "launcher_ui_env_description_omlorix_disable_ip_restrictions",
+      "TRUSTED_PROXIES": "launcher_ui_env_description_trusted_proxies",
+      "TRUSTED_HOSTS": "launcher_ui_env_description_trusted_hosts",
+      "UVICORN_FORWARDED_ALLOW_IPS": "launcher_ui_env_description_uvicorn_forwarded_allow_ips",
+      "RATE_LIMIT_ENABLED": "launcher_ui_env_description_rate_limit_enabled",
+      "RATE_LIMIT_DEFAULT_RPM": "launcher_ui_env_description_rate_limit_default_rpm",
+      "RATE_LIMIT_CHAT_RPM": "launcher_ui_env_description_rate_limit_chat_rpm",
+      "RATE_LIMIT_HEAVY_RPM": "launcher_ui_env_description_rate_limit_heavy_rpm",
+      "RATE_LIMIT_WIDGET_FRAME_RPM": "launcher_ui_env_description_rate_limit_widget_frame_rpm",
+      "RATE_LIMIT_AUTH_RPM": "launcher_ui_env_description_rate_limit_auth_rpm",
+      "RATE_LIMIT_TRUSTED_PROXIES": "launcher_ui_env_description_rate_limit_trusted_proxies",
+      "AUTH_TRUSTED_PROXIES": "launcher_ui_env_description_auth_trusted_proxies",
+      "RATE_LIMIT_PROXY_SETTINGS_CACHE_SECONDS": "launcher_ui_env_description_rate_limit_proxy_settings_cache_seconds",
+      "OTEL_ENABLED": "launcher_ui_env_description_otel_enabled",
+      "OTEL_SERVICE_NAME": "launcher_ui_env_description_otel_service_name",
+      "OTEL_EXPORTER_OTLP_INSECURE": "launcher_ui_env_description_otel_exporter_otlp_insecure",
+      "OTEL_TRACES_ENABLED": "launcher_ui_env_description_otel_traces_enabled",
+      "OTEL_TRACES_SAMPLER": "launcher_ui_env_description_otel_traces_sampler",
+      "OTEL_TRACES_SAMPLER_ARG": "launcher_ui_env_description_otel_traces_sampler_arg",
+      "OTEL_METRICS_ENABLED": "launcher_ui_env_description_otel_metrics_enabled",
+      "OTEL_PROMETHEUS_EXPORTER_ENABLED": "launcher_ui_env_description_otel_prometheus_exporter_enabled",
+      "OTEL_LOGS_ENABLED": "launcher_ui_env_description_otel_logs_enabled",
+      "OTEL_INSTRUMENT_FASTAPI": "launcher_ui_env_description_otel_instrument_fastapi",
+      "OTEL_INSTRUMENT_SQLALCHEMY": "launcher_ui_env_description_otel_instrument_sqlalchemy",
+      "OTEL_INSTRUMENT_HTTP_CLIENTS": "launcher_ui_env_description_otel_instrument_http_clients",
+      "OTEL_SQL_COMMENTER_ENABLED": "launcher_ui_env_description_otel_sql_commenter_enabled",
+      "OTEL_CAPTURE_HTTP_ROUTE": "launcher_ui_env_description_otel_capture_http_route",
+      "OTEL_CAPTURE_HTTP_USER_AGENT": "launcher_ui_env_description_otel_capture_http_user_agent",
+      "OTEL_HASH_HTTP_USER_AGENT": "launcher_ui_env_description_otel_hash_http_user_agent",
+      "GRAFANA_ADMIN_USER": "launcher_ui_env_description_grafana_admin_user",
+      "GRAFANA_ADMIN_PASSWORD": "launcher_ui_env_description_grafana_admin_password"
+    }
+  }
+}

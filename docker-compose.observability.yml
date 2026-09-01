@@ -1,0 +1,290 @@
+x-omlorix-labels: &omlorix-labels
+  com.omlorix.installation.id: ${OMLORIX_INSTALLATION_ID:-unmanaged}
+
+x-worker-otel-environment: &worker-otel-environment
+  OTEL_ENABLED: "true"
+  OTEL_TRACES_ENABLED: "true"
+  OTEL_METRICS_ENABLED: "true"
+  OTEL_PROMETHEUS_EXPORTER_ENABLED: "false"
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+  OTEL_EXPORTER_OTLP_INSECURE: "true"
+
+x-worker-otel-depends: &worker-otel-depends
+  otel-collector:
+    condition: service_healthy
+
+services:
+  metrics_token:
+    labels: *omlorix-labels
+    image: alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
+    command: >
+      sh -c "set -eu; mkdir -p /metrics; if [ ! -s /metrics/token ]; then head -c 32 /dev/urandom | base64 > /metrics/token; fi; chmod 0444 /metrics/token"
+    volumes:
+      - metrics_token:/metrics
+    network_mode: none
+    restart: "no"
+
+  fastapi:
+    labels: *omlorix-labels
+    environment:
+      OTEL_ENABLED: "true"
+      OTEL_TRACES_ENABLED: "true"
+      OTEL_METRICS_ENABLED: "true"
+      OTEL_PROMETHEUS_EXPORTER_ENABLED: "true"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_EXPORTER_OTLP_INSECURE: "true"
+      PROMETHEUS_METRICS_TOKEN: ""
+      PROMETHEUS_METRICS_TOKEN_FILE: /run/omlorix-metrics/token
+    volumes:
+      - metrics_token:/run/omlorix-metrics:ro
+    depends_on:
+      metrics_token:
+        condition: service_completed_successfully
+      otel-collector:
+        condition: service_healthy
+
+  email_worker:
+    labels: *omlorix-labels
+    environment:
+      OTEL_ENABLED: "true"
+      OTEL_SERVICE_NAME: omlorix-email-worker
+      OTEL_TRACES_ENABLED: "true"
+      OTEL_METRICS_ENABLED: "true"
+      OTEL_PROMETHEUS_EXPORTER_ENABLED: "false"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_EXPORTER_OTLP_INSECURE: "true"
+    depends_on:
+      otel-collector:
+        condition: service_healthy
+
+  operations_worker:
+    labels: *omlorix-labels
+    environment:
+      <<: *worker-otel-environment
+      OTEL_SERVICE_NAME: omlorix-operations-worker
+    depends_on: *worker-otel-depends
+
+  generation_worker:
+    labels: *omlorix-labels
+    environment:
+      <<: *worker-otel-environment
+      OTEL_SERVICE_NAME: omlorix-generation-worker
+    depends_on: *worker-otel-depends
+
+  research_worker:
+    labels: *omlorix-labels
+    environment:
+      <<: *worker-otel-environment
+      OTEL_SERVICE_NAME: omlorix-research-worker
+    depends_on: *worker-otel-depends
+
+  file_processing_worker:
+    labels: *omlorix-labels
+    environment:
+      <<: *worker-otel-environment
+      OTEL_SERVICE_NAME: omlorix-file-processing-worker
+    depends_on: *worker-otel-depends
+
+  account_lifecycle_worker:
+    labels: *omlorix-labels
+    environment:
+      <<: *worker-otel-environment
+      OTEL_SERVICE_NAME: omlorix-account-lifecycle-worker
+    depends_on: *worker-otel-depends
+
+  maintenance_worker:
+    labels: *omlorix-labels
+    environment:
+      <<: *worker-otel-environment
+      OTEL_SERVICE_NAME: omlorix-maintenance-worker
+    depends_on: *worker-otel-depends
+
+  rendering_worker:
+    labels: *omlorix-labels
+    environment:
+      <<: *worker-otel-environment
+      OTEL_SERVICE_NAME: omlorix-rendering-worker
+    depends_on: *worker-otel-depends
+
+  media_worker:
+    labels: *omlorix-labels
+    environment:
+      <<: *worker-otel-environment
+      OTEL_SERVICE_NAME: omlorix-media-worker
+    depends_on: *worker-otel-depends
+
+  connector_worker:
+    labels: *omlorix-labels
+    environment:
+      <<: *worker-otel-environment
+      OTEL_SERVICE_NAME: omlorix-connector-worker
+    depends_on: *worker-otel-depends
+
+  audit_event_worker:
+    labels: *omlorix-labels
+    environment:
+      <<: *worker-otel-environment
+      OTEL_SERVICE_NAME: omlorix-audit-event-worker
+    depends_on: *worker-otel-depends
+
+  realtime_gateway:
+    labels: *omlorix-labels
+    environment:
+      OTEL_ENABLED: "true"
+      OTEL_SERVICE_NAME: omlorix-realtime-gateway
+      OTEL_TRACES_ENABLED: "true"
+      OTEL_METRICS_ENABLED: "true"
+      OTEL_PROMETHEUS_EXPORTER_ENABLED: "false"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_EXPORTER_OTLP_INSECURE: "true"
+    depends_on: *worker-otel-depends
+
+  otel-collector:
+    labels: *omlorix-labels
+    image: otel/opentelemetry-collector-contrib:0.159.0@sha256:1f2c54a30e713fac6b3ae77a1ec84010c2007e29ced8ec666214fc2f6739c1cc
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    environment:
+      - DEPLOYMENT_ENVIRONMENT=${MODE:-production}
+    volumes:
+      - ./otel/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    ports:
+      - "${OTEL_GRPC_HOST_BIND:-127.0.0.1}:${OTEL_GRPC_HOST_PORT:-4317}:4317"
+      - "${OTEL_HTTP_HOST_BIND:-127.0.0.1}:${OTEL_HTTP_HOST_PORT:-4318}:4318"
+      - "${OTEL_PROMETHEUS_HOST_BIND:-127.0.0.1}:${OTEL_PROMETHEUS_HOST_PORT:-8889}:8889"
+      - "${OTEL_HEALTHCHECK_HOST_BIND:-127.0.0.1}:${OTEL_HEALTHCHECK_HOST_PORT:-13133}:13133"
+    depends_on:
+      - jaeger
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/otelcol-contrib", "validate", "--config=/etc/otel-collector-config.yaml"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - omlorix-network
+
+  jaeger:
+    labels: *omlorix-labels
+    image: jaegertracing/all-in-one:1.76.0@sha256:ab6f1a1f0fb49ea08bcd19f6b84f6081d0d44b364b6de148e1798eb5816bacac
+    user: "0"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+      - SPAN_STORAGE_TYPE=badger
+      - BADGER_EPHEMERAL=false
+      - BADGER_DIRECTORY_VALUE=/badger/data
+      - BADGER_DIRECTORY_KEY=/badger/key
+    volumes:
+      - jaeger_data:/badger
+    ports:
+      - "${JAEGER_UI_HOST_BIND:-127.0.0.1}:${JAEGER_UI_HOST_PORT:-16686}:16686"
+      - "${JAEGER_COLLECTOR_HOST_BIND:-127.0.0.1}:${JAEGER_COLLECTOR_HOST_PORT:-14268}:14268"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:16686/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - omlorix-network
+
+  prometheus:
+    labels: *omlorix-labels
+    image: prom/prometheus:v3.14.0@sha256:5ce7540c3c00ef4ab0c9d2c995c6a5b9c421f44b4a115d97a2c7af3b1c21cbb0
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./otel/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./otel/prometheus-host-metrics-empty.yml:/etc/prometheus/host-metrics-targets.yml:ro
+      - ./otel/prometheus-rules:/etc/prometheus/rules:ro
+      - prometheus_data:/prometheus
+      - metrics_token:/run/omlorix-metrics:ro
+    depends_on:
+      metrics_token:
+        condition: service_completed_successfully
+    ports:
+      - "${PROMETHEUS_HOST_BIND:-127.0.0.1}:${PROMETHEUS_HOST_PORT:-9090}:9090"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - omlorix-network
+
+  alertmanager:
+    labels: *omlorix-labels
+    image: prom/alertmanager:v0.34.0@sha256:690c7b525f4367aa91f73e2f91c632206d32e97c6384bdbf2fb7a861b420340d
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    volumes:
+      - ./otel/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data:/alertmanager
+    ports:
+      - "${ALERTMANAGER_HOST_BIND:-127.0.0.1}:${ALERTMANAGER_HOST_PORT:-9093}:9093"
+    restart: unless-stopped
+    networks:
+      - omlorix-network
+
+  postgres-exporter:
+    labels: *omlorix-labels
+    image: prometheuscommunity/postgres-exporter:v0.20.1@sha256:ac5ec343104fae0e2d84a27bb8d69b38430a11910c5382cad85d478d2bab713e
+    environment:
+      - DATA_SOURCE_URI=${POSTGRES_EXPORTER_DATA_SOURCE_URI:-${DATABASE_HOST_OVERRIDE:-postgres}:${DATABASE_PORT_OVERRIDE:-5432}/${DATABASE_NAME:-omlorix}?sslmode=disable}
+      - DATA_SOURCE_USER=${POSTGRES_EXPORTER_DATA_SOURCE_USER:-${DATABASE_USER:-postgres}}
+      - DATA_SOURCE_PASS=${POSTGRES_EXPORTER_DATA_SOURCE_PASS:-${DATABASE_PASSWORD:-CHANGE_ME}}
+    restart: unless-stopped
+    networks:
+      - omlorix-network
+
+  redis-exporter:
+    labels: *omlorix-labels
+    image: oliver006/redis_exporter:v1.89.0@sha256:fed773ffd2bb2eac706e0ed9cc2fff41651193ee4977e2a4f6919658ad2313f4
+    profiles: ["redis-enabled"]
+    environment:
+      - REDIS_ADDR=${REDIS_EXPORTER_ADDR:-${REDIS_URL}}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+    command:
+      - '--check-keys=rq:queue:${AUTOMATION_QUEUE_NAME:-omlorix-automations}'
+    restart: unless-stopped
+    networks:
+      - omlorix-network
+
+  grafana:
+    labels: *omlorix-labels
+    image: grafana/grafana:13.2.0@sha256:3fd54ae1214669f8355f065ec9f6445d5279a3d77095ab048ca045685272429b
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:?GRAFANA_ADMIN_USER is required}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD is required}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=${GRAFANA_ROOT_URL:-http://localhost:3001}
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./otel/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./otel/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "${GRAFANA_HOST_BIND:-127.0.0.1}:${GRAFANA_HOST_PORT:-3001}:3000"
+    depends_on:
+      - prometheus
+      - jaeger
+      - alertmanager
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - omlorix-network
+
+volumes:
+  jaeger_data:
+  metrics_token:
+  prometheus_data:
+  alertmanager_data:
+  grafana_data:

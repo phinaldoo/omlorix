@@ -1,0 +1,252 @@
+.rate-limit-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.rate-limit-card {
+    display: grid;
+    gap: 10px;
+    padding: 16px;
+    border: 1px solid var(--admin-border);
+    border-radius: 18px;
+    background: var(--bg-normal);
+}
+
+.rate-limit-card-top {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.rate-limit-card-top-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.rate-limit-card-title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--admin-text);
+}
+
+.rate-limit-card-subtitle {
+    margin: 4px 0 0;
+    font-size: 0.9rem;
+    color: var(--admin-text-secondary);
+}
+
+.rate-limit-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 84px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    height: 36px;
+    cursor: pointer;
+    transition: opacity 0.2s ease, box-shadow 0.2s ease;
+}
+
+.rate-limit-status:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--primary-light, rgba(58, 149, 233, 0.2));
+}
+
+.rate-limit-status:disabled {
+    cursor: wait;
+    opacity: 0.7;
+}
+
+.rate-limit-status.active {
+    color: var(--admin-success-text);
+    background: var(--admin-success-bg);
+}
+
+.rate-limit-status.inactive {
+    color: var(--admin-warning-text);
+    background: var(--admin-warning-bg);
+}
+
+.rate-limit-meta-grid {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.rate-limit-meta-block {
+    padding: 12px;
+    border-radius: 12px;
+    background: var(--admin-bg);
+}
+
+.rate-limit-meta-label {
+    margin: 0 0 4px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--admin-text-tertiary);
+}
+
+.rate-limit-meta-value {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.35;
+    color: var(--admin-text);
+    word-break: break-word;
+}
+
+.rate-limit-meta-list {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 0.9rem;
+    line-height: 1.35;
+    color: var(--admin-text);
+}
+
+.rate-limit-meta-list-item + .rate-limit-meta-list-item {
+    margin-top: 4px;
+}
+
+.rate-limit-card-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.rate-limit-empty {
+    padding: 36px 24px;
+    border: 1px dashed var(--admin-hover);
+    border-radius: 18px;
+    text-align: center;
+    color: var(--admin-text-secondary);
+    background: var(--admin-bg);
+}
+
+/* Checklist sections */
+.rate-limit-section-body--checklist {
+    padding: 16px;
+}
+
+.rate-limit-checklist {
+    display: grid;
+    gap: 6px;
+    max-height: 240px;
+    padding: 10px;
+    overflow-y: auto;
+    border: 1px solid var(--admin-border-subtle);
+    border-radius: var(--admin-radius-sm);
+    background: var(--admin-bg);
+}
+
+.rate-limit-checklist::-webkit-scrollbar {
+    width: 6px;
+}
+
+.rate-limit-checklist::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.rate-limit-checklist::-webkit-scrollbar-thumb {
+    background: var(--admin-scrollbar);
+    border-radius: 3px;
+}
+
+.rate-limit-checklist-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    border-radius: var(--admin-radius-sm);
+    background: var(--bg-normal);
+    border: 1px solid transparent;
+    cursor: pointer;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .rate-limit-checklist-item:hover {
+        background: var(--hover);
+    }
+}
+
+.rate-limit-checklist-title {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--admin-text);
+}
+
+.rate-limit-checklist-meta {
+    display: block;
+    margin-top: 1px;
+    font-size: 12px;
+    color: var(--admin-text-tertiary);
+}
+
+/* Targets split layout */
+.rate-limit-targets-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.rate-limit-targets-column-label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--admin-text-tertiary);
+}
+
+/* Form actions footer */
+.rate-limit-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+@media (max-width: 720px) {
+    .rate-limit-targets-split {
+        grid-template-columns: 1fr;
+    }
+
+    .rate-limit-meta-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .rate-limit-form-actions {
+        flex-direction: column;
+        justify-content: flex-start;
+    }
+}
+
+.rate-limit-conflict-list {
+    display: grid;
+    gap: 12px;
+    margin: 18px 0 18px;
+}
+
+.rate-limit-conflict-item {
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: var(--admin-warning-bg);
+    border: 1px solid var(--admin-warning-border);
+    color: var(--admin-warning-text);
+}
+
+.rate-limit-conflict-item strong {
+    display: block;
+    margin-bottom: 6px;
+}

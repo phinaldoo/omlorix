@@ -1,0 +1,1171 @@
+/* First-run setup and recovery-secret management.
+ *
+ * The design goal here is an extremely minimal, calm onboarding surface: a
+ * quiet rail, generous whitespace, restrained borders, and a single clear
+ * action per step. All colors come from the launcher's shared design tokens so
+ * the wizard reads as a focused mode of the same application in both themes.
+ *
+ * Every selector in this file is used by launcher.html markup or by the DOM
+ * that setup-flow.js builds at runtime, so class names are intentionally
+ * preserved even as the visual language is refreshed. */
+
+/* ==========================================================================
+ * Overlay shell
+ * ======================================================================== */
+
+.setup-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* The normal launcher intentionally lets the document scroll in its compact
+ * layout. While setup covers that launcher, lock the underlying document so
+ * the setup stage remains the only vertical scroll container. The selector
+ * stops applying automatically as soon as the overlay is hidden. */
+body:has(.setup-overlay:not([hidden])) {
+  overflow: hidden;
+}
+
+/* The persisted setup state arrives asynchronously over Electron IPC. Until
+ * it is known, keep the dashboard out of view so an incomplete installation
+ * cannot briefly expose it before the required setup flow opens. */
+html.setup-state-pending .app {
+  visibility: hidden;
+}
+
+.setup-overlay[hidden],
+.setup-panel[hidden],
+.setup-advanced[hidden],
+.setup-conditional[hidden],
+.setup-public-field[hidden] {
+  display: none !important;
+}
+
+.setup-shell {
+  /* The desktop rail and stage deliberately consume the same vertical
+   * measurements. Keeping these values on their common parent prevents the
+   * brand/content tops and the notice/navigation borders from drifting when
+   * either side is adjusted later. */
+  --setup-content-top: 72px;
+  --setup-footer-block-size: 67px;
+  --setup-access-control-height: 42px;
+  display: grid;
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  min-height: 100vh;
+  height: 100vh;
+}
+
+/* ==========================================================================
+ * Left rail: brand, step list, quiet footnote
+ * ======================================================================== */
+
+.setup-rail {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: var(--setup-content-top) 20px 0;
+  background: var(--bg-soft);
+  border-right: 1px solid var(--border);
+}
+
+/* The macOS window controls are painted over the renderer. If the native
+ * titlebar ever grows beyond the normal shared inset, increase the inset for
+ * both desktop columns together so their top edges remain aligned. */
+@media (min-width: 901px) {
+  html[data-platform="darwin"][data-window-mode="window"] .setup-shell {
+    --setup-content-top: max(72px, calc(28px + var(--desktop-mac-titlebar-height, 34px)));
+  }
+}
+
+.setup-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 26px;
+  padding: 0 6px;
+}
+
+.setup-brand-mark,
+.setup-welcome-mark {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  color: var(--accent-text);
+  background: var(--accent);
+  font-weight: 700;
+}
+
+.setup-brand-mark {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  font-size: 15px;
+}
+
+.setup-brand strong,
+.setup-brand span {
+  display: block;
+}
+
+.setup-brand strong {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.setup-brand span {
+  max-width: 180px;
+  margin-top: 1px;
+  color: var(--text-tertiary);
+  font-size: 11.5px;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.setup-step-list {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.setup-step-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 40px;
+  padding: 8px 10px;
+  color: var(--text-tertiary);
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: color 120ms ease, background 120ms ease;
+}
+
+.setup-step-item.is-active {
+  color: var(--text);
+  background: var(--hover);
+  font-weight: 600;
+}
+
+.setup-step-item.is-complete {
+  color: var(--text-secondary);
+}
+
+.setup-step-number {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  color: var(--text-tertiary);
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  transition: color 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+
+.setup-step-item.is-active .setup-step-number {
+  color: var(--accent-text);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.setup-step-item.is-complete .setup-step-number {
+  color: var(--success);
+  background: var(--success-bg);
+  border-color: var(--success-border);
+}
+
+.setup-rail-note {
+  min-height: var(--setup-footer-block-size);
+  /* Bleed the divider through the rail's horizontal padding while preserving
+   * the note's original 26px text inset (20px rail + 6px note). */
+  margin: 20px -20px 0;
+  padding: 18px 26px 0;
+  color: var(--text-tertiary);
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+/* ==========================================================================
+ * Stage: scrolling panel area + centered content column
+ * ======================================================================== */
+
+.setup-stage {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.setup-stage-body {
+  /* Native select menus paint from this scrolling layer; keep it above the
+   * footer so an open menu near the bottom stays selectable. */
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  overflow: auto;
+  /* Keep the content width stable when the scrollbar (or a portal-backed
+   * select menu) appears and disappears. */
+  scrollbar-gutter: stable;
+  padding: var(--setup-content-top) 56px 56px;
+}
+
+.setup-panel {
+  width: min(680px, 100%);
+  flex: 0 0 auto;
+  margin: 0 auto;
+}
+
+/* The completion panel fills the setup stage so its terminal can use every
+ * available pixel between the introductory copy and the action buttons. */
+.setup-panel[data-setup-panel="6"] {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+/* The announcement stays available to assistive tech without occupying space. */
+.setup-announcement.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* ==========================================================================
+ * Typographic rhythm
+ * ======================================================================== */
+
+.setup-panel h1,
+.setup-panel h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: clamp(26px, 3vw, 34px);
+  font-weight: 640;
+  line-height: 1.14;
+  letter-spacing: -0.03em;
+}
+
+.setup-eyebrow {
+  margin: 0 0 12px;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.setup-lead {
+  max-width: 620px;
+  margin: 14px 0 0;
+  color: var(--text-secondary);
+  font-size: 14.5px;
+  line-height: 1.6;
+}
+
+.setup-welcome-mark {
+  width: 54px;
+  height: 54px;
+  margin-bottom: 26px;
+  border-radius: 15px;
+  font-size: 22px;
+}
+
+/* ==========================================================================
+ * Readiness (Docker status) panel
+ * ======================================================================== */
+
+.setup-readiness {
+  display: grid;
+  gap: 8px;
+  margin-top: 28px;
+  padding: 16px 18px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+.setup-ready-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.setup-ready-copy {
+  flex: 1;
+}
+
+.setup-readiness-actions {
+  /* The primary Docker action and its icon-only refresh companion form one
+   * control group. Own their height here instead of relying on two unrelated
+   * launcher button defaults that only happen to match today. */
+  --setup-readiness-action-height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+
+.setup-readiness-actions > .btn {
+  height: var(--setup-readiness-action-height);
+  min-height: var(--setup-readiness-action-height);
+}
+
+.setup-readiness-refresh {
+  width: var(--setup-readiness-action-height);
+  align-self: center;
+  flex: 0 0 auto;
+}
+
+/* The spinner uses the launcher's shared spin animation and currentColor so
+ * it stays legible in both light and dark primary-button palettes. */
+.setup-start-docker-spinner {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  border: 2px solid color-mix(in srgb, currentColor 30%, transparent);
+  border-top-color: currentColor;
+  border-radius: 999px;
+  animation: spin 0.8s linear infinite;
+}
+
+.setup-ready-dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  background: var(--text-tertiary);
+  border-radius: 999px;
+}
+
+.setup-ready-row.is-ready .setup-ready-dot { background: var(--success); }
+.setup-ready-row.is-warning .setup-ready-dot { background: var(--warning); }
+.setup-ready-row.is-error .setup-ready-dot { background: var(--danger); }
+
+/* ==========================================================================
+ * Choice cards (setup type, access)
+ * ======================================================================== */
+
+.setup-choice-grid,
+.setup-field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.setup-choice-grid {
+  margin-top: 30px;
+}
+
+.setup-choice-grid-three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.setup-choice {
+  position: relative;
+  min-width: 0;
+}
+
+.setup-choice input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.setup-choice > span {
+  display: block;
+  min-height: 112px;
+  padding: 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: border-color 130ms ease, background 130ms ease, box-shadow 130ms ease;
+}
+
+.setup-choice input:checked + span {
+  background: var(--surface);
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.setup-choice input:focus-visible + span {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.setup-choice b,
+.setup-choice small {
+  display: block;
+}
+
+.setup-choice b {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.setup-choice small {
+  margin-top: 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.55;
+}
+
+/* ==========================================================================
+ * Access and proxy step
+ * A denser step: equal-height access cards, connection fields, and one clearly
+ * bounded proxy configuration block.
+ * ======================================================================== */
+
+.setup-access-choice-grid {
+  align-items: stretch;
+  grid-auto-rows: 1fr;
+}
+
+.setup-access-choice-grid .setup-choice {
+  display: flex;
+  height: 100%;
+}
+
+.setup-access-choice-grid .setup-choice > span {
+  position: relative;
+  display: flex;
+  width: 100%;
+  min-height: 132px;
+  height: 100%;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding: 20px;
+}
+
+.setup-access-choice-grid .setup-choice input:checked + span::after {
+  content: "";
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.setup-access-choice-grid .setup-choice b {
+  max-width: calc(100% - 20px);
+  font-size: 13.5px;
+  line-height: 1.35;
+}
+
+.setup-access-choice-grid .setup-choice small {
+  margin-top: 10px;
+  line-height: 1.5;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .setup-access-choice-grid .setup-choice > span:hover {
+    border-color: var(--border-strong);
+  }
+}
+
+.setup-access-core-fields {
+  gap: 16px;
+  margin-top: 30px;
+}
+
+.setup-access-core-fields:has(.setup-public-field[hidden]) > .field:first-child {
+  grid-column: 1 / -1;
+}
+
+.setup-access-core-fields input,
+.setup-access-details input:not([type="checkbox"]) {
+  min-height: var(--setup-access-control-height);
+}
+
+.setup-access-panel .setup-access-proxy-choice {
+  margin-top: 20px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.setup-access-proxy-choice > .field-label {
+  display: block;
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.setup-access-proxy-choice .setup-segmented-wide {
+  width: 100%;
+  margin-top: 12px;
+}
+
+.setup-access-proxy-choice .setup-segmented span {
+  min-height: 36px;
+  display: grid;
+  place-items: center;
+  padding: 8px 12px;
+  line-height: 1.25;
+}
+
+.setup-access-panel .setup-access-details {
+  margin-top: 14px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-subtle);
+}
+
+.setup-access-details .setup-field-grid {
+  gap: 16px;
+}
+
+.setup-access-details-external .field-hint {
+  margin-top: 2px;
+}
+
+.setup-access-details-launcher .setup-inline-toggle {
+  align-items: center;
+  margin-top: 16px;
+  padding: 15px 16px;
+  background: var(--surface);
+}
+
+/* Compact HTTPS switch: the global input sizing would otherwise render this
+ * checkbox as an oversized square. */
+.setup-access-details-launcher .setup-inline-toggle input[type="checkbox"] {
+  appearance: none;
+  position: relative;
+  width: 38px;
+  min-width: 38px;
+  height: 22px;
+  min-height: 22px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface-subtle);
+  cursor: pointer;
+  transition: background 130ms ease, border-color 130ms ease;
+}
+
+.setup-access-details-launcher .setup-inline-toggle input[type="checkbox"]::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--text-secondary);
+  transition: left 130ms ease, background 130ms ease;
+}
+
+.setup-access-details-launcher .setup-inline-toggle input[type="checkbox"]:checked {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.setup-access-details-launcher .setup-inline-toggle input[type="checkbox"]:checked::after {
+  left: 19px;
+  background: var(--accent-text);
+}
+
+.setup-access-details-launcher .setup-inline-toggle input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.setup-access-details-launcher .setup-inline-toggle b {
+  font-size: 12.5px;
+}
+
+.setup-access-details-launcher .setup-inline-toggle small {
+  margin-top: 4px;
+  line-height: 1.45;
+}
+
+.setup-access-details-launcher .setup-notice {
+  margin: 14px 0 0;
+}
+
+.setup-access-details-launcher .setup-tls-fields {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.setup-access-details-launcher .setup-tls-fields .field-error {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.setup-access-error {
+  margin: 12px 0 0;
+}
+
+/* ==========================================================================
+ * Advanced release settings disclosure
+ * ======================================================================== */
+
+.setup-advanced {
+  margin-top: 22px;
+  padding: 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+.setup-advanced-title {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.setup-advanced .setup-field-grid {
+  margin-top: 16px;
+}
+
+/* ==========================================================================
+ * Service cards (database / cache / storage)
+ * ======================================================================== */
+
+.setup-service-card {
+  display: grid;
+  gap: 14px;
+  margin-top: 12px;
+  padding: 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+.setup-service-card:first-of-type {
+  margin-top: 30px;
+}
+
+.setup-service-card > div:first-child b,
+.setup-service-card > div:first-child span {
+  display: block;
+}
+
+.setup-service-card > div:first-child b {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.setup-service-card > div:first-child span {
+  margin-top: 4px;
+  color: var(--text-secondary);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+/* Sensitive connection URLs use the launcher's shared in-field eye control. */
+.setup-connection-input {
+  width: 100%;
+}
+
+/* ==========================================================================
+ * Segmented control
+ * ======================================================================== */
+
+.setup-segmented {
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: min(360px, 100%);
+  padding: 3px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.setup-segmented-wide {
+  width: min(480px, 100%);
+  margin-top: 7px;
+}
+
+.setup-segmented label {
+  position: relative;
+}
+
+.setup-segmented input {
+  position: absolute;
+  opacity: 0;
+}
+
+.setup-segmented span {
+  display: block;
+  padding: 7px 10px;
+  color: var(--text-secondary);
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-align: center;
+  transition: color 120ms ease, background 120ms ease, box-shadow 120ms ease;
+}
+
+.setup-segmented input:checked + span {
+  color: var(--text);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.setup-segmented input:focus-visible + span {
+  outline: 2px solid var(--focus-ring);
+}
+
+/* ==========================================================================
+ * Storage provider fields
+ * ======================================================================== */
+
+.setup-storage-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.setup-storage-fields:empty {
+  display: none;
+}
+
+.setup-storage-fields .field-wide {
+  grid-column: 1 / -1;
+}
+
+.setup-section-gap {
+  margin-top: 26px;
+}
+
+/* ==========================================================================
+ * Notices, warnings, inline toggles
+ * ======================================================================== */
+
+.setup-notice,
+.setup-warning {
+  padding: 14px 16px;
+  color: var(--text-secondary);
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  border-radius: 12px;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.setup-inline-toggle {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-top: 14px;
+  padding: 14px 15px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.setup-inline-toggle input { margin-top: 3px; }
+.setup-inline-toggle b,
+.setup-inline-toggle small { display: block; }
+.setup-inline-toggle b { font-size: 12.5px; font-weight: 600; }
+.setup-inline-toggle small { margin-top: 3px; color: var(--text-secondary); font-size: 11.5px; }
+
+.setup-tls-fields { display: grid; gap: 10px; margin-top: 12px; }
+.setup-tls-fields[hidden] { display: none; }
+.setup-file-field > div { display: flex; align-items: stretch; gap: 8px; margin-top: 6px; }
+.setup-file-field input { flex: 1; min-width: 0; }
+
+/* File fields, connection fields, and secret reveal rows are compound
+ * controls. Their adjacent actions intentionally share the local input
+ * height instead of inheriting the compact or regular button dimensions. */
+.setup-file-field > div > input,
+.setup-file-field > div > .btn {
+  height: var(--setup-access-control-height);
+  min-height: var(--setup-access-control-height);
+}
+
+.setup-secret-row .setup-secret-value {
+  height: var(--control-height);
+  min-height: var(--control-height);
+}
+
+.setup-warning {
+  margin-top: 24px;
+}
+
+.setup-warning strong,
+.setup-warning span {
+  display: block;
+}
+
+.setup-warning strong {
+  color: var(--warning);
+  font-weight: 600;
+}
+
+.setup-warning span {
+  margin-top: 4px;
+}
+
+/* ==========================================================================
+ * Secrets list
+ * ======================================================================== */
+
+.setup-secret-list {
+  margin-top: 18px;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+.setup-secret-row {
+  display: grid;
+  grid-template-columns: minmax(170px, 1fr) minmax(180px, 1.2fr);
+  gap: 12px;
+  align-items: center;
+  padding: 13px 16px;
+  border-top: 1px solid var(--border);
+}
+
+.setup-secret-row:first-child { border-top: 0; }
+
+.setup-secret-name,
+.setup-secret-purpose {
+  display: block;
+}
+
+.setup-secret-name {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.setup-secret-purpose {
+  margin-top: 3px;
+  color: var(--text-tertiary);
+  font-size: 10.5px;
+}
+
+.setup-secret-value {
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.setup-secret-input-wrap {
+  min-width: 0;
+}
+
+/* Field-level validation lives directly beneath the edited secret rather than
+ * being hidden in the export status where it is easy to miss. */
+.setup-secret-error {
+  grid-column: 2;
+  margin-top: -7px;
+}
+
+.setup-secret-actions,
+.setup-complete-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.setup-backup-location-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--warning-border);
+}
+
+/* The backup result belongs to the location card instead of forming a second
+ * end-to-end card below the secret actions. It remains a live status region in
+ * the markup, but visually reads as supporting information for the picker. */
+.setup-backup-confirm {
+  min-width: 0;
+  flex: 1;
+  color: var(--warning);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.setup-backup-confirm[data-state="current"] {
+  color: var(--success);
+}
+
+/* Once the automatic copy is current, promote the complete location card to
+ * the success palette so no warning-yellow surface remains after setup. */
+.setup-backup-location:has(.setup-backup-confirm[data-state="current"]) {
+  background: var(--success-bg);
+  border-color: var(--success-border);
+}
+
+.setup-backup-location:has(.setup-backup-confirm[data-state="current"]) strong {
+  color: var(--success);
+}
+
+.setup-backup-location:has(.setup-backup-confirm[data-state="current"]) .setup-backup-location-control {
+  border-top-color: var(--success-border);
+}
+
+/* ==========================================================================
+ * Review summary
+ * ======================================================================== */
+
+.setup-review {
+  margin-top: 26px;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+.setup-review-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 13px 16px;
+  border-top: 1px solid var(--border);
+  font-size: 12.5px;
+}
+
+.setup-review-row:first-child { border-top: 0; }
+.setup-review-row span { color: var(--text-secondary); }
+.setup-review-row strong { text-align: right; font-weight: 600; }
+
+/* ==========================================================================
+ * Completion panel
+ * ======================================================================== */
+
+.setup-done-mark {
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  margin-bottom: 24px;
+  color: var(--success);
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
+  border-radius: 999px;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.setup-launch-log {
+  /* Keep launcher output from moving the completion actions as lines arrive.
+   * Flexing from a zero basis gives it all remaining window height while
+   * reserving room for the action buttons below. */
+  min-height: 0;
+  flex: 1 1 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  margin-top: 24px;
+  padding: 16px 18px;
+  color: var(--console-text);
+  background: var(--console-bg);
+  border-radius: 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+/* ==========================================================================
+ * Footer navigation + progress
+ * ======================================================================== */
+
+.setup-footer {
+  position: relative;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  min-height: var(--setup-footer-block-size);
+  gap: 10px;
+  padding: 16px 32px;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+}
+
+.setup-footer-progress {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-tertiary);
+  font-size: 11px;
+}
+
+.setup-footer-progress > div,
+.setup-mobile-progress > div {
+  width: min(210px, 35vw);
+  height: 4px;
+  overflow: hidden;
+  background: var(--border);
+  border-radius: 999px;
+}
+
+.setup-footer-progress i,
+.setup-mobile-progress i {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: var(--accent);
+  border-radius: inherit;
+  transition: width 200ms ease;
+}
+
+.setup-mobile-progress {
+  display: none;
+}
+
+/* ==========================================================================
+ * Permanent secrets management (launcher Secrets page)
+ * ======================================================================== */
+
+.secret-header-actions { flex-shrink: 0; }
+.secret-management-section { margin-top: 28px; }
+
+/* Secret-management feedback must remain prominent when an action completes;
+   the generic field-hint treatment is intentionally too quiet for an import. */
+#secretManagementMessage:not(:empty) {
+  display: block;
+  margin: 16px 0 0;
+  padding: 14px 16px;
+  border: 1px solid var(--success-border);
+  border-left: 4px solid var(--success);
+  border-radius: var(--radius-sm);
+  background: var(--success-bg);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+/* Import, restart, and filesystem failures share this live region with
+   successful outcomes, so severity must be explicit rather than inferred from
+   the presence of text. */
+#secretManagementMessage.is-error:not(:empty) {
+  border-color: var(--danger-border);
+  border-left-color: var(--danger);
+  background: var(--danger-bg);
+}
+
+#serverSecretsMount #serverSecretsSubsection {
+  margin-top: 28px;
+}
+
+/* ==========================================================================
+ * Hover / motion preferences
+ * ======================================================================== */
+
+@media (hover: hover) and (pointer: fine) {
+  .setup-choice > span:hover { border-color: var(--border-strong); }
+  .setup-segmented span:hover { color: var(--text); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .setup-step-item,
+  .setup-step-number,
+  .setup-choice > span,
+  .setup-segmented span,
+  .setup-access-details-launcher .setup-inline-toggle input[type="checkbox"],
+  .setup-access-details-launcher .setup-inline-toggle input[type="checkbox"]::after,
+  .setup-footer-progress i,
+  .setup-mobile-progress i { transition: none; }
+}
+
+/* ==========================================================================
+ * Responsive
+ * ======================================================================== */
+
+@media (max-width: 900px) {
+  .setup-shell { grid-template-columns: 1fr; }
+  .setup-rail { display: none; }
+  /* The compact header replaces the desktop footer progress indicator. Hide
+   * the latter at the same breakpoint so there is always exactly one visible
+   * setup progress bar. The removed progress element is also the desktop flex
+   * spacer, so explicitly keep the remaining navigation on the right. */
+  .setup-footer { justify-content: flex-end; }
+  .setup-footer-progress { display: none; }
+  .setup-mobile-progress {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px;
+    color: var(--text-tertiary);
+    background: var(--bg-soft);
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+  }
+
+  /* The desktop rail normally reserves the hiddenInset titlebar. Once that
+   * rail collapses, its compact replacement must take over the reservation so
+   * the macOS traffic lights never cover the step label or progress bar. Keep
+   * fullscreen unchanged because macOS removes the window controls there. */
+  html[data-platform="darwin"][data-window-mode="window"] .setup-mobile-progress {
+    padding-top: calc(12px + var(--desktop-mac-titlebar-height, 34px));
+  }
+
+  .setup-mobile-progress > div { flex: 1; width: auto; }
+  .setup-stage-body { padding: 40px 24px; }
+  .setup-choice-grid-three { grid-template-columns: 1fr; }
+  .setup-choice > span { min-height: 0; }
+  .setup-access-choice-grid { grid-auto-rows: auto; }
+  .setup-access-choice-grid .setup-choice > span { min-height: 0; }
+}
+
+@media (max-width: 620px) {
+  .setup-stage-body { padding: 30px 18px; }
+  .setup-footer { padding: 13px 16px; }
+  .setup-ready-row { align-items: flex-start; flex-wrap: wrap; }
+  .setup-ready-copy { flex-basis: calc(100% - 19px); }
+  .setup-readiness-actions { width: calc(100% - 19px); justify-content: flex-end; }
+  .setup-backup-location-control { align-items: stretch; flex-direction: column; }
+  .setup-backup-location-control .btn { align-self: flex-start; }
+  .setup-choice-grid,
+  .setup-field-grid,
+  .setup-storage-fields { grid-template-columns: 1fr; }
+  .setup-access-details-launcher .setup-tls-fields { grid-template-columns: 1fr; }
+  .setup-access-panel .setup-access-proxy-choice,
+  .setup-access-panel .setup-access-details { padding: 14px; }
+  .setup-secret-row { grid-template-columns: 1fr; }
+  .setup-secret-input-wrap { grid-column: 1; grid-row: 2; }
+  .setup-secret-error { grid-column: 1 / -1; grid-row: 3; margin-top: -5px; }
+}

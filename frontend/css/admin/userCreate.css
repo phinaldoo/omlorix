@@ -1,0 +1,838 @@
+/* ===========================================
+   User Create Pages - Modern Design
+   =========================================== */
+
+/* ===========================================
+   Single User Create Form
+   =========================================== */
+
+.user-create-form-container {
+    background: var(--bg-normal);
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow: visible;
+    box-shadow: none;
+}
+
+/* Form Sections */
+.user-create-section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.user-create-section-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--admin-accent-subtle);
+    color: var(--admin-text);
+}
+
+.user-create-section-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* Form Grid */
+.user-create-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+
+/* Form Field */
+.user-create-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.user-create-field[hidden] {
+    display: none !important;
+}
+
+.user-create-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--admin-text);
+}
+
+.user-create-label .required {
+    color: var(--admin-error-text);
+}
+
+.user-create-input {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid var(--admin-border);
+    border-radius: 10px;
+    background: var(--bg-normal);
+    color: var(--admin-text);
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .user-create-input:hover {
+        border-color: var(--admin-active);
+    }
+}
+
+.user-create-input:focus {
+    outline: none;
+    border-color: var(--admin-text);
+    box-shadow: 0 0 0 3px var(--admin-hover);
+}
+
+.user-create-input::placeholder {
+    color: var(--admin-text-tertiary);
+}
+
+.user-create-field .admin-select-trigger {
+    min-height: 46px;
+    height: auto;
+    padding: 12px 42px 12px 14px;
+    border: 1px solid var(--admin-border);
+    border-radius: 10px;
+    background: var(--bg-normal);
+    color: var(--admin-text);
+    font-size: 14px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .user-create-field .admin-select-trigger:hover {
+        border-color: var(--admin-active);
+    }
+}
+
+.user-create-field .admin-select-trigger:focus {
+    outline: none;
+    border-color: var(--admin-text);
+    box-shadow: 0 0 0 3px var(--admin-hover);
+}
+
+.user-create-field .admin-select-trigger.placeholder .admin-select-value,
+.user-create-field .admin-select-caret {
+    color: var(--admin-text-tertiary);
+}
+
+.user-create-field.has-error .user-create-input,
+.user-create-field.has-error .admin-select-trigger {
+    border-color: var(--admin-error-text) !important;
+}
+
+textarea.user-create-input {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.user-export-jobs-controls {
+    align-items: flex-start;
+}
+
+.user-export-jobs-controls .provider-import-file {
+    max-width: 480px;
+}
+
+.user-export-jobs-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.user-export-jobs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 150px;
+    max-height: min(48vh, 460px);
+}
+
+.user-export-job-entry {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    cursor: default;
+}
+
+.user-export-job-entry:hover {
+    transform: none;
+}
+
+.user-export-job-content {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 16px;
+    width: 100%;
+}
+
+.user-export-job-main {
+    min-width: 0;
+}
+
+.user-export-job-title-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.user-export-job-actions {
+    display: flex;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.user-export-job-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    margin-top: 8px;
+}
+
+.user-export-job-meta-item {
+    margin: 0;
+    color: var(--admin-text-secondary);
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.user-export-job-error {
+    margin: 8px 0 0;
+    color: var(--admin-error);
+    font-size: 13px;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .user-export-job-entry:hover {
+        background: var(--admin-hover);
+    }
+}
+
+@media (max-width: 720px) {
+    .user-export-jobs-toolbar,
+    .user-export-job-actions {
+        justify-content: flex-start;
+        width: 100%;
+    }
+
+    .user-export-job-content {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Toggle / Checkbox */
+.user-create-toggle {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+    background: var(--admin-bg);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .user-create-toggle:hover {
+        background: var(--admin-hover);
+    }
+}
+
+.user-create-toggle-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.user-create-toggle-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--admin-text);
+}
+
+.user-create-toggle-desc {
+    font-size: 13px;
+    color: var(--admin-text-secondary);
+    line-height: 1.4;
+}
+
+/* Form Actions */
+.user-create-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 0;
+    background: transparent;
+    border-top: none;
+}
+
+.user-create-submit-btn {
+    width: 100%;
+}
+
+/* ===========================================
+   Bulk Import Page
+   =========================================== */
+
+/* Vertical stepper container. Steps are laid out as a column and
+   connected by a subtle vertical guide line drawn via the step number. */
+.user-bulk-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Step Card */
+.user-bulk-step {
+    background: var(--bg-normal);
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius);
+    padding: 20px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow: visible;
+    box-shadow: none;
+    position: relative;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .user-bulk-step:hover {
+        border-color: var(--admin-active);
+    }
+}
+
+.user-bulk-step-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 0;
+    border-bottom: none;
+}
+
+/* Numbered badge that anchors each step. */
+.user-bulk-step-number {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--admin-accent-subtle);
+    color: var(--admin-text);
+    font-size: 14px;
+    font-weight: 700;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.user-bulk-step-info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex: 1;
+    min-width: 0;
+}
+
+.user-bulk-step-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--admin-text);
+    line-height: 1.3;
+}
+
+.user-bulk-step-desc {
+    margin: 0;
+    font-size: 13px;
+    color: var(--admin-text-secondary);
+    line-height: 1.45;
+}
+
+/* Step body is indented to align under the title (past the number badge). */
+.user-bulk-step-content {
+    padding: 0;
+    padding-left: 46px;
+}
+
+/* Format Tabs */
+.user-bulk-format-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.user-bulk-format-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border: 1px solid var(--admin-border);
+    border-radius: 10px;
+    background: var(--bg-normal);
+    color: var(--admin-text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .user-bulk-format-tab:hover {
+        border-color: var(--admin-active);
+        color: var(--admin-text);
+    }
+}
+
+.user-bulk-format-tab.active {
+    border-color: var(--admin-text);
+    background: var(--admin-accent-subtle);
+    color: var(--admin-text);
+}
+
+.user-bulk-format-tab svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+/* CSV Hint */
+.user-bulk-csv-hint {
+    flex: 1;
+    max-width: none;
+}
+
+.user-bulk-csv-hint-text {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 11px 13px;
+    background: var(--admin-bg);
+    border-radius: 10px;
+    font-size: 12px;
+    color: var(--admin-text-secondary);
+    line-height: 1.5;
+    margin: 0;
+}
+
+.user-bulk-csv-hint-text svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    color: var(--admin-text-tertiary);
+}
+
+/* Download Section */
+.user-bulk-download-row {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+}
+
+.user-bulk-download-row .user-create-field {
+    width: 100%;
+    max-width: none;
+}
+
+.user-bulk-download-row #userCreateBulkDownloadButton {
+    align-self: flex-start;
+}
+
+/* File Upload Zone */
+.user-bulk-upload-zone {
+    border: 2px dashed var(--admin-border);
+    border-radius: 12px;
+    padding: 28px 22px;
+    text-align: center;
+    transition: border-color 0.2s ease, background 0.2s ease;
+    cursor: pointer;
+}
+
+.user-bulk-upload-zone.dragover {
+    border-color: var(--admin-text);
+    background: var(--admin-hover);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .user-bulk-upload-zone:hover {
+        border-color: var(--admin-text);
+        background: var(--admin-hover);
+    }
+}
+
+.user-bulk-upload-zone.has-file {
+    border-style: solid;
+    border-color: var(--admin-success-border);
+    background: var(--admin-success-bg);
+}
+
+.user-bulk-upload-icon {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 12px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--admin-bg);
+    color: var(--admin-text-tertiary);
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.user-bulk-upload-zone.dragover .user-bulk-upload-icon {
+    background: var(--admin-accent-subtle);
+    color: var(--admin-text);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .user-bulk-upload-zone:hover .user-bulk-upload-icon {
+        background: var(--admin-accent-subtle);
+        color: var(--admin-text);
+    }
+}
+
+.user-bulk-upload-zone.has-file .user-bulk-upload-icon {
+    background: var(--admin-success-border);
+    color: var(--admin-success-text);
+}
+
+.user-bulk-upload-icon svg {
+    width: 24px;
+    height: 24px;
+}
+
+.user-bulk-upload-text {
+    margin: 0 0 4px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--admin-text);
+}
+
+.user-bulk-upload-hint {
+    margin: 0;
+    font-size: 13px;
+    color: var(--admin-text-secondary);
+}
+
+.user-bulk-upload-filename {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+    padding: 9px 15px;
+    max-width: 100%;
+    background: var(--bg-normal);
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--admin-text);
+    overflow-wrap: anywhere;
+}
+
+.user-bulk-upload-filename svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    color: var(--admin-success-text);
+}
+
+.user-bulk-upload-input {
+    display: none;
+}
+
+/* Upload Actions */
+.user-bulk-upload-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+.user-bulk-upload-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 10px;
+    background: var(--admin-text);
+    color: var(--bg-normal);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s ease, box-shadow 0.2s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .user-bulk-upload-btn:hover:not(:disabled) {
+        opacity: 0.9;
+        box-shadow: var(--admin-shadow);
+    }
+}
+
+.user-bulk-upload-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.user-bulk-upload-btn svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+/* Results Panel */
+.user-bulk-results {
+    margin-top: 24px;
+    padding: 20px;
+    background: var(--admin-bg);
+    border-radius: 12px;
+}
+
+/* Stat tiles use an auto-fit grid so they wrap gracefully on any width. */
+.user-bulk-results-header {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.user-bulk-results-stat {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    background: var(--bg-normal);
+    border: 1px solid var(--admin-border);
+    border-radius: 10px;
+}
+
+.user-bulk-results-stat-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.user-bulk-results-stat-icon.success {
+    background: var(--admin-success-bg);
+    color: var(--admin-success-text);
+}
+
+.user-bulk-results-stat-icon.error {
+    background: var(--admin-error-bg);
+    color: var(--admin-error-text);
+}
+
+.user-bulk-results-stat-icon svg {
+    width: 16px;
+    height: 16px;
+}
+
+.user-bulk-results-stat-content {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.user-bulk-results-stat-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--admin-text);
+    line-height: 1.2;
+}
+
+.user-bulk-results-stat-label {
+    font-size: 12px;
+    color: var(--admin-text-secondary);
+}
+
+.user-bulk-results-errors {
+    margin: 0;
+    padding: 0 0 0 20px;
+    font-size: 13px;
+    color: var(--admin-error-text);
+}
+
+.user-bulk-results-errors li {
+    margin-bottom: 6px;
+    overflow-wrap: anywhere;
+}
+
+.user-bulk-results-errors li:last-child {
+    margin-bottom: 0;
+}
+
+.user-bulk-results-passwords {
+    margin: 0 0 16px;
+    padding: 12px;
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    background: var(--admin-surface);
+}
+
+.user-bulk-results-passwords-title {
+    margin: 0 0 4px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--admin-text);
+}
+
+.user-bulk-results-passwords-desc {
+    margin: 0 0 10px;
+    font-size: 12px;
+    color: var(--admin-text-secondary);
+}
+
+.user-bulk-results-passwords-list {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.user-bulk-results-passwords-list li {
+    display: grid;
+    gap: 4px;
+}
+
+.user-bulk-results-passwords-email {
+    font-size: 12px;
+    color: var(--admin-text-secondary);
+    overflow-wrap: anywhere;
+}
+
+.user-bulk-results-passwords-value {
+    display: block;
+    overflow-wrap: anywhere;
+    padding: 6px 8px;
+    border-radius: 6px;
+    background: var(--admin-bg);
+    color: var(--admin-text);
+    font-family: var(--font-mono, monospace);
+}
+
+/* ===========================================
+   Responsive - Tablet
+   =========================================== */
+@media (max-width: 768px) {
+    .user-create-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .user-bulk-step {
+        padding: 18px;
+    }
+
+    .user-bulk-download-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .user-bulk-download-row .user-create-field {
+        max-width: none;
+    }
+
+    /* Download button stretches full width for an easier tap target. */
+    .user-bulk-download-row #userCreateBulkDownloadButton {
+        align-self: stretch;
+        justify-content: center;
+    }
+}
+
+/* ===========================================
+   Responsive - Phones
+   =========================================== */
+@media (max-width: 560px) {
+    .user-bulk-steps {
+        gap: 12px;
+    }
+
+    /* Content no longer indents under the badge on narrow screens so the
+       upload zone and controls can use the full available width. */
+    .user-bulk-step-content {
+        padding-left: 0;
+    }
+
+    /* Format tabs share the row equally and stay comfortably tappable. */
+    .user-bulk-format-tabs {
+        gap: 8px;
+    }
+
+    .user-bulk-format-tab {
+        flex: 1;
+        padding: 11px 10px;
+    }
+
+    .user-bulk-upload-zone {
+        padding: 22px 14px;
+    }
+
+    /* Primary action becomes full width and easy to reach with a thumb. */
+    .user-bulk-upload-actions {
+        margin-top: 16px;
+    }
+
+    .user-bulk-upload-btn {
+        width: 100%;
+    }
+
+    .user-bulk-results {
+        padding: 16px;
+    }
+
+    .user-bulk-results-header {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ===========================================
+   Responsive - Small phones
+   =========================================== */
+@media (max-width: 380px) {
+    .user-bulk-step {
+        padding: 16px 14px;
+    }
+
+    .user-bulk-step-header {
+        gap: 12px;
+    }
+
+    .user-bulk-step-title {
+        font-size: 15px;
+    }
+
+    /* Stack the format tabs when two side-by-side no longer fit cleanly. */
+    .user-bulk-format-tabs {
+        flex-direction: column;
+    }
+
+    .user-bulk-upload-zone {
+        padding: 20px 12px;
+    }
+}

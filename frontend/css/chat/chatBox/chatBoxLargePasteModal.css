@@ -1,0 +1,74 @@
+/* =============================================
+   Large Paste Modal
+   ============================================= */
+
+.large-paste-modal-overlay {
+    --shared-modal-z-index: 10001;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.large-paste-modal-overlay.open {
+    opacity: 1;
+}
+
+.large-paste-modal__title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.large-paste-modal__info {
+    font-size: 0.85rem;
+    color: var(--text-color-secondary);
+    line-height: 1.5;
+    margin: 0;
+}
+
+.large-paste-modal__preview {
+    margin-top: 12px;
+    background: var(--hover, rgba(0,0,0,0.04));
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 12px 14px;
+    max-height: 120px;
+    overflow: hidden;
+    position: relative;
+}
+
+.large-paste-modal__preview-text {
+    font-family: var(--font-mono, "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", monospace);
+    font-size: 0.78rem;
+    line-height: 1.55;
+    color: var(--text-color-secondary);
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin: 0;
+}
+
+.large-paste-modal__preview::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 40px;
+    background: linear-gradient(transparent, var(--hover, rgba(245,245,245,1)));
+    pointer-events: none;
+    border-radius: 0 0 10px 10px;
+}
+
+.large-paste-modal__stats {
+    display: flex;
+    gap: 16px;
+    margin-top: 10px;
+    font-size: 0.78rem;
+    color: var(--text-color-secondary);
+}
+
+.large-paste-modal__stat {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+

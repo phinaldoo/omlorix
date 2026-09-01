@@ -1,0 +1,15 @@
+{
+  "subject": "Ваш код подтверждения для {application_name}",
+  "html_title": "Код подтверждения {application_name}",
+  "headline": "Ваш код подтверждения",
+  "expires_text": "Срок действия этого кода истекает через {expires_in_minutes} минут.",
+  "ignore_text": "Если вы не запрашивали это, можете проигнорировать это письмо.",
+  "plain_text_body": "Ваш код подтверждения для {application_name}: {code}. Срок действия этого кода истекает через {expires_in_minutes} минут.",
+  "sms_body": "Ваш код подтверждения для {application_name}: {code}. Он истекает через {expires_in_minutes} минут.",
+  "deactivated_subject": "{application_name}: двухфакторная аутентификация отключена",
+  "deactivated_html_title": "Двухфакторная аутентификация отключена | {application_name}",
+  "deactivated_headline": "Двухфакторная аутентификация отключена",
+  "deactivated_body": "Двухфакторная аутентификация была отключена для вашей учетной записи {application_name}.",
+  "deactivated_action": "Если это сделали не вы, немедленно войдите в систему, снова включите 2FA и проверьте активные сеансы.",
+  "deactivated_plain_text_body": "Двухфакторная аутентификация была отключена для вашей учетной записи {application_name}. Если это сделали не вы, немедленно войдите в систему, снова включите 2FA и проверьте активные сеансы."
+}

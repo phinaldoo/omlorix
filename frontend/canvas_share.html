@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow, noarchive">
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#1F1F1F" media="(prefers-color-scheme: dark)">
+    <meta name="description" content="Omlorix is a self-hosted multi-user LLM chat workspace.">
+    <meta property="og:title" content="Omlorix">
+    <meta property="og:description" content="Omlorix is a self-hosted multi-user LLM chat workspace.">
+    <meta property="og:image" content="/assets/share-preview/omlorix-social-card.png">
+    <meta property="og:image:alt" content="Omlorix wordmark">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:site_name" content="Omlorix">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Omlorix">
+    <meta name="twitter:description" content="Omlorix is a self-hosted multi-user LLM chat workspace.">
+    <meta name="twitter:image" content="/assets/share-preview/omlorix-social-card.png">
+    <meta name="twitter:image:alt" content="Omlorix wordmark">
+    <title data-i18n="canvas_share_page_title">Shared Canvas</title>
+    <link rel="icon" href="/api/v1/settings/icon/get?size=16" sizes="16x16">
+    <link rel="icon" href="/api/v1/settings/icon/get?size=32" sizes="32x32">
+    <link rel="apple-touch-icon" sizes="180x180" href="/api/v1/settings/icon/get?size=180"/>
+    <link rel="manifest" href="/api/v1/settings/site.webmanifest"/>
+    <style>
+        /* Fallback CSS Variables for resilience if external CSS fails */
+        :root {
+            --background: #ffffff;
+            --text-color: #111111;
+            --text-color-secondary: #666666;
+            --text-color-tertiary: #757575;
+            --border-color: #e0e0e0;
+            --hover: #f5f5f5;
+            --admin-accent: #007bff;
+            --shadow-color: rgba(0, 0, 0, 0.08);
+        }
+
+        html[data-mode="dark"] {
+            --background: #1F1F1F;
+            --text-color: #ffffff;
+            --text-color-secondary: #aaaaaa;
+            --text-color-tertiary: #999999;
+            --border-color: #333333;
+            --hover: #2a2a2a;
+            --shadow-color: rgba(0, 0, 0, 0.4);
+        }
+
+        html, body {
+            background-color: var(--background) !important;
+            transition: none !important;
+        }
+
+        :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+            outline: 2px solid var(--admin-accent);
+            outline-offset: 2px;
+            border-radius: 4px;
+        }
+    </style>
+    <link rel="stylesheet" href="/css/fonts.css">
+    <link rel="stylesheet" href="/css/common/animations.css">
+    <link rel="stylesheet" href="/css/common/init.css">
+    <link rel="stylesheet" href="/css/chat/init.css">
+    <link rel="stylesheet" href="/css/common/elements.css">
+    <link rel="stylesheet" href="/css/chat/chat.css">
+    <link rel="stylesheet" href="/css/chat/markdown.css">
+    <link rel="stylesheet" href="/css/prism/prism.min.css">
+    <link rel="stylesheet" href="/css/chatShare/chat-share.css">
+    <link rel="stylesheet" href="/css/canvas-share.css">
+    <link rel="stylesheet" href="/css/common/markdownAlerts.css">
+    <script src="/js/vendor/purify.min.js" defer></script>
+    <script src="/js/chat/chatSanitizer.js" defer></script>
+    <script src="/js/vendor/markdown/markdown-it.min.js" defer></script>
+    <script src="/js/common/markdownTables.js" defer></script>
+    <script src="/js/vendor/prism/prism-core.min.js" defer></script>
+    <script src="/js/vendor/prism/components/prism-css.min.js" defer></script>
+    <script src="/js/vendor/prism/components/prism-mermaid.min.js" defer></script>
+    <script src="/js/common/mermaidRuntime.js" defer></script>
+    <script src="/js/common/canvasHtmlPreview.js" defer></script>
+    <script src="/js/common/language.js" defer></script>
+    <script src="/js/common/icons.js" defer></script>
+    <script src="/js/common/markdownAlerts.js" defer></script>
+    <script src="/js/canvas-share.js" defer></script>
+</head>
+<body class="chat-share-page" data-page="canvas-share" data-view="loading">
+        <section id="loadingView" class="chat-share-loading-view">
+            <div class="chat-share-loading-spinner" aria-hidden="true"></div>
+            <p data-i18n="canvas_share_loading_label">Loading shared canvas...</p>
+        </section>
+
+        <section id="passwordView" class="chat-share-password-view" hidden>
+            <h2 data-i18n="canvas_share_password_title">Password required</h2>
+            <p id="passwordHelpText" data-i18n="canvas_share_password_help">Enter the password to view this canvas.</p>
+            <form id="passwordForm" class="chat-share-password-form">
+                <label class="chat-share-password-label" for="passwordInput" data-i18n="canvas_share_password_label">Share password</label>
+                <input id="passwordInput" type="password" autocomplete="off" required aria-describedby="passwordHelpText passwordError" aria-invalid="false">
+                <button type="submit" data-i18n="canvas_share_password_unlock_btn">Unlock</button>
+            </form>
+            <p id="passwordError" role="alert" aria-live="polite"></p>
+        </section>
+
+        <section id="errorView" class="chat-share-error-view" hidden>
+            <h2 data-i18n="canvas_share_error_title">Unable to open canvas</h2>
+            <p id="errorMessage" data-i18n="canvas_share_error_default">The shared canvas could not be loaded.</p>
+            <button type="button" id="retryBtn" data-i18n="canvas_share_error_retry_btn">Try again</button>
+        </section>
+
+        <main id="canvasContainer" class="chat-share-content canvas-share-page" hidden>
+            <section id="canvasContent" class="canvas-share-content" aria-label="Shared canvas content" data-i18n-attr="aria-label:canvas_share_content_aria"></section>
+        </main>
+</body>
+</html>

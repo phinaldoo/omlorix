@@ -1,0 +1,7 @@
+{
+  "privacy_page_title": "プライバシーポリシー",
+  "privacy_loading": "プライバシーポリシーを読み込んでいます...",
+  "privacy_load_error": "プライバシーポリシーを読み込めませんでした。後でもう一度お試しください。",
+  "privacy_default_template_warning_emphasis": "重要:",
+  "privacy_default_template_warning": "このインスタンスはまだ既定のプライバシーポリシーテンプレートを使用しています。運用者はこれをデプロイ環境に合わせた法的コンテンツに置き換える必要があります。"
+}

@@ -1,0 +1,724 @@
+/* ================================== */
+/* Access Rules Editor Component      */
+/* ================================== */
+
+.access-rules-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+}
+
+/* ==================== */
+/* Header & Presets     */
+/* ==================== */
+
+.access-rules-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.access-rules-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.access-rules-preset-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: var(--bg-normal);
+    border: 1px solid var(--admin-border);
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--admin-text-secondary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .access-rules-preset-btn:hover {
+        background: var(--admin-hover);
+        border-color: var(--admin-text-tertiary);
+        color: var(--admin-text);
+    }
+}
+
+.access-rules-preset-btn:active {
+    transform: scale(0.97);
+}
+
+.access-rules-preset-btn svg {
+    width: 14px;
+    height: 14px;
+    opacity: 0.7;
+}
+
+/* ==================== */
+/* Rules List           */
+/* ==================== */
+
+.access-rules-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 60px;
+}
+
+/* ==================== */
+/* Empty State          */
+/* ==================== */
+
+.access-rules-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 24px;
+    text-align: center;
+    background: var(--admin-bg);
+    border: 2px dashed var(--admin-border);
+    border-radius: var(--admin-radius);
+    transition: all 0.2s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .access-rules-empty:hover {
+        border-color: var(--admin-text-tertiary);
+    }
+}
+
+.access-rules-empty-text {
+    font-size: 14px;
+    color: var(--admin-text-secondary);
+    margin: 0;
+    line-height: 1.5;
+}
+
+.access-rules-empty-hint {
+    font-size: 12px;
+    color: var(--admin-text-tertiary);
+    margin-top: 6px;
+}
+
+/* ==================== */
+/* Rule Item            */
+/* ==================== */
+
+.access-rule-item {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 18px;
+    background: var(--bg-normal);
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius);
+    transition: all 0.15s ease;
+    animation: slideDownIn 0.25s ease-out;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .access-rule-item:hover {
+        border-color: var(--admin-text-tertiary);
+        box-shadow: var(--admin-shadow-sm);
+    }
+}
+
+/* ==================== */
+/* Time Groups          */
+/* ==================== */
+
+.access-rule-time-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 90px;
+}
+
+.access-rule-time-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--admin-text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.access-rule-time-input {
+    padding: 8px 10px;
+    background: var(--admin-bg);
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-sm);
+    font-size: 14px;
+    font-weight: 500;
+    font-family: inherit;
+    color: var(--admin-text);
+    transition: all 0.15s ease;
+    outline: none;
+    min-width: 90px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .access-rule-time-input:hover {
+        border-color: var(--admin-text-tertiary);
+    }
+}
+
+.access-rule-time-input:focus {
+    border-color: var(--admin-info);
+    box-shadow: 0 0 0 3px var(--admin-info-bg);
+}
+
+/* Time connector arrow */
+.access-rule-time-connector {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    color: var(--admin-text-tertiary);
+}
+
+.access-rule-time-connector svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* ==================== */
+/* Day Buttons          */
+/* ==================== */
+
+.access-rule-days {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.access-rule-day-btn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--admin-bg);
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--admin-text-tertiary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-transform: uppercase;
+    letter-spacing: -0.02em;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .access-rule-day-btn:hover {
+        border-color: var(--admin-text-tertiary);
+        color: var(--admin-text-secondary);
+        background: var(--admin-hover);
+    }
+}
+
+.access-rule-day-btn.active {
+    background: var(--admin-info-bg);
+    border-color: var(--admin-info);
+    color: var(--admin-info);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .access-rule-day-btn.active:hover {
+        background: color-mix(in srgb, var(--admin-info) 20%, transparent);
+    }
+}
+
+/* Weekend styling */
+.access-rule-day-btn[data-weekend="true"] {
+    color: var(--admin-text-tertiary);
+    opacity: 0.85;
+}
+
+.access-rule-day-btn[data-weekend="true"].active {
+    background: var(--admin-accent-subtle);
+    border-color: var(--admin-accent);
+    color: var(--admin-accent);
+}
+
+/* ==================== */
+/* Label Input          */
+/* ==================== */
+
+.access-rule-label-input {
+    padding: 8px 12px;
+    background: var(--admin-bg);
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-sm);
+    font-size: 13px;
+    color: var(--admin-text);
+    transition: all 0.15s ease;
+    outline: none;
+    min-width: 140px;
+    flex: 1;
+}
+
+.access-rule-label-input::placeholder {
+    color: var(--admin-text-tertiary);
+    font-style: italic;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .access-rule-label-input:hover {
+        border-color: var(--admin-text-tertiary);
+    }
+}
+
+.access-rule-label-input:focus {
+    border-color: var(--admin-info);
+    box-shadow: 0 0 0 3px var(--admin-info-bg);
+}
+
+/* ==================== */
+/* Remove Button        */
+/* ==================== */
+
+.access-rule-remove-btn {
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    color: var(--admin-text-tertiary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .access-rule-remove-btn:hover {
+        background: var(--admin-error-bg);
+        border-color: var(--admin-error);
+        color: var(--admin-error);
+    }
+}
+
+.access-rule-remove-btn:active {
+    transform: scale(0.92);
+}
+
+.access-rule-remove-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* ==================== */
+/* Add Rule Button      */
+/* ==================== */
+
+.access-rules-add-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: var(--bg-normal);
+    border: 2px dashed var(--admin-border);
+    border-radius: var(--admin-radius);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--admin-text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: 100%;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .access-rules-add-btn:hover {
+        border-color: var(--admin-info);
+        background: var(--admin-info-bg);
+        color: var(--admin-info);
+    }
+}
+
+.access-rules-add-btn:active {
+    transform: scale(0.99);
+}
+
+.access-rules-add-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* ==================== */
+/* Visual Timeline      */
+/* ==================== */
+
+.access-rule-timeline {
+    position: relative;
+    height: 6px;
+    background: var(--admin-border);
+    border-radius: 3px;
+    margin-top: 12px;
+    overflow: hidden;
+}
+
+.access-rule-timeline-fill {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    background: var(--admin-info);
+    border-radius: 3px;
+    transition: all 0.3s ease;
+}
+
+.access-rule-timeline-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 4px;
+    font-size: 10px;
+    color: var(--admin-text-tertiary);
+}
+
+/* ==================== */
+/* Responsive Design    */
+/* ==================== */
+
+@media (max-width: 900px) {
+    .access-rule-item {
+        grid-template-columns: 1fr;
+        gap: 14px;
+        padding: 16px;
+    }
+
+    .access-rule-item > * {
+        justify-self: start;
+    }
+
+    .access-rule-time-group {
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
+        min-width: auto;
+    }
+
+    .access-rule-time-label {
+        min-width: 40px;
+    }
+
+    .access-rule-times-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .access-rule-days {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .access-rule-label-input {
+        width: 100%;
+    }
+
+    .access-rule-footer-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        gap: 12px;
+    }
+
+    .access-rule-remove-btn {
+        margin-left: auto;
+    }
+}
+
+@media (max-width: 640px) {
+    .access-rules-presets {
+        width: 100%;
+    }
+
+    .access-rules-preset-btn {
+        flex: 1;
+        justify-content: center;
+        padding: 10px 12px;
+        font-size: 11px;
+    }
+
+    .access-rule-day-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 10px;
+    }
+
+    .access-rules-empty {
+        padding: 32px 16px;
+    }
+
+    .access-rule-time-input {
+        min-width: 80px;
+        padding: 6px 8px;
+        font-size: 13px;
+    }
+}
+
+/* ==================== */
+/* Dark Mode Tweaks     */
+/* ==================== */
+
+@media (prefers-color-scheme: dark) {
+    .access-rule-time-input::-webkit-calendar-picker-indicator {
+        filter: invert(1);
+    }
+}
+
+/* For explicit dark theme class */
+.dark .access-rule-time-input::-webkit-calendar-picker-indicator,
+[data-theme="dark"] .access-rule-time-input::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+}
+
+/* Presets Label */
+.access-rules-presets-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--admin-text-tertiary);
+    margin-right: 4px;
+    white-space: nowrap;
+}
+
+/* Active preset button state */
+.access-rules-preset-btn.active {
+    background: var(--admin-info-bg);
+    border-color: var(--admin-info);
+    color: var(--admin-info);
+    transform: scale(0.95);
+}
+
+/* Preset button icons */
+.access-rules-preset-btn svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+}
+
+/* Time connector styling */
+.access-rule-time-connector {
+    display: flex;
+    align-items: flex-end;
+    padding-bottom: 8px;
+}
+
+/* Times wrapper */
+.access-rule-times-wrapper {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+}
+
+/* Footer row with label and remove */
+.access-rule-footer-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Timeline spans full width */
+.access-rule-timeline,
+.access-rule-timeline-labels {
+    grid-column: 1 / -1;
+}
+
+.custom-python-tools-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 18px;
+}
+
+.custom-python-tools-preview-card-body pre,
+.custom-python-tools-preview-empty {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.custom-python-tools-preview-empty {
+    color: var(--admin-text-secondary, #667085);
+}
+
+.custom-python-tools-meta {
+    display: grid;
+    gap: 6px;
+    margin-bottom: 14px;
+    font-size: 13px;
+}
+
+#deleteCustomToolPrimaryText.loading {
+    opacity: 0.6;
+}
+
+@media (max-width: 1100px) {
+    .custom-python-tools-preview-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 1024px) {
+    .content {
+        padding: 28px 24px calc(40px + env(safe-area-inset-bottom, 0px));
+    }
+
+    /* Page header: reorder to title → subtitle → actions */
+    .page-header {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .page-header-top {
+        display: contents;
+    }
+
+    .page-header .title {
+        order: 1;
+        margin-bottom: 6px;
+    }
+
+    .page-subtitle {
+        order: 2;
+    }
+
+    .page-header-actions {
+        order: 3;
+        width: 100%;
+        margin-top: 24px;
+        flex-wrap: wrap;
+    }
+}
+
+@media (max-width: 768px) {
+    body {
+        /* Mobile pages scroll at the document level, so the body must grow
+           beyond the shared height: 100% declaration from common/init.css. */
+        height: auto;
+        overflow-y: auto;
+    }
+
+    .admin-main-content {
+        min-height: auto;
+        height: auto;
+    }
+
+    .content {
+        min-height: auto;
+        height: auto;
+        overflow: visible;
+        padding: 24px 20px calc(40px + env(safe-area-inset-bottom, 0px));
+    }
+
+    /* The edit-page sidebar must not consume a fixed column on phones. It
+       becomes a full-width tab bar above the provider form instead. */
+    #providerEditFormWrapper {
+        flex-direction: column;
+        width: 100%;
+        min-width: 0;
+    }
+
+    #providerEditFormWrapper .provider-form-sidebar {
+        flex-direction: row;
+        width: 100%;
+        min-width: 0;
+        margin: 0 0 20px;
+        padding: 4px;
+        gap: 4px;
+        overflow-x: auto;
+        border: 1px solid var(--admin-border-subtle);
+        border-radius: var(--admin-radius);
+        background: var(--admin-bg);
+        scrollbar-width: none;
+    }
+
+    #providerEditFormWrapper .provider-form-sidebar::-webkit-scrollbar {
+        display: none;
+    }
+
+    #providerEditFormWrapper .provider-form-sidebar-tab {
+        flex: 1 0 max-content;
+        min-height: 44px;
+        padding: 10px 16px;
+        text-align: center;
+        white-space: nowrap;
+    }
+
+    #providerEditFormWrapper > form,
+    #providerEditFormWrapper .provider-form-pages,
+    #providerEditFormWrapper .provider-form-page,
+    #providerEditFormWrapper .provider-form-models {
+        width: 100%;
+        min-width: 0;
+    }
+
+    #providerEditFormWrapper .provider-settings-section {
+        margin-bottom: 24px;
+    }
+
+    #providerEditFormWrapper .provider-form-actions {
+        width: 100%;
+        padding-top: 4px;
+    }
+
+    /* Settings rows: stack left/right vertically */
+    .settings-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .settings-row-right,
+    .settings-row-control {
+        width: 100%;
+    }
+
+    .settings-row-right .om-button.border {
+        width: 100%;
+    }
+
+    .settings-row-right .form-input,
+    .settings-row-right .form-select,
+    .settings-row-right .form-textarea,
+    .settings-row-control .form-input,
+    .settings-row-control .form-select,
+    .settings-row-control .form-textarea,
+    .settings-row-control input[type="text"],
+    .settings-row-control input[type="number"],
+    .settings-row-control input[type="email"],
+    .settings-row-control input[type="url"],
+    .settings-row-control input[type="password"],
+    .settings-row-control select {
+        width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+}
+
+@media (max-width: 480px) {
+    #providerEditFormWrapper .provider-form-actions {
+        flex-direction: column-reverse;
+    }
+
+    #providerEditFormWrapper .provider-form-actions .om-button.border {
+        width: 100%;
+    }
+}

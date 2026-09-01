@@ -1,0 +1,55 @@
+{
+  "requiredEnvVariables": [
+    "JWT_SECRET_KEY",
+    "LOG_IP_HASH_SALT",
+    "ENCRYPTION_KEY",
+    "DATABASE_PASSWORD",
+    "REDIS_PASSWORD",
+    "REDIS_URL",
+    "DATABASE_URL",
+    "FILE_STORAGE_PROVIDER",
+    "MINIO_ROOT_USER",
+    "MINIO_ROOT_PASSWORD"
+  ],
+  "toggles": {
+    "bundledDB": {
+      "key": "OMLORIX_USE_BUNDLED_DB",
+      "requiredWhenTrue": [
+        "JWT_SECRET_KEY",
+        "LOG_IP_HASH_SALT",
+        "ENCRYPTION_KEY",
+        "DATABASE_PASSWORD"
+      ],
+      "requiredWhenFalse": [
+        "JWT_SECRET_KEY",
+        "LOG_IP_HASH_SALT",
+        "ENCRYPTION_KEY",
+        "DATABASE_URL"
+      ]
+    },
+    "bundledRedis": {
+      "key": "OMLORIX_USE_BUNDLED_REDIS",
+      "enabledWhen": {
+        "key": "REDIS_ENABLED",
+        "value": true
+      },
+      "requiredWhenTrue": [
+        "REDIS_PASSWORD",
+        "REDIS_URL"
+      ],
+      "requiredWhenFalse": [
+        "REDIS_URL"
+      ]
+    },
+    "bundledStorage": {
+      "key": "OMLORIX_USE_BUNDLED_STORAGE",
+      "requiredWhenTrue": [
+        "MINIO_ROOT_USER",
+        "MINIO_ROOT_PASSWORD"
+      ],
+      "requiredWhenFalse": [
+        "FILE_STORAGE_PROVIDER"
+      ]
+    }
+  }
+}

@@ -1,0 +1,96 @@
+/*
+ * Admin-only design tokens.
+ *
+ * The shared initializer establishes the global mode and base surfaces first.
+ * This file then adds the denser neutral palette used by admin dashboards,
+ * forms, tables, navigation, status messages, and administrative dialogs.
+ */
+:root {
+    --bg-normal: #ffffff;
+    --bg-normal-elevated: #ffffff;
+    --admin-bg: #fafafa;
+    --admin-border: rgba(0, 0, 0, 0.06);
+    --admin-border-subtle: rgba(0, 0, 0, 0.04);
+    --admin-text: #111111;
+    --admin-text-secondary: #666666;
+    --admin-text-tertiary: #999999;
+    --admin-hover: rgba(0, 0, 0, 0.04);
+    --admin-active: rgba(0, 0, 0, 0.08);
+    --admin-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --admin-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --admin-shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.12);
+    --admin-shadow-modal: 0 10px 40px rgba(0, 0, 0, 0.12), 0 2px 10px rgba(0, 0, 0, 0.08);
+    --admin-radius: 12px;
+    --admin-radius-sm: 8px;
+    --admin-radius-lg: 16px;
+    --admin-accent: #000000;
+    --admin-accent-subtle: rgba(0, 0, 0, 0.08);
+    --admin-success: #22c55e;
+    --admin-success-bg: rgba(34, 197, 94, 0.1);
+    --admin-error: #ef4444;
+    --admin-error-bg: rgba(239, 68, 68, 0.1);
+    --admin-warning: #f59e0b;
+    --admin-warning-bg: rgba(245, 158, 11, 0.1);
+    --admin-info: #3b82f6;
+    --admin-info-bg: rgba(59, 130, 246, 0.1);
+    --admin-scrollbar: rgba(0, 0, 0, 0.15);
+    --admin-scrollbar-hover: rgba(0, 0, 0, 0.25);
+    --admin-transition: 0.15s ease;
+    --admin-success-border: rgba(34, 197, 94, 0.3);
+    --admin-error-border: rgba(239, 68, 68, 0.3);
+    --admin-info-border: rgba(59, 130, 246, 0.3);
+    --admin-warning-border: rgba(245, 158, 11, 0.3);
+    --admin-success-text: #22c55e;
+    --admin-error-text: #ef4444;
+    --admin-info-text: #3b82f6;
+    --admin-warning-text: #f59e0b;
+    --admin-selection-bg: #18181b;
+    --admin-selection-text: #ffffff;
+    --admin-selection-border: #18181b;
+    --admin-table-row-hover: #f4f4f5;
+}
+
+[data-mode="dark"] {
+    --bg-normal: #242428;
+    --bg-normal-elevated: #2b2b30;
+    --admin-bg: #18181a;
+    --admin-border: #3f3f46;
+    --admin-border-subtle: #303036;
+    --admin-text: #f4f4f5;
+    --admin-text-secondary: #b4b4ba;
+    --admin-text-tertiary: #85858d;
+    --admin-hover: #2e2e34;
+    --admin-active: #393940;
+    --admin-shadow-sm: 0 2px 5px rgba(0, 0, 0, 0.28);
+    --admin-shadow: 0 8px 22px rgba(0, 0, 0, 0.36);
+    --admin-shadow-lg: 0 20px 52px rgba(0, 0, 0, 0.52);
+    --admin-shadow-modal: 0 24px 64px rgba(0, 0, 0, 0.56), 0 0 0 1px rgba(255, 255, 255, 0.025);
+    --admin-accent: #a4a4aa;
+    --admin-accent-subtle: rgba(164, 164, 170, 0.16);
+    --admin-selection-bg: #34343b;
+    --admin-selection-text: #f4f4f5;
+    --admin-selection-border: #52525b;
+    --admin-table-row-hover: #2e2e34;
+    --admin-success: #4ade80;
+    --admin-success-bg: rgba(74, 222, 128, 0.15);
+    --admin-error: #f87171;
+    --admin-error-bg: rgba(248, 113, 113, 0.15);
+    --admin-warning: #fbbf24;
+    --admin-warning-bg: rgba(251, 191, 36, 0.15);
+    --admin-info: #60a5fa;
+    --admin-info-bg: rgba(96, 165, 250, 0.15);
+    --admin-scrollbar: rgba(255, 255, 255, 0.2);
+    --admin-scrollbar-hover: rgba(255, 255, 255, 0.3);
+    --admin-success-border: rgba(74, 222, 128, 0.4);
+    --admin-error-border: rgba(248, 113, 113, 0.4);
+    --admin-info-border: rgba(96, 165, 250, 0.4);
+    --admin-warning-border: rgba(251, 191, 36, 0.4);
+    --admin-success-text: #4ade80;
+    --admin-error-text: #f87171;
+    --admin-info-text: #60a5fa;
+    --admin-warning-text: #fbbf24;
+}
+
+.shared-modal-body.delete-account-content {
+    margin: 0;
+}

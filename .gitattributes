@@ -1,0 +1,7 @@
+# Source-inspection tests use exact textual boundaries. Keep every text file on
+# LF across platforms so a Windows checkout has the same source representation.
+* text=auto eol=lf
+
+# Keep shell scripts explicitly classified as text for older Git clients.
+*.sh text eol=lf
+nginx/bin/*.sh text eol=lf

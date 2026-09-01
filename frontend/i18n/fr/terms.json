@@ -1,0 +1,7 @@
+{
+  "terms_page_title": "Conditions d'utilisation",
+  "terms_loading": "Chargement des conditions d'utilisation...",
+  "terms_load_error": "Impossible de charger les conditions d'utilisation. Veuillez réessayer plus tard.",
+  "terms_default_template_warning_emphasis": "Important :",
+  "terms_default_template_warning": "Cette instance utilise encore le modèle par défaut des conditions d’utilisation. L’opérateur doit le remplacer par un contenu juridique propre au déploiement avant d’activer l’inscription publique."
+}

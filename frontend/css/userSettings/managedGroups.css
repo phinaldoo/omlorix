@@ -1,0 +1,1140 @@
+/* ============================================================
+   Managed Groups — minimalist, modern, mobile-friendly
+   ------------------------------------------------------------
+   Layout:
+     .managed-groups-layout      two-column grid (sidebar + content)
+     .managed-groups-sidebar     search + group list
+     .managed-groups-content     empty state or group detail
+   The settings panel is grouped into .managed-groups-section
+   blocks whose rows live inside hairline-divided
+   .managed-groups-card containers.
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   Layout
+   ------------------------------------------------------------ */
+
+.managed-groups-layout {
+    display: grid;
+    grid-template-columns: minmax(240px, 280px) minmax(0, 1fr);
+    gap: 28px;
+    align-items: start;
+}
+
+/* ------------------------------------------------------------
+   Sidebar: search + group list
+   ------------------------------------------------------------ */
+
+.managed-groups-sidebar {
+    position: sticky;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: calc(100vh - 96px);
+    min-height: 0;
+}
+
+.managed-groups-toolbar {
+    position: relative;
+}
+
+.managed-groups-search-field {
+    position: relative;
+    display: block;
+}
+
+.managed-groups-search-icon {
+    position: absolute;
+    inset-inline-start: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-color-tertiary);
+    pointer-events: none;
+}
+
+.managed-groups-search-field .input-field {
+    width: 100%;
+    height: 40px;
+    padding: 8px 12px;
+    padding-inline-start: 36px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: transparent;
+    color: var(--text-color);
+    font-size: 13px;
+    font-family: inherit;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.managed-groups-search-field .input-field:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 16%, transparent);
+}
+
+.managed-groups-search-field .input-field::placeholder {
+    color: var(--text-color-tertiary);
+}
+
+.managed-groups-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+    margin: 0 -6px;
+    padding: 0 2px;
+    scrollbar-width: thin;
+}
+
+.managed-groups-list-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: calc(100% - 8px);
+    margin: 0 4px;
+    padding: 8px 10px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--text-color);
+    text-align: start;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .managed-groups-list-item:hover {
+        background: var(--hover);
+    }
+}
+
+.managed-groups-list-item:focus-visible {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 18%, transparent);
+}
+
+.managed-groups-list-item.active {
+    background: var(--hover);
+    border-color: var(--border-color);
+    box-shadow: inset 2px 0 0 var(--primary-color);
+}
+
+.managed-groups-list-item-avatar {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    background: var(--hover);
+    color: var(--text-color-secondary);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.managed-groups-list-item.active .managed-groups-list-item-avatar {
+    background: color-mix(in srgb, var(--primary-color) 14%, transparent);
+    color: var(--primary-color);
+}
+
+.managed-groups-list-item-text {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.managed-groups-list-item-title {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-color);
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.managed-groups-list-item-meta {
+    color: var(--text-color-tertiary);
+    font-size: 11.5px;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.managed-groups-list-item-role {
+    flex: 0 0 auto;
+    padding: 2px 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    color: var(--text-color-secondary);
+    font-size: 10.5px;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+.managed-groups-list-empty {
+    padding: 20px 12px;
+    color: var(--text-color-tertiary);
+    font-size: 12.5px;
+    line-height: 1.5;
+    text-align: center;
+}
+
+/* ------------------------------------------------------------
+   Content area / empty state
+   ------------------------------------------------------------ */
+
+.managed-groups-content {
+    min-width: 0;
+}
+
+.managed-groups-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 72px 24px;
+    text-align: center;
+    max-width: 420px;
+    margin: 0 auto;
+}
+
+.managed-groups-empty-icon {
+    color: var(--text-color-tertiary);
+    opacity: 0.75;
+    margin-bottom: 6px;
+}
+
+.managed-groups-empty-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-color);
+    line-height: 1.4;
+}
+
+.managed-groups-empty-hint {
+    font-size: 13px;
+    color: var(--text-color-tertiary);
+    line-height: 1.6;
+}
+
+.managed-groups-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* The hidden attribute must win over the display values above */
+.managed-groups-detail[hidden],
+.managed-groups-temp-credentials[hidden],
+.managed-groups-inline-form[hidden] {
+    display: none;
+}
+
+/* ------------------------------------------------------------
+   Group header
+   ------------------------------------------------------------ */
+
+.managed-groups-header-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+}
+
+.managed-groups-header-text {
+    min-width: 0;
+}
+
+.managed-groups-header-card h3 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--text-color);
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+}
+
+.managed-groups-path {
+    margin: 4px 0 0;
+    color: var(--text-color-tertiary);
+    font-size: 12.5px;
+    line-height: 1.4;
+}
+
+.managed-groups-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    flex-shrink: 0;
+}
+
+.managed-groups-meta span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    padding: 3px 10px;
+    color: var(--text-color-secondary);
+    font-size: 11.5px;
+    font-weight: 500;
+    line-height: 1.5;
+}
+
+.managed-groups-meta span::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--primary-color);
+}
+
+/* ------------------------------------------------------------
+   Tabs — segmented control
+   ------------------------------------------------------------ */
+
+.managed-groups-tabs {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    width: fit-content;
+    max-width: 100%;
+    padding: 3px;
+    border-radius: 12px;
+    background: var(--hover);
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
+}
+
+.managed-groups-tabs::-webkit-scrollbar { display: none; }
+
+.managed-groups-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    height: 30px;
+    border: none;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--text-color-secondary);
+    padding: 0 12px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.3;
+    white-space: nowrap;
+    font-family: inherit;
+    transition: color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .managed-groups-tab:hover {
+        color: var(--text-color);
+    }
+}
+
+.managed-groups-tab:focus-visible {
+    outline: none;
+    color: var(--text-color);
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--primary-color) 55%, transparent);
+}
+
+.managed-groups-tab.active {
+    background: var(--background);
+    color: var(--text-color);
+    font-weight: 600;
+    box-shadow: 0 1px 3px color-mix(in srgb, var(--shadow-color) 60%, transparent);
+}
+
+.managed-groups-tab-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    min-width: 20px;
+    height: 18px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--text-color) 8%, transparent);
+    color: var(--text-color-tertiary);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.managed-groups-tab.active .managed-groups-tab-count {
+    background: color-mix(in srgb, var(--primary-color) 13%, transparent);
+    color: var(--primary-color);
+}
+
+.managed-groups-tab-count[hidden] {
+    display: none;
+}
+
+/* ------------------------------------------------------------
+   Panels and settings sections
+   ------------------------------------------------------------ */
+
+.managed-groups-panel {
+    display: none;
+}
+
+.managed-groups-panel.active {
+    display: block;
+}
+
+.managed-groups-section {
+    margin-top: 26px;
+}
+
+.managed-groups-panel > .managed-groups-section:first-child {
+    margin-top: 0;
+}
+
+.managed-groups-section-head {
+    margin-bottom: 10px;
+    padding: 0 2px;
+}
+
+.managed-groups-section-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-color);
+    line-height: 1.3;
+}
+
+.managed-groups-section-help {
+    margin: 3px 0 0;
+    font-size: 12.5px;
+    color: var(--text-color-secondary);
+    line-height: 1.45;
+}
+
+/* Card: rows separated by hairlines */
+.managed-groups-card {
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    background: var(--background);
+    overflow: hidden;
+}
+
+.managed-groups-card:not(.managed-groups-card-grid) > * + * {
+    border-top: 1px solid var(--border-color);
+}
+
+/* Two-column feature grid variant: hairlines via 1px gaps */
+.managed-groups-card-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1px;
+    background: var(--border-color);
+    border: 1px solid var(--border-color);
+}
+
+/* An odd final toggle spans the row so no leftover hairline cell shows */
+.managed-groups-card-grid > .managed-groups-toggle-row:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+}
+
+/* Toggle rows */
+.managed-groups-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 52px;
+    padding: 10px 16px;
+    background: var(--background);
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .managed-groups-toggle-row:not(:has(.toggle-input:disabled)):hover {
+        background: var(--hover);
+    }
+}
+
+.managed-groups-toggle-label {
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--text-color);
+    line-height: 1.35;
+}
+
+.managed-groups-toggle-row .toggle-switch {
+    flex-shrink: 0;
+}
+
+.managed-groups-toggle-row:has(.toggle-input:disabled) {
+    cursor: not-allowed;
+}
+
+.managed-groups-toggle-row:has(.toggle-input:disabled) .managed-groups-toggle-label {
+    color: var(--text-color-tertiary);
+}
+
+.managed-groups-toggle-row .toggle-switch:has(.toggle-input:disabled) {
+    cursor: not-allowed;
+}
+
+.managed-groups-toggle-row .toggle-input:disabled + .toggle-slider {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+/* Stacked label + input rows */
+.managed-groups-input-field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    padding: 13px 16px;
+    background: var(--background);
+}
+
+.managed-groups-input-field[hidden] {
+    display: none;
+}
+
+.managed-groups-input-label {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-color-secondary);
+    line-height: 1.2;
+}
+
+.managed-groups-input-help {
+    margin: 0;
+    color: var(--text-color-tertiary);
+    font-size: 11.5px;
+    font-weight: 400;
+    line-height: 1.4;
+}
+
+.managed-groups-input-field .input-field {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: transparent;
+    color: var(--text-color);
+    font-size: 13.5px;
+    font-family: inherit;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.managed-groups-input-field .input-field:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 16%, transparent);
+}
+
+.managed-groups-input-field .input-field:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.managed-groups-input-field textarea.input-field {
+    resize: vertical;
+    min-height: 88px;
+    line-height: 1.5;
+}
+
+/* Two-up input rows inside a card share a vertical hairline */
+.managed-groups-field-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.managed-groups-field-grid > .managed-groups-input-field + .managed-groups-input-field {
+    border-inline-start: 1px solid var(--border-color);
+}
+
+/* Save bar */
+.managed-groups-actions {
+    margin-top: 22px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* Keep primary action labels readable against the page-specific hover color. */
+@media (hover: hover) and (pointer: fine) {
+    #managedGroupsPage .om-button.border.submit:hover:not(:disabled) {
+        background: color-mix(in srgb, var(--primary-color) 88%, #000000);
+        border-color: color-mix(in srgb, var(--primary-color) 88%, #000000);
+    }
+}
+
+/* ------------------------------------------------------------
+   Inline action forms (promote member, create temporary accounts)
+   ------------------------------------------------------------ */
+
+.managed-groups-inline-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 18px;
+    margin-bottom: 22px;
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    background: var(--background);
+}
+
+.managed-groups-inline-form-head .managed-groups-section-title {
+    margin: 0;
+}
+
+.managed-groups-inline-form-head .managed-groups-section-help {
+    margin: 4px 0 0;
+}
+
+.managed-groups-inline-form-fields {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: center;
+}
+
+.managed-groups-inline-form-fields .managed-groups-input-field {
+    padding: 0;
+    gap: 6px;
+}
+
+/* Slot wrappers keep the upgraded custom select in its grid cell */
+.managed-groups-select-slot {
+    min-width: 0;
+}
+
+.managed-groups-select-slot .admin-select {
+    width: 100%;
+    min-width: 0;
+}
+
+/* Match the surrounding input styling */
+.managed-groups-inline-form-fields .admin-select-trigger {
+    height: 40px;
+    border-color: var(--border-color);
+    border-radius: 10px;
+    background: transparent;
+    color: var(--text-color);
+    font-size: 13.5px;
+}
+
+.managed-groups-inline-form-fields .admin-select-trigger:focus,
+.managed-groups-inline-form-fields .admin-select-trigger:focus-visible {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 16%, transparent);
+}
+
+.managed-groups-inline-form-fields .admin-select-trigger:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+/* Line actions up with the 40px-tall fields next to them */
+.managed-groups-inline-form-fields .om-button.border {
+    height: 40px;
+}
+
+/* Fields with a label row sit higher than the button; drop the button to
+   the input baseline (label line 15px + gap 6px) for a flush alignment. */
+.managed-groups-inline-form-fields > label.managed-groups-input-field ~ .om-button.border {
+    align-self: start;
+    margin-top: 21px;
+}
+
+/* ------------------------------------------------------------
+   Entity lists (managers, members, temporary accounts)
+   ------------------------------------------------------------ */
+
+.managed-groups-entity-list {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    background: var(--background);
+    overflow: hidden;
+}
+
+.managed-groups-entity-card {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--background);
+    transition: background 0.15s ease;
+}
+
+.managed-groups-entity-card + .managed-groups-entity-card {
+    border-top: 1px solid var(--border-color);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .managed-groups-entity-card:not(.is-empty):hover {
+        background: var(--hover);
+    }
+}
+
+/* Initials avatar rendered from the data-avatar attribute, so the
+   rendered DOM keeps its simple card > title/subtitle structure. */
+.managed-groups-entity-card::before {
+    content: attr(data-avatar);
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--hover);
+    color: var(--text-color-secondary);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.managed-groups-entity-card[data-status="active"]::before {
+    background: color-mix(in srgb, var(--success-color) 13%, transparent);
+    color: color-mix(in srgb, var(--success-color) 75%, var(--text-color));
+}
+
+.managed-groups-entity-card[data-status="pending"]::before {
+    background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+    color: var(--primary-color);
+}
+
+.managed-groups-entity-card[data-status="expired"]::before,
+.managed-groups-entity-card[data-status="revoked"]::before,
+.managed-groups-entity-card[data-status="deleted"]::before,
+.managed-groups-entity-card[data-status="inactive"]::before {
+    background: color-mix(in srgb, var(--text-color-tertiary) 14%, transparent);
+    color: var(--text-color-tertiary);
+}
+
+.managed-groups-entity-card > div:first-child {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.managed-groups-entity-card > div:first-child > div:first-child {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-color);
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.managed-groups-entity-subtitle {
+    color: var(--text-color-tertiary);
+    font-size: 12.5px;
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.managed-groups-entity-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+}
+
+/* Compact row actions */
+.managed-groups-entity-actions .om-button.border {
+    height: 30px;
+    padding: 0 12px;
+    font-size: 12px;
+}
+
+.managed-groups-entity-card.is-empty {
+    justify-content: center;
+    padding: 28px 16px;
+    color: var(--text-color-tertiary);
+    font-size: 12.5px;
+}
+
+.managed-groups-entity-card.is-empty::before {
+    content: none;
+}
+
+/* ------------------------------------------------------------
+   Temporary credentials (one-time passwords, shown once)
+   ------------------------------------------------------------ */
+
+.managed-groups-temp-credentials {
+    margin-bottom: 22px;
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--primary-color) 4%, var(--background));
+    overflow: hidden;
+}
+
+.managed-groups-credentials-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 16px 16px 14px;
+}
+
+.managed-groups-credentials-icon {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    background: var(--background);
+    color: var(--primary-color);
+}
+
+.managed-groups-credentials-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+.managed-groups-credentials-head-text {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.managed-groups-credentials-head-text strong {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-color);
+    line-height: 1.3;
+}
+
+.managed-groups-credentials-head-text p {
+    margin: 3px 0 0;
+    font-size: 12.5px;
+    color: var(--text-color-secondary);
+    line-height: 1.45;
+}
+
+.managed-groups-credentials-copy-all {
+    flex: 0 0 auto;
+    align-self: center;
+}
+
+.managed-groups-credential-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    border-top: 1px solid var(--border-color);
+    background: var(--background);
+}
+
+.managed-groups-credential-main {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 10px;
+    row-gap: 4px;
+}
+
+.managed-groups-credential-email {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-color);
+    overflow-wrap: anywhere;
+}
+
+.managed-groups-credential-password {
+    padding: 3px 8px;
+    border-radius: 7px;
+    background: var(--hover);
+    color: var(--text-color);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.managed-groups-credential-expiry {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--text-color-tertiary);
+    font-size: 11.5px;
+    line-height: 1.4;
+}
+
+.managed-groups-credential-expiry svg {
+    width: 12px;
+    height: 12px;
+}
+
+.managed-groups-copy-btn {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 30px;
+    padding: 4px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--background);
+    color: var(--text-color-secondary);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.2;
+    cursor: pointer;
+    font-family: inherit;
+    transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.managed-groups-copy-btn svg {
+    width: 13px;
+    height: 13px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .managed-groups-copy-btn:hover:not(:disabled) {
+        border-color: var(--text-color-tertiary);
+        color: var(--text-color);
+    }
+}
+
+.managed-groups-copy-btn:focus-visible {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 16%, transparent);
+}
+
+.managed-groups-copy-btn.is-copied {
+    border-color: color-mix(in srgb, var(--success-color) 45%, var(--border-color));
+    color: var(--success-color);
+}
+
+/* ------------------------------------------------------------
+   Load more
+   ------------------------------------------------------------ */
+
+.managed-groups-load-more {
+    display: block;
+    margin: 14px auto 0;
+}
+
+.managed-groups-load-more[hidden] {
+    display: none;
+}
+
+/* ------------------------------------------------------------
+   Reduced motion
+   ------------------------------------------------------------ */
+
+@media (prefers-reduced-motion: reduce) {
+    .managed-groups-tab,
+    .managed-groups-list-item,
+    .managed-groups-toggle-row,
+    .managed-groups-entity-card,
+    .managed-groups-copy-btn,
+    .managed-groups-search-field .input-field,
+    .managed-groups-input-field .input-field,
+    .managed-groups-inline-form-fields select.input-field {
+        transition: none !important;
+    }
+}
+
+/* ------------------------------------------------------------
+   Compact widths (≤1280px): the groups list moves above the
+   content as horizontally scrolling cards. Left of it there is
+   only ever ONE sidebar (the settings nav or, in drawer mode,
+   none), so the detail area always keeps comfortable width —
+   the settings nav, groups list, and detail never compete for
+   three columns at once.
+   ------------------------------------------------------------ */
+
+@media (max-width: 1280px) {
+    .managed-groups-layout {
+        /* minmax(0, 1fr) — never let the horizontal card strip force the
+           grid (and the whole settings page) wider than the viewport;
+           the groups list must scroll inside its own box instead. */
+        grid-template-columns: minmax(0, 1fr);
+        gap: 18px;
+    }
+
+    .managed-groups-sidebar {
+        position: static;
+        max-height: none;
+        gap: 10px;
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    /* Groups become compact horizontally scrolling cards */
+    .managed-groups-list {
+        flex-direction: row;
+        overflow-x: auto;
+        overflow-y: hidden;
+        gap: 8px;
+        margin: 0;
+        padding: 2px 2px 8px;
+        scrollbar-width: thin;
+        -webkit-overflow-scrolling: touch;
+        max-width: 100%;
+    }
+
+    .managed-groups-list-item {
+        flex: 0 0 auto;
+        width: 230px;
+        margin: 0;
+    }
+
+    .managed-groups-list-empty {
+        width: 100%;
+    }
+}
+
+/* Drawer-mode tweaks for the wider compact range: the settings
+   header goes columnar alongside the single-column layout. */
+@media (max-width: 1024px) {
+    .managed-groups-header-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .managed-groups-meta {
+        justify-content: flex-start;
+    }
+}
+
+/* ------------------------------------------------------------
+   Small tablets / large phones: action forms stack full-width
+   ------------------------------------------------------------ */
+
+@media (max-width: 768px) {
+    .managed-groups-inline-form-fields {
+        grid-template-columns: 1fr;
+        align-items: stretch;
+    }
+
+    .managed-groups-inline-form-fields .om-button.border {
+        width: 100%;
+    }
+
+    /* The desktop label-baseline offset must not survive the stacked layout */
+    .managed-groups-inline-form-fields > label.managed-groups-input-field ~ .om-button.border {
+        margin-top: 0;
+    }
+}
+
+/* ------------------------------------------------------------
+   Mobile
+   ------------------------------------------------------------ */
+
+@media (max-width: 640px) {
+    .managed-groups-header-card h3 {
+        font-size: 18px;
+    }
+
+    /* Larger touch target for the segmented control */
+    .managed-groups-tab {
+        height: 36px;
+        padding: 0 11px;
+        font-size: 12.5px;
+    }
+
+    /* Slightly slimmer group cards while scrolling horizontally */
+    .managed-groups-list-item {
+        width: 200px;
+    }
+
+    /* Roomier touch target for the search field */
+    .managed-groups-search-field .input-field {
+        height: 42px;
+    }
+
+    /* Inputs at 16px keep iOS Safari from zooming the page on focus */
+    #managedGroupsPage .input-field,
+    .managed-groups-inline-form-fields .admin-select-trigger,
+    #managedGroupsPage .admin-select-search-input {
+        font-size: 16px;
+    }
+
+    .managed-groups-card-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .managed-groups-field-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .managed-groups-field-grid > .managed-groups-input-field + .managed-groups-input-field {
+        border-inline-start: none;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .managed-groups-inline-form {
+        padding: 16px;
+    }
+
+    .managed-groups-actions {
+        justify-content: stretch;
+    }
+
+    .managed-groups-actions .om-button.border {
+        width: 100%;
+    }
+
+    .managed-groups-entity-card {
+        padding: 12px;
+    }
+
+    /* Bigger touch targets for row actions */
+    .managed-groups-entity-actions .om-button.border {
+        height: 34px;
+    }
+
+    .managed-groups-copy-btn {
+        min-height: 34px;
+    }
+
+    .managed-groups-load-more {
+        width: 100%;
+        margin: 12px 0 0;
+    }
+
+    .managed-groups-empty {
+        padding: 56px 20px;
+        font-size: 13px;
+    }
+}

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#111827" media="(prefers-color-scheme: dark)">
+    <title data-i18n="legal_page_title">Legal</title>
+    <link rel="icon" href="/api/v1/settings/icon/get?size=16" sizes="16x16">
+    <link rel="icon" href="/api/v1/settings/icon/get?size=32" sizes="32x32">
+    <link rel="apple-touch-icon" sizes="180x180" href="/api/v1/settings/icon/get?size=180">
+    <link rel="manifest" href="/api/v1/settings/site.webmanifest">
+    <script src="/js/common/themeBoot.js"></script>
+    <link rel="stylesheet" href="/css/fonts.css">
+    <link rel="stylesheet" href="/css/common/init.css">
+    <link rel="stylesheet" href="/css/legal.css">
+    <link rel="stylesheet" href="/css/common/markdownAlerts.css">
+    <script src="/js/common/pwaVersionGuard.js" defer></script>
+    <script src="/js/common/language.js" defer></script>
+    <script src="/js/common/icons.js" defer></script>
+    <script src="/js/common/markdownAlerts.js" defer></script>
+    <script src="/js/vendor/purify.min.js" defer></script>
+    <script src="/js/vendor/markdown/markdown-it.min.js" defer></script>
+    <script src="/js/common/markdownTables.js" defer></script>
+    <script src="/js/common/legalPage.js" defer></script>
+    <script src="/js/common/legalPageInit.js" defer></script>
+</head>
+<body data-page="legal">
+    <div class="legal-page-shell">
+        <nav
+            class="legal-document-nav"
+            id="legalDocumentNav"
+            data-i18n-attr="aria-label:legal_navigation_aria"
+            aria-label="Legal documents"
+            hidden
+        >
+            <a
+                class="legal-document-link"
+                id="privacyDocumentLink"
+                href="/privacy"
+                data-legal-document="privacy"
+                data-i18n="privacy_page_title"
+            >Privacy Policy</a>
+            <a
+                class="legal-document-link"
+                id="termsDocumentLink"
+                href="/terms"
+                data-legal-document="terms"
+                data-i18n="terms_page_title"
+            >Terms of Service</a>
+        </nav>
+
+        <main class="container" id="main-container" tabindex="-1">
+            <div
+                class="legal-loading-state"
+                id="legalLoadingState"
+                role="status"
+                aria-live="polite"
+                data-i18n="legal_loading"
+            >Loading legal documents...</div>
+        </main>
+    </div>
+
+    <button
+        class="scroll-to-top"
+        id="scrollToTop"
+        data-i18n-attr="aria-label:legal_scroll_to_top_aria"
+        aria-label="Scroll to top"
+        type="button"
+    >↑</button>
+</body>
+</html>

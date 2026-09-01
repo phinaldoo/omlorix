@@ -1,0 +1,20 @@
+{
+  "verify_subject": "新しい {application_name} メールアドレスを確認してください",
+  "verify_headline": "新しいメールアドレスを確認",
+  "verify_intro": "このアドレスを確認して、{application_name} アカウントのメールアドレス変更を完了してください。",
+  "verify_button": "メールアドレスを確認",
+  "verify_expires": "このリンクは {expires_in_hours} 時間後に失効します。",
+  "verify_ignore": "この変更をリクエストしていない場合は、確認しないでください。",
+  "requested_subject": "{application_name}: メールアドレス変更のリクエスト",
+  "requested_headline": "メールアドレスの変更がリクエストされました",
+  "requested_intro": "アカウントに新しいアドレスがリクエストされました。新しいアドレスが確認されるまで現在のアドレスは有効です。",
+  "cancel_button": "メールアドレス変更を取り消す",
+  "requested_action": "ご自身の操作でない場合は、リクエストを取り消し、直ちにアカウントを保護してください。",
+  "changed_subject": "{application_name}: メールアドレスが変更されました",
+  "changed_headline": "メールアドレスが変更されました",
+  "changed_intro": "{application_name} へのサインインに使うアドレスが変更されました。既存のセッションとパスワード再設定リンクはすべて無効になりました。",
+  "changed_action": "ご自身の操作でない場合は、直ちにアカウントを保護し、管理者に連絡してください。",
+  "cancelled_subject": "{application_name}: メールアドレス変更を取り消しました",
+  "cancelled_headline": "メールアドレス変更を取り消しました",
+  "cancelled_intro": "保留中の変更を取り消しました。現在のアドレスは引き続き有効です。"
+}

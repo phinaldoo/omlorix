@@ -1,0 +1,905 @@
+/* ============================================================================
+   Project Sidebar
+   Minimalistic, modern, clean. Fully responsive (desktop / tablet / mobile).
+   ============================================================================ */
+
+/* ---------- Container ------------------------------------------------------ */
+
+.project-sidebar {
+    position: relative;
+    display: none;
+    flex-direction: column;
+    height: 100%;
+    min-width: 280px;
+    max-width: 280px;
+    box-sizing: border-box;
+    background: var(--background);
+    color: var(--text-color);
+    border-right: 1px solid var(--border-color);
+    overflow: hidden;
+    font-size: 14px;
+}
+
+.project-sidebar.visible {
+    display: flex;
+}
+
+/* ---------- Desktop header ------------------------------------------------- */
+
+.project-sidebar-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 14px 10px;
+    min-height: 50px;
+    box-sizing: border-box;
+}
+
+.project-sidebar-header-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    color: var(--text-color);
+}
+
+.project-sidebar-header-icon svg {
+    width: 22px;
+    height: 22px;
+}
+
+.project-sidebar-header-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-color);
+    letter-spacing: -0.005em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+}
+
+
+/* ---------- Main scrollable area ------------------------------------------- */
+
+.project-sidebar-main {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    gap: 14px;
+    padding: 4px 10px 16px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) transparent;
+}
+
+.project-sidebar-main::-webkit-scrollbar {
+    width: 6px;
+}
+.project-sidebar-main::-webkit-scrollbar-track {
+    background: transparent;
+}
+.project-sidebar-main::-webkit-scrollbar-thumb {
+    background-color: var(--border-color);
+    border-radius: 3px;
+}
+
+/* ---------- Tab list (Chats / Files) --------------------------------------- */
+
+.project-sidebar-tab-list {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2px;
+    padding: 3px;
+    background: var(--hover);
+    border-radius: 10px;
+    margin: 0 2px;
+}
+
+.project-sidebar-tab {
+    padding: 6px 10px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-color-tertiary);
+    text-align: center;
+    border-radius: 7px;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.project-sidebar-tab:focus-visible {
+    outline: 2px solid var(--primary-color, currentColor);
+    outline-offset: 1px;
+}
+
+.project-sidebar-tab.active {
+    background: var(--background);
+    color: var(--text-color);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .project-sidebar-tab:not(.active):hover {
+        color: var(--text-color);
+    }
+}
+
+/* ---------- Content ------------------------------------------------------- */
+
+.project-sidebar-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    gap: 14px;
+}
+
+.project-sidebar-files-section,
+.project-sidebar-chats-section {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-height: 0;
+}
+
+/* Hide files list when files section has no content */
+.project-sidebar-files,
+.project-sidebar-chats {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) transparent;
+}
+
+.project-sidebar-files::-webkit-scrollbar,
+.project-sidebar-chats::-webkit-scrollbar {
+    width: 6px;
+}
+.project-sidebar-files::-webkit-scrollbar-thumb,
+.project-sidebar-chats::-webkit-scrollbar-thumb {
+    background-color: var(--border-color);
+    border-radius: 3px;
+}
+
+/* ---------- Action buttons (upload) ---------------------------------------- */
+
+.project-sidebar-upload-file {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    height: 36px;
+    padding: 6px 10px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: var(--text-color);
+    font-size: 14px;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.project-sidebar-upload-file:focus-visible {
+    outline: none;
+    background: var(--hover);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .project-sidebar-upload-file:hover:not(:disabled):not(.is-disabled) {
+        background: var(--hover);
+    }
+}
+
+.project-sidebar-upload-file:disabled,
+.project-sidebar-upload-file.is-disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.project-sidebar-upload-file > span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    color: var(--text-color-secondary);
+    flex-shrink: 0;
+}
+
+.project-sidebar-upload-file > p {
+    flex: 1;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ---------- Section headers (Pinned / Chats) ------------------------------- */
+
+.project-sidebar .sidebar-section {
+    padding-left: 0;
+}
+
+.project-sidebar .sidebar-section + .sidebar-section {
+    margin-top: 8px;
+}
+
+.project-sidebar .sidebar-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px 4px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.project-sidebar .sidebar-section-header p {
+    margin: 0;
+}
+
+.project-sidebar .sidebar-section-header-right {
+    color: var(--text-color-tertiary);
+}
+
+.project-sidebar .chats-container {
+    padding-right: 0;
+}
+
+.project-sidebar [data-section-list] {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.project-sidebar .sidebar-section:not(.collapsed) [data-section-list] .sidebar-element {
+    max-height: 34px;
+}
+
+.project-sidebar [data-section-list] .sidebar-element > .sidebar-element-button {
+    height: 34px;
+    padding: 6px 10px;
+    padding-inline-end: 40px;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.project-sidebar [data-section-list] .sidebar-element.active > .sidebar-element-button {
+    background: var(--hover);
+}
+
+.project-sidebar [data-section-list] .sidebar-element.active > .sidebar-element-button > p {
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.project-sidebar .sidebar-element > .select-dropdown {
+    z-index: 2100;
+}
+
+/* ---------- File rows ------------------------------------------------------ */
+
+.project-sidebar-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    background: transparent;
+    border: 1px solid transparent;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+    cursor: pointer;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .project-sidebar-row:hover {
+        background: var(--hover);
+    }
+}
+
+.project-sidebar-row:focus-visible,
+.project-sidebar-row:focus-within {
+    outline: none;
+    background: var(--hover);
+    border-color: var(--border-color);
+}
+
+.project-sidebar-row-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: var(--hover);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-color-secondary);
+    letter-spacing: 0.02em;
+    flex-shrink: 0;
+}
+
+.project-sidebar-row-icon[data-ext]::after {
+    content: attr(data-ext);
+}
+
+.project-sidebar-row-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    gap: 1px;
+}
+
+.project-sidebar-row-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-color);
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.3;
+}
+
+.project-sidebar-row-meta {
+    margin: 0;
+    font-size: 11px;
+    color: var(--text-color-tertiary);
+    line-height: 1.3;
+}
+
+.project-sidebar-row-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--text-color-tertiary);
+    border-radius: 6px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+    flex-shrink: 0;
+}
+
+.project-sidebar-row-action svg {
+    width: 16px;
+    height: 16px;
+}
+
+.project-sidebar-row-action:focus {
+    opacity: 1;
+}
+
+.project-sidebar-row-action:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 1px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .project-sidebar-row:hover .project-sidebar-row-action {
+        opacity: 1;
+    }
+
+    .project-sidebar-row-action:hover {
+        background: var(--border-color);
+        color: var(--text-color);
+    }
+}
+
+/* Touch devices: actions always visible */
+@media (hover: none) {
+    .project-sidebar-row-action {
+        opacity: 1;
+    }
+}
+
+/* ---------- Empty states --------------------------------------------------- */
+
+.project-sidebar-empty {
+    text-align: center;
+    padding: 24px 14px;
+    color: var(--text-color-tertiary);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.project-sidebar-empty-icon {
+    width: 28px;
+    height: 28px;
+    margin: 0 auto 8px;
+    color: var(--text-color-tertiary);
+    opacity: 0.7;
+}
+
+.project-sidebar-empty-icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+[data-mode="dark"] .project-sidebar-empty {
+    color: var(--text-color-tertiary);
+}
+
+/* ---------- Info box ------------------------------------------------------- */
+
+.project-sidebar-info-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: var(--hover);
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--text-color-secondary);
+}
+
+.project-sidebar-info-box svg {
+    flex-shrink: 0;
+    margin-top: 1px;
+    width: 14px;
+    height: 14px;
+    color: var(--text-color-tertiary);
+}
+
+.project-sidebar-info-box span {
+    flex: 1;
+}
+
+/* ---------- Project chat placeholder (main area) --------------------------- */
+
+.project-chat-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 16px;
+    text-align: center;
+    color: var(--text-color-secondary);
+    gap: 14px;
+}
+
+.project-chat-placeholder-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    background: var(--hover);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-color-secondary);
+}
+
+.project-chat-placeholder-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-color);
+    margin: 0;
+}
+
+.project-chat-placeholder-text {
+    font-size: 14px;
+    margin: 0;
+    color: var(--text-color-secondary);
+    max-width: 360px;
+}
+
+.project-chat-placeholder-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: none;
+    border-radius: 999px;
+    padding: 10px 18px;
+    background: var(--primary-color);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    line-height: 1.2;
+    user-select: none;
+    transition: background-color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+
+.project-chat-placeholder-action svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    stroke: currentColor;
+}
+
+.project-chat-placeholder-action:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 25%, transparent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .project-chat-placeholder-action:hover:not(.is-disabled):not(:disabled) {
+        background-color: color-mix(in srgb, var(--primary-color) 88%, var(--hover) 12%);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+    }
+}
+
+.project-chat-placeholder-action:active:not(.is-disabled):not(:disabled) {
+    transform: translateY(0);
+}
+
+.project-chat-placeholder-action.is-disabled,
+.project-chat-placeholder-action:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+/* ============================================================================
+   Mobile / Tablet overlay sidebar
+   ============================================================================ */
+
+/* ---- Mobile toggle button (in chat header) -------------------------------- */
+
+.project-sidebar-mobile-toggle {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--text-color);
+    cursor: pointer;
+    transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .project-sidebar-mobile-toggle:hover {
+        background: var(--hover);
+    }
+}
+
+.project-sidebar-mobile-toggle:active {
+    transform: scale(0.95);
+}
+
+.project-sidebar-mobile-toggle:focus-visible {
+    outline: none;
+    background: var(--hover);
+}
+
+.project-sidebar-mobile-toggle svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* ---- Backdrop ------------------------------------------------------------- */
+
+.project-sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.4);
+    -webkit-backdrop-filter: var(--modal-overlay-backdrop-filter);
+    backdrop-filter: var(--modal-overlay-backdrop-filter);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
+    z-index: 1099;
+}
+
+.project-sidebar-backdrop.visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+[data-mode="dark"] .project-sidebar-backdrop {
+    background-color: rgba(0, 0, 0, 0.6);
+}
+
+/* ---- Mobile header (visible inside the sidebar on tablet/mobile) ---------- */
+
+.project-sidebar-mobile-header {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--background);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    min-height: 56px;
+    box-sizing: border-box;
+}
+
+.project-sidebar-mobile-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    flex: 1;
+}
+
+.project-sidebar-mobile-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.project-sidebar-mobile-header-left .project-sidebar-header-icon {
+    flex-shrink: 0;
+}
+
+.project-sidebar-mobile-header-left .project-sidebar-header-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.project-sidebar-mobile-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--text-color);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background-color 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .project-sidebar-mobile-close:hover {
+        background: var(--hover);
+    }
+}
+
+.project-sidebar-mobile-close:focus-visible {
+    outline: none;
+    background: var(--hover);
+}
+
+.project-sidebar-mobile-close svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* ---- Drag handle (mobile bottom sheet) ------------------------------------ */
+
+.project-sidebar-drag-handle {
+    display: none;
+    justify-content: center;
+    align-items: center;
+    height: 18px;
+    padding-top: 8px;
+    cursor: grab;
+    touch-action: none;
+    background: var(--background);
+}
+
+.project-sidebar-drag-handle:active {
+    cursor: grabbing;
+}
+
+.project-sidebar-drag-handle-bar {
+    width: 38px;
+    height: 4px;
+    border-radius: 2px;
+    background-color: var(--border-color);
+}
+
+[data-mode="dark"] .project-sidebar-drag-handle-bar {
+    background-color: rgba(255, 255, 255, 0.22);
+}
+
+/* ============================================================================
+   Breakpoints
+   ============================================================================ */
+
+/* Tablet + mobile: show toggle, show mobile header, hide desktop header */
+@media (max-width: 1280px) {
+    .project-sidebar-mobile-toggle {
+        display: flex;
+    }
+
+    .project-sidebar-mobile-header {
+        display: flex;
+    }
+
+    .project-sidebar-header {
+        display: none;
+    }
+}
+
+/* Tablet (right-side slide-in panel) */
+@media (min-width: 769px) and (max-width: 1280px) {
+    .project-sidebar {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1100;
+        min-width: 360px;
+        max-width: 360px;
+        border-right: none;
+        border-left: 1px solid var(--border-color);
+        transform: translateX(100%);
+        transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+        box-shadow: -8px 0 32px rgba(0, 0, 0, 0.12);
+    }
+
+    .project-sidebar.visible {
+        display: flex;
+        transform: translateX(0);
+    }
+
+    [data-mode="dark"] .project-sidebar {
+        box-shadow: -8px 0 32px rgba(0, 0, 0, 0.4);
+    }
+}
+
+/* Mobile bottom-sheet */
+@media (max-width: 768px) {
+    .project-sidebar {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        top: auto;
+        z-index: 1100;
+        min-width: 100%;
+        max-width: 100%;
+        max-height: 88vh;
+        max-height: 88dvh;
+        border-radius: 18px 18px 0 0;
+        border-right: none;
+        border-top: 1px solid var(--border-color);
+        box-shadow: 0 -10px 36px rgba(0, 0, 0, 0.18);
+        transform: translateY(100%);
+        transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+        padding-bottom: env(safe-area-inset-bottom, 0);
+    }
+
+    .project-sidebar.visible {
+        display: flex;
+        transform: translateY(0);
+    }
+
+    .project-sidebar-drag-handle {
+        display: flex;
+        flex-shrink: 0;
+    }
+
+    .project-sidebar-mobile-header {
+        border-bottom: 1px solid var(--border-color);
+        background: var(--background);
+        position: sticky;
+        top: 0;
+    }
+
+    .project-sidebar-main {
+        padding: 8px 12px 16px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .project-sidebar-tab-list {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        background: var(--background);
+        margin: 0;
+    }
+
+    [data-mode="dark"] .project-sidebar {
+        box-shadow: 0 -10px 36px rgba(0, 0, 0, 0.5);
+    }
+}
+
+/* Compact mobile */
+@media (max-width: 480px) {
+    .project-sidebar {
+        max-height: 92vh;
+        max-height: 92dvh;
+        border-radius: 16px 16px 0 0;
+    }
+
+    .project-sidebar-mobile-header {
+        padding: 10px 12px;
+        min-height: 52px;
+    }
+
+    .project-sidebar-mobile-header-left .project-sidebar-header-title {
+        font-size: 14px;
+    }
+
+    .project-sidebar-main {
+        padding: 8px 10px 14px;
+    }
+}
+
+/* Landscape mobile */
+@media (max-width: 900px) and (orientation: landscape) and (max-height: 600px) {
+    .project-sidebar {
+        max-height: 95vh;
+        max-height: 95dvh;
+    }
+}
+
+/* Touch targets: larger hit areas for fingers */
+@media (hover: none) and (pointer: coarse) {
+    .project-sidebar-tab {
+        padding: 10px 16px;
+        font-size: 14px;
+    }
+
+    /* Allow wrapper to grow for taller touch buttons */
+    .project-sidebar .project-sidebar-main > .sidebar-element {
+        max-height: none;
+    }
+
+    .project-sidebar-upload-file {
+        height: 48px;
+        padding: 10px 12px;
+    }
+
+    .project-sidebar-row {
+        padding: 10px 8px;
+        min-height: 52px;
+    }
+
+    .project-sidebar .sidebar-section:not(.collapsed) [data-section-list] .sidebar-element {
+        max-height: 44px;
+    }
+
+    .project-sidebar [data-section-list] .sidebar-element > .sidebar-element-button {
+        height: 44px;
+    }
+
+    .project-sidebar-mobile-close,
+    .project-sidebar-mobile-toggle {
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+    }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .project-sidebar,
+    .project-sidebar-backdrop,
+    .project-sidebar-mobile-toggle,
+    .project-sidebar-mobile-close,
+    .project-sidebar-tab,
+    .project-sidebar-row,
+    .project-sidebar-row-action,
+    .project-sidebar-upload-file,
+    .project-chat-placeholder-action {
+        transition-duration: 0.01ms !important;
+    }
+}

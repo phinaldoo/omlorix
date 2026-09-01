@@ -1,0 +1,15 @@
+{
+  "subject": "Votre code de vérification {application_name}",
+  "html_title": "Code de vérification {application_name}",
+  "headline": "Votre code de vérification",
+  "expires_text": "Ce code expire dans {expires_in_minutes} minutes.",
+  "ignore_text": "Si vous n’avez pas demandé cela, vous pouvez ignorer cet e-mail.",
+  "plain_text_body": "Votre code de vérification {application_name} est {code}. Ce code expire dans {expires_in_minutes} minutes.",
+  "sms_body": "Votre code de vérification {application_name} est {code}. Il expire dans {expires_in_minutes} minutes.",
+  "deactivated_subject": "{application_name} : l’authentification à deux facteurs a été désactivée",
+  "deactivated_html_title": "Authentification à deux facteurs désactivée | {application_name}",
+  "deactivated_headline": "L’authentification à deux facteurs a été désactivée",
+  "deactivated_body": "L’authentification à deux facteurs a été désactivée pour votre compte {application_name}.",
+  "deactivated_action": "Si vous n’êtes pas à l’origine de cette modification, connectez-vous immédiatement, réactivez la 2FA et vérifiez vos sessions actives.",
+  "deactivated_plain_text_body": "L’authentification à deux facteurs a été désactivée pour votre compte {application_name}. Si vous n’êtes pas à l’origine de cette modification, connectez-vous immédiatement, réactivez la 2FA et vérifiez vos sessions actives."
+}

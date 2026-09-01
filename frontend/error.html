@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#1F1F1F" media="(prefers-color-scheme: dark)">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title data-i18n="page_title">Error</title>
+    <meta name="description" content="An error occurred while loading the page.">
+    <link rel="icon" href="/api/v1/settings/icon/get?size=16" sizes="16x16">
+    <link rel="icon" href="/api/v1/settings/icon/get?size=32" sizes="32x32">
+    <link rel="apple-touch-icon" sizes="180x180" href="/api/v1/settings/icon/get?size=180"/>
+    <link rel="manifest" href="/api/v1/settings/site.webmanifest"/>
+    <script src="/js/common/themeBoot.js"></script>
+    <style>
+        /* Fallback CSS Variables for resilience if external CSS fails */
+        :root {
+            --background: #ffffff;
+            --text-color: #111111;
+            --text-color-secondary: #666666;
+            --text-color-tertiary: #757575;
+            --border-color: #e0e0e0;
+            --hover: #f5f5f5;
+            --admin-accent: #007bff;
+        }
+        
+        html[data-mode="dark"] {
+            --background: #1F1F1F;
+            --text-color: #ffffff;
+            --text-color-secondary: #aaaaaa;
+            --text-color-tertiary: #999999;
+            --border-color: #333333;
+            --hover: #2a2a2a;
+        }
+
+        html, body {
+            background-color: var(--background) !important;
+            transition: none !important;
+        }
+
+        :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+            outline: 2px solid var(--admin-accent);
+            outline-offset: 2px;
+        }
+    </style>
+    <link rel="stylesheet" href="/css/fonts.css">
+    <link rel="stylesheet" href="/css/common/init.css">
+    <script src="/js/common/pwaVersionGuard.js" defer></script>
+    <script src="/js/common/icons.js" defer></script>
+    <script src="/js/common/language.js" defer></script>
+    <style>
+        body {
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--background);
+            color: var(--text-color);
+            padding: 24px;
+        }
+
+        .error-container {
+            width: 100%;
+            max-width: 480px;
+            text-align: center;
+        }
+
+        .error-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 24px;
+            border-radius: 12px;
+            background: var(--hover);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-color-secondary);
+        }
+
+        .error-icon svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .error-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-color);
+            margin-bottom: 8px;
+        }
+
+        .error-description {
+            font-size: 14px;
+            color: var(--text-color-secondary);
+            line-height: 1.5;
+            margin-bottom: 32px;
+        }
+
+        .error-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .error-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid var(--border-color);
+            background: var(--background);
+            color: var(--text-color);
+            text-decoration: none;
+        }
+
+        .error-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        @media (hover: hover) and (pointer: fine) {
+            .error-btn:hover {
+                background: var(--hover);
+            }
+        }
+
+        .error-btn:active {
+            transform: translateY(1px);
+        }
+
+        .error-divider {
+            width: 100%;
+            height: 1px;
+            background: var(--border-color);
+            margin: 32px 0;
+        }
+
+        .error-help {
+            font-size: 13px;
+            color: var(--text-color-tertiary);
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body data-page="error">
+    <main class="error-container">
+        <div class="error-icon">
+            <span data-omlorix-icon="info" width="20" height="20" aria-hidden="true"></span>
+        </div>
+
+        <h1 class="error-title" data-i18n="message">Something went wrong</h1>
+        <p class="error-description" data-i18n="description">The page you're looking for couldn't be loaded. This might be a temporary issue — try again or head back to the home page.</p>
+
+        <div class="error-actions">
+            <a href="/" class="error-btn" id="homeBtn">
+                <span data-omlorix-icon="chevronLeft" width="20" height="20"></span>
+                <span data-i18n="btn_home">Go back home</span>
+            </a>
+        </div>
+
+        <div class="error-divider"></div>
+
+        <p class="error-help" data-i18n="help_text">If the problem persists, try clearing your browser cache or contact your administrator.</p>
+    </main>
+</body>
+</html>

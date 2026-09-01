@@ -1,0 +1,377 @@
+/* ================================ */
+/* Context Files Editor Component   */
+/* ================================ */
+
+.context-files-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+}
+
+/* ==================== */
+/* Drop Zone            */
+/* ==================== */
+
+.context-files-dropzone {
+    position: relative;
+    border: 2px dashed var(--admin-border);
+    border-radius: var(--admin-radius);
+    background: var(--admin-bg);
+    padding: 32px 24px;
+    text-align: center;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .context-files-dropzone:hover {
+        border-color: var(--admin-text-tertiary);
+        background: var(--admin-hover);
+    }
+}
+
+.context-files-dropzone.dragover {
+    border-color: var(--admin-info);
+    background: var(--admin-info-bg);
+}
+
+.context-files-dropzone.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.context-files-dropzone-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    pointer-events: none;
+}
+
+.context-files-dropzone-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.context-files-dropzone-primary {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--admin-text);
+}
+
+.context-files-dropzone-primary span {
+    color: var(--admin-info);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.context-files-dropzone-secondary {
+    margin: 0;
+    font-size: 12px;
+    color: var(--admin-text-tertiary);
+}
+
+.context-files-dropzone.dragover .context-files-dropzone-primary {
+    color: var(--admin-info);
+}
+
+/* Hidden file input */
+.context-files-upload-input {
+    position: absolute;
+    width: 0;
+    height: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* ==================== */
+/* Files List           */
+/* ==================== */
+
+.context-files-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.context-files-list:empty {
+    display: none;
+}
+
+/* ==================== */
+/* File Item            */
+/* ==================== */
+
+.context-files-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--bg-normal);
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-sm);
+    transition: all 0.15s ease;
+    animation: dropdownSlideIn 0.2s ease-out;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .context-files-item:hover {
+        border-color: var(--admin-text-tertiary);
+        box-shadow: var(--admin-shadow-sm);
+    }
+}
+
+.context-files-item.uploading {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+/* File Icon */
+.context-files-item-icon {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--admin-bg);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.context-files-item-icon img {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+}
+
+.context-files-item-icon svg {
+    width: 24px;
+    height: 24px;
+    color: var(--admin-text-tertiary);
+}
+
+/* File Content */
+.context-files-item-content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.context-files-item-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--admin-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.4;
+}
+
+.context-files-item-meta {
+    font-size: 12px;
+    color: var(--admin-text-tertiary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.context-files-item-meta-separator {
+    width: 3px;
+    height: 3px;
+    background: var(--admin-text-tertiary);
+    border-radius: 50%;
+    opacity: 0.5;
+}
+
+/* File Actions */
+
+/* Remove button */
+.context-files-item-remove {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: var(--admin-text-tertiary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .context-files-item-remove:hover {
+        background: var(--admin-danger-bg);
+        color: var(--admin-danger);
+    }
+}
+
+.context-files-item-remove svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* ==================== */
+/* Upload Progress      */
+/* ==================== */
+
+.context-files-item-progress {
+    position: relative;
+    width: 100%;
+    height: 3px;
+    background: var(--admin-border);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 4px;
+}
+
+.context-files-item-progress-bar {
+    height: 100%;
+    background: var(--admin-info);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+.context-files-item-progress-bar.indeterminate {
+    width: 30%;
+}
+
+/* ==================== */
+/* Error State          */
+/* ==================== */
+
+.context-files-error {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 20px 24px;
+    background: var(--admin-danger-bg);
+    border: 1px solid var(--admin-danger);
+    border-radius: var(--admin-radius);
+    color: var(--admin-danger);
+    font-size: 13px;
+}
+
+/* ==================== */
+/* New Group Note       */
+/* ==================== */
+
+.context-files-new-group-note {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: var(--admin-warning-bg);
+    border: 1px solid var(--admin-warning);
+    border-radius: var(--admin-radius-sm);
+    font-size: 13px;
+    color: var(--admin-warning);
+}
+
+.context-files-new-group-note svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+.context-files-new-group-note span {
+    line-height: 1.4;
+}
+
+/* Hide when group has ID */
+.context-files-editor[data-group-id] .context-files-new-group-note {
+    display: none;
+}
+
+/* Enable dropzone when group has ID */
+.context-files-editor[data-group-id] .context-files-dropzone {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Disable dropzone when no group ID */
+.context-files-editor:not([data-group-id]) .context-files-dropzone {
+    opacity: 0.5;
+    pointer-events: none;
+    cursor: not-allowed;
+}
+
+/* ==================== */
+/* File Count Badge     */
+/* ==================== */
+
+.context-files-count {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    margin-bottom: 8px;
+}
+
+.context-files-count-text {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--admin-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.context-files-count-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    background: var(--admin-info-bg);
+    color: var(--admin-info);
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 10px;
+}
+
+/* ==================== */
+/* Responsive Design    */
+/* ==================== */
+
+@media (max-width: 640px) {
+    .context-files-dropzone {
+        padding: 24px 16px;
+    }
+
+    .context-files-dropzone-primary {
+        font-size: 13px;
+    }
+
+    .context-files-item {
+        padding: 10px 12px;
+    }
+
+    .context-files-item-icon {
+        width: 36px;
+        height: 36px;
+    }
+
+    .context-files-item-icon img {
+        width: 24px;
+        height: 24px;
+    }
+
+    .context-files-item-name {
+        font-size: 12px;
+    }
+
+    .context-files-item-meta {
+        font-size: 11px;
+    }
+}

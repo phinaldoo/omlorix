@@ -1,0 +1,219 @@
+/* Data Controls - User select modal */
+.dc-user-search-wrapper {
+    width: 100%;
+    margin-bottom: 12px;
+}
+
+.dc-user-search-input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-sm);
+    background: var(--bg-normal);
+    color: var(--admin-text);
+    font-size: 14px;
+    outline: none;
+    transition: border-color var(--admin-transition);
+}
+
+.dc-user-search-input:focus {
+    border-color: var(--admin-text-tertiary);
+}
+
+.dc-user-search-input::placeholder {
+    color: var(--admin-text-tertiary);
+}
+
+.dc-user-list {
+    width: 100%;
+    max-height: 240px;
+    overflow-y: auto;
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-sm);
+    background: var(--bg-normal);
+    margin-bottom: 12px;
+}
+
+.dc-user-list::-webkit-scrollbar {
+    width: 5px;
+}
+
+.dc-user-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.dc-user-list::-webkit-scrollbar-thumb {
+    background: var(--admin-scrollbar);
+    border-radius: 3px;
+}
+
+.dc-user-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: background var(--admin-transition);
+    border-bottom: 1px solid var(--admin-border-subtle);
+}
+
+.dc-user-item:last-child {
+    border-bottom: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .dc-user-item:hover {
+        background: var(--admin-hover);
+    }
+}
+
+.dc-user-item.selected {
+    background: var(--admin-info-bg);
+}
+
+.dc-user-item-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--admin-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--admin-text);
+    flex-shrink: 0;
+    text-transform: uppercase;
+}
+
+.dc-user-item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+}
+
+.dc-user-item-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--admin-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dc-user-item-email {
+    font-size: 12px;
+    color: var(--admin-text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dc-user-list-empty {
+    padding: 24px 14px;
+    text-align: center;
+    color: var(--admin-text-tertiary);
+    font-size: 13px;
+}
+
+.dc-import-summary {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: var(--admin-radius-sm);
+    font-size: 13px;
+    line-height: 1.5;
+    margin-bottom: 12px;
+}
+
+.dc-import-summary.info {
+    background: var(--admin-info-bg);
+    color: var(--admin-info);
+}
+
+.dc-import-summary.success {
+    background: var(--admin-success-bg);
+    color: var(--admin-success);
+}
+
+.dc-import-summary.error {
+    background: var(--admin-error-bg);
+    color: var(--admin-error);
+}
+
+/* Bulk import modal – two-file upload */
+.dc-bulk-file-row {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--admin-border-subtle);
+}
+
+.dc-bulk-file-row:last-of-type {
+    border-bottom: none;
+    margin-bottom: 12px;
+}
+
+.dc-bulk-file-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+}
+
+.dc-bulk-file-label div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.dc-bulk-file-label strong {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--admin-text);
+    text-align: left;
+}
+
+.dc-bulk-file-label small {
+    font-size: 12px;
+    color: var(--admin-text-tertiary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dc-bulk-file-num {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--admin-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--admin-text);
+    flex-shrink: 0;
+}
+
+.dc-bulk-file-num.done {
+    background: var(--admin-success-bg);
+    color: var(--admin-success);
+}
+
+.dc-bulk-file-btn {
+    flex-shrink: 0;
+}
+
+.dc-bulk-file-status {
+    font-size: 12px;
+    color: var(--admin-success);
+    white-space: nowrap;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+}

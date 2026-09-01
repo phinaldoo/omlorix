@@ -1,0 +1,1576 @@
+/* ==========================================================================
+   Canvas Preview Panel + Result Widget
+   Minimalistic, clean design matching slide presentation patterns
+   (Supports markdown + CSV with inline LaTeX inside markdown)
+   ========================================================================== */
+
+/* ── Theme Tokens ────────────────────────── */
+:root {
+    --canvas-md-card-bg: var(--bg-primary, #ffffff);
+    --canvas-md-card-border: var(--border-color, rgba(0, 0, 0, 0.08));
+    --canvas-md-card-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    --canvas-md-text-primary: var(--text-color, #1a1a1a);
+    --canvas-md-text-secondary: var(--text-color-secondary, #6b7280);
+    --canvas-md-input-bg: var(--surface-elevated);
+    --canvas-md-accent: var(--accent-color, #3b82f6);
+    --canvas-md-preview-bg: var(--surface-elevated);
+    --canvas-markdown-preview-width: 50vw;
+    --canvas-markdown-preview-min-width: 420px;
+    --canvas-markdown-preview-min-main-width: 360px;
+    --canvas-markdown-resolved-preview-width: clamp(
+        var(--canvas-markdown-preview-min-width),
+        var(--canvas-markdown-preview-width),
+        calc(100vw - var(--canvas-markdown-preview-min-main-width))
+    );
+}
+
+:root[data-mode="dark"] {
+    --canvas-md-card-bg: var(--bg-primary, #18181b);
+    --canvas-md-card-border: var(--border-color, rgba(255, 255, 255, 0.08));
+    --canvas-md-card-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    --canvas-md-text-primary: var(--text-color, #f5f5f5);
+    --canvas-md-text-secondary: var(--text-color-secondary, #a1a1aa);
+    --canvas-md-input-bg: #27272a;
+    --canvas-md-preview-bg: #1c1c20;
+}
+
+/* ── Panel Layout (matches slide presentation) ────────────────────────── */
+.canvas-markdown-preview-panel {
+    position: fixed;
+    top: 0;
+    inset-inline-end: 0;
+    width: var(--canvas-markdown-resolved-preview-width);
+    max-width: none;
+    min-width: var(--canvas-markdown-preview-min-width);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    container-type: inline-size;
+    container-name: canvas-preview;
+    border-left: 1px solid var(--border-color);
+    z-index: 40;
+    overflow: hidden;
+    transform: translateX(100%);
+    opacity: 0;
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.25s ease,
+                width 0.18s ease;
+    background-color: var(--background);
+}
+
+.canvas-markdown-preview-panel.visible {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+body.canvas-markdown-preview-open .main-container {
+    margin-right: var(--canvas-markdown-resolved-preview-width);
+    transition: margin-right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Shared by Workspace and Files so fixed mobile affordances remain entirely
+   inside the left pane instead of covering the Markdown preview. */
+body.canvas-markdown-compact-main-layout {
+    --canvas-markdown-compact-main-width: calc(
+        100vw - var(--canvas-markdown-resolved-preview-width)
+    );
+    --canvas-markdown-compact-preview-inset: var(--canvas-markdown-resolved-preview-width);
+}
+
+.canvas-markdown-preview-resizer {
+    position: absolute;
+    top: 0;
+    left: -7px;
+    width: 14px;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--canvas-md-accent);
+    cursor: col-resize;
+    touch-action: none;
+    z-index: 3;
+}
+
+.canvas-markdown-preview-resizer::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 6px;
+    width: 2px;
+    background: transparent;
+    transition: background-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.canvas-markdown-preview-resizer:focus-visible {
+    outline: 2px solid var(--canvas-md-accent);
+    outline-offset: -4px;
+}
+
+.canvas-markdown-preview-resizer:focus-visible::before,
+body.canvas-markdown-preview-resizing .canvas-markdown-preview-resizer::before {
+    background: currentColor;
+    box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 18%, transparent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .canvas-markdown-preview-resizer:hover::before {
+        background: currentColor;
+        box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 12%, transparent);
+    }
+}
+
+body.canvas-markdown-preview-resizing {
+    cursor: col-resize;
+    user-select: none;
+}
+
+body.canvas-markdown-preview-resizing .main-container,
+body.canvas-markdown-preview-resizing .canvas-markdown-preview-panel {
+    transition: none !important;
+}
+
+body.canvas-markdown-preview-resizing .canvas-html-preview-iframe,
+body.canvas-markdown-preview-resizing .canvas-pdf-document-viewer {
+    pointer-events: none;
+}
+
+@media (max-width: 900px) {
+    body.canvas-markdown-compact-main-layout {
+        --canvas-markdown-compact-main-width: 100vw;
+        --canvas-markdown-compact-preview-inset: 0px;
+    }
+
+    .canvas-markdown-preview-panel {
+        width: 100%;
+        min-width: unset;
+        z-index: 200;
+    }
+    body.canvas-markdown-preview-open .main-container {
+        margin-right: 0;
+    }
+
+    .canvas-markdown-preview-resizer {
+        display: none;
+    }
+}
+
+/* ── Panel Header ────────────────────────── */
+.canvas-markdown-preview-header {
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    flex-shrink: 0;
+}
+
+.canvas-markdown-preview-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.canvas-markdown-preview-header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: flex-end;
+    flex: 0 0 auto;
+    min-width: max-content;
+}
+
+/* The filename is the header's only compressible region. Keeping both the
+   close action and every right-side control out of flex shrinking prevents
+   circular buttons and segmented view tabs from becoming narrower when a
+   long filename competes for space. */
+.canvas-markdown-preview-header-right > * {
+    flex: 0 0 auto;
+}
+
+.canvas-markdown-copy-btn[data-copy-state="copied"],
+.canvas-markdown-copy-btn[data-copy-state="error"] {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.canvas-markdown-copy-btn[data-copy-state="copied"] {
+    color: #22c55e;
+}
+
+.canvas-markdown-copy-btn[data-copy-state="error"] {
+    color: #ef4444;
+}
+
+.canvas-markdown-editor-header-controls {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+}
+
+.canvas-markdown-preview-panel[data-content-type="markdown"] .canvas-markdown-editor-header-controls {
+    display: flex;
+}
+
+/* A live Markdown canvas is intentionally read-only and does not construct the
+   full editor until generation completes. Hide editor-only controls meanwhile. */
+.canvas-markdown-preview-panel.is-streaming-markdown .canvas-markdown-editor-header-controls {
+    display: none;
+}
+
+/* ── Markdown / Editor view toggle ─────────────────────────
+   A segmented "tab switcher" that lets the user flip between the
+   raw Markdown source and the rich editor. It replaces the old
+   circular header buttons with a compact, pill-style control
+   where the active tab is highlighted with an elevated surface. */
+.canvas-markdown-editor-view-toggle {
+    /* Segmented container: a soft, recessed track that visually
+       groups the two tabs together. */
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 3px;
+    border-radius: 10px;
+    background: var(--canvas-md-input-bg);
+    border: 1px solid var(--canvas-md-card-border);
+}
+
+.canvas-markdown-editor-view-btn {
+    /* Individual tab: transparent by default so only the active tab
+       shows the raised surface. */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border: none;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--canvas-md-text-secondary);
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+}
+
+/* Icon wrapper keeps the SVG optically aligned with the label. */
+.canvas-markdown-editor-view-btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.canvas-markdown-editor-view-btn-icon svg {
+    width: 15px;
+    height: 15px;
+}
+
+.canvas-markdown-editor-view-btn-label {
+    /* Visible at comfortable widths; the button keeps a separate ARIA label. */
+    display: inline-block;
+}
+
+/* Canvas and the Notes tool both use this named inline-size container. When
+   the preview itself becomes narrow, collapse only the visible tab text and
+   keep the icon buttons, tooltips, focus rings, and ARIA labels available. A
+   container query makes manual sidebar resizing behave independently from the
+   browser viewport width. */
+@container canvas-preview (max-width: 600px) {
+    .canvas-markdown-editor-view-btn-label {
+        display: none;
+    }
+
+    .canvas-markdown-editor-view-btn {
+        width: 30px;
+        height: 30px;
+        padding: 0;
+        gap: 0;
+    }
+
+}
+
+/* Active tab: raised surface with a subtle shadow so it reads as the
+   currently selected view. */
+.canvas-markdown-editor-view-btn.active {
+    background: var(--canvas-md-card-bg);
+    color: var(--canvas-md-text-primary);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.canvas-markdown-editor-view-btn:focus-visible {
+    outline: 2px solid var(--canvas-md-accent);
+    outline-offset: 2px;
+}
+
+/* Only apply hover feedback on hover-capable pointers (not touch). */
+@media (hover: hover) and (pointer: fine) {
+    .canvas-markdown-editor-view-btn:not(:disabled):not(.active):hover {
+        color: var(--canvas-md-text-primary);
+    }
+}
+
+.canvas-markdown-editor-view-btn:disabled,
+.canvas-markdown-editor-view-btn.is-disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+/*
+ * Canvas selections use the same shared .selection-tooltip component as
+ * assistant responses. The modifier only changes the coordinate system from
+ * document-absolute to viewport-fixed because the Canvas panel itself moves.
+ */
+.canvas-reference-floating-toolbar.selection-tooltip {
+    position: fixed;
+}
+
+.canvas-reference-floating-toolbar.is-below::after {
+    top: -6px;
+    bottom: auto;
+    transform: translateX(-50%) rotate(180deg);
+}
+
+.canvas-markdown-preview-title-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.canvas-markdown-preview-title {
+    display: block;
+    width: 100%;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--canvas-md-text-primary);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.canvas-markdown-preview-status {
+    font-size: 11px;
+    color: var(--canvas-md-text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.canvas-markdown-preview-status.generating::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    background: var(--canvas-md-accent);
+    border-radius: 50%;
+    animation: pulseDim 1.5s ease-in-out infinite;
+}
+
+.canvas-markdown-preview-status.complete::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    background: #22c55e;
+    border-radius: 50%;
+}
+
+.canvas-markdown-preview-status.unsaved::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    background: #f59e0b;
+    border-radius: 50%;
+}
+
+.canvas-markdown-preview-status.error::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    background: #ef4444;
+    border-radius: 50%;
+}
+
+/* Download controls
+   The canvas/markdown preview reuses the shared slide-presentation download
+   controls. When a format select is hidden, drop the outer pill chrome so only
+   the circular download button remains visible. */
+.canvas-markdown-preview-header-right .slide-presentation-preview-download-controls:has(.slide-presentation-preview-download-select[hidden]) {
+    background: transparent;
+    border-color: transparent;
+    padding-left: 0;
+}
+
+.canvas-markdown-share-btn[hidden] {
+    display: none !important;
+}
+
+/* Mermaid source files and PDFs expose a single direct download. Strip the
+   shared split-button chrome and keep only the same circular action used
+   elsewhere in the header. */
+.canvas-markdown-preview-header-right .slide-presentation-preview-download-controls.is-direct-download {
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+    border: 0;
+    border-radius: 9999px;
+    background: transparent;
+}
+
+.canvas-markdown-preview-header-right .is-direct-download > .custom-download-format-trigger,
+.canvas-markdown-preview-header-right .is-direct-download > .custom-download-format-menu {
+    display: none !important;
+}
+
+/* The direct-download wrapper has explicit dimensions above, so mirror the
+   compact Canvas action size when the resizable panel crosses its breakpoint. */
+@container canvas-preview (max-width: 600px) {
+    .canvas-markdown-preview-panel .canvas-markdown-preview-header-right .slide-presentation-preview-download-controls.is-direct-download {
+        width: 34px;
+        min-width: 34px;
+        height: 34px;
+    }
+}
+
+/* A binary PDF has no source text to copy. Generated LaTeX keeps Copy because
+   its source remains available in the Code tab. */
+.canvas-markdown-preview-panel[data-content-type="pdf"] .canvas-markdown-copy-btn {
+    display: none;
+}
+
+/* Spreadsheet cells and formulas have their own clipboard behavior. The
+   shared raw-source copy action is redundant and remains unavailable here. */
+.canvas-markdown-preview-panel[data-content-type="csv"] .canvas-markdown-copy-btn,
+.canvas-markdown-preview-panel[data-content-type="tsv"] .canvas-markdown-copy-btn,
+.canvas-markdown-preview-panel[data-content-type="xlsx"] .canvas-markdown-copy-btn,
+.canvas-markdown-preview-panel[data-content-type="xls"] .canvas-markdown-copy-btn {
+    display: none;
+}
+
+/* ── Workspace (main content area) ────────────────────────── */
+.canvas-markdown-preview-workspace {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+    border-top: 1px solid var(--border-color);
+    min-width: 0;
+}
+
+/* ── Document Track (single scrollable document) ────────────────────────── */
+.canvas-markdown-preview-track {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) transparent;
+    overscroll-behavior-x: none;
+    overflow-anchor: none;
+}
+
+.canvas-markdown-preview-track::-webkit-scrollbar {
+    width: 6px;
+}
+
+.canvas-markdown-preview-track::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.canvas-markdown-preview-track::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
+}
+
+/* File-load failures belong in the Canvas workspace instead of wrapping in
+   the compact title/status column. Keep Download visible while hiding controls
+   that cannot operate without source content. */
+.canvas-markdown-preview-panel[data-load-error="true"][data-content-type] .canvas-html-view-toggle,
+.canvas-markdown-preview-panel[data-load-error="true"][data-content-type] .canvas-markdown-editor-header-controls,
+.canvas-markdown-preview-panel[data-load-error="true"][data-content-type] .canvas-html-settings,
+.canvas-markdown-preview-panel[data-load-error="true"][data-content-type] .canvas-html-reload-btn,
+.canvas-markdown-preview-panel[data-load-error="true"][data-content-type] .canvas-markdown-copy-btn,
+.canvas-markdown-preview-panel[data-load-error="true"][data-content-type] .canvas-html-fullscreen-btn,
+.canvas-markdown-preview-panel[data-load-error="true"][data-content-type] .canvas-markdown-share-btn {
+    display: none;
+}
+
+.canvas-file-load-error {
+    flex: 1 1 auto;
+    display: grid;
+    min-height: 100%;
+    padding: clamp(24px, 6vw, 64px);
+    place-items: center;
+    color: var(--canvas-md-text-primary);
+}
+
+.canvas-file-load-error-card {
+    display: flex;
+    width: min(440px, 100%);
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: clamp(24px, 5vw, 40px);
+    border: 1px solid color-mix(in srgb, var(--error-color) 35%, var(--border-color));
+    border-radius: 14px;
+    background: var(--canvas-md-card-bg);
+    box-shadow: var(--canvas-md-card-shadow);
+    text-align: center;
+}
+
+.canvas-file-load-error-icon {
+    display: grid;
+    width: 48px;
+    height: 48px;
+    place-items: center;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--error-color) 12%, transparent);
+    color: var(--error-color);
+}
+
+.canvas-file-load-error-icon svg {
+    width: 24px;
+    height: 24px;
+}
+
+.canvas-file-load-error-message {
+    max-width: 38ch;
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
+.canvas-file-load-error-download {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 9px 14px;
+    border: 1px solid var(--canvas-md-accent);
+    border-radius: 8px;
+    background: var(--canvas-md-accent);
+    color: var(--accent-foreground, var(--bg-primary));
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.canvas-file-load-error-download svg {
+    width: 18px;
+    height: 18px;
+}
+
+.canvas-file-load-error-download:focus-visible {
+    outline: 2px solid var(--canvas-md-accent);
+    outline-offset: 3px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .canvas-file-load-error-download:hover {
+        filter: brightness(0.94);
+    }
+}
+
+/* Single document container */
+.canvas-markdown-preview-page {
+    width: 100%;
+}
+
+.canvas-markdown-preview-page-content {
+    color: var(--canvas-md-text-primary);
+}
+
+/* ── Rendered Markdown Styling ────────────────────────── */
+.canvas-markdown-render.markdown-body {
+    color: var(--canvas-md-text-primary);
+    font-size: 15px;
+    line-height: 1.7;
+}
+
+.canvas-markdown-render.markdown-body h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.2;
+    margin: 0 0 24px 0;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+    letter-spacing: -0.02em;
+    color: var(--canvas-md-text-primary);
+}
+
+.canvas-markdown-render.markdown-body h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1.3;
+    margin: 32px 0 16px 0;
+    letter-spacing: -0.01em;
+    color: var(--canvas-md-text-primary);
+}
+
+.canvas-markdown-render.markdown-body h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    line-height: 1.4;
+    margin: 24px 0 12px 0;
+    color: var(--canvas-md-text-primary);
+}
+
+.canvas-markdown-render.markdown-body h4,
+.canvas-markdown-render.markdown-body h5,
+.canvas-markdown-render.markdown-body h6 {
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.5;
+    margin: 20px 0 8px 0;
+    color: var(--canvas-md-text-primary);
+}
+
+.canvas-markdown-render.markdown-body p {
+    margin: 0 0 16px 0;
+    color: var(--canvas-md-text-primary);
+}
+
+.canvas-markdown-render.markdown-body p:last-child {
+    margin-bottom: 0;
+}
+
+.canvas-markdown-render.markdown-body ul,
+.canvas-markdown-render.markdown-body ol {
+    margin: 0 0 16px 0;
+    padding-left: 24px;
+}
+
+.canvas-markdown-render.markdown-body li {
+    margin-bottom: 8px;
+    color: var(--canvas-md-text-primary);
+}
+
+.canvas-markdown-render.markdown-body li:last-child {
+    margin-bottom: 0;
+}
+
+.canvas-markdown-render.markdown-body blockquote {
+    margin: 16px 0;
+    padding: 12px 20px;
+    border-left: 3px solid var(--canvas-md-accent);
+    background: var(--canvas-md-input-bg);
+    border-radius: 0 8px 8px 0;
+    color: var(--canvas-md-text-secondary);
+}
+
+.canvas-markdown-render.markdown-body blockquote p {
+    margin: 0;
+}
+
+.canvas-markdown-render.markdown-body code {
+    font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+    font-size: 0.875em;
+    background: var(--canvas-md-input-bg);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: var(--canvas-md-text-primary);
+}
+
+.canvas-markdown-render.markdown-body pre {
+    margin: 16px 0;
+    padding: 16px;
+    background: var(--canvas-md-input-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow-x: auto;
+}
+
+.canvas-markdown-render.markdown-body pre code {
+    background: none;
+    padding: 0;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.canvas-markdown-render.markdown-body hr {
+    margin: 32px 0;
+    border: none;
+    border-top: 1px solid var(--border-color);
+}
+
+.canvas-markdown-render.markdown-body table {
+    width: 100%;
+    margin: 16px 0;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.canvas-markdown-render.markdown-body th,
+.canvas-markdown-render.markdown-body td {
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    text-align: start;
+}
+
+.canvas-markdown-render.markdown-body th {
+    background: var(--canvas-md-input-bg);
+    font-weight: 600;
+}
+
+.canvas-markdown-render.markdown-body a {
+    color: var(--canvas-md-accent);
+    text-decoration: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .canvas-markdown-render.markdown-body a:hover {
+        text-decoration: underline;
+    }
+}
+
+.canvas-markdown-render.markdown-body img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin: 16px 0;
+}
+
+.canvas-markdown-render.markdown-body .katex-display {
+    margin: 16px 0;
+    padding: 16px;
+    background: var(--canvas-md-input-bg);
+    border-radius: 8px;
+    overflow-x: auto;
+}
+
+/* ── Result Widget (in-chat) ────────────────────────── */
+.canvas-markdown-result-widget {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    border: 1px solid var(--canvas-md-card-border);
+    border-radius: 12px;
+    max-width: 420px;
+}
+
+.canvas-markdown-result-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+}
+
+.canvas-markdown-result-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: rgba(59, 130, 246, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--canvas-md-accent);
+}
+
+:root[data-mode="dark"] .canvas-markdown-result-icon {
+    background: rgba(59, 130, 246, 0.15);
+}
+
+.canvas-markdown-result-meta {
+    flex: 1;
+    min-width: 0;
+}
+
+.canvas-markdown-result-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--canvas-md-text-primary);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    margin-bottom: 2px;
+}
+
+.canvas-markdown-result-sub {
+    font-size: 12px;
+    color: var(--canvas-md-text-secondary);
+}
+
+.canvas-markdown-result-open-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: var(--canvas-md-accent);
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+    flex-shrink: 0;
+    white-space: nowrap;
+    font-family: inherit;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .canvas-markdown-result-open-btn:hover {
+        opacity: 0.85;
+    }
+}
+
+/* ── CSV Table Styling ────────────────────────── */
+.canvas-csv-render {
+    width: 100%;
+}
+
+.canvas-csv-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.canvas-csv-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    line-height: 1.5;
+    min-width: 400px;
+}
+
+.canvas-csv-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.canvas-csv-table th {
+    background: var(--canvas-md-input-bg);
+    color: var(--canvas-md-text-primary);
+    font-weight: 600;
+    text-align: left;
+    padding: 12px 16px;
+    border-bottom: 2px solid var(--border-color);
+    white-space: nowrap;
+}
+
+.canvas-csv-table td {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--canvas-md-text-primary);
+    vertical-align: top;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .canvas-csv-table tbody tr:hover {
+        background: rgba(59, 130, 246, 0.04);
+    }
+}
+
+@media (hover: hover) and (pointer: fine) {
+    :root[data-mode="dark"] .canvas-csv-table tbody tr:hover {
+        background: rgba(59, 130, 246, 0.08);
+    }
+}
+
+.canvas-csv-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Alternating row colors */
+.canvas-csv-table tbody tr:nth-child(even) {
+    background: rgba(0, 0, 0, 0.02);
+}
+
+:root[data-mode="dark"] .canvas-csv-table tbody tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.canvas-markdown-result-icon.canvas-type-csv {
+    background: rgba(76, 175, 80, 0.1);
+    color: #4caf50;
+}
+
+:root[data-mode="dark"] .canvas-markdown-result-icon.canvas-type-csv {
+    background: rgba(76, 175, 80, 0.15);
+    color: #81c784;
+}
+
+.canvas-markdown-result-icon.canvas-type-html {
+    background: rgba(233, 76, 48, 0.1);
+    color: #e94c30;
+}
+
+:root[data-mode="dark"] .canvas-markdown-result-icon.canvas-type-html {
+    background: rgba(233, 76, 48, 0.15);
+    color: #ff7961;
+}
+
+.canvas-markdown-result-icon.canvas-type-mermaid {
+    background: rgba(20, 184, 166, 0.12);
+    color: #0f766e;
+}
+
+:root[data-mode="dark"] .canvas-markdown-result-icon.canvas-type-mermaid {
+    background: rgba(20, 184, 166, 0.2);
+    color: #5eead4;
+}
+
+.canvas-markdown-result-icon.canvas-type-latex {
+    background: color-mix(in srgb, var(--canvas-md-accent) 12%, transparent);
+    color: var(--canvas-md-accent);
+}
+
+/* ── Code/Preview Toggle ──────────────────────────
+   HTML and the other source-backed previews reuse the Markdown editor's
+   segmented control. The shared button and label classes also make this
+   switcher collapse to icons at the same preview-container width. */
+.canvas-html-view-toggle {
+    display: none;
+}
+
+.canvas-markdown-preview-panel[data-content-type="html"] .canvas-html-view-toggle,
+.canvas-markdown-preview-panel[data-content-type="mermaid"] .canvas-html-view-toggle,
+.canvas-markdown-preview-panel[data-content-type="latex"] .canvas-html-view-toggle {
+    display: inline-flex;
+}
+
+/* Reload is specific to the sandboxed HTML iframe. Other Canvas formats are
+   already rebuilt by their own renderers when their source changes. */
+.canvas-html-reload-btn {
+    display: none;
+}
+
+.canvas-markdown-preview-panel[data-content-type="html"] .canvas-html-reload-btn {
+    display: flex;
+}
+
+/* One compact settings trigger keeps the header uncluttered while its menu
+   exposes the two independently controllable HTML preview permissions. */
+.canvas-html-settings {
+    display: none;
+    position: relative;
+}
+
+.canvas-markdown-preview-panel[data-content-type="html"] .canvas-html-settings {
+    display: flex;
+}
+
+.canvas-html-settings-menu {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + 8px);
+    right: 0;
+    display: grid;
+    min-width: 228px;
+    padding: 6px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--background);
+    box-shadow: 0 8px 24px var(--shadow-color);
+}
+
+.canvas-html-settings-menu[hidden] {
+    display: none;
+}
+
+.canvas-html-settings-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    min-height: 38px;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--text-color);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.canvas-html-settings-menu-item:focus-within {
+    outline: 2px solid var(--primary-color);
+    outline-offset: -2px;
+}
+
+.canvas-html-settings-menu-item.is-disabled {
+    cursor: not-allowed;
+    opacity: 0.56;
+}
+
+.canvas-html-settings-menu-item.is-disabled .toggle-switch,
+.canvas-html-settings-menu-item.is-disabled .toggle-slider {
+    cursor: not-allowed;
+}
+
+.canvas-html-settings-menu-icon {
+    display: inline-flex;
+    flex: 0 0 auto;
+}
+
+.canvas-html-settings-menu-icon svg {
+    width: var(--svg-size);
+    height: var(--svg-size);
+}
+
+.canvas-html-settings-menu-label {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+/* Reuse the shared toggle visual from elements.css and add only the local
+   focus treatment required because the native input is visually hidden. */
+.canvas-html-settings-menu-item .toggle-switch {
+    flex: 0 0 auto;
+}
+
+.canvas-html-settings-menu-item .toggle-input:focus-visible + .toggle-slider {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .canvas-html-settings-menu-item:hover {
+        background: var(--hover);
+    }
+
+}
+
+/* External HTML resources remain CSP-blocked behind this review dialog until
+   the user explicitly grants the Canvas session access to the listed URLs. */
+#canvas-html-ExternalResourcesOverlay {
+    /* Fullscreen Canvas uses the shared overlay layer, so consent must sit one
+       level above it to remain actionable from fullscreen previews. */
+    z-index: 10000;
+}
+
+.canvas-html-external-resource-review {
+    margin: -8px 0 24px;
+    text-align: left;
+}
+
+.canvas-html-external-resource-list-label {
+    margin: 0 0 8px;
+    color: var(--text-color);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.canvas-html-external-resource-list {
+    display: grid;
+    gap: 7px;
+    max-height: 220px;
+    margin: 0;
+    padding: 10px 10px 10px 30px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--background);
+    color: var(--text-color-secondary);
+}
+
+.canvas-html-external-resource-list code {
+    color: var(--text-color);
+    font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
+    font-size: 12px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
+/* An existing iframe may still contain the previous proxy document for a few
+   milliseconds. Hide it synchronously while external-resource consent is
+   pending so authored HTML never appears before the user decides. */
+.canvas-html-preview-iframe[data-canvas-html-external-consent="pending"] {
+    visibility: hidden;
+}
+
+/* ── HTML Preview Iframe (sandboxed) ────────────────────────── */
+.canvas-html-preview-iframe {
+    width: 100%;
+    height: 100%;
+    min-height: 400px;
+    border: none;
+    background: #ffffff;
+}
+
+.canvas-html-preview-wrapper {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.canvas-markdown-editor-host {
+    width: 100%;
+    min-height: 400px;
+}
+
+/* The persistent streaming article owns no nested scroll viewport. Keeping a
+   single vertical owner prevents wheel/scrollbar gestures from fighting the
+   incoming Markdown updates. */
+.canvas-markdown-streaming-preview {
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    padding: 28px clamp(18px, 4vw, 48px) 32vh;
+    overflow-x: hidden;
+    overflow-wrap: anywhere;
+}
+
+.canvas-markdown-streaming-preview pre,
+.canvas-markdown-streaming-preview table,
+.canvas-markdown-streaming-preview .katex-display {
+    max-width: 100%;
+}
+
+.canvas-preview-pane {
+    width: 100%;
+    min-height: 400px;
+}
+
+.canvas-html-preview-wrapper.code-view .canvas-preview-pane {
+    display: none;
+}
+
+.canvas-html-preview-wrapper.preview-view .canvas-html-code-shell {
+    display: none;
+}
+
+/* ── HTML Code View ────────────────────────── */
+.canvas-html-code-shell {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    width: 100%;
+    height: 100%;
+    min-height: 400px;
+    overflow: hidden;
+}
+
+.canvas-html-code-shell:focus-within {
+    border-color: var(--canvas-md-accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--canvas-md-accent) 20%, transparent);
+}
+
+.canvas-html-code-shell.is-readonly {
+    opacity: 0.64;
+}
+
+.canvas-html-code-gutter {
+    min-width: 44px;
+    overflow: hidden;
+    padding: 14px 9px;
+    border-right: 1px solid var(--border-color);
+    background: var(--background);
+    color: var(--canvas-md-text-secondary);
+    font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    text-align: right;
+    user-select: none;
+}
+
+.canvas-html-code-gutter span {
+    display: block;
+    min-height: 1.6em;
+}
+
+.canvas-html-code-view {
+    display: block;
+    min-width: 0;
+    width: 100%;
+    height: 100%;
+    min-height: 400px;
+    overflow: auto;
+    font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--canvas-md-text-primary);
+    white-space: pre;
+    word-wrap: normal;
+    border: 0;
+    padding: 14px 16px;
+    resize: none;
+    outline: none;
+    caret-color: var(--canvas-md-accent);
+    tab-size: 4;
+}
+
+.canvas-html-code-view:focus {
+    box-shadow: none;
+}
+
+.canvas-html-code-view:disabled {
+    cursor: not-allowed;
+}
+
+.canvas-html-code-view::selection {
+    background: rgba(59, 130, 246, 0.24);
+}
+
+/* HTML page content area fills available space */
+.canvas-markdown-preview-page[data-content-type="html"] {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 500px;
+}
+
+.canvas-markdown-preview-page[data-content-type="latex"] {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 680px;
+}
+
+/* Uploaded and generated PDF files use the exact Canvas split-sidebar
+   geometry without inheriting LaTeX's source editor controls. */
+.canvas-markdown-preview-page[data-content-type="pdf"] {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 680px;
+}
+
+/* App-owned PDF pages replace the browser plugin so document text remains
+   natively selectable and can use Canvas' Copy / Add reference actions. */
+.canvas-pdf-document-viewer {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    min-height: 620px;
+    padding: 18px;
+    overflow: auto;
+    background: var(--background);
+    scrollbar-gutter: stable;
+}
+
+.canvas-pdf-document-status,
+.canvas-pdf-page-status {
+    color: var(--canvas-md-text-secondary);
+    font-size: 13px;
+}
+
+.canvas-pdf-document-status {
+    margin: auto;
+}
+
+.canvas-latex-preview-notice {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    width: min(720px, calc(100% - 32px));
+    margin: 24px auto;
+    padding: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--canvas-md-card-bg);
+    color: var(--canvas-md-text-primary);
+}
+
+.canvas-latex-preview-notice.is-error {
+    border-color: color-mix(in srgb, var(--error-color) 55%, var(--border-color));
+}
+
+.canvas-latex-preview-notice p {
+    margin: 0;
+}
+
+.canvas-latex-preview-message {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.canvas-latex-preview-spinner {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 auto;
+    border: 2px solid color-mix(in srgb, currentColor 24%, transparent);
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .canvas-latex-preview-spinner {
+        animation: none;
+    }
+}
+
+.canvas-latex-preview-notice details {
+    width: 100%;
+}
+
+.canvas-latex-preview-notice pre {
+    max-height: 260px;
+    margin: 10px 0 0;
+    padding: 12px;
+    overflow: auto;
+    border-radius: 8px;
+    background: var(--background);
+    color: var(--canvas-md-text-secondary);
+    font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+    font-size: 12px;
+    white-space: pre-wrap;
+}
+
+.canvas-pdf-page-shell {
+    position: relative;
+    flex: 0 0 auto;
+    max-width: 100%;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    background: var(--canvas-md-card-bg);
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--canvas-md-text-primary) 12%, transparent);
+}
+
+.canvas-pdf-page-surface {
+    position: absolute;
+    inset: 0 auto auto 0;
+    transform-origin: top left;
+}
+
+.canvas-pdf-page-image,
+.canvas-pdf-text-layer {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.canvas-pdf-page-image {
+    display: block;
+    pointer-events: none;
+    user-select: none;
+}
+
+.canvas-pdf-text-layer {
+    overflow: hidden;
+    color: transparent;
+    white-space: pre;
+    user-select: text;
+}
+
+.canvas-pdf-text-word {
+    position: absolute;
+    display: inline-block;
+    /* The raster page image owns the visible glyphs. This positioned text is
+       only an interaction layer for native selection and copying. Keep both
+       foreground properties transparent so browser selection painting cannot
+       draw a second, approximately positioned copy over the page image. */
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    font-family: sans-serif;
+    line-height: 1;
+    white-space: pre;
+    cursor: text;
+    transform-origin: top left;
+    user-select: text;
+}
+
+.canvas-pdf-text-word::selection {
+    background: color-mix(in srgb, var(--canvas-md-accent) 36%, transparent);
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    text-shadow: none;
+}
+
+.canvas-pdf-page-status {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 2;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: var(--canvas-md-card-bg);
+    transform: translate(-50%, -50%);
+}
+
+.canvas-markdown-preview-page[data-content-type="mermaid"] {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 500px;
+}
+
+.canvas-html-preview-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+}
+
+.canvas-mermaid-preview-pane {
+    width: 100%;
+    min-height: 400px;
+    background: var(--canvas-md-card-bg);
+    padding: 16px;
+    overflow: auto;
+}
+
+.canvas-mermaid-diagram svg {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin: 0 auto;
+}
+
+.canvas-mermaid-diagram.mermaid-diagram-error {
+    color: #dc2626;
+    font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+    font-size: 12px;
+    white-space: pre-wrap;
+}
+
+/* When HTML type is active, track should fill height */
+.canvas-markdown-preview-panel[data-content-type="html"] .canvas-markdown-preview-track,
+.canvas-markdown-preview-panel[data-content-type="mermaid"] .canvas-markdown-preview-track {
+    display: flex;
+    flex-direction: column;
+}
+
+/* ── Fullscreen button – only visible for HTML ────────────────────────── */
+.canvas-html-fullscreen-btn {
+    display: none;
+}
+
+.canvas-markdown-preview-panel[data-content-type="html"] .canvas-html-fullscreen-btn {
+    display: flex;
+}
+
+/* ── Fullscreen overlay ────────────────────────── */
+.canvas-html-fullscreen-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 9999;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: var(--modal-overlay-backdrop-filter);
+    -webkit-backdrop-filter: var(--modal-overlay-backdrop-filter);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+    animation: fadeIn 0.2s ease;
+}
+
+.canvas-html-fullscreen-content {
+    width: 100%;
+    height: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #ffffff;
+    position: relative;
+}
+
+.canvas-html-fullscreen-iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+.canvas-html-fullscreen-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0, 0, 0, 0.5);
+    color: #ffffff;
+    cursor: pointer;
+    transition: background 0.2s;
+    z-index: 1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .canvas-html-fullscreen-close:hover {
+        background: rgba(0, 0, 0, 0.7);
+    }
+}
+
+/* ── Mobile Responsive ────────────────────────── */
+@media (max-width: 900px) {
+    .canvas-markdown-preview-panel {
+        top: auto;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        height: 85vh;
+        max-width: none;
+        min-width: unset;
+        border-left: none;
+        border-top: 1px solid var(--border-color);
+        border-radius: 16px 16px 0 0;
+        transform: translateY(100%);
+    }
+
+    .canvas-markdown-preview-panel.visible {
+        transform: translateY(0);
+    }
+
+
+    .canvas-markdown-preview-page {
+        border-radius: 10px;
+    }
+
+    .canvas-markdown-result-widget {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        max-width: 100%;
+    }
+
+    .canvas-markdown-result-open-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .canvas-csv-table {
+        font-size: 12px;
+        min-width: 300px;
+    }
+
+    .canvas-csv-table th,
+    .canvas-csv-table td {
+        padding: 8px 12px;
+    }
+
+}
+.canvas-html-export-frame {
+    position: fixed;
+    inset: auto auto 0 -10000px;
+    width: 1440px;
+    height: 900px;
+    border: 0;
+    opacity: 0;
+    pointer-events: none;
+}

@@ -1,0 +1,20 @@
+{
+  "verify_subject": "Bestätige deine neue {application_name}-E-Mail-Adresse",
+  "verify_headline": "Neue E-Mail-Adresse bestätigen",
+  "verify_intro": "Bestätige diese Adresse, um die E-Mail-Adresse deines {application_name}-Kontos zu ändern.",
+  "verify_button": "E-Mail-Adresse bestätigen",
+  "verify_expires": "Dieser Link läuft in {expires_in_hours} Stunden ab.",
+  "verify_ignore": "Wenn du diese Änderung nicht angefordert hast, bestätige sie nicht.",
+  "requested_subject": "{application_name}: E-Mail-Änderung angefordert",
+  "requested_headline": "Änderung der E-Mail-Adresse angefordert",
+  "requested_intro": "Jemand hat eine neue E-Mail-Adresse für dein Konto angefordert. Deine aktuelle Adresse bleibt aktiv, bis die neue bestätigt wurde.",
+  "cancel_button": "E-Mail-Änderung abbrechen",
+  "requested_action": "Wenn du das nicht warst, brich die Anfrage ab und sichere dein Konto sofort.",
+  "changed_subject": "{application_name}: E-Mail-Adresse geändert",
+  "changed_headline": "Deine E-Mail-Adresse wurde geändert",
+  "changed_intro": "Die Anmelde-E-Mail-Adresse deines {application_name}-Kontos wurde geändert. Alle bestehenden Sitzungen und Links zum Zurücksetzen des Passworts wurden widerrufen.",
+  "changed_action": "Wenn du das nicht warst, sichere dein Konto sofort und wende dich an einen Administrator.",
+  "cancelled_subject": "{application_name}: E-Mail-Änderung abgebrochen",
+  "cancelled_headline": "E-Mail-Änderung abgebrochen",
+  "cancelled_intro": "Die ausstehende E-Mail-Änderung wurde abgebrochen. Deine bisherige Adresse bleibt aktiv."
+}

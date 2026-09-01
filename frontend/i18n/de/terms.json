@@ -1,0 +1,7 @@
+{
+  "terms_page_title": "Nutzungsbedingungen",
+  "terms_loading": "Lade Nutzungsbedingungen...",
+  "terms_load_error": "Fehler beim Laden der Nutzungsbedingungen. Bitte versuchen Sie es später erneut.",
+  "terms_default_template_warning_emphasis": "Wichtig:",
+  "terms_default_template_warning": "Diese Instanz verwendet noch die Standardvorlage für die Nutzungsbedingungen. Der Betreiber muss sie durch deploymentspezifische rechtliche Inhalte ersetzen, bevor die öffentliche Registrierung aktiviert wird."
+}

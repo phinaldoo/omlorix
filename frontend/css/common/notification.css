@@ -1,0 +1,264 @@
+/* Notification Container */
+.notification-container {
+    position: fixed;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10000;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: min(520px, calc(100vw - 32px));
+    transition: gap 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.notification-container.expanded {
+    pointer-events: auto;
+    gap: 10px;
+}
+
+/* Individual Notification */
+.notification {
+    --notification-accent: var(--error-color);
+    --notification-bg: color-mix(in srgb, var(--bg-normal-elevated, var(--background)) 92%, transparent);
+    --notification-border: color-mix(in srgb, var(--border-color) 84%, var(--notification-accent) 16%);
+    --notification-shadow: 0 14px 40px rgba(0, 0, 0, 0.10), 0 3px 12px rgba(0, 0, 0, 0.08);
+    background: var(--bg-normal-elevated, var(--background));
+    background: var(--notification-bg);
+    border: 1px solid var(--notification-border);
+    border-radius: 16px;
+    box-shadow: var(--notification-shadow);
+    color: var(--text-color);
+    padding: 10px 38px 10px 14px;
+    min-width: min(340px, 100%);
+    width: fit-content;
+    max-width: 100%;
+    position: relative;
+    pointer-events: auto;
+    overflow: hidden;
+    backdrop-filter: blur(18px) saturate(1.15);
+    -webkit-backdrop-filter: blur(18px) saturate(1.15);
+    transition:
+        opacity 0.22s ease,
+        transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1),
+        box-shadow 0.22s ease,
+        border-color 0.22s ease;
+    transform-origin: top center;
+    animation: notificationSlideIn 0.24s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.notification::before {
+    content: "";
+    flex: 0 0 auto;
+    width: 8px;
+    height: 8px;
+    border-radius: 9999px;
+    background: var(--notification-accent);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--notification-accent) 14%, transparent);
+}
+
+/* Type modifiers */
+.notification.error {
+    --notification-accent: var(--error-color);
+}
+
+.notification.success {
+    --notification-accent: var(--success-color);
+}
+
+.notification.warning {
+    --notification-accent: var(--pending);
+}
+
+.notification.info {
+    --notification-accent: var(--primary-color);
+}
+
+/* Stacked appearance (scale down lower items slightly) */
+.notification:nth-child(2) {
+    transform: translateY(-2px) scale(0.985);
+    opacity: 0.96;
+}
+
+.notification:nth-child(3) {
+    transform: translateY(-4px) scale(0.97);
+    opacity: 0.9;
+}
+
+.notification:nth-child(n + 4) {
+    transform: translateY(-6px) scale(0.955);
+    opacity: 0.84;
+}
+
+/* Notification text and optional action */
+.notification-content {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    gap: 12px;
+    min-width: 0;
+}
+
+.notification-text {
+    flex: 1;
+    color: var(--text-color);
+    font-size: 13px;
+    line-height: 1.45;
+    font-weight: 500;
+    white-space: pre-line;
+}
+
+.notification-action {
+    flex: 0 0 auto;
+    border: 1px solid color-mix(in srgb, var(--notification-accent) 24%, var(--border-color));
+    border-radius: 9999px;
+    background: color-mix(in srgb, var(--notification-accent) 9%, transparent);
+    color: var(--notification-accent);
+    cursor: pointer;
+    padding: 5px 10px;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.2;
+    transition:
+        background 0.16s ease,
+        border-color 0.16s ease,
+        transform 0.16s ease;
+}
+
+.notification-action:focus-visible {
+    outline: 2px solid var(--notification-accent);
+    outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .notification-action:hover {
+        background: color-mix(in srgb, var(--notification-accent) 14%, transparent);
+        border-color: color-mix(in srgb, var(--notification-accent) 36%, var(--border-color));
+        transform: translateY(-1px);
+    }
+}
+
+/* Close button */
+.notification-close {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: var(--text-color-secondary);
+    cursor: pointer;
+    padding: 0;
+    border-radius: 9999px;
+    opacity: 0.62;
+    transition:
+        opacity 0.16s ease,
+        background 0.16s ease,
+        color 0.16s ease;
+    width: 24px;
+    height: 24px;
+}
+
+.notification-close-icon {
+    display: block;
+    flex: 0 0 auto;
+    width: 14px;
+    height: 14px;
+    pointer-events: none;
+}
+
+.notification-close:focus {
+    outline: 2px solid var(--notification-accent);
+    outline-offset: 2px;
+    opacity: 1;
+}
+
+@media (hover: none) {
+    .notification-close {
+        opacity: 1;
+    }
+}
+
+/* Exit animation */
+.notification.removing {
+    animation: slideOut 0.2s ease forwards;
+    pointer-events: none;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+    .notification-container {
+        top: 12px;
+        width: calc(100vw - 24px);
+    }
+
+    .notification {
+        width: 100%;
+        min-width: 0;
+        padding: 10px 38px 10px 12px;
+        border-radius: 14px;
+        gap: 8px;
+    }
+
+    .notification:nth-child(n) {
+        transform: none;
+        opacity: 1;
+    }
+
+    .notification-text {
+        font-size: 13px;
+        line-height: 1.4;
+    }
+
+    .notification-close {
+        right: 12px;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .notification {
+        animation: none;
+        transition: opacity 0.2s ease;
+    }
+    
+    .notification.removing {
+        animation: none;
+        opacity: 0;
+    }
+}
+
+@media (hover: hover) and (pointer: fine) {
+    /* Hover state for container - expand stack */
+    .notification-container:hover .notification {
+        transform: translateY(0) scale(1);
+    }
+    /* Reset transform on hover */
+    .notification-container:hover .notification:nth-child(n) {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    .notification:hover {
+        border-color: color-mix(in srgb, var(--border-color) 70%, var(--notification-accent) 30%);
+        box-shadow: 0 18px 44px rgba(0, 0, 0, 0.12), 0 4px 14px rgba(0, 0, 0, 0.08);
+    }
+
+    .notification:hover .notification-close {
+        opacity: 1;
+    }
+    
+    .notification-close:hover {
+        background: var(--hover);
+        color: var(--text-color);
+    }
+}

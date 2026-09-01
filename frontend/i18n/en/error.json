@@ -1,0 +1,7 @@
+{
+  "page_title": "Error",
+  "message": "Something went wrong",
+  "description": "The page you're looking for couldn't be loaded. This might be a temporary issue — try again or head back to the home page.",
+  "btn_home": "Go back home",
+  "help_text": "If the problem persists, try clearing your browser cache or contact your administrator."
+}

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow, noarchive">
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#1F1F1F" media="(prefers-color-scheme: dark)">
+    <meta name="description" content="Omlorix is a self-hosted multi-user LLM chat workspace.">
+    <meta property="og:title" content="Omlorix">
+    <meta property="og:description" content="Omlorix is a self-hosted multi-user LLM chat workspace.">
+    <meta property="og:image" content="/assets/share-preview/omlorix-social-card.png">
+    <meta property="og:image:alt" content="Omlorix wordmark">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:site_name" content="Omlorix">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Omlorix">
+    <meta name="twitter:description" content="Omlorix is a self-hosted multi-user LLM chat workspace.">
+    <meta name="twitter:image" content="/assets/share-preview/omlorix-social-card.png">
+    <meta name="twitter:image:alt" content="Omlorix wordmark">
+    <title data-i18n="chat_share_page_title">Shared Chat</title>
+    <link rel="icon" href="/api/v1/settings/icon/get?size=16" sizes="16x16">
+    <style>
+        /* Fallback CSS Variables for resilience if external CSS fails */
+        :root {
+            --background: #ffffff;
+            --text-color: #111111;
+            --text-color-secondary: #666666;
+            --text-color-tertiary: #757575;
+            --border-color: #e0e0e0;
+            --hover: #f5f5f5;
+            --admin-accent: #007bff;
+            --shadow-color: rgba(0, 0, 0, 0.08);
+        }
+
+        html[data-mode="dark"] {
+            --background: #1F1F1F;
+            --text-color: #ffffff;
+            --text-color-secondary: #aaaaaa;
+            --text-color-tertiary: #999999;
+            --border-color: #333333;
+            --hover: #2a2a2a;
+            --shadow-color: rgba(0, 0, 0, 0.4);
+        }
+
+        html, body {
+            background-color: var(--background) !important;
+            transition: none !important;
+        }
+
+        :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+            outline: 2px solid var(--admin-accent);
+            outline-offset: 2px;
+            border-radius: 4px;
+        }
+    </style>
+    <link rel="stylesheet" href="/css/fonts.css">
+    <link rel="stylesheet" href="/css/common/animations.css">
+    <link rel="stylesheet" href="/css/common/init.css">
+    <link rel="stylesheet" href="/css/chat/init.css">
+    <link rel="stylesheet" href="/css/common/elements.css">
+    <link rel="stylesheet" href="/css/chat/chat.css">
+    <link rel="stylesheet" href="/css/chat/chatBox/chatBoxInlineElements.css">
+    <link rel="stylesheet" href="/css/chat/native-tool-widgets.css">
+    <link rel="stylesheet" href="/css/chat/markdown.css">
+    <link rel="stylesheet" href="/css/common/markdownAlerts.css">
+    <link rel="stylesheet" href="/css/katex/katex.min.css">
+    <link rel="stylesheet" href="/css/prism/prism.min.css">
+    <link rel="stylesheet" href="/css/chat/files.css">
+    <link rel="stylesheet" href="/css/chat/citations.css">
+    <link rel="stylesheet" href="/css/chatShare/chat-share.css">
+
+    <script src="/js/vendor/markdown/markdown-it.min.js" defer></script>
+    <script src="/js/vendor/markdown/markdown-it-deflist.min.js" defer></script>
+    <script src="/js/vendor/markdown/markdown-it-abbr.min.js" defer></script>
+    <script src="/js/vendor/markdown/markdown-it-task-lists.min.js" defer></script>
+    <script src="/js/vendor/markdown/markdown-it-mark.min.js" defer></script>
+    <script src="/js/vendor/markdown/markdown-it-sup.min.js" defer></script>
+    <script src="/js/vendor/markdown/markdown-it-sub.min.js" defer></script>
+    <script src="/js/vendor/purify.min.js" defer></script>
+    <script src="/js/vendor/katex/katex.min.js" defer></script>
+    <script src="/js/vendor/katex/auto-render.min.js" defer></script>
+    <script src="/js/vendor/prism/prism-core.min.js" defer></script>
+    <script src="/js/vendor/prism/components/prism-clike.min.js?v=1" defer></script>
+    <script src="/js/vendor/prism/components/prism-markup.min.js?v=1" defer></script>
+    <script src="/js/vendor/prism/components/prism-markup-templating.min.js?v=1" defer></script>
+    <script src="/js/vendor/prism/components/prism-css.min.js?v=1" defer></script>
+    <script src="/js/vendor/prism/components/prism-javascript.min.js?v=1" defer></script>
+    <script src="/js/vendor/prism/prism-autoloader.min.js" data-autoloader-path="/js/vendor/prism/components/" defer></script>
+    <script src="/js/common/markdownTables.js" defer></script>
+    <script src="/js/chat/chatSanitizer.js" defer></script>
+    <script src="/js/common/prismAutoloaderConfig.js" defer></script>
+
+    <script src="/js/common/language.js" defer></script>
+    <script src="/js/common/icons.js" defer></script>
+    <script src="/js/common/markdownAlerts.js" defer></script>
+    <script src="/js/common/theme.js" defer></script>
+    <script src="/js/common/tooltip.js" defer></script>
+    <script src="/js/chat/apiErrors.js" defer></script>
+    <script src="/js/chat/fileCards.js" defer></script>
+    <script src="/js/chat/native-tool-widgets.js" defer></script>
+    <script src="/js/chat/messages/shared.js" defer></script>
+    <script src="/js/chat/messages/tool-config.js" defer></script>
+    <script src="/js/chat/messages/subagents.js" defer></script>
+    <script src="/js/chat/messages/accessibility.js" defer></script>
+    <script src="/js/chat/messages/file-handling.js" defer></script>
+    <script src="/js/chat/messages/user-messages.js" defer></script>
+    <script src="/js/chat/messages/generated-media.js" defer></script>
+    <script src="/js/chat/messages/assistant-content.js" defer></script>
+    <script src="/js/chat/messages/widgets.js" defer></script>
+    <script src="/js/chat/messages/reasoning.js" defer></script>
+    <script src="/js/chat/messages/tools.js" defer></script>
+    <script src="/js/chat/messages/actions.js" defer></script>
+    <script src="/js/chat/messages/completion.js" defer></script>
+    <script src="/js/chat/messages/delete-message.js" defer></script>
+    <script src="/js/chat/messages/edit-message.js" defer></script>
+    <script src="/js/common/mermaidRuntime.js" defer></script>
+    <script src="/js/common/vegaRuntime.js" defer></script>
+    <script src="/js/common/canvasHtmlPreview.js" defer></script>
+    <script src="/js/chat/composer/state-and-transport.js" defer></script>
+    <script src="/js/chat/rendering/state.js" defer></script>
+    <script src="/js/chat/rendering/preview-detection.js" defer></script>
+    <script src="/js/chat/rendering/mermaid-vega.js" defer></script>
+    <script src="/js/chat/rendering/code-editing-execution.js" defer></script>
+    <script src="/js/chat/rendering/visualization-bridge.js" defer></script>
+    <script src="/js/chat/rendering/visualization-renderers.js" defer></script>
+    <script src="/js/chat/rendering/mermaid-preview.js" defer></script>
+    <script src="/js/chat/rendering/preview-modals.js" defer></script>
+    <script src="/js/chat/rendering/preview-lifecycle.js" defer></script>
+    <script src="/js/chat/rendering/shared-utils.js" defer></script>
+    <script src="/js/chat/composer/attachments.js" defer></script>
+    <script src="/js/chat/rendering/markdown-parser.js" defer></script>
+    <script src="/js/chat/rendering/markdown-ui.js" defer></script>
+    <script src="/js/chat/messages/feedback.js" defer></script>
+    <script src="/js/chat/sending/history.js" defer></script>
+    <script src="/js/chat/sending/send.js" defer></script>
+    <script src="/js/chat/sending/regeneration.js" defer></script>
+    <script src="/js/chat/chatTranscriptRenderer.js" defer></script>
+    <script src="/js/chat-share.js" defer></script>
+</head>
+<body class="chat-share-page" data-page="chat-share">
+        <header class="chat-share-header" id="sharedHeader" hidden>
+            <h1 class="chat-share-title" id="sharedChatTitle" data-i18n="chat_share_header_title">Shared Chat</h1>
+            <span class="chat-share-status-badge active" data-i18n="chat_share_readonly_badge">Read only view</span>
+        </header>
+
+        <section class="chat-share-content" id="sharedChatContent" hidden>
+            <div class="chat-area" id="chatArea" style="display: flex; width: 100%;">
+                <div class="chat-area-container" id="chatAreaContainer"></div>
+            </div>
+        </section>
+
+        <section class="chat-share-loading-view" id="sharedLoadingView">
+            <div class="chat-share-loading-spinner" aria-hidden="true"></div>
+            <p data-i18n="chat_share_loading_label">Loading...</p>
+        </section>
+
+        <section class="chat-share-password-view" id="sharedPasswordView" hidden>
+            <h2 data-i18n="chat_share_password_title">Password required</h2>
+            <p id="sharedPasswordHelp" data-i18n="chat_share_password_subtitle">This shared chat is password protected.</p>
+            <form class="chat-share-password-form" id="sharedPasswordForm">
+                <label class="chat-share-password-label" for="sharedPasswordInput" data-i18n="chat_share_password_label">Share password</label>
+                <input type="password" id="sharedPasswordInput" autocomplete="off" required aria-describedby="sharedPasswordHelp sharedPasswordError" aria-invalid="false">
+                <button type="submit" data-i18n="chat_share_password_unlock_btn">Unlock chat</button>
+            </form>
+            <p id="sharedPasswordError" role="alert" aria-live="polite"></p>
+        </section>
+
+        <section class="chat-share-error-view" id="sharedErrorView" hidden>
+            <h2 data-i18n="chat_share_error_title">Unable to load chat</h2>
+            <p id="sharedErrorMessage" data-i18n="chat_share_error_invalid_link">This share link is invalid, expired, or no longer available.</p>
+            <button type="button" id="sharedRetryBtn" data-i18n="chat_share_error_retry_btn">Try again</button>
+        </section>
+</body>
+</html>

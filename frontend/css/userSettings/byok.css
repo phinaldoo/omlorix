@@ -1,0 +1,828 @@
+/* ============================================================
+   BYOK — Bring Your Own Key
+
+   This page deliberately uses the same restrained section, row,
+   button, and border language as the other user settings pages.
+   ============================================================ */
+
+.byok-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 48px;
+}
+
+/* ---------- Compact privacy disclosure ---------- */
+
+.byok-disclosure {
+    width: fit-content;
+    max-width: 720px;
+    margin-top: -24px;
+    color: var(--text-color-secondary);
+}
+
+.byok-disclosure summary {
+    width: fit-content;
+    padding: 4px 0;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-color-secondary);
+    cursor: pointer;
+}
+
+.byok-disclosure summary:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 3px;
+    border-radius: 3px;
+}
+
+.byok-disclosure-body {
+    display: grid;
+    gap: 8px;
+    margin-top: 8px;
+    padding: 12px 14px;
+    border-left: 2px solid var(--border-color);
+    font-size: 12px;
+    line-height: 1.55;
+}
+
+.byok-disclosure-body p {
+    margin: 0;
+}
+
+.byok-modal-disclosure {
+    width: 100%;
+    max-width: none;
+    margin-top: -4px;
+}
+
+/* ---------- Sections ---------- */
+
+.byok-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.byok-section-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.byok-section-head-text {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.byok-section-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-color);
+    letter-spacing: -0.005em;
+}
+
+/* ---------- Add button (icon + label) ---------- */
+
+.byok-add-btn {
+    gap: 6px;
+    min-height: 34px;
+    padding: 7px 11px;
+    font-size: 13px;
+}
+
+.byok-add-btn svg {
+    width: 14px;
+    height: 14px;
+}
+
+.byok-add-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ---------- List ---------- */
+
+.byok-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    background: var(--background);
+    overflow: hidden;
+}
+
+.byok-list-item {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border-color);
+    transition: background-color 0.15s ease;
+}
+
+.byok-list-item:last-child {
+    border-bottom: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .byok-list-item:hover {
+        background: var(--hover);
+    }
+}
+
+.byok-item-icon {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: var(--hover);
+    color: var(--text-color);
+    overflow: hidden;
+}
+
+.byok-item-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+.byok-item-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.byok-item-body {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.byok-item-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.byok-item-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-color);
+    line-height: 1.35;
+    letter-spacing: -0.005em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+}
+
+.byok-item-meta {
+    margin: 0;
+    font-size: 12.5px;
+    color: var(--text-color-secondary);
+    line-height: 1.45;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.byok-item-tag {
+    display: inline-flex;
+    align-items: center;
+    height: 20px;
+    padding: 0 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1;
+    background: var(--hover);
+    color: var(--text-color-secondary);
+}
+
+.byok-item-tag.is-active {
+    background: color-mix(in srgb, var(--success-color) 14%, transparent);
+    color: var(--success-color);
+}
+
+.byok-item-tag.is-warning {
+    background: color-mix(in srgb, var(--pending) 14%, transparent);
+    color: var(--pending);
+}
+
+.byok-item-actions {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-self: end;
+    gap: 4px;
+}
+
+.byok-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: transparent;
+    color: var(--text-color-secondary);
+    border: 1px solid transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.byok-icon-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+.byok-icon-btn:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .byok-icon-btn:hover {
+        background: var(--hover);
+        color: var(--text-color);
+    }
+
+    .byok-icon-btn.is-danger:hover {
+        background: color-mix(in srgb, var(--error-color) 12%, transparent);
+        color: var(--error-color);
+    }
+}
+
+/* ---------- Empty State ---------- */
+
+.byok-empty {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+        "icon title"
+        "icon description";
+    align-items: center;
+    column-gap: 14px;
+    row-gap: 2px;
+    padding: 18px;
+    border: 1px dashed var(--border-color);
+    border-radius: 14px;
+    text-align: left;
+}
+
+.byok-empty-icon {
+    grid-area: icon;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--hover);
+    color: var(--text-color-secondary);
+}
+
+.byok-empty-icon svg {
+    width: 22px;
+    height: 22px;
+}
+
+.byok-empty-title {
+    grid-area: title;
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.byok-empty-desc {
+    grid-area: description;
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--text-color-secondary);
+}
+
+/* ---------- Tracking / Stats Controls ---------- */
+
+.byok-tracking-card {
+    padding: 14px 0;
+}
+
+.byok-tracking-text {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.byok-tracking-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.byok-tracking-desc {
+    margin: 4px 0 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-color-secondary);
+}
+
+.byok-stats-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+}
+
+#byokStatisticsControls.is-tracking-off .byok-stats-toolbar {
+    justify-content: flex-end;
+}
+
+#byokStatisticsContent {
+    display: grid;
+    gap: 12px;
+}
+
+#byokStatisticsContent[hidden],
+.byok-stats-toolbar-group[hidden] {
+    display: none;
+}
+
+.byok-stats-toolbar-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.byok-stats-toolbar .byok-period-select {
+    flex: 0 0 200px;
+}
+
+.byok-stats-toolbar .byok-period-select .admin-select-trigger {
+    height: 34px;
+    padding-right: 36px;
+    font-size: 13px;
+}
+
+.byok-stats-toolbar .byok-period-select .admin-select-trigger:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.byok-stats-toolbar .om-button.border {
+    height: 34px;
+}
+
+/* ---------- Stats Grid ---------- */
+
+.byok-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 8px;
+}
+
+.byok-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 14px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--background);
+}
+
+.byok-stat-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-color-tertiary);
+}
+
+.byok-stat-value {
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 1.1;
+    color: var(--text-color);
+    letter-spacing: -0.02em;
+}
+
+/* ---------- Stats Tables ---------- */
+
+.byok-stats-table-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--background);
+}
+
+.byok-stats-table-title {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-color);
+    letter-spacing: -0.005em;
+}
+
+.byok-stats-table-wrap {
+    overflow-x: auto;
+}
+
+.byok-stats-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 360px;
+}
+
+.byok-stats-table th,
+.byok-stats-table td {
+    text-align: left;
+    font-size: 12.5px;
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.byok-stats-table th {
+    font-weight: 600;
+    color: var(--text-color-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: 11px;
+}
+
+.byok-stats-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.byok-stats-empty-cell {
+    color: var(--text-color-tertiary);
+    font-style: italic;
+}
+
+/* ---------- Errors list ---------- */
+
+.byok-error-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.byok-error-item {
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--background);
+}
+
+.byok-error-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 4px;
+}
+
+.byok-error-model {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.byok-error-time {
+    font-size: 11px;
+    color: var(--text-color-tertiary);
+    white-space: nowrap;
+}
+
+.byok-error-message {
+    margin: 0;
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--text-color-secondary);
+    word-break: break-word;
+}
+
+/* ---------- Inline placeholder text ---------- */
+
+.byok-placeholder {
+    margin: 0;
+    padding: 24px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-color-secondary);
+    border: 1px dashed var(--border-color);
+    border-radius: 12px;
+}
+
+/* ---------- BYOK editor modals ---------- */
+
+.byok-modal-overlay {
+    --shared-modal-z-index: 10010;
+}
+
+.byok-modal-overlay[hidden] {
+    display: none;
+}
+
+.byok-modal-heading p {
+    max-width: 580px;
+}
+
+.byok-modal-form-shell {
+    min-height: 0;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+}
+
+.byok-modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.byok-modal-fields {
+    overflow: visible;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--background);
+}
+
+.byok-setting-item {
+    gap: 20px;
+}
+
+.byok-modal-fields > .byok-setting-item {
+    margin: 0;
+    padding: 16px;
+}
+
+.byok-modal-fields > .byok-setting-item:last-child {
+    border-bottom: 0;
+}
+
+.byok-modal .byok-setting-item {
+    align-items: flex-start;
+}
+
+/* Keep compact switches centered against the complete setting copy and pinned
+   to the row's trailing edge, including when descriptions wrap to many lines. */
+.byok-modal .byok-setting-item.byok-toggle-setting {
+    align-items: stretch;
+}
+
+.byok-modal .us-setting-info {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.byok-modal .byok-control-wrap {
+    width: min(280px, 44%);
+    min-width: 220px;
+}
+
+.byok-modal .byok-control-wrap.byok-toggle-control {
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.byok-modal .byok-control-wrap.byok-toggle-control > .toggle-switch {
+    align-self: center;
+    margin-left: auto;
+}
+
+.byok-modal .byok-control-wrap > .input.us,
+.byok-modal .byok-control-wrap > .admin-select,
+.byok-modal .byok-control-wrap > .custom-select,
+.byok-modal .byok-control-wrap > .byok-icon-picker-host {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+}
+
+/* BYOK keeps its controls in a compact column even on desktop. Let the
+   shared picker use the same readable stacked layout there instead of
+   squeezing the SVG editor beside a fixed preview column. */
+.byok-modal .byok-icon-picker-host .icon-picker-custom-wrapper,
+.byok-modal .byok-icon-picker-host .icon-picker-image-wrapper {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+        "controls"
+        "preview";
+}
+
+.byok-modal .byok-icon-picker-host .icon-picker-control-stack,
+.byok-modal .byok-icon-picker-host .icon-picker-custom-preview-container {
+    min-height: 0;
+}
+
+/* The provider form reserves a narrow control column on desktop. Give the
+   three modes a balanced 2 + 1 segmented layout there as well as on phones. */
+.byok-modal .byok-icon-picker-host .icon-picker-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+}
+
+.byok-modal .byok-icon-picker-host .icon-picker-tab {
+    min-width: 0;
+    min-height: 44px;
+    padding: 8px 10px;
+    line-height: 1.25;
+    text-align: center;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.byok-modal .byok-icon-picker-host .icon-picker-tab:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+}
+
+/* Suggested custom-provider endpoints form one ordered control group: users
+   select a preset first, then refine the URL in the input below it. */
+.byok-modal .byok-control-wrap.byok-provider-url-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.byok-modal .admin-select-trigger.input-error,
+.byok-modal .input.us.input-error {
+    border-color: var(--error-color);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--error-color) 12%, transparent);
+}
+
+.byok-modal-dynamic-fields:empty {
+    display: none;
+}
+
+.byok-modal-dynamic-fields > .provider-form-empty {
+    margin: 0;
+    padding: 13px 16px;
+    color: var(--text-color-secondary);
+    font-size: 13px;
+    text-align: center;
+    border: 1px dashed var(--border-color);
+    border-radius: 10px;
+}
+
+.byok-modal-dynamic-fields .us-settings-section {
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+}
+
+.byok-modal-dynamic-fields .us-settings-section + .us-settings-section {
+    margin-top: 14px;
+}
+
+.byok-modal-dynamic-fields .byok-section-heading {
+    padding: 14px 16px 10px;
+}
+
+.byok-modal-dynamic-fields .byok-setting-item {
+    margin: 0;
+    padding: 16px;
+}
+
+.byok-modal-dynamic-fields .byok-setting-item:last-child {
+    border-bottom: 0;
+}
+
+.byok-modal-disclosure {
+    margin: 0;
+}
+
+.byok-dialog-card.byok-dialog-card-info .delete-warning-card-icon {
+    color: var(--primary-color);
+    background: color-mix(in srgb, var(--primary-color) 10%, transparent);
+}
+
+.byok-provider-url-suggestion {
+    width: 100%;
+}
+
+.byok-control-wrap .input.us[multiple] {
+    min-height: 120px;
+}
+
+.byok-remote-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+}
+
+.byok-remote-controls .input.us {
+    flex: 1;
+}
+
+.byok-remote-controls .admin-select {
+    width: 100%;
+}
+
+.byok-remote-status {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-color-secondary);
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 720px) {
+    .byok-shell {
+        gap: 32px;
+    }
+
+    .byok-add-btn {
+        min-height: 42px;
+        justify-content: center;
+    }
+
+    .byok-section-head {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    .byok-list-item {
+        gap: 12px;
+    }
+
+    .byok-icon-btn {
+        width: 40px;
+        height: 40px;
+    }
+
+    .byok-stats-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .byok-stats-toolbar-group {
+        justify-content: flex-start;
+    }
+
+    .byok-stats-toolbar .byok-period-select {
+        flex: 1 1 200px;
+        max-width: none;
+    }
+
+    .byok-modal .byok-setting-item {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .byok-modal .byok-control-wrap {
+        width: 100%;
+        min-width: 0;
+    }
+
+    /* Toggle settings remain a single readable row on narrow screens; the
+       description wraps while the switch retains its trailing alignment. */
+    .byok-modal .byok-setting-item.byok-toggle-setting {
+        flex-direction: row;
+        align-items: stretch;
+    }
+
+    .byok-modal .byok-setting-item.byok-toggle-setting .byok-toggle-control {
+        width: auto;
+        min-width: max-content;
+        flex: 0 0 auto;
+    }
+
+    #byokStatisticsControls.is-tracking-off .byok-stats-toolbar-group:last-child {
+        justify-content: flex-start;
+    }
+}
+
+/* ---------- Reduced motion ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+    .byok-add-btn,
+    .byok-icon-btn,
+    .byok-list-item,
+}

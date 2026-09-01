@@ -1,0 +1,11 @@
+{
+  "legal_page_title": "المعلومات القانونية",
+  "legal_navigation_aria": "المستندات القانونية",
+  "legal_loading": "جارٍ تحميل المستندات القانونية...",
+  "legal_scroll_to_top_aria": "التمرير إلى الأعلى",
+  "legal_toc_title": "جدول المحتويات",
+  "legal_language_notice_label": "تنبيه اللغة",
+  "legal_language_notice_authoritative": "يتم توفير هذا المستند القانوني باللغة {language}. قد تكون واجهة الصفحة مترجمة، لكن المستند أدناه لا يُترجم تلقائيًا.",
+  "legal_language_notice_operator": "يتم توفير هذا المستند القانوني باللغة المعتمدة لدى المشغّل. قد تكون واجهة الصفحة مترجمة، لكن المستند أدناه لا يُترجم تلقائيًا.",
+  "legal_language_name_en": "الإنجليزية"
+}

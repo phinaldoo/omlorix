@@ -1,0 +1,11 @@
+{
+  "legal_page_title": "Legal",
+  "legal_navigation_aria": "Legal documents",
+  "legal_loading": "Loading legal documents...",
+  "legal_scroll_to_top_aria": "Scroll to top",
+  "legal_toc_title": "Table of Contents",
+  "legal_language_notice_label": "Language notice",
+  "legal_language_notice_authoritative": "This legal document is provided in {language}. The page interface may be translated, but the document below is not automatically translated.",
+  "legal_language_notice_operator": "This legal document is provided in the operator's authoritative language. The page interface may be translated, but the document below is not automatically translated.",
+  "legal_language_name_en": "English"
+}

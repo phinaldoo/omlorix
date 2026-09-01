@@ -1,0 +1,89 @@
+/*
+ * Shared compact theme selector used by header dropdowns.
+ *
+ * Keeping this component outside the login stylesheet lets authenticated pages
+ * use the same controls without coupling their layout to the login screen.
+ */
+.menu-section {
+    padding: 8px 10px;
+}
+.menu-section.admin {
+    margin-bottom: 8px;
+}
+
+.menu-section:not(:last-child) {
+    border-bottom: 1px solid var(--border-color);
+}
+
+.menu-label {
+    padding-bottom: 8px;
+    color: var(--text-color-secondary);
+    font-size: 0.675rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.theme-selector {
+    display: flex;
+    gap: 6px;
+}
+
+.theme-btn {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    padding: 7px;
+    border: 1.5px solid var(--border-color);
+    border-radius: 10px;
+    background: none;
+    cursor: pointer;
+    transition:
+        background-color 0.15s ease,
+        border-color 0.15s ease,
+        transform 0.12s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .theme-btn:hover {
+        background-color: var(--hover);
+    }
+}
+
+.theme-btn:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 3px;
+    border-color: var(--primary-color);
+}
+
+.theme-btn:focus:not(:focus-visible) {
+    outline: none;
+}
+
+.theme-btn:active {
+    transform: scale(0.94);
+}
+
+.theme-btn.active {
+    border-color: var(--primary-color);
+    background-color: var(--primary-light, rgba(59, 130, 246, 0.08));
+}
+
+.theme-btn svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: var(--text-color);
+    stroke-width: 1.5;
+}
+
+.theme-btn.active svg {
+    stroke: var(--primary-color);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .theme-btn {
+        transition: none;
+    }
+}

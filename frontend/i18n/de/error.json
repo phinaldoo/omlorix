@@ -1,0 +1,7 @@
+{
+  "page_title": "Fehler",
+  "message": "Etwas ist schiefgelaufen",
+  "description": "Die gewünschte Seite konnte nicht geladen werden. Möglicherweise handelt es sich um ein vorübergehendes Problem – versuchen Sie es erneut oder kehren Sie zur Startseite zurück.",
+  "btn_home": "Zur Startseite",
+  "help_text": "Wenn das Problem weiterhin besteht, leeren Sie den Browser-Cache oder wenden Sie sich an Ihren Administrator."
+}

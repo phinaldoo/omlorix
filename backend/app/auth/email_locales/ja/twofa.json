@@ -1,0 +1,15 @@
+{
+  "subject": "{application_name}の確認コード",
+  "html_title": "{application_name} 確認コード",
+  "headline": "確認コード",
+  "expires_text": "このコードの有効期限は{expires_in_minutes}分です。",
+  "ignore_text": "このリクエストに心当たりがない場合は、このメールを無視してください。",
+  "plain_text_body": "{application_name}の確認コードは{code}です。このコードの有効期限は{expires_in_minutes}分です。",
+  "sms_body": "{application_name}の確認コードは{code}です。有効期限は{expires_in_minutes}分です。",
+  "deactivated_subject": "{application_name}：二要素認証が無効になりました",
+  "deactivated_html_title": "二要素認証が無効になりました | {application_name}",
+  "deactivated_headline": "二要素認証が無効になりました",
+  "deactivated_body": "{application_name}アカウントの二要素認証が無効になりました。",
+  "deactivated_action": "この変更に心当たりがない場合は、直ちにサインインして2FAを再度有効にし、アクティブなセッションを確認してください。",
+  "deactivated_plain_text_body": "{application_name}アカウントの二要素認証が無効になりました。この変更に心当たりがない場合は、直ちにサインインして2FAを再度有効にし、アクティブなセッションを確認してください。"
+}

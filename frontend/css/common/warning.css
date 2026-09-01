@@ -1,0 +1,1089 @@
+/* =============================================
+   Warning Overlay System - Unified Design
+   Modern, minimalistic, production-ready
+   ============================================= */
+
+/* Base Overlay */
+.warning-overlay,
+.delete-warning-overlay,
+.shared-modal-overlay {
+    /*
+     * The modal is shared by every page. Admin pages can still supply their
+     * denser palette, while all other pages resolve through common semantic
+     * tokens without importing admin/init.css.
+     */
+    --warning-surface: var(--admin-bg, var(--surface-muted, var(--background)));
+    --warning-modal-border: var(--admin-border, var(--border-color));
+    --warning-modal-border-subtle: var(--admin-border-subtle, var(--border-color));
+    --warning-text: var(--admin-text, var(--text-color));
+    --warning-text-secondary: var(--admin-text-secondary, var(--text-color-secondary));
+    --warning-text-tertiary: var(--admin-text-tertiary, var(--text-color-tertiary));
+    --warning-radius: var(--admin-radius, 12px);
+    --warning-radius-sm: var(--admin-radius-sm, 8px);
+    --warning-radius-lg: var(--admin-radius-lg, 16px);
+    --warning-shadow: var(--admin-shadow, var(--surface-elevated-shadow));
+    --warning-shadow-lg: var(--admin-shadow-lg, var(--modal-shadow));
+    --warning-status-color: var(--admin-warning, var(--warning-color));
+    --warning-status-background: var(--admin-warning-bg, var(--warning-background));
+    --warning-status-border: var(--admin-warning-border, var(--warning-border));
+    --warning-error-color: var(--admin-error, var(--error-color));
+    --warning-error-background: var(--admin-error-bg, var(--error-background));
+    --warning-error-border: var(--admin-error-border, var(--error-border));
+    --warning-success-color: var(--admin-success, var(--success-color));
+    --warning-success-background: var(--admin-success-bg, var(--success-background));
+    --warning-accent: var(--admin-accent, var(--primary-color));
+    --warning-accent-subtle: var(--admin-accent-subtle, var(--primary-light));
+    --warning-modal-transition-duration: 0.2s;
+}
+
+/* Legacy pages can keep the warning shell without importing searchModal.css.
+   Migrated dialogs get all frame geometry from the shared modal stylesheet. */
+.warning-overlay:not(.shared-modal-overlay),
+.delete-warning-overlay:not(.shared-modal-overlay) {
+    position: fixed;
+    inset: 0;
+    background: var(--modal-backdrop, rgba(0, 0, 0, 0.4));
+    backdrop-filter: var(--modal-overlay-backdrop-filter);
+    -webkit-backdrop-filter: var(--modal-overlay-backdrop-filter);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 20px;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+        opacity var(--warning-modal-transition-duration) ease,
+        visibility var(--warning-modal-transition-duration) ease,
+        display var(--warning-modal-transition-duration) allow-discrete;
+    transition-behavior: allow-discrete;
+}
+
+.warning-overlay:not(.shared-modal-overlay).active,
+.delete-warning-overlay:not(.shared-modal-overlay):not([hidden]) {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.delete-warning-overlay:not(.shared-modal-overlay)[hidden] {
+    display: none;
+}
+
+@starting-style {
+    .delete-warning-overlay:not(.shared-modal-overlay):not([hidden]) {
+        opacity: 0;
+        visibility: hidden;
+    }
+
+    .delete-warning-overlay:not(.shared-modal-overlay):not([hidden]) .delete-warning-card {
+        transform: scale(0.96) translateY(8px);
+    }
+}
+
+/* Card Base */
+.warning-card:not(.shared-modal),
+.delete-warning-card:not(.shared-modal) {
+    width: 100%;
+    max-width: 480px;
+    background: var(--modal-background, var(--bg-normal, var(--background, #ffffff)));
+    border: 1px solid var(--modal-border, var(--warning-modal-border, var(--border-color, rgba(0, 0, 0, 0.08))));
+    border-radius: var(--warning-radius, 12px);
+    padding: 28px;
+    box-shadow: var(--modal-shadow, var(--warning-shadow-lg, 0 12px 40px rgba(0, 0, 0, 0.12)));
+    transform: scale(0.96) translateY(8px);
+    transition: transform var(--warning-modal-transition-duration, 0.2s) ease;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+}
+
+.warning-overlay:not(.shared-modal-overlay).active .warning-card,
+.delete-warning-overlay:not(.shared-modal-overlay):not([hidden]) .delete-warning-card {
+    transform: scale(1) translateY(0);
+}
+
+.warning-card:not(.shared-modal).small {
+    max-width: fit-content;
+    min-width: 320px;
+}
+
+.warning-card:not(.shared-modal).wide {
+    max-width: 560px;
+}
+
+.delete-warning-card:not(.shared-modal).delete-warning-card-wide {
+    max-width: 520px;
+}
+
+.delete-warning-card:not(.shared-modal).workspace-crud-card {
+    padding: 0;
+    text-align: left;
+    overflow: hidden;
+}
+
+.workspace-crud-card > .warning-navigation:not(.shared-modal-footer) {
+    margin: 0;
+    padding: 16px 20px 20px;
+    border-top: 1px solid var(--modal-divider, var(--border-color, var(--warning-modal-border, rgba(0, 0, 0, 0.08))));
+    background: var(--modal-background, var(--background, var(--bg-normal, #ffffff)));
+}
+
+.workspace-crud-card > .warning-navigation:not(.shared-modal-footer) .om-button.border {
+    min-width: 96px;
+}
+
+/* Orange warning icon variant */
+.delete-warning-card-icon.delete-warning-card-icon-orange {
+    background: var(--warning-status-background, rgba(245, 158, 11, 0.1));
+    color: var(--warning-status-color, #f59e0b);
+}
+
+/* Provider group warning list */
+.delete-provider-group-warning-list {
+    margin: 0 0 20px;
+    max-height: 180px;
+    overflow-y: auto;
+    text-align: left;
+}
+
+.delete-provider-group-warning-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    background: var(--modal-surface, var(--warning-surface, #fafafa));
+    border: 1px solid var(--modal-border, var(--warning-modal-border-subtle, rgba(0, 0, 0, 0.04)));
+    border-radius: var(--warning-radius-sm, 8px);
+    margin-bottom: 8px;
+}
+
+.delete-provider-group-warning-item:last-child {
+    margin-bottom: 0;
+}
+
+.delete-provider-group-warning-icon {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--modal-background, var(--bg-normal, var(--background, #ffffff)));
+    border: 1px solid var(--modal-border, var(--warning-modal-border, rgba(0, 0, 0, 0.08)));
+    color: var(--warning-text-secondary, #666666);
+}
+
+.delete-provider-group-warning-icon svg {
+    width: 16px;
+    height: 16px;
+}
+
+.delete-provider-group-warning-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.delete-provider-group-warning-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--warning-text, #111111);
+    margin: 0 0 4px;
+    line-height: 1.3;
+}
+
+.delete-provider-group-warning-impact {
+    font-size: 13px;
+    color: var(--warning-text-secondary, #666666);
+    line-height: 1.4;
+    margin: 0;
+}
+
+.delete-provider-group-warning-impact.impact-remove {
+    color: var(--warning-status-color, #f59e0b);
+}
+
+.delete-provider-group-warning-impact.impact-delete {
+    color: var(--warning-error-color, #ef4444);
+}
+
+.delete-provider-group-warning-badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.delete-provider-group-warning-badge.badge-remove {
+    background: var(--warning-status-background, rgba(245, 158, 11, 0.1));
+    color: var(--warning-status-color, #f59e0b);
+}
+
+.delete-provider-group-warning-badge.badge-delete {
+    background: var(--warning-error-background, rgba(239, 68, 68, 0.1));
+    color: var(--warning-error-color, #ef4444);
+}
+
+/* Header Title */
+.warning-header-title {
+    margin: 0 0 20px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--warning-text, var(--text-color, #111111));
+    letter-spacing: -0.01em;
+    line-height: 1.3;
+}
+
+.warning-header-title.color-red {
+    color: var(--warning-error-color, var(--error-color, #ef4444));
+}
+
+/* Delete Warning Card Specific */
+.delete-warning-card {
+    text-align: center;
+}
+
+.delete-warning-card.shared-modal {
+    text-align: left;
+}
+
+.shared-modal-card > .warning-navigation:not(.shared-modal-footer) {
+    margin: 0;
+    padding: 16px 20px 20px;
+    border-top: 1px solid var(--modal-divider, var(--border-color, var(--warning-modal-border, rgba(0, 0, 0, 0.08))));
+    background: var(--modal-background, var(--background, var(--bg-normal, #ffffff)));
+}
+
+.shared-modal-card > .warning-navigation:not(.shared-modal-footer) .om-button.border {
+    min-width: 96px;
+}
+
+.delete-warning-card-icon {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 16px;
+    border-radius: var(--warning-radius-sm, 8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--warning-error-background, rgba(239, 68, 68, 0.1));
+    color: var(--warning-error-color, #ef4444);
+}
+
+.delete-warning-card-icon svg {
+    width: 24px;
+    height: 24px;
+}
+
+.delete-warning-card-title {
+    margin: 0 0 8px;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--warning-text, var(--text-color, #111111));
+    letter-spacing: -0.01em;
+}
+
+.delete-warning-card-desc {
+    margin: 0 0 24px;
+    font-size: 14px;
+    color: var(--warning-text-secondary, var(--text-color-secondary, #666666));
+    line-height: 1.6;
+    white-space: pre-line;
+}
+
+.delete-warning-card-copy-text {
+    width: 100%;
+    min-height: 88px;
+    margin: -8px 0 24px;
+    padding: 10px 12px;
+    resize: vertical;
+    border: 1px solid var(--modal-border, var(--warning-modal-border, var(--border-color, rgba(0, 0, 0, 0.08))));
+    border-radius: var(--warning-radius-sm, 8px);
+    background: var(--modal-surface, var(--bg-normal, var(--background, #ffffff)));
+    color: var(--warning-text, var(--text-color, #111111));
+    font: inherit;
+    line-height: 1.5;
+}
+
+.delete-warning-card-label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--warning-text, var(--text-color, #111111));
+    text-align: left;
+}
+
+/* Form Elements */
+.delete-warning-card-form,
+.warning-card .form-group {
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.delete-warning-card-form .form-group {
+    margin-bottom: 16px;
+}
+
+.delete-warning-card-form .form-group:last-child {
+    margin-bottom: 0;
+}
+
+.delete-warning-card-form .form-label,
+.warning-card .form-label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--warning-text, var(--text-color, #111111));
+}
+
+.warning-card .form-input,
+.delete-warning-card .form-input {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 14px;
+    font-family: inherit;
+    background: var(--modal-surface, var(--bg-normal, var(--background, #ffffff)));
+    border: 1px solid var(--modal-border, var(--warning-modal-border, var(--border-color, rgba(0, 0, 0, 0.08))));
+    border-radius: var(--warning-radius-sm, 8px);
+    color: var(--warning-text, var(--text-color, #111111));
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.warning-card .form-input:focus,
+.delete-warning-card .form-input:focus {
+    outline: none;
+    border-color: var(--modal-border-strong, var(--warning-text, var(--text-color, #111111)));
+    box-shadow: 0 0 0 4px var(--modal-focus-ring, transparent);
+}
+
+.warning-card .form-input::placeholder,
+.delete-warning-card .form-input::placeholder {
+    color: var(--warning-text-tertiary, var(--text-color-tertiary, #999999));
+}
+
+/* Vertically stacked inputs inside a single form group (e.g. backup schedule retention fields). */
+.warning-card .form-field-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+/* Keep each visible sub-field label close to its input so related retention
+   controls remain easy to distinguish at a glance. */
+.warning-card .form-field-stack-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.warning-card .form-field-stack-item .form-label {
+    margin-bottom: 6px;
+}
+
+/* Backup schedule time controls reuse access-window time/day styling from admin/style.css. */
+.warning-card .backup-schedule-time-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.warning-card .backup-schedule-days-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.warning-card .backup-schedule-time-panel[hidden],
+.warning-card .backup-schedule-days-panel[hidden] {
+    display: none !important;
+}
+
+.warning-card .backup-schedule-minute-input {
+    width: 90px;
+}
+
+.warning-card .form-group .settings-row-desc {
+    margin: 0 0 10px;
+}
+
+/* Inline checkbox row used by backup modals and other warning dialogs.
+   The checkbox itself keeps the shared .form-checkbox control styling, while
+   this wrapper handles alignment, wrapping, and click target sizing. */
+.warning-card .form-checkbox-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+    margin-top: 4px;
+    cursor: pointer;
+    color: var(--warning-text, var(--text-color, #111111));
+    font-size: 14px;
+    line-height: 1.5;
+    text-align: left;
+}
+
+.warning-card .form-checkbox-row .form-checkbox {
+    margin-top: 2px;
+}
+
+.warning-card .form-checkbox-row span {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+/* Shared form styling for delete-warning dialogs that need inline auth fields. */
+.delete-warning-card .form-group {
+    margin-bottom: 16px;
+    text-align: left;
+}
+
+.delete-warning-card .form-group:last-child {
+    margin-bottom: 0;
+}
+
+.delete-warning-card .form-label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--warning-text, var(--text-color, #111111));
+}
+
+.delete-warning-card .input {
+    width: 100%;
+}
+
+/* Step-up controls are capability-driven. Explicitly preserve `hidden`
+ * because shared button and form styles may otherwise override the browser's
+ * user-agent rule in future themes. */
+#securityStepUpOverlay [hidden] {
+    display: none;
+}
+
+.delete-warning-card .field-error {
+    min-height: 18px;
+    margin-top: 6px;
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--warning-error-color, var(--error-color, #ef4444));
+    text-align: left;
+}
+
+/* Warning Navigation (for larger modals) */
+.warning-navigation:not(.shared-modal-footer) {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--modal-divider, var(--warning-modal-border-subtle, rgba(0, 0, 0, 0.04)));
+}
+
+/*
+ * Warning modal actions intentionally consume modal semantic tokens instead
+ * of login- or theme-specific colors. This keeps every modal visually aligned.
+ */
+.warning-navigation:not(.shared-modal-footer) .om-button.border.cancel {
+    background: var(--modal-secondary-background, transparent);
+    color: var(--modal-secondary-text, var(--text-color-secondary));
+    border-color: var(--modal-border, var(--border-color));
+}
+
+.warning-navigation:not(.shared-modal-footer) .om-button.border.submit {
+    background: var(--modal-primary-background, var(--primary-color));
+    color: var(--modal-primary-text, #ffffff);
+    border-color: var(--modal-primary-background, var(--primary-color));
+}
+
+.warning-navigation:not(.shared-modal-footer) .om-button.border:focus-visible {
+    outline: 2px solid var(--modal-border-strong, var(--primary-color));
+    box-shadow: 0 0 0 4px var(--modal-focus-ring, transparent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .warning-navigation:not(.shared-modal-footer) .om-button.border.cancel:hover:not(:disabled) {
+        background: var(--modal-secondary-hover, var(--hover));
+        color: var(--modal-secondary-text, var(--text-color));
+        border-color: var(--modal-border-strong, var(--primary-color));
+    }
+
+    .warning-navigation:not(.shared-modal-footer) .om-button.border.submit:hover:not(:disabled) {
+        background: var(--modal-primary-hover, var(--primary-hover));
+        border-color: var(--modal-primary-hover, var(--primary-hover));
+    }
+}
+
+/* Warning Message */
+.warning-message {
+    margin: 0 0 20px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--warning-text-secondary, var(--text-color-secondary, #666666));
+}
+
+.warning-message strong {
+    color: var(--warning-error-color, var(--error-color, #ef4444));
+    font-weight: 600;
+}
+
+#deleteUserMessage,
+#hardDeleteUserMessage {
+    white-space: pre-line;
+    text-align: left;
+}
+
+.delete-account-content {
+    margin-bottom: 4px;
+}
+
+.delete-account-content p {
+    margin: 0 0 20px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--warning-text-secondary, var(--text-color-secondary, #666666));
+}
+
+/* =============================================
+   TFA Setup Styles
+   ============================================= */
+
+.tfa-setup-content {
+    display: flex;
+    gap: 28px;
+    margin-bottom: 20px;
+}
+
+.tfa-setup-content[hidden] {
+    display: none !important;
+}
+
+.tfa-qr-container {
+    flex-shrink: 0;
+    width: 180px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    height: fit-content;
+}
+
+.tfa-qr-code {
+    width: 180px;
+    height: 180px;
+    padding: 14px;
+    box-sizing: border-box;
+    background: #ffffff;
+    border-radius: var(--warning-radius-sm, 8px);
+    border: 1px solid var(--warning-modal-border, rgba(0, 0, 0, 0.08));
+}
+
+.tfa-qr-code canvas,
+.tfa-qr-code img {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.tfa-qr-code.is-copyable {
+    cursor: pointer;
+    transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .tfa-qr-code.is-copyable:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 20px var(--warning-shadow, rgba(0, 0, 0, 0.08));
+    }
+}
+
+.tfa-qr-copy-hint {
+    min-height: 18px;
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--warning-text-secondary, var(--text-color-secondary, #666666));
+    text-align: center;
+}
+
+.tfa-qr-copy-hint:not(.active) {
+    visibility: hidden;
+}
+
+.tfa-qr-copy-hint.success {
+    color: var(--success-color, #16a34a);
+}
+
+.tfa-qr-copy-hint.error {
+    color: var(--warning-error-color, var(--error-color, #ef4444));
+}
+
+.tfa-right {
+    flex: 1;
+    min-width: 0;
+}
+
+.tfa-section-title {
+    margin: 0 0 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--warning-text, var(--text-color, #111111));
+}
+
+.tfa-step-list {
+    list-style: none;
+    counter-reset: step-counter;
+    margin: 0;
+    padding: 0;
+}
+
+.tfa-step-list li {
+    counter-increment: step-counter;
+    position: relative;
+    padding-left: 32px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--warning-text-secondary, var(--text-color-secondary, #666666));
+}
+
+.tfa-step-list li:last-child {
+    margin-bottom: 0;
+}
+
+.tfa-step-list li::before {
+    content: counter(step-counter);
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 22px;
+    height: 22px;
+    background: var(--warning-text, var(--text-color, #111111));
+    color: var(--warning-surface, #ffffff);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 11px;
+}
+
+.tfa-delivery-hint {
+    margin: 0 0 20px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--warning-text-secondary, var(--text-color-secondary, #666666));
+}
+
+.tfa-delivery-hint[hidden] {
+    display: none !important;
+}
+
+.tfa-verification-section {
+    padding-top: 20px;
+    border-top: 1px solid var(--modal-divider, var(--warning-modal-border-subtle, rgba(0, 0, 0, 0.04)));
+}
+
+.tfa-code-input-group {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+}
+
+.tfa-digit {
+    width: 44px;
+    height: 52px;
+    font-size: 20px;
+    font-weight: 500;
+    text-align: center;
+    border-radius: var(--warning-radius-sm, 8px);
+    border: 1px solid var(--modal-border, var(--warning-modal-border, rgba(0, 0, 0, 0.08)));
+    background: var(--modal-surface, var(--bg-normal, var(--background, #ffffff)));
+    color: var(--warning-text, var(--text-color, #111111));
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    caret-color: transparent;
+}
+
+.tfa-digit:focus {
+    outline: none;
+    border-color: var(--modal-border-strong, var(--warning-text, var(--text-color, #111111)));
+    box-shadow: 0 0 0 4px var(--modal-focus-ring, transparent);
+}
+
+.tfa-digit[aria-invalid="true"] {
+    border-color: var(--warning-error-color);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--warning-error-color) 18%, transparent);
+}
+
+.tfa-inline-error {
+    margin: 12px 0 0;
+    padding: 10px 12px;
+    border: 1px solid var(--warning-error-border);
+    border-radius: var(--warning-radius-sm);
+    background: var(--warning-error-background);
+    color: var(--warning-error-color);
+    font-size: 14px;
+    line-height: 1.45;
+    text-align: start;
+}
+
+.tfa-inline-error[hidden] {
+    display: none !important;
+}
+
+/* =============================================
+   Timer & Progress Styles
+   ============================================= */
+
+.warning-timer-section {
+    background: var(--warning-surface, #fafafa);
+    border-radius: var(--warning-radius-sm, 8px);
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid var(--warning-modal-border-subtle, rgba(0, 0, 0, 0.04));
+}
+
+.warning-timer-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--warning-text-tertiary, #999999);
+    margin-bottom: 8px;
+}
+
+.warning-timer-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    font-weight: 600;
+    color: var(--warning-error-color, var(--error-color, #ef4444));
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+    letter-spacing: 1px;
+}
+
+.warning-progress-container {
+    width: 100%;
+    height: 4px;
+    background: var(--warning-error-background, rgba(239, 68, 68, 0.1));
+    border-radius: 2px;
+    margin-top: 16px;
+    overflow: hidden;
+}
+
+.warning-progress-bar {
+    height: 100%;
+    background: var(--warning-error-color, #ef4444);
+    border-radius: 2px;
+    width: 100%;
+    transition: width 1s linear;
+}
+
+/* =============================================
+   Pending Status Styles
+   ============================================= */
+
+.pending-status-section {
+    background: var(--warning-status-background, rgba(245, 158, 11, 0.1));
+    border-radius: var(--warning-radius-sm, 8px);
+    padding: 20px;
+    border: 1px solid var(--warning-status-border, rgba(245, 158, 11, 0.2));
+}
+
+.pending-status-display {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--warning-status-color, #f59e0b);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.pending-status-description {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--warning-status-color, #f59e0b);
+    text-align: center;
+}
+
+.cp-form {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Complete Screen */
+.warning-overlay .complete-screen {
+    text-align: center;
+    padding: 32px 16px;
+}
+
+.warning-overlay .complete-screen .complete-icon {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 16px;
+    border-radius: 50%;
+    background: var(--warning-success-background, rgba(34, 197, 94, 0.1));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--warning-success-color, #22c55e);
+}
+
+.warning-overlay .complete-screen .complete-icon svg {
+    width: 28px;
+    height: 28px;
+}
+
+.warning-overlay .complete-title {
+    font-size: 17px;
+    font-weight: 600;
+    margin: 0 0 6px;
+    color: var(--warning-text, var(--text-color, #111111));
+}
+
+.warning-overlay .complete-subtitle {
+    font-size: 14px;
+    color: var(--warning-text-secondary, var(--text-color-secondary, #666666));
+    margin: 0;
+}
+
+/* Password Requirements */
+.password-requirements {
+    margin-top: 16px;
+}
+
+.password-requirements .pw-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    font-size: 13px;
+}
+
+.password-requirements .pw-icon {
+    font-weight: 600;
+    font-size: 12px;
+    width: 16px;
+    text-align: center;
+}
+
+.password-requirements .pw-item.bad .pw-text,
+.password-requirements .pw-item.bad .pw-icon {
+    color: var(--warning-error-color, var(--error-color, #ef4444));
+}
+
+.password-requirements .pw-item.ok .pw-text,
+.password-requirements .pw-item.ok .pw-icon {
+    color: var(--warning-success-color, #22c55e);
+}
+
+.password-requirements .pw-item.muted .pw-text,
+.password-requirements .pw-item.muted .pw-icon {
+    color: var(--warning-text-tertiary, var(--text-color-tertiary, #999999));
+}
+
+.password-requirements .pw-text {
+    flex: 1;
+}
+
+/* =============================================
+   App Access Blocked Overlay
+   ============================================= */
+
+.app-access-blocked-card {
+    max-width: 440px;
+}
+
+.app-access-blocked-card .access-blocked-icon {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 16px;
+}
+
+.app-access-blocked-card .access-blocked-icon svg {
+    width: 48px;
+    height: 48px;
+    fill: var(--primary-color, var(--warning-text, #111111));
+}
+
+.app-access-blocked-card .warning-header-title {
+    text-align: center;
+    color: var(--primary-color, var(--warning-text, #111111));
+}
+
+.app-access-blocked-card .warning-message {
+    text-align: center;
+}
+
+.app-access-blocked-card .access-blocked-custom-message {
+    background: var(--warning-surface, #fafafa);
+    border-radius: var(--warning-radius-sm, 8px);
+    padding: 16px;
+    margin: 16px 0;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--warning-text, var(--text-color, #111111));
+    text-align: center;
+    border-left: 3px solid var(--primary-color, var(--warning-text, #111111));
+}
+
+.app-access-blocked-card .access-blocked-timer-section {
+    background: var(--warning-surface, #fafafa);
+    border-radius: var(--warning-radius-sm, 8px);
+    padding: 20px;
+    margin: 20px 0;
+    text-align: center;
+    border: 1px solid var(--warning-modal-border-subtle, rgba(0, 0, 0, 0.04));
+}
+
+.app-access-blocked-card .access-blocked-next-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--warning-text-tertiary, #999999);
+    margin-bottom: 4px;
+}
+
+.app-access-blocked-card .access-blocked-next-time {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--primary-color, var(--warning-text, #111111));
+    margin-bottom: 16px;
+}
+
+.app-access-blocked-card .access-blocked-countdown-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--warning-text-tertiary, #999999);
+    margin-bottom: 8px;
+}
+
+.app-access-blocked-card .access-blocked-countdown {
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--warning-text, var(--text-color, #111111));
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+    letter-spacing: 1px;
+    background: var(--bg-normal, var(--background, #ffffff));
+    padding: 10px 20px;
+    border-radius: var(--warning-radius-sm, 8px);
+    display: inline-block;
+    border: 1px solid var(--warning-modal-border, rgba(0, 0, 0, 0.08));
+}
+
+.app-access-blocked-card:not(.shared-modal) .warning-buttons {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+/* =============================================
+   Responsive Design
+   ============================================= */
+
+@media (max-width: 600px) {
+    .warning-card:not(.shared-modal),
+    .delete-warning-card:not(.shared-modal) {
+        padding: 24px 20px;
+        margin: 0 16px;
+        max-width: calc(100% - 32px);
+    }
+
+    .warning-header-title {
+        font-size: 17px;
+    }
+
+    .tfa-setup-content {
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .tfa-qr-container,
+    .tfa-qr-code {
+        width: 160px;
+    }
+
+    .tfa-qr-code {
+        height: 160px;
+    }
+
+    .tfa-right {
+        width: 100%;
+    }
+
+    .tfa-step-list li {
+        font-size: 13px;
+    }
+
+    .tfa-code-input-group {
+        gap: 6px;
+    }
+
+    .tfa-digit {
+        width: 40px;
+        height: 48px;
+        font-size: 18px;
+    }
+
+    .warning-navigation:not(.shared-modal-footer) {
+        flex-direction: column-reverse;
+        gap: 8px;
+    }
+
+    .delete-warning-card-title {
+        font-size: 16px;
+    }
+
+    .delete-warning-card-icon {
+        width: 44px;
+        height: 44px;
+    }
+
+    .delete-warning-card-icon svg {
+        width: 22px;
+        height: 22px;
+    }
+}
+
+@media (max-width: 400px) {
+    .tfa-code-input-group {
+        gap: 4px;
+    }
+
+    .tfa-digit {
+        width: 36px;
+        height: 44px;
+        font-size: 16px;
+    }
+
+    .warning-timer-display {
+        font-size: 26px;
+    }
+
+    .app-access-blocked-card .access-blocked-countdown {
+        font-size: 24px;
+        padding: 8px 16px;
+    }
+}
+
+
+/* High DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .warning-timer-display,
+    .tfa-digit {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+}

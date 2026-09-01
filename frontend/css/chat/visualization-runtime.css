@@ -1,0 +1,332 @@
+/*
+ * Stable design-system contract injected into every Omlorix visualization.
+ * This file is fetched by the host and embedded in an opaque-origin document;
+ * selectors must therefore stay self-contained and must not depend on Omlorix's
+ * outer DOM.  Runtime versions are persisted with visualization widgets.
+ */
+:root {
+    color-scheme: light dark;
+    font-family: "IBM Plex Sans", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: var(--font-size-base);
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+    min-width: 0;
+    background: transparent;
+    color: var(--foreground);
+}
+
+body {
+    font-weight: 400;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+img,
+svg,
+canvas {
+    max-width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+    color: inherit;
+    font: inherit;
+}
+
+button,
+input,
+select,
+textarea,
+a {
+    outline-color: var(--ring);
+    outline-offset: 2px;
+}
+
+h1,
+h2,
+h3 {
+    margin: 0 0 0.75rem;
+    color: var(--foreground);
+    font-size: inherit;
+    font-weight: 500;
+}
+
+p {
+    margin: 0 0 0.75rem;
+}
+
+.card {
+    padding: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    background: var(--card);
+    color: var(--card-foreground);
+}
+
+.viz-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+    gap: 0.75rem;
+}
+
+.viz-row,
+.viz-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.viz-controls {
+    margin-block: 0.75rem;
+}
+
+.viz-controls > .form-label {
+    flex: 1 1 min(100%, 15rem);
+}
+
+.viz-stat {
+    display: grid;
+    gap: 0.25rem;
+}
+
+.viz-stat-value {
+    color: var(--card-foreground);
+    font-size: 1.5em;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+
+.viz-badge {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+    background: var(--accent);
+    color: var(--accent-foreground);
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.25rem;
+    padding: 0.45rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    background: var(--secondary);
+    color: var(--secondary-foreground);
+    cursor: pointer;
+}
+
+.btn-primary,
+.btn[aria-pressed="true"],
+.btn[aria-selected="true"],
+.btn.is-selected {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: var(--primary-foreground);
+}
+
+.btn-ghost {
+    border-color: transparent;
+    background: transparent;
+}
+
+.btn-block {
+    width: 100%;
+}
+
+.viz-tile {
+    width: 100%;
+    min-height: 3rem;
+}
+
+.viz-tile[aria-pressed="true"],
+.viz-tile[aria-selected="true"],
+.viz-tile.is-selected {
+    border-color: var(--ring);
+    box-shadow: 0 0 0 2px var(--ring);
+}
+
+.form-label {
+    display: grid;
+    gap: 0.35rem;
+    color: var(--foreground);
+}
+
+.form-control,
+.form-select {
+    width: 100%;
+    min-height: 2.25rem;
+    padding: 0.45rem 0.6rem;
+    border: 1px solid var(--input);
+    border-radius: 0.5rem;
+    background: var(--background);
+    color: var(--foreground);
+}
+
+.form-control-color {
+    width: 3rem;
+    padding: 0.2rem;
+}
+
+.form-range {
+    width: 100%;
+    accent-color: var(--primary);
+}
+
+.form-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.form-check-input {
+    accent-color: var(--primary);
+}
+
+.table-responsive {
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th,
+.table td {
+    padding: 0.6rem 0.7rem;
+    border-bottom: 1px solid var(--border);
+    text-align: start;
+    vertical-align: top;
+}
+
+.table th {
+    font-weight: 500;
+}
+
+.table-sm th,
+.table-sm td {
+    padding: 0.4rem 0.5rem;
+}
+
+.text-end {
+    text-align: end !important;
+    font-variant-numeric: tabular-nums;
+}
+
+.text-center {
+    text-align: center !important;
+}
+
+.text-nowrap {
+    white-space: nowrap;
+}
+
+.text-small {
+    font-size: max(11px, 0.84em);
+}
+
+.text-muted {
+    color: var(--muted-foreground);
+}
+
+.text-destructive {
+    color: var(--destructive);
+}
+
+.sr-only {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+.tooltip {
+    position: absolute;
+    z-index: 1000;
+    max-width: min(20rem, calc(100% - 1rem));
+    padding: 0.45rem 0.6rem;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    background: var(--popover);
+    color: var(--popover-foreground);
+    pointer-events: none;
+    box-shadow: 0 0.5rem 1.5rem color-mix(in srgb, var(--foreground) 14%, transparent);
+}
+
+.tooltip[hidden] {
+    display: none;
+}
+
+svg text,
+svg .axis-title {
+    fill: var(--foreground);
+    font-size: 12px;
+}
+
+svg [data-chart-frame] {
+    fill: transparent;
+    stroke: var(--border);
+    stroke-width: 1;
+}
+
+svg [data-chart-hover-guide] {
+    stroke: var(--border);
+    stroke-width: 1;
+    pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .btn:hover {
+        background: var(--accent);
+        color: var(--accent-foreground);
+    }
+
+    .btn-primary:hover,
+    .btn[aria-pressed="true"]:hover,
+    .btn[aria-selected="true"]:hover {
+        background: var(--primary);
+        color: var(--primary-foreground);
+    }
+}
+
+@media (max-width: 420px) {
+    .viz-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .viz-controls > .form-label {
+        flex-basis: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

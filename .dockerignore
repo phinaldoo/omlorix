@@ -1,0 +1,83 @@
+# Keep this file byte-for-byte identical in the repository root and backend/.
+#
+# Docker evaluates these patterns relative to the selected build context. The
+# combined allowlist therefore supports both image builds without sending the
+# rest of either context to the Docker daemon or a remote builder.
+*
+
+# Frontend image inputs (repository-root build context).
+!frontend/
+!frontend/**
+!script/
+!script/cache_buster.py
+!nginx/
+!nginx/default.http.conf.template/
+!nginx/default.http.conf.template/default.conf
+!nginx/bin/
+!nginx/bin/render-forwarded-for.sh
+
+# Backend image inputs (backend/ build context).
+!app/
+!app/**
+!alembic_main/
+!alembic_main/**
+!alembic_audit/
+!alembic_audit/**
+!alembic_main.ini
+!alembic_audit.ini
+!migrate.sh
+!google-workspace-worker
+
+# Secrets and local configuration must remain excluded even when they live
+# below one of the explicitly allowed source directories.
+**/.env
+**/.env.*
+**/*.env
+**/*.env.*
+**/*.pem
+**/*.key
+**/*.crt
+**/*.p12
+**/*.pfx
+
+# Local metadata, dependency trees, caches, and generated build artifacts.
+**/.git/
+**/.gitignore
+**/.DS_Store
+**/Thumbs.db
+**/.vscode/
+**/.idea/
+**/*.iml
+**/node_modules/
+**/.venv/
+**/venv/
+**/env/
+**/.python-version
+**/__pycache__/
+**/*.py[cod]
+**/*.so
+**/*.egg
+**/*.egg-info/
+**/.eggs/
+**/.pytest_cache/
+**/pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+**/.cache/
+**/.hypothesis/
+**/.coverage
+**/coverage.xml
+**/htmlcov/
+**/build/
+**/dist/
+**/pip-wheel-metadata/
+
+# Runtime state and task-queue files are created inside the container or
+# mounted through volumes; local copies must never enter an image.
+**/logs/
+**/*.log
+**/*.db
+**/*.sqlite
+**/*.sqlite3
+**/celerybeat-schedule
+**/celerybeat.pid

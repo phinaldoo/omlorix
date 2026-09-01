@@ -1,0 +1,509 @@
+.admin-chat-modal-header-copy {
+    flex: 1;
+    min-width: 0;
+}
+
+.admin-chat-modal-subtitle {
+    max-width: 720px;
+}
+
+.admin-chat-modal-body.shared-modal-body {
+    padding: 0;
+}
+
+.admin-chat-modal-shell {
+    height: 100%;
+    display: flex;
+    min-height: 0;
+    position: relative;
+}
+
+.admin-chat-sidebar {
+    width: 300px;
+    min-width: 300px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-right: 1px solid var(--admin-border-subtle, var(--border-color));
+}
+
+.admin-chat-sidebar-scrim {
+    display: none;
+}
+
+.admin-chat-modal .sidebar-section {
+    padding: 18px 14px;
+    position: relative;
+}
+
+.admin-chat-modal .sidebar-section:not(:last-child) {
+    border-bottom: 1px solid var(--admin-border-subtle, var(--border-color));
+}
+
+.admin-chat-modal .sidebar-section--grow {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.admin-chat-modal .section-label {
+    margin-bottom: 10px;
+    padding: 0 4px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--admin-text-secondary, var(--text-color-secondary));
+}
+
+.admin-chat-modal .user-selector {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 11px 12px;
+    border: 1px solid transparent;
+    border-radius: 14px;
+    background: transparent;
+    text-align: left;
+    color: var(--admin-text, var(--text-color));
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.admin-chat-modal .user-selector.active {
+    background: var(--admin-hover, var(--hover));
+    border-color: var(--admin-border-subtle, var(--border-color));
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .admin-chat-modal .user-selector:hover {
+        background: var(--admin-hover, var(--hover));
+        border-color: var(--admin-border-subtle, var(--border-color));
+    }
+}
+
+.admin-chat-modal .user-selector-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.admin-chat-modal .user-selector-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--admin-text, var(--text-color));
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.admin-chat-modal .user-selector-email {
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--admin-text-secondary, var(--text-color-secondary));
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.admin-chat-modal .selector-chevron {
+    flex-shrink: 0;
+    color: var(--admin-text-secondary, var(--text-color-secondary));
+    transition: transform 0.18s ease;
+}
+
+.admin-chat-modal .selector-chevron.open {
+    transform: rotate(180deg);
+}
+
+.admin-chat-modal .user-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 14px;
+    right: 14px;
+    z-index: 10;
+    padding: 6px;
+    max-height: 320px;
+    overflow-y: auto;
+    border: 1px solid var(--admin-border, var(--border-color));
+    border-radius: 16px;
+    background: var(--bg-normal-elevated, var(--bg-normal, var(--background)));
+    box-shadow: 0 24px 48px rgba(15, 23, 42, 0.2);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-4px);
+    transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s ease;
+}
+
+.admin-chat-modal .user-dropdown.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.admin-chat-modal .user-option {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 12px;
+    border: none;
+    border-radius: 12px;
+    background: transparent;
+    text-align: left;
+    color: var(--admin-text, var(--text-color));
+    transition: background 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .admin-chat-modal .user-option:hover {
+        background: var(--admin-hover, var(--hover));
+    }
+}
+
+.admin-chat-modal .user-option.selected {
+    background: var(--admin-accent-subtle, var(--primary-light));
+}
+
+.admin-chat-modal .user-option.empty {
+    padding: 20px 12px;
+    color: var(--admin-text-secondary, var(--text-color-secondary));
+    text-align: center;
+    cursor: default;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .admin-chat-modal .user-option.empty:hover {
+        background: transparent;
+    }
+}
+
+.admin-chat-modal .user-option-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.admin-chat-modal .user-option-name {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.admin-chat-modal .user-option-email {
+    font-size: 12px;
+    color: var(--admin-text-secondary, var(--text-color-secondary));
+}
+
+.admin-chat-modal .user-option-meta {
+    font-size: 11px;
+    color: var(--admin-text-tertiary, var(--text-color-tertiary));
+}
+
+.admin-chat-modal .conversation-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.admin-chat-modal .conversation-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 12px;
+}
+
+.admin-chat-modal .empty-hint,
+.admin-chat-modal .chat-list-placeholder,
+.admin-chat-modal .messages-loading {
+    font-size: 13px;
+    line-height: 1.5;
+    text-align: center;
+    color: var(--admin-text-secondary, var(--text-color-secondary));
+}
+
+.admin-chat-modal .chat-list-placeholder,
+.admin-chat-modal .messages-loading {
+    padding: 24px 12px;
+}
+
+.admin-chat-modal .chat-item {
+    width: 100%;
+    display: block;
+    margin-bottom: 4px;
+    padding: 12px;
+    border: none;
+    border-radius: 14px;
+    background: transparent;
+    text-align: left;
+    color: var(--admin-text, var(--text-color));
+    transition: background 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .admin-chat-modal .chat-item:hover {
+        background: var(--admin-hover, var(--hover));
+    }
+}
+
+.admin-chat-modal .chat-item:focus-visible {
+    outline: 2px solid var(--admin-text, var(--primary-color));
+    outline-offset: -2px;
+}
+
+.admin-chat-modal .chat-item.active {
+    background: var(--admin-accent-subtle, var(--primary-light));
+}
+
+.admin-chat-modal .chat-title {
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.admin-chat-modal .chat-meta {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--admin-text-secondary, var(--text-color-secondary));
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.admin-chat-main-content {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-normal-elevated, var(--bg-normal, var(--background)));
+}
+
+.admin-chat-modal .content-header {
+    padding: 22px 28px;
+    border-bottom: 1px solid var(--admin-border-subtle, var(--border-color));
+}
+
+.admin-chat-sidebar-toggle {
+    width: 36px;
+    height: 36px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    border: 1px solid var(--admin-border-subtle, var(--border-color));
+    border-radius: 10px;
+    background: var(--bg-normal, var(--background));
+    color: var(--admin-text, var(--text-color));
+}
+
+.admin-chat-sidebar-toggle svg {
+    width: 18px;
+    height: 18px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .admin-chat-sidebar-toggle:hover {
+        background: var(--admin-hover, var(--hover));
+    }
+}
+
+.admin-chat-sidebar-toggle:focus-visible {
+    outline: 2px solid var(--admin-text, var(--primary-color));
+    outline-offset: 2px;
+}
+
+.admin-chat-modal .content-title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 650;
+    color: var(--admin-text, var(--text-color));
+}
+
+.admin-chat-modal .messages-wrapper {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 24px 28px 28px;
+}
+
+.admin-chat-modal .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 24px;
+    text-align: center;
+    color: var(--admin-text-secondary, var(--text-color-secondary));
+}
+
+.admin-chat-modal .empty-state-icon {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 16px;
+    opacity: 0.18;
+    color: var(--admin-text, var(--text-color));
+}
+
+.admin-chat-modal .empty-state-icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+.admin-chat-modal .empty-state-text {
+    margin: 0;
+    font-size: 14px;
+    color: var(--admin-text-secondary, var(--text-color-secondary));
+}
+
+.admin-chat-modal .message {
+    max-width: min(780px, 100%);
+    padding: 14px 18px;
+    border-radius: 18px;
+    font-size: 14px;
+    line-height: 1.6;
+    word-break: break-word;
+    animation: admin-chat-message-in 0.2s ease;
+}
+
+.admin-chat-modal .message.user {
+    align-self: flex-end;
+    border-bottom-right-radius: 6px;
+    background: var(--text-color);
+    color: #ffffff;
+}
+
+.admin-chat-modal .message.assistant {
+    align-self: flex-start;
+    border: 1px solid var(--admin-border-subtle, var(--border-color));
+    border-bottom-left-radius: 6px;
+    background: var(--admin-bg, var(--hover));
+    color: var(--admin-text, var(--text-color));
+}
+
+.admin-chat-modal .message-sender {
+    margin-bottom: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    opacity: 0.74;
+}
+
+.admin-chat-modal .message.user .message-sender {
+    color: rgba(255, 255, 255, 0.86);
+}
+
+.admin-chat-modal .message.assistant .message-sender {
+    color: var(--admin-text-secondary, var(--text-color-secondary));
+}
+
+.admin-chat-modal .message-content {
+    white-space: pre-wrap;
+}
+
+.admin-chat-modal .message-attachments {
+    margin-top: 10px;
+    font-size: 12px;
+    opacity: 0.72;
+}
+
+@media (max-width: 1080px) {
+    .admin-chat-sidebar {
+        width: 270px;
+        min-width: 270px;
+    }
+
+    .admin-chat-modal .content-header,
+    .admin-chat-modal .messages-wrapper {
+        padding-left: 22px;
+        padding-right: 22px;
+    }
+}
+
+@media (max-width: 820px) {
+    .admin-chat-sidebar {
+        position: absolute;
+        inset: 0 auto 0 0;
+        z-index: 3;
+        width: min(86vw, 320px);
+        min-width: 0;
+        max-width: calc(100% - 48px);
+        transform: translateX(-100%);
+        background: var(--bg-normal, var(--background));
+        border-right: none;
+        border-bottom: none;
+        box-shadow: 18px 0 40px rgba(15, 23, 42, 0.2);
+        transition: transform 0.18s ease;
+    }
+
+    .admin-chat-modal-overlay.admin-chat-mobile-sidebar-open .admin-chat-sidebar {
+        transform: translateX(0);
+    }
+
+    .admin-chat-sidebar-scrim {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        display: block;
+        visibility: hidden;
+        border: none;
+        background: rgba(15, 23, 42, 0.28);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.18s ease;
+    }
+
+    .admin-chat-modal-overlay.admin-chat-mobile-sidebar-open .admin-chat-sidebar-scrim {
+        visibility: visible;
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .admin-chat-main-content {
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+
+    .admin-chat-sidebar-toggle {
+        display: inline-flex;
+    }
+
+    .admin-chat-modal .conversation-list {
+        max-height: none;
+    }
+}
+
+@media (max-width: 820px) and (prefers-reduced-motion: reduce) {
+    .admin-chat-sidebar,
+    .admin-chat-sidebar-scrim {
+        transition: none;
+    }
+}
+
+@media (max-width: 640px) {
+    .admin-chat-modal .content-header,
+    .admin-chat-modal .messages-wrapper {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    .admin-chat-modal .sidebar-section {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+
+    .admin-chat-modal .message {
+        max-width: 100%;
+        padding: 12px 14px;
+        font-size: 13px;
+    }
+}

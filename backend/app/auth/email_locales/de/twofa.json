@@ -1,0 +1,15 @@
+{
+  "subject": "Dein Bestätigungscode für {application_name}",
+  "html_title": "Bestätigungscode für {application_name}",
+  "headline": "Dein Bestätigungscode",
+  "expires_text": "Dieser Code läuft in {expires_in_minutes} Minuten ab.",
+  "ignore_text": "Falls du dies nicht angefordert hast, kannst du diese E-Mail ignorieren.",
+  "plain_text_body": "Dein Bestätigungscode für {application_name} lautet {code}. Dieser Code läuft in {expires_in_minutes} Minuten ab.",
+  "sms_body": "Dein Bestätigungscode für {application_name} lautet {code}. Er läuft in {expires_in_minutes} Minuten ab.",
+  "deactivated_subject": "{application_name}: Zwei-Faktor-Authentifizierung wurde deaktiviert",
+  "deactivated_html_title": "Zwei-Faktor-Authentifizierung deaktiviert | {application_name}",
+  "deactivated_headline": "Die Zwei-Faktor-Authentifizierung wurde deaktiviert",
+  "deactivated_body": "Die Zwei-Faktor-Authentifizierung wurde für dein {application_name}-Konto deaktiviert.",
+  "deactivated_action": "Falls du diese Änderung nicht vorgenommen hast, melde dich sofort an, aktiviere 2FA erneut und überprüfe deine aktiven Sitzungen.",
+  "deactivated_plain_text_body": "Die Zwei-Faktor-Authentifizierung wurde für dein {application_name}-Konto deaktiviert. Falls du diese Änderung nicht vorgenommen hast, melde dich sofort an, aktiviere 2FA erneut und überprüfe deine aktiven Sitzungen."
+}

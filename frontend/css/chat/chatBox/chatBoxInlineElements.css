@@ -1,0 +1,724 @@
+/*
+ * Inline attachment, connector, note, reference, and transcript file-card
+ * styles. These elements share the same compact tile structure across the
+ * composer, message editor, transcript, and read-only chat-share view.
+ */
+
+/* ---------- Inline file containers and shared tile structure ---------- */
+.inline-files {
+    display: none;
+    margin: 10px 0;
+    gap: 12px;
+    width: 100%;
+}
+
+#chatBoxFiles.inline-files {
+    margin: 0 0 12px 0;
+    align-self: stretch;
+}
+
+.user-message-area .inline-files {
+    margin: 0;
+    width: min(100%, 520px);
+    align-self: flex-end;
+}
+
+.user-message-area .inline-files.active .inline-files-element:only-child {
+    grid-column: -2 / -1;
+    justify-self: end;
+}
+
+.inline-files.active {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.inline-files.inline-files-audio-only {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.user-message-area .inline-files.inline-files-audio-only {
+    width: min(100%, 520px);
+}
+
+#chatBoxFiles.inline-files.active {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    max-height: calc((64px + 12px) * 2);
+    overflow-y: scroll;
+    overflow-x: hidden;
+    padding-right: 4px;
+    scrollbar-gutter: stable;
+}
+
+/* ---------- Message-editor and assistant-file containers ---------- */
+.user-message-edit-inline-files {
+    margin: 0;
+    gap: 12px;
+    width: min(100%, 520px);
+    max-height: 168px;
+    align-self: flex-end;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.user-message-edit-inline-files:not(.active) {
+    display: none;
+}
+
+.inline-files-element {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    display: flex;
+    border-radius: 8px;
+    background-color: var(--input-bg);
+    padding: 8px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    position: relative;
+    box-sizing: border-box;
+}
+
+.inline-files-element-main {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-width: 0;
+}
+
+.inline-file-unsupported {
+    border: 1px solid color-mix(in srgb, var(--error-color) 42%, var(--border-color));
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--error-color) 20%, transparent);
+}
+
+.inline-file-unsupported-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--error-color) 88%, #000);
+    color: #fff;
+    box-shadow: 0 3px 10px color-mix(in srgb, var(--error-color) 35%, transparent);
+    z-index: 3;
+    pointer-events: auto;
+}
+
+.inline-file-unsupported-badge svg {
+    width: 12px;
+    height: 12px;
+    fill: currentColor;
+}
+
+.inline-files-element.is-uploading {
+    overflow: hidden;
+}
+
+.inline-files-element.inline-files-align-placeholder {
+    display: none;
+}
+
+@container chat-files-layout (min-width: 621px) {
+    .inline-files-element.inline-files-align-placeholder {
+        display: block;
+        padding: 0;
+        margin: 0;
+        border: none;
+        background: transparent;
+        min-height: 0;
+        height: 0;
+        visibility: hidden;
+        pointer-events: none;
+    }
+}
+
+.inline-files-element-icon {
+    min-width: 40px;
+    height: 40px;
+    background-color: red;
+    border-radius: 4px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.inline-files-element-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+.inline-files-element-content {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 14px;
+    color: var(--text-color);
+    min-width: 0;
+}
+
+.inline-files-element-content-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 4px;
+    font-weight: 600;
+    min-width: 0;
+}
+
+.inline-files-element-content-top p {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.inline-files-element-content-bottom {
+    display: flex;
+    justify-content: space-between;
+    color: var(--text-color-secondary);
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.inline-files-element-delete {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    background-color: var(--text-color);
+    color: var(--background);
+    font-weight: 600;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    cursor: pointer;
+    z-index: 2;
+}
+
+.inline-files-element-delete svg {
+    width: 16px;
+    height: 16px;
+}
+
+.inline-files-element.inline-files-element-previewable,
+.inline-files-element-preview-target {
+    cursor: pointer;
+}
+
+.inline-files-element-preview-target:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 3px;
+}
+
+/* Keep a lone edit attachment aligned with the right edge of the editor. */
+.user-message-edit-inline-files.active .inline-files-element:only-child {
+    grid-column: -2 / -1;
+    justify-self: end;
+}
+
+/*
+ * Transcript file cards — option 9 "Side Slate"
+ *
+ * Only the transcript message renderers add .chat-file-card. The composer,
+ * message editor, and their attachment controls continue using the compact
+ * base .inline-files-element rules above without any visual changes.
+ */
+.chat-file-card {
+    --chat-file-accent: var(--chat-file-accent-light, #8B8D98);
+    width: 100%;
+    min-width: 0;
+    min-height: 76px;
+    padding: 0;
+    gap: 0;
+    align-items: stretch;
+    overflow: hidden;
+    color: var(--text-color);
+    background: var(--background, var(--background));
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--text-color) 5%, transparent);
+    transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+
+[data-mode="dark"] .chat-file-card {
+    --chat-file-accent: var(--chat-file-accent-dark, #A2A4AD);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.chat-file-card-open {
+    display: flex;
+    align-items: stretch;
+    min-width: 0;
+    flex: 1;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.chat-file-card-preview.inline-files-element-icon {
+    display: grid;
+    /*
+     * The base attachment icon centers its contents. On a grid that shrinks
+     * the percentage-width preview lines to a zero-width auto track. Reset
+     * both axes and define the track explicitly so this remains the same
+     * portrait slate as option 9, regardless of its button/flex parent.
+     */
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    align-items: stretch;
+    justify-content: stretch;
+    justify-items: stretch;
+    gap: 5px;
+    width: 74px;
+    min-width: 74px;
+    height: auto;
+    padding: 12px 12px 0;
+    background: color-mix(in srgb, var(--chat-file-accent) 5%, var(--surface-muted));
+    border: 0;
+    border-right: 1px solid var(--border-color);
+    border-radius: 0;
+}
+
+.chat-file-card-preview > .chat-file-card-preview-line {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    height: 3px;
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--chat-file-accent) 22%, var(--surface-muted));
+}
+
+.chat-file-card-preview > .chat-file-card-preview-line:nth-child(1) {
+    width: 60%;
+    height: 5px;
+    background: color-mix(in srgb, var(--chat-file-accent) 38%, var(--surface-muted));
+}
+
+.chat-file-card-preview > .chat-file-card-preview-line:nth-child(3) { width: 85%; }
+.chat-file-card-preview > .chat-file-card-preview-line:nth-child(4) { width: 70%; }
+.chat-file-card-preview > .chat-file-card-preview-line:nth-child(5) { width: 90%; }
+
+.chat-file-card .chat-file-card-content {
+    width: auto;
+    min-width: 0;
+    flex: 1;
+    justify-content: center;
+    gap: 4px;
+    padding: 12px 10px 12px 14px;
+}
+
+.chat-file-card .inline-files-element-content-top {
+    font-size: 13.5px;
+    font-weight: 500;
+}
+
+.chat-file-card .inline-files-element-content-bottom {
+    justify-content: flex-start;
+    gap: 5px;
+    flex-wrap: nowrap;
+    font-size: 11.5px;
+    color: var(--text-color-tertiary);
+}
+
+.chat-file-card .inline-files-element-content-bottom > * {
+    margin: 0;
+    white-space: nowrap;
+}
+
+.chat-file-card .inline-files-element-content-bottom > * + *::before {
+    content: "\00b7";
+    margin-right: 5px;
+    color: var(--text-color-tertiary);
+}
+
+.chat-file-card .chat-file-card-type {
+    color: var(--chat-file-accent);
+    font-weight: 600;
+}
+
+.chat-file-card-download {
+    display: grid;
+    place-items: center;
+    align-self: center;
+    width: 30px;
+    min-width: 30px;
+    height: 30px;
+    margin-right: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-color-secondary);
+    background: var(--surface-muted);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(4px);
+    transition: opacity 0.2s ease, transform 0.2s ease, background-color 0.15s ease;
+}
+
+.chat-file-card-download svg {
+    width: 16px;
+    height: 16px;
+}
+
+.chat-file-card:focus-within .chat-file-card-download,
+.chat-file-card-download:focus-visible {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0);
+}
+
+.chat-file-card-open:focus-visible,
+.chat-file-card-download:focus-visible {
+    outline: 2px solid var(--chat-file-accent);
+    outline-offset: -3px;
+}
+
+.chat-file-card-download:disabled {
+    cursor: wait;
+    opacity: 0.65;
+}
+
+.user-message-area .inline-files.chat-file-cards {
+    width: min(100%, 692px);
+    grid-template-columns: repeat(2, minmax(0, 340px));
+    justify-content: end;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .chat-file-card:hover {
+        border-color: color-mix(in srgb, var(--chat-file-accent) 24%, var(--border-color));
+        box-shadow: 0 4px 14px color-mix(in srgb, var(--text-color) 10%, transparent);
+    }
+
+    [data-mode="dark"] .chat-file-card:hover {
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+    }
+
+    .chat-file-card:hover .chat-file-card-download {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateX(0);
+    }
+
+    .chat-file-card-download:hover {
+        color: var(--text-color);
+        background: var(--surface-interactive-hover, var(--hover));
+    }
+}
+
+@media (hover: none), (pointer: coarse) {
+    .chat-file-card-download {
+        opacity: 1;
+        pointer-events: auto;
+        transform: none;
+    }
+}
+
+@container chat-files-layout (max-width: 720px) {
+    .user-message-area .inline-files.chat-file-cards {
+        grid-template-columns: minmax(0, 340px);
+    }
+
+    .inline-files.chat-file-cards .inline-files-align-placeholder {
+        display: none;
+    }
+}
+
+@container chat-files-layout (max-width: 360px) {
+    .user-message-area .inline-files.chat-file-cards {
+        width: 100%;
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .chat-file-card-preview.inline-files-element-icon {
+        width: 64px;
+        min-width: 64px;
+        padding-inline: 10px;
+    }
+}
+
+#chatBoxFiles.inline-files .inline-files-element {
+    background-color: var(--chat-composer-control, var(--input-bg));
+}
+
+#chatBoxFiles.inline-files.active .inline-files-element:only-child {
+    grid-column: 1 / 2;
+    justify-self: start;
+}
+
+.inline-files-upload {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3px;
+    pointer-events: none;
+    border-radius: 0 0 16px 16px;
+    overflow: hidden;
+    background-color: transparent;
+}
+
+.inline-files-upload-bar {
+    position: absolute;
+    inset: 0;
+    background-color: var(--border-color);
+}
+
+.inline-files-upload-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 0%;
+    background: var(--primary-color);
+    transition: width 0.15s ease-out;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .inline-files-element:hover .inline-files-element-delete {
+        opacity: 1;
+        pointer-events: auto;
+    }
+}
+
+@media (hover: none), (pointer: coarse) {
+    .inline-files-element .inline-files-element-delete {
+        opacity: 1;
+        pointer-events: auto;
+    }
+}
+
+@media (hover: none) and (pointer: coarse) {
+    .inline-files-element-delete {
+        opacity: 1;
+        pointer-events: auto;
+    }
+}
+
+@container chat-files-layout (max-width: 620px) {
+    .inline-files.active {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    #chatBoxFiles.inline-files.active {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@container chat-files-layout (max-width: 360px) {
+    .inline-files.active {
+        grid-template-columns: repeat(1, minmax(0, 1fr));
+    }
+
+    .user-message-area .inline-files {
+        width: 100%;
+    }
+
+    #chatBoxFiles.inline-files.active {
+        grid-template-columns: repeat(1, minmax(0, 1fr));
+    }
+}
+
+body.chat-area-compact .inline-files.active {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* A split/compact chat column has room for one full side-slate card. */
+body.chat-area-compact .user-message-area .inline-files.chat-file-cards {
+    width: min(100%, 340px);
+    grid-template-columns: minmax(0, 340px);
+}
+
+body.chat-area-compact .inline-files.chat-file-cards .inline-files-align-placeholder {
+    display: none;
+}
+
+body.chat-area-compact #chatBoxFiles.inline-files.active {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* ---------- Assistant file tiles and shared preview focus states ---------- */
+.assistant-file {
+    margin: 12px 0;
+    width: min(100%, 340px);
+    position: relative;
+}
+
+.assistant-file .inline-files.assistant-generated-file {
+    max-width: 340px;
+    grid-template-columns: 1fr;
+}
+
+.assistant-file .inline-files-element:not(.chat-file-card) {
+    background-color: var(--surface-secondary);
+    border: 1px solid var(--border-color);
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .assistant-file .inline-files-element:not(.chat-file-card):hover {
+        background-color: var(--hover);
+        border-color: var(--border-color-hover, var(--border-color));
+    }
+}
+
+.assistant-file .inline-files-element-icon:not(.chat-file-card-preview) {
+    background-color: var(--accent-color, #3b82f6);
+}
+
+.assistant-inline-image.assistant-inline-image-previewable,
+.assistant-inline-image.inline-files-element-previewable {
+    cursor: pointer;
+}
+
+.assistant-inline-image.assistant-inline-image-previewable:focus-visible,
+.assistant-inline-image.inline-files-element-previewable:focus-visible {
+    outline: 2px solid var(--primary-color, var(--text-color));
+    outline-offset: 3px;
+}
+
+/* Shared-chat focus states use the same outline as the rest of the tile. */
+.chat-share-page .inline-files-element-previewable:focus-visible,
+.chat-share-page .assistant-inline-image-previewable:focus-visible {
+    outline: 2px solid var(--primary-color, var(--admin-accent, #3b82f6));
+    outline-offset: 2px;
+}
+
+/* ---------- Selected chip icons in the input ---------- */
+.inline-skill-element-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: #fff;
+    background: var(--primary-color, var(--text-color));
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+}
+
+.inline-skill-element-icon svg {
+    width: 22px;
+    height: 22px;
+}
+
+/* Connector chips use the server's own icon instead of tinting it like a
+   skill category. This also preserves uploaded raster provider marks. */
+.inline-mcp-connector-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    color: var(--text-color);
+    background: var(--surface-control, var(--background));
+    border: 1px solid var(--surface-control-border, var(--border-color));
+    box-shadow: none;
+    overflow: hidden;
+}
+
+/* A connector behaves like an inline request token, not a file preview. Keep
+   it compact so several mentioned services can sit naturally above the input. */
+#chatBoxFiles.inline-files .inline-mcp-connector-element {
+    width: min(100%, 280px);
+    min-height: 48px;
+    padding: 6px 34px 6px 8px;
+    border: 1px solid var(--chat-composer-border, var(--surface-control-border, var(--border-color)));
+    justify-self: start;
+    background: var(--chat-composer-control, var(--surface-control, var(--input-bg)));
+}
+
+.inline-mcp-connector-element .inline-files-element-content-bottom {
+    display: none;
+}
+
+.inline-mcp-connector-element .inline-files-element-delete {
+    top: 50%;
+    right: 8px;
+    transform: translateY(-50%);
+}
+
+.inline-mcp-connector-icon svg,
+.inline-mcp-connector-icon img {
+    width: 24px;
+    height: 24px;
+    object-fit: cover;
+}
+
+.inline-mcp-connector-icon img {
+    border-radius: 50%;
+}
+
+/* Keep note descriptions to a single truncated line */
+.inline-note-snippet {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* -------------------
+   Reference Parts Element
+   ------------------- */
+.inline-reference-element {
+    background-color: var(--surface-secondary, var(--input-bg));
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    transition: background-color 0.15s ease, border-color 0.15s ease,
+              box-shadow 0.15s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .inline-reference-element:hover {
+        background-color: var(--hover, var(--surface-secondary));
+        border-color: var(--border-color-hover, var(--border-color));
+    }
+}
+
+.inline-reference-element-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background-color: var(--surface-tertiary, var(--background));
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    flex-shrink: 0;
+}
+
+.inline-reference-element-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+.inline-reference-element .inline-files-element-content-bottom span {
+    color: var(--text-color-secondary);
+    font-weight: 500;
+    font-size: 0.75rem;
+    letter-spacing: 0.02em;
+}
+
+/*
+ * Chat references deliberately inherit the shared .inline-files-element
+ * presentation. They should look exactly like file attachments in every
+ * composer instead of introducing a separate tinted surface or border.
+ */

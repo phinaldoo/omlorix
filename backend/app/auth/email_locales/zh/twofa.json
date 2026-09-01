@@ -1,0 +1,15 @@
+{
+  "subject": "您的{application_name}验证码",
+  "html_title": "{application_name} 验证码",
+  "headline": "您的验证码",
+  "expires_text": "此验证码将在 {expires_in_minutes} 分钟后失效。",
+  "ignore_text": "如果这不是您的请求，您可以直接忽略此邮件。",
+  "plain_text_body": "您的 {application_name} 验证码是 {code}。此验证码将在 {expires_in_minutes} 分钟后失效。",
+  "sms_body": "您的 {application_name} 验证码是 {code}。将在 {expires_in_minutes} 分钟后失效。",
+  "deactivated_subject": "{application_name}：双重验证已停用",
+  "deactivated_html_title": "双重验证已停用 | {application_name}",
+  "deactivated_headline": "双重验证已停用",
+  "deactivated_body": "您的 {application_name} 账户已停用双重验证。",
+  "deactivated_action": "如果这不是您的操作，请立即登录、重新启用 2FA，并检查您的活动会话。",
+  "deactivated_plain_text_body": "您的 {application_name} 账户已停用双重验证。如果这不是您的操作，请立即登录、重新启用 2FA，并检查您的活动会话。"
+}

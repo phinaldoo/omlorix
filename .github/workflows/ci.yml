@@ -1,0 +1,287 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  frontend-vendor-asset-audit:
+    name: Vendored frontend assets
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Verify vendored frontend browser assets
+        run: |
+          python dev_scripts/verify_frontend_vendor_assets.py
+
+  backend-tests:
+    name: Backend (Python ${{ matrix.python-version }})
+    runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - "3.13"
+          - "3.14"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: arm64
+
+      - name: Install dependencies
+        run: |
+          python -m venv .venv
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+          . .venv/bin/activate
+          python -m pip install --upgrade pip
+          python -m pip install --no-cache-dir --require-hashes \
+            -r app/requirements.txt \
+            -r app/requirements-dev.txt
+        working-directory: backend
+
+      - name: Sanity check (compile)
+        run: |
+          python -m compileall -q app
+        working-directory: backend
+
+      - name: Run pytest suite
+        env:
+          PYTHONWARNINGS: default
+        run: |
+          python -m pytest -v
+        working-directory: backend
+
+      - name: Validate dependency resolution
+        run: |
+          python -m pip check
+        working-directory: backend
+
+  backend-migrations:
+    name: Backend migrations
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04-arm
+    env:
+      MODE: production
+      DATABASE_HOST: 127.0.0.1
+      DATABASE_NAME: omlorix
+      DATABASE_USER: postgres
+      DATABASE_PASSWORD: postgres
+      DB_MIGRATIONS_MODE: run
+      DATABASE_AUDIT_LOG_MIGRATION_MODE: off
+      REDIS_ENABLED: "true"
+      CI_POSTGRES_MIGRATION_SMOKE: "1"
+      POSTGRES_CONTAINER: omlorix-ci-postgres-${{ github.run_id }}-${{ github.run_attempt }}
+      REDIS_CONTAINER: omlorix-ci-redis-${{ github.run_id }}-${{ github.run_attempt }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+          architecture: arm64
+
+      - name: Start migration services
+        run: |
+          docker rm -f "$POSTGRES_CONTAINER" "$REDIS_CONTAINER" >/dev/null 2>&1 || true
+
+          docker run --detach \
+            --name "$POSTGRES_CONTAINER" \
+            --env POSTGRES_DB=omlorix \
+            --env POSTGRES_USER=postgres \
+            --env POSTGRES_PASSWORD=postgres \
+            --publish 127.0.0.1::5432 \
+            postgres:18.4
+
+          docker run --detach \
+            --name "$REDIS_CONTAINER" \
+            --publish 127.0.0.1::6379 \
+            redis:8.2.6-alpine3.22
+
+          for attempt in {1..30}; do
+            if docker exec "$POSTGRES_CONTAINER" pg_isready -U postgres -d omlorix; then
+              break
+            fi
+            if [ "$attempt" -eq 30 ]; then
+              docker logs "$POSTGRES_CONTAINER"
+              exit 1
+            fi
+            sleep 2
+          done
+
+          for attempt in {1..30}; do
+            if [ "$(docker exec "$REDIS_CONTAINER" redis-cli ping)" = "PONG" ]; then
+              break
+            fi
+            if [ "$attempt" -eq 30 ]; then
+              docker logs "$REDIS_CONTAINER"
+              exit 1
+            fi
+            sleep 2
+          done
+
+          POSTGRES_PORT="$(docker port "$POSTGRES_CONTAINER" 5432/tcp | sed 's/.*://')"
+          REDIS_PORT="$(docker port "$REDIS_CONTAINER" 6379/tcp | sed 's/.*://')"
+          echo "DATABASE_PORT=$POSTGRES_PORT" >> "$GITHUB_ENV"
+          echo "REDIS_URL=redis://127.0.0.1:$REDIS_PORT/0" >> "$GITHUB_ENV"
+
+      - name: Install dependencies
+        run: |
+          python -m venv .venv
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+          . .venv/bin/activate
+          python -m pip install --upgrade pip
+          python -m pip install --no-cache-dir --require-hashes \
+            -r app/requirements.txt \
+            -r app/requirements-dev.txt
+        working-directory: backend
+
+      - name: Run production migration runner
+        run: |
+          python -m app.migrations.cli run
+        working-directory: backend
+
+      - name: Run migration smoke test
+        env:
+          PYTHONWARNINGS: default
+        run: |
+          python -m pytest -v tests/migrations/test_postgres_migration_smoke.py
+        working-directory: backend
+
+      - name: Stop migration services
+        if: always()
+        run: |
+          docker rm -f "$POSTGRES_CONTAINER" "$REDIS_CONTAINER" >/dev/null 2>&1 || true
+
+  desktop-validation:
+    name: Desktop packaging inputs
+    runs-on: macos-26
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: |
+            backend/app/requirements.txt
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.26.6"
+
+      - name: Install desktop and runtime dependencies
+        run: |
+          npm ci --ignore-scripts
+      - name: Run frontend tests
+        run: |
+          npm run test:frontend
+      - name: Run desktop tests
+        run: |
+          npm run test:desktop
+      - name: Run server shell regression tests
+        run: |
+          bash dev_scripts/test-setup.sh
+          bash dev_scripts/test-coordinated-backup-restore.sh
+      - name: Validate desktop scripts
+        run: |
+          npm run pack
+
+  windows-javascript-tests:
+    name: Windows frontend and desktop
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install desktop dependencies
+        run: npm ci
+
+      - name: Run frontend tests
+        run: npm run test:frontend
+
+      - name: Run desktop tests, including Windows PowerShell 5.1 setup
+        run: npm run test:desktop
+
+  backend-image-build:
+    name: Backend image build
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Build backend image
+        run: |
+          docker build --tag omlorix-backend-ci ./backend
+
+  server-cli:
+    name: Server CLI
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          # Pin the security patch so cached runner toolchains cannot silently
+          # produce release candidates with an older standard library.
+          go-version: "1.26.6"
+
+      - name: Build CLI
+        run: |
+          sh dev_scripts/server-launcher/prepare-cli-assets.sh
+          go build ./cmd/omlorix-server-cli
+
+      - name: Scan CLI for reachable Go vulnerabilities
+        run: |
+          go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./cmd/omlorix-server-cli

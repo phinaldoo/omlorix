@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#1F1F1F" media="(prefers-color-scheme: dark)">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title data-i18n="leaderboard_title">AI Model Leaderboard</title>
+    <meta name="description" content="Performance metrics across various AI models and benchmarks">
+    <link rel="icon" href="/api/v1/settings/icon/get?size=16" sizes="16x16">
+    <link rel="icon" href="/api/v1/settings/icon/get?size=32" sizes="32x32">
+    <link rel="apple-touch-icon" sizes="180x180" href="/api/v1/settings/icon/get?size=180"/>
+    <link rel="manifest" href="/api/v1/settings/site.webmanifest"/>
+    <style>
+        /* Fallback CSS Variables for resilience if external CSS fails */
+        :root {
+            --background: #ffffff;
+            --text-color: #111111;
+            --text-color-secondary: #666666;
+            --text-color-tertiary: #757575;
+            --border-color: #e0e0e0;
+            --hover: #f5f5f5;
+            --admin-accent: #007bff;
+            --shadow-color: rgba(0, 0, 0, 0.08);
+        }
+
+        html[data-mode="dark"] {
+            --background: #1F1F1F;
+            --text-color: #ffffff;
+            --text-color-secondary: #aaaaaa;
+            --text-color-tertiary: #999999;
+            --border-color: #333333;
+            --hover: #2a2a2a;
+            --shadow-color: rgba(0, 0, 0, 0.4);
+        }
+
+        html, body {
+            background-color: var(--background) !important;
+            transition: none !important;
+        }
+
+        :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+            outline: 2px solid var(--admin-accent);
+            outline-offset: 2px;
+            border-radius: 4px;
+        }
+    </style>
+    <link rel="stylesheet" href="/css/fonts.css">
+    <link rel="stylesheet" href="/css/common/animations.css">
+    <link rel="stylesheet" href="/css/common/init.css">
+    <link rel="stylesheet" href="/css/admin/init.css">
+    <link rel="stylesheet" href="/css/common/elements.css">
+    <link rel="stylesheet" href="/css/common/notification.css">
+    <link rel="stylesheet" href="/css/common/tooltip.css">
+    <link rel="stylesheet" href="/css/leaderboard/style.css">
+    <script src="/js/common/pwaVersionGuard.js" defer></script>
+    <script src="/js/common/theme.js" defer></script>
+    <script src="/js/common/language.js" defer></script>
+    <script src="/js/common/auth.js" defer></script>
+    <script src="/js/common/tooltip.js" defer></script>
+    <script src="/js/common/notification.js" defer></script>
+    <script src="/js/common/icons.js" defer></script>
+    <script src="/js/leaderboard/script.js" defer></script>
+</head>
+<body data-page="leaderboard">
+    <a href="#content" class="skip-link" data-i18n="leaderboard_skip_to_content">Skip to content</a>
+    <div id="notificationContainer" class="notification-container" role="region" aria-live="polite" aria-label="Notifications" data-i18n-attr="aria-label:notification_region_label"></div>
+    <main class="container" role="main">
+        <header class="page-header">
+            <div class="page-header-text">
+                <h1 data-i18n="leaderboard_title">AI Model Leaderboard</h1>
+                <p class="subtitle" data-i18n="leaderboard_subtitle">Performance metrics across various AI models and benchmarks</p>
+                <p id="leaderboardSourceInfo" class="subtitle" aria-live="polite" hidden></p>
+            </div>
+        </header>
+
+        <section id="content" aria-live="polite" aria-busy="true">
+            <div class="loader-container" role="status" aria-label="Loading leaderboard data" data-i18n-attr="aria-label:leaderboard_loading">
+                <div class="loader" aria-hidden="true"></div>
+                <span class="sr-only" data-i18n="leaderboard_loading">Loading leaderboard…</span>
+            </div>
+        </section>
+
+        <section class="questions-container" aria-labelledby="leaderboardFaqHeading">
+            <h2 id="leaderboardFaqHeading" class="sr-only" data-i18n="leaderboard_faq_heading">Frequently asked questions</h2>
+            <details class="question">
+                <summary data-i18n="leaderboard_benchmarks_summary_title">What do the benchmarks mean?</summary>
+                <div class="question-content">
+                    <dl>
+                        <div>
+                            <dt data-i18n="leaderboard_benchmarks_intelligence_title">Intelligence Index</dt>
+                            <dd data-i18n="leaderboard_benchmarks_intelligence_desc">Aggregated Artificial Analysis Intelligence Index combining multiple performance metrics into one overall score.</dd>
+                        </div>
+                        <div>
+                            <dt data-i18n="leaderboard_column_coding_index">Coding Index</dt>
+                            <dd data-i18n="leaderboard_benchmarks_coding_index_desc">Composite Artificial Analysis index focused on programming and software-engineering ability.</dd>
+                        </div>
+                        <div>
+                            <dt data-i18n="leaderboard_column_agentic_index">Agentic Index</dt>
+                            <dd data-i18n="leaderboard_benchmarks_agentic_index_desc">Composite Artificial Analysis index focused on completing multi-step tasks with tools and environments.</dd>
+                        </div>
+                        <div data-leaderboard-level="full" hidden>
+                            <dt data-i18n="leaderboard_column_hle">HLE</dt>
+                            <dd data-i18n="leaderboard_benchmarks_hle_desc">Humanity’s Last Exam measures frontier academic knowledge across mathematics, sciences, and humanities.</dd>
+                        </div>
+                        <div data-leaderboard-level="full" hidden>
+                            <dt data-i18n="leaderboard_column_gpqa_diamond">GPQA Diamond</dt>
+                            <dd data-i18n="leaderboard_benchmarks_gpqa_diamond_desc">Graduate-level questions in biology, physics, and chemistry that test scientific reasoning.</dd>
+                        </div>
+                        <div data-leaderboard-level="full" hidden>
+                            <dt data-i18n="leaderboard_column_scicode">SciCode</dt>
+                            <dd data-i18n="leaderboard_benchmarks_scicode_desc">Scientist-designed coding problems that test the implementation of research algorithms.</dd>
+                        </div>
+                        <div data-leaderboard-level="full" hidden>
+                            <dt data-i18n="leaderboard_column_terminalbench">Terminal-Bench 2.1</dt>
+                            <dd data-i18n="leaderboard_benchmarks_terminalbench_desc">Tests agents on practical tasks completed through a terminal environment.</dd>
+                        </div>
+                        <div data-leaderboard-level="full" hidden>
+                            <dt data-i18n="leaderboard_column_critpt">CritPt</dt>
+                            <dd data-i18n="leaderboard_benchmarks_critpt_desc">Research-level physics problems that require code generation and quantitative reasoning.</dd>
+                        </div>
+                    </dl>
+                </div>
+            </details>
+            <details class="question">
+                <summary data-i18n="leaderboard_missing_models_title">Why are some models missing?</summary>
+                <div class="question-content">
+                    <p data-i18n="leaderboard_missing_models_desc">Model IDs cannot always be matched to Artificial Analysis entries. Provider names may vary or be uncatalogued, so some of your models might not appear in the leaderboard.</p>
+                </div>
+            </details>
+            <details class="question">
+                <summary data-i18n="leaderboard_capabilities_title">Why do input and output capabilities sometimes differ?</summary>
+                <div class="question-content">
+                    <p data-i18n="leaderboard_capabilities_desc">Admins can manually configure which capabilities a model provides for input or output in this system, so configured capabilities may differ from a model’s default feature set.</p>
+                </div>
+            </details>
+        </section>
+
+        <footer class="attribution">
+            <span data-i18n="leaderboard_attribution_prefix">Data provided by</span>
+            <a href="https://artificialanalysis.ai/leaderboards/models" target="_blank" rel="noopener" data-i18n-attr="aria-label:leaderboard_provider_aria" aria-label="Visit Artificial Analysis (opens in new tab)">Artificial Analysis</a>
+        </footer>
+    </main>
+</body>
+</html>

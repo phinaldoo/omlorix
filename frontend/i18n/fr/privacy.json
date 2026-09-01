@@ -1,0 +1,7 @@
+{
+  "privacy_page_title": "Politique de confidentialité",
+  "privacy_loading": "Chargement de la politique de confidentialité...",
+  "privacy_load_error": "Impossible de charger la politique de confidentialité. Veuillez réessayer plus tard.",
+  "privacy_default_template_warning_emphasis": "Important :",
+  "privacy_default_template_warning": "Cette instance utilise encore le modèle de politique de confidentialité par défaut. L'opérateur doit le remplacer par un contenu juridique spécifique au déploiement."
+}

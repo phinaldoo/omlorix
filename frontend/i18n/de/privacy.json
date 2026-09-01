@@ -1,0 +1,7 @@
+{
+  "privacy_page_title": "Datenschutzerklärung",
+  "privacy_loading": "Lade Datenschutzerklärung...",
+  "privacy_load_error": "Fehler beim Laden der Datenschutzerklärung. Bitte versuchen Sie es später erneut.",
+  "privacy_default_template_warning_emphasis": "Wichtig:",
+  "privacy_default_template_warning": "Diese Instanz verwendet noch die standardmäßige Datenschutzvorlage. Der Betreiber muss sie durch einsatzspezifische Rechtsinhalte ersetzen."
+}

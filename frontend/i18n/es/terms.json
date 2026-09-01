@@ -1,0 +1,7 @@
+{
+  "terms_page_title": "Términos de servicio",
+  "terms_loading": "Cargando los términos de servicio...",
+  "terms_load_error": "No se pudieron cargar los términos de servicio. Inténtalo de nuevo más tarde.",
+  "terms_default_template_warning_emphasis": "Importante:",
+  "terms_default_template_warning": "Esta instancia todavía usa la plantilla predeterminada de los Términos del servicio. El operador debe reemplazarla por contenido legal específico del despliegue antes de habilitar el registro público."
+}

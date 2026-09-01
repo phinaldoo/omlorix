@@ -1,0 +1,1237 @@
+name: Omlorix Server Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Release mode
+        required: true
+        type: choice
+        options:
+          - release
+          - rerelease
+        default: release
+      bump:
+        description: Version bump type
+        required: false
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+        default: patch
+      channel:
+        description: Release channel
+        required: true
+        type: choice
+        options:
+          - stable
+          - beta
+        default: stable
+      target_tag:
+        description: Existing tag to rebuild in rerelease mode (for example v0.9.5)
+        required: false
+        type: string
+      minimum_launcher_version:
+        description: Minimum Omlorix Server Launcher version required for this Omlorix release. Leave empty for no launcher gate.
+        required: false
+        type: string
+      launcher_update_reason:
+        description: Short reason shown when users must update the launcher before updating Omlorix
+        required: false
+        type: string
+      launcher_version:
+        description: Existing Omlorix Server Launcher version whose release assets should be attached. Defaults to minimum_launcher_version, then package.json.
+        required: false
+        type: string
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  LAUNCHER_RELEASE_PREFIX: server-launcher-v
+  RELEASE_CANDIDATE_ARCHIVE: release-candidate.tar.gz
+  RELEASE_CANDIDATE_ARTIFACT: release-candidate
+
+jobs:
+  prepare:
+    if: github.ref_name == 'main' || github.ref_name == 'master'
+    runs-on: ubuntu-latest
+    outputs:
+      mode: ${{ steps.workflow_inputs.outputs.mode }}
+      version: ${{ steps.release_metadata.outputs.version }}
+      tag: ${{ steps.release_metadata.outputs.tag }}
+      channel: ${{ steps.release_metadata.outputs.channel }}
+      launcher_version: ${{ steps.release_metadata.outputs.launcher_version }}
+      launcher_tag: ${{ steps.release_metadata.outputs.launcher_tag }}
+    steps:
+      - name: Validate workflow inputs
+        id: workflow_inputs
+        env:
+          INPUT_MODE: ${{ inputs.mode }}
+          INPUT_BUMP: ${{ inputs.bump }}
+          INPUT_CHANNEL: ${{ inputs.channel }}
+          INPUT_TARGET_TAG: ${{ inputs.target_tag }}
+        run: |
+          set -euo pipefail
+
+          mode="$INPUT_MODE"
+          bump="$INPUT_BUMP"
+          channel="$INPUT_CHANNEL"
+          target_tag="$INPUT_TARGET_TAG"
+
+          case "$channel" in
+            stable|beta)
+              ;;
+            *)
+              echo "The channel input must be stable or beta." >&2
+              exit 1
+              ;;
+          esac
+
+          case "$mode" in
+            release)
+              case "$bump" in
+                patch|minor|major)
+                  ;;
+                *)
+                  echo "The bump input must be patch, minor, or major when mode=release." >&2
+                  exit 1
+                  ;;
+              esac
+              ;;
+            rerelease)
+              if [ -z "$target_tag" ]; then
+                echo "The target_tag input is required when mode=rerelease." >&2
+                exit 1
+              fi
+              if ! printf '%s\n' "$target_tag" | grep -Eq '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-beta\.[1-9][0-9]*)?$'; then
+                echo "The target_tag input must be a release tag such as v0.9.5 or v0.9.5-beta.1." >&2
+                exit 1
+              fi
+              if [ "$channel" = "beta" ] && [[ ! "$target_tag" =~ -beta\.[1-9][0-9]*$ ]]; then
+                echo "Beta rereleases require a beta target tag such as v0.9.5-beta.1." >&2
+                exit 1
+              fi
+              if [ "$channel" = "stable" ] && [[ "$target_tag" =~ -beta\. ]]; then
+                echo "Stable rereleases cannot target a beta release tag." >&2
+                exit 1
+              fi
+              ;;
+            *)
+              echo "The mode input must be release or rerelease." >&2
+              exit 1
+              ;;
+          esac
+
+          {
+            echo "mode=$mode"
+            echo "bump=$bump"
+            echo "channel=$channel"
+            echo "target_tag=$target_tag"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Check out repo for release
+        if: ${{ steps.workflow_inputs.outputs.mode == 'release' }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.sha }}
+
+      - name: Check out repo for rerelease
+        if: ${{ steps.workflow_inputs.outputs.mode == 'rerelease' }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: refs/tags/${{ steps.workflow_inputs.outputs.target_tag }}
+
+      - name: Reject stale rerelease targets
+        if: ${{ steps.workflow_inputs.outputs.mode == 'rerelease' }}
+        env:
+          RELEASE_CHANNEL: ${{ steps.workflow_inputs.outputs.channel }}
+          TARGET_TAG: ${{ steps.workflow_inputs.outputs.target_tag }}
+        run: |
+          python3 - <<'PY'
+          """Require rereleases to rebuild only the newest tag in their channel."""
+
+          import os
+          import re
+          import subprocess
+
+          version_re = re.compile(
+              r"^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)"
+              r"(?:-(beta)\.([1-9]\d*))?$"
+          )
+
+          def version_key(tag: str) -> tuple[int, int, int, int]:
+              """Return a SemVer key where stable follows betas of one core."""
+              match = version_re.fullmatch(tag)
+              if not match:
+                  raise ValueError(f"Invalid server release tag: {tag}")
+              major, minor, patch, prerelease, number = match.groups()
+              prerelease_rank = int(number or 0) if prerelease else 10**18
+              return int(major), int(minor), int(patch), prerelease_rank
+
+          channel = os.environ["RELEASE_CHANNEL"]
+          target_tag = os.environ["TARGET_TAG"]
+          tags = subprocess.run(
+              ["git", "tag", "--list", "v*"],
+              check=True,
+              capture_output=True,
+              text=True,
+          ).stdout.splitlines()
+          channel_tags = [
+              tag for tag in tags
+              if version_re.fullmatch(tag)
+              and (("-beta." in tag) == (channel == "beta"))
+          ]
+          if not channel_tags:
+              raise SystemExit(f"No {channel} server release tag exists to rerelease.")
+          newest_tag = max(channel_tags, key=version_key)
+          if target_tag != newest_tag:
+              raise SystemExit(
+                  f"Rerelease target {target_tag} would move the {channel} channel backward; "
+                  f"the newest eligible tag is {newest_tag}."
+              )
+          print(f"Validated newest {channel} rerelease target {target_tag}.")
+          PY
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Bump version files
+        if: ${{ steps.workflow_inputs.outputs.mode == 'release' }}
+        env:
+          VERSION_BUMP: ${{ steps.workflow_inputs.outputs.bump }}
+          RELEASE_CHANNEL: ${{ steps.workflow_inputs.outputs.channel }}
+        run: |
+          # A completed release tag is the durable version authority. Main's
+          # metadata is synchronized after publication and may briefly lag when
+          # another push wins the branch race, so never derive a duplicate
+          # version from the files alone.
+          python .github/scripts/bump_version.py "$VERSION_BUMP" \
+            --channel "$RELEASE_CHANNEL" \
+            --base-tag-prefix v
+
+      - name: Validate release files
+        run: |
+          python -m compileall -q backend/app
+          python - <<'PY'
+          import pathlib
+          import re
+
+          root = pathlib.Path.cwd()
+          versions = [
+              re.search(
+                  r'^APP_VERSION = "([^"]+)"$',
+                  (root / "backend/app/version.py").read_text(encoding="utf-8"),
+                  re.MULTILINE,
+              ).group(1),
+          ]
+          unique_versions = sorted(set(versions))
+          version_re = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-beta\.[1-9]\d*)?$")
+          invalid_versions = [version for version in unique_versions if not version_re.fullmatch(version)]
+          if invalid_versions:
+              raise SystemExit(f"Invalid release version(s): {invalid_versions}")
+          if len(unique_versions) != 1:
+              raise SystemExit(f"Version mismatch after bump: {unique_versions}")
+          print(f"Validated version {unique_versions[0]}")
+          PY
+
+      - name: Resolve release metadata
+        id: release_metadata
+        env:
+          RELEASE_CHANNEL: ${{ steps.workflow_inputs.outputs.channel }}
+          INPUT_LAUNCHER_VERSION: ${{ inputs.launcher_version }}
+          INPUT_MINIMUM_LAUNCHER_VERSION: ${{ inputs.minimum_launcher_version }}
+        run: |
+          version="$(python - <<'PY'
+          import pathlib
+          import re
+
+          version_file = pathlib.Path("backend/app/version.py").read_text(encoding="utf-8")
+          match = re.search(r'^APP_VERSION = "([^"]+)"$', version_file, re.MULTILINE)
+          if not match:
+              raise SystemExit("Could not determine APP_VERSION from backend/app/version.py")
+          print(match.group(1))
+          PY
+          )"
+          launcher_version="$(python - <<'PY'
+          import json
+          import os
+          import pathlib
+          import re
+
+          explicit = os.environ.get("INPUT_LAUNCHER_VERSION", "").strip()
+          minimum = os.environ.get("INPUT_MINIMUM_LAUNCHER_VERSION", "").strip()
+          package_path = pathlib.Path("package.json")
+          package_version = ""
+          if package_path.exists():
+              package_version = json.loads(package_path.read_text(encoding="utf-8"))["version"]
+
+          launcher_version = explicit or minimum or package_version
+          version_re = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-beta\.[1-9]\d*)?$")
+          if not version_re.fullmatch(launcher_version):
+              raise SystemExit(
+                  "launcher_version must be a semver value like 1.2.3 or 1.2.3-beta.1. "
+                  "Create a server launcher release first, or pass launcher_version explicitly."
+              )
+          if minimum and version_re.fullmatch(minimum):
+              def parts(value: str) -> tuple[int, int, int, int]:
+                  core, _, prerelease = value.partition("-")
+                  major, minor, patch = [int(part) for part in core.split(".")]
+                  # Stable releases sort after prereleases with the same core.
+                  prerelease_rank = -1 if prerelease else 10**9
+                  if prerelease.startswith("beta."):
+                      prerelease_rank = int(prerelease.removeprefix("beta."))
+                  return major, minor, patch, prerelease_rank
+
+              if parts(launcher_version) < parts(minimum):
+                  raise SystemExit(
+                      f"launcher_version {launcher_version} is older than minimum_launcher_version {minimum}."
+                  )
+          print(launcher_version)
+          PY
+          )"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+          echo "channel=$RELEASE_CHANNEL" >> "$GITHUB_OUTPUT"
+          echo "launcher_version=$launcher_version" >> "$GITHUB_OUTPUT"
+          echo "launcher_tag=${{ env.LAUNCHER_RELEASE_PREFIX }}$launcher_version" >> "$GITHUB_OUTPUT"
+
+      - name: Archive release candidate
+        run: |
+          tar --exclude=.git -czf "$RUNNER_TEMP/${{ env.RELEASE_CANDIDATE_ARCHIVE }}" .
+
+      - name: Upload release candidate
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ env.RELEASE_CANDIDATE_ARTIFACT }}
+          path: ${{ runner.temp }}/${{ env.RELEASE_CANDIDATE_ARCHIVE }}
+          retention-days: 1
+
+  preflight-backend-tests:
+    name: Backend tests (Python ${{ matrix.python-version }})
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - "3.13"
+          - "3.14"
+
+    steps:
+      - name: Download release candidate
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ env.RELEASE_CANDIDATE_ARTIFACT }}
+          path: ${{ runner.temp }}
+
+      - name: Prepare workspace
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE"
+          find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+
+      - name: Extract release candidate
+        run: |
+          tar -xzf "$RUNNER_TEMP/${{ env.RELEASE_CANDIDATE_ARCHIVE }}" -C "$GITHUB_WORKSPACE"
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: |
+            backend/app/requirements.txt
+            backend/app/requirements-dev.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --require-hashes \
+            -r app/requirements.txt \
+            -r app/requirements-dev.txt
+        working-directory: backend
+
+      - name: Sanity check (compile)
+        run: |
+          python -m compileall -q app
+        working-directory: backend
+
+      - name: Run pytest suite
+        env:
+          PYTHONWARNINGS: default
+        run: |
+          python -m pytest -v
+        working-directory: backend
+
+      - name: Validate dependency resolution
+        run: |
+          python -m pip check
+        working-directory: backend
+
+  preflight-javascript-tests:
+    name: JavaScript tests
+    needs: prepare
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download release candidate
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ env.RELEASE_CANDIDATE_ARTIFACT }}
+          path: ${{ runner.temp }}
+
+      - name: Prepare workspace
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE"
+          find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+
+      - name: Extract release candidate
+        run: |
+          tar -xzf "$RUNNER_TEMP/${{ env.RELEASE_CANDIDATE_ARCHIVE }}" -C "$GITHUB_WORKSPACE"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: |
+            backend/app/requirements.txt
+
+      - name: Install desktop and runtime dependencies
+        run: |
+          npm ci --ignore-scripts
+
+      - name: Run frontend tests
+        run: |
+          npm run test:frontend
+
+      - name: Run desktop tests
+        run: |
+          npm run test:desktop
+
+  preflight-image-build:
+    name: Docker image build (${{ matrix.image }})
+    needs: prepare
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: backend
+            context: ./backend
+            file: ./backend/Dockerfile
+          - image: frontend
+            context: .
+            file: ./frontend/Dockerfile
+
+    steps:
+      - name: Download release candidate
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ env.RELEASE_CANDIDATE_ARTIFACT }}
+          path: ${{ runner.temp }}
+
+      - name: Prepare workspace
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE"
+          find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+
+      - name: Extract release candidate
+        run: |
+          tar -xzf "$RUNNER_TEMP/${{ env.RELEASE_CANDIDATE_ARCHIVE }}" -C "$GITHUB_WORKSPACE"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4
+
+      - name: Validate and cache ${{ matrix.image }} image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          target: prod
+          platforms: linux/amd64
+          push: false
+          # This build remains a release gate, but its output is also reused by
+          # the native AMD64 publishing job instead of being discarded.
+          cache-from: type=gha,scope=${{ matrix.image }}-amd64
+          # Cache service outages should make this a cold build, not prevent a
+          # release whose image itself is valid.
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}-amd64,ignore-error=true
+
+  publish:
+    needs:
+      - prepare
+      - preflight-backend-tests
+      - preflight-javascript-tests
+      - preflight-image-build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ needs.prepare.outputs.version }}
+      tag: ${{ needs.prepare.outputs.tag }}
+      channel: ${{ needs.prepare.outputs.channel }}
+      launcher_version: ${{ needs.prepare.outputs.launcher_version }}
+      launcher_tag: ${{ needs.prepare.outputs.launcher_tag }}
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ needs.prepare.outputs.mode == 'rerelease' && needs.prepare.outputs.tag || github.sha }}
+
+      - name: Download release candidate
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ env.RELEASE_CANDIDATE_ARTIFACT }}
+          path: ${{ runner.temp }}
+
+      - name: Apply release candidate changes
+        run: |
+          tar -xzf "$RUNNER_TEMP/${{ env.RELEASE_CANDIDATE_ARCHIVE }}" -C "$GITHUB_WORKSPACE"
+
+      - name: Create immutable release tag
+        if: ${{ needs.prepare.outputs.mode == 'release' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+          RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          set -euo pipefail
+          repo_url="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add backend/app/version.py .env.example
+          git commit -m "release: v${RELEASE_VERSION}"
+
+          # The tag, rather than mutable main, owns the exact candidate that
+          # passed every preflight job. A normal push to main can now happen at
+          # any point without changing or rejecting this release snapshot.
+          if git ls-remote --exit-code "$repo_url" "refs/tags/${RELEASE_TAG}" >/dev/null 2>&1; then
+            echo "Tag ${RELEASE_TAG} already exists. Use rerelease mode to rebuild it." >&2
+            exit 1
+          fi
+          git tag -a "$RELEASE_TAG" -m "$RELEASE_TAG"
+          git push --atomic "$repo_url" "refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}"
+
+      - name: Ensure draft GitHub release exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "${{ needs.prepare.outputs.tag }}" >/dev/null 2>&1; then
+            is_draft="$(gh release view "${{ needs.prepare.outputs.tag }}" --json isDraft --jq '.isDraft')"
+            if [ "$is_draft" != "true" ]; then
+              echo "Release ${{ needs.prepare.outputs.tag }} is already public and immutable. Bump the version instead of replacing published assets." >&2
+              exit 1
+            fi
+            echo "Draft release ${{ needs.prepare.outputs.tag }} already exists; repairing it."
+            if [ "${{ needs.prepare.outputs.channel }}" = "beta" ]; then
+              gh release edit "${{ needs.prepare.outputs.tag }}" --prerelease
+            fi
+          else
+            prerelease_args=""
+            if [ "${{ needs.prepare.outputs.channel }}" = "beta" ]; then
+              prerelease_args="--prerelease"
+            fi
+            gh release create "${{ needs.prepare.outputs.tag }}" \
+              --verify-tag \
+              --title "${{ needs.prepare.outputs.tag }}" \
+              --generate-notes \
+              $prerelease_args \
+              --draft
+          fi
+
+      - name: Upload server release bundle
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          set -euo pipefail
+          bundle_dir="$(mktemp -d)"
+          trap 'rm -rf "$bundle_dir"' EXIT
+          bundle_name="omlorix-server-${RELEASE_VERSION}.tar.gz"
+          cp "$RUNNER_TEMP/${{ env.RELEASE_CANDIDATE_ARCHIVE }}" "$bundle_dir/$bundle_name"
+          (
+            cd "$bundle_dir"
+            sha256sum "$bundle_name" > "$bundle_name.sha256"
+          )
+          gh release upload "${{ needs.prepare.outputs.tag }}" \
+            "$bundle_dir/$bundle_name" \
+            "$bundle_dir/$bundle_name.sha256" \
+            --clobber
+
+      - name: Upload release compatibility manifest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+          RELEASE_CHANNEL: ${{ needs.prepare.outputs.channel }}
+          LAUNCHER_VERSION: ${{ needs.prepare.outputs.launcher_version }}
+          LAUNCHER_TAG: ${{ needs.prepare.outputs.launcher_tag }}
+          MINIMUM_LAUNCHER_VERSION: ${{ inputs.minimum_launcher_version }}
+          LAUNCHER_UPDATE_REASON: ${{ inputs.launcher_update_reason }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          version = os.environ["RELEASE_VERSION"]
+          channel = os.environ["RELEASE_CHANNEL"]
+          launcher_version = os.environ["LAUNCHER_VERSION"]
+          launcher_tag = os.environ["LAUNCHER_TAG"]
+          repo = os.environ["GITHUB_REPOSITORY"]
+          minimum_launcher_version = (os.environ.get("MINIMUM_LAUNCHER_VERSION") or "").strip()
+          reason = (os.environ.get("LAUNCHER_UPDATE_REASON") or "").strip()
+          release_base = f"https://github.com/{repo}/releases"
+          manifest = {
+              "version": version,
+              "channel": channel,
+              "launcherVersion": launcher_version,
+              "launcherReleaseTag": launcher_tag,
+              "launcherReleaseUrl": f"{release_base}/tag/{launcher_tag}",
+              "minimumLauncherVersion": minimum_launcher_version or "0.0.0",
+              "launcherUpdateReason": reason,
+          }
+          Path("omlorix-release-manifest.json").write_text(
+              json.dumps(manifest, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+          gh release upload "${{ needs.prepare.outputs.tag }}" omlorix-release-manifest.json --clobber
+
+  image-build:
+    name: ${{ matrix.image }} image (${{ matrix.arch }})
+    needs: publish
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        # Each platform is built on matching native hardware. Keeping the
+        # image/platform combinations explicit makes runner selection and
+        # cache ownership easy to audit.
+        include:
+          - image: backend
+            image_repository: omlorix-backend
+            arch: amd64
+            platform: linux/amd64
+            runner: ubuntu-24.04
+            context: ./backend
+            file: ./backend/Dockerfile
+          - image: backend
+            image_repository: omlorix-backend
+            arch: arm64
+            platform: linux/arm64
+            runner: ubuntu-24.04-arm
+            context: ./backend
+            file: ./backend/Dockerfile
+          - image: frontend
+            image_repository: omlorix-frontend
+            arch: amd64
+            platform: linux/amd64
+            runner: ubuntu-24.04
+            context: .
+            file: ./frontend/Dockerfile
+          - image: frontend
+            image_repository: omlorix-frontend
+            arch: arm64
+            platform: linux/arm64
+            runner: ubuntu-24.04-arm
+            context: .
+            file: ./frontend/Dockerfile
+
+    steps:
+      - name: Check out release tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.publish.outputs.tag }}
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build and push ${{ matrix.image }} image by digest
+        id: build
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          target: prod
+          platforms: ${{ matrix.platform }}
+          # Platform jobs push content-addressed images without competing for
+          # the release tags. The manifest job applies both tags atomically.
+          outputs: type=image,name=ghcr.io/${{ github.repository_owner }}/${{ matrix.image_repository }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=${{ matrix.image }}-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}-${{ matrix.arch }},ignore-error=true
+
+      - name: Record ${{ matrix.image }} image digest
+        env:
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo "Build returned an invalid image digest: $IMAGE_DIGEST" >&2
+            exit 1
+          fi
+          mkdir -p "$RUNNER_TEMP/image-digests"
+          touch "$RUNNER_TEMP/image-digests/${IMAGE_DIGEST#sha256:}"
+
+      - name: Upload ${{ matrix.image }} digest
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ matrix.image }}-digest-${{ matrix.arch }}
+          path: ${{ runner.temp }}/image-digests/*
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 1
+
+  image-manifest:
+    name: ${{ matrix.image }} image manifest
+    needs:
+      - publish
+      - image-build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: backend
+            image_repository: omlorix-backend
+          - image: frontend
+            image_repository: omlorix-frontend
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Download ${{ matrix.image }} digests
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: ${{ matrix.image }}-digest-*
+          path: ${{ runner.temp }}/image-digests
+          merge-multiple: true
+
+      - name: Create and verify ${{ matrix.image }} manifest
+        env:
+          IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/${{ matrix.image_repository }}
+          IMAGE_VERSION: ${{ needs.publish.outputs.version }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          # Digest artifacts are file names so no mutable temporary registry
+          # tags are needed while the native platform builds run in parallel.
+          digest_files=("$RUNNER_TEMP/image-digests"/*)
+          if [ "${#digest_files[@]}" -ne 2 ]; then
+            echo "Expected two platform digests, found ${#digest_files[@]}." >&2
+            exit 1
+          fi
+
+          sources=()
+          for digest_file in "${digest_files[@]}"; do
+            digest="$(basename "$digest_file")"
+            if [[ ! "$digest" =~ ^[0-9a-f]{64}$ ]]; then
+              echo "Invalid digest artifact name: $digest" >&2
+              exit 1
+            fi
+            sources+=("${IMAGE_NAME}@sha256:${digest}")
+          done
+
+          docker buildx imagetools create \
+            --tag "${IMAGE_NAME}:${IMAGE_VERSION}" \
+            "${sources[@]}"
+
+          # Do not publish the GitHub release unless the version tag resolves
+          # to both of the architectures promised by the release workflow.
+          manifest_json="$(docker buildx imagetools inspect --raw "${IMAGE_NAME}:${IMAGE_VERSION}")"
+          for architecture in amd64 arm64; do
+            if ! jq -e --arg architecture "$architecture" \
+              'any(.manifests[]?; .platform.os == "linux" and .platform.architecture == $architecture)' \
+              <<< "$manifest_json" >/dev/null; then
+              echo "Published manifest is missing linux/$architecture." >&2
+              exit 1
+            fi
+          done
+          docker buildx imagetools inspect "${IMAGE_NAME}:${IMAGE_VERSION}"
+
+  launcher-assets:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download existing launcher and CLI release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p launcher-artifacts
+          gh release download "${{ needs.publish.outputs.launcher_tag }}" \
+            --repo "${{ github.repository }}" \
+            --dir launcher-artifacts \
+            --clobber
+
+          # The server release should carry the exact launcher and CLI files
+          # that were previously built, signed where needed, and checksummed by
+          # the dedicated launcher workflow. This deliberately does not rebuild
+          # or rename them.
+          artifacts=()
+          for artifact in launcher-artifacts/*; do
+            if [ -f "$artifact" ]; then
+              artifacts+=("$artifact")
+            fi
+          done
+          if [ "${#artifacts[@]}" -eq 0 ]; then
+            echo "No launcher or CLI artifacts found in ${{ needs.publish.outputs.launcher_tag }}." >&2
+            exit 1
+          fi
+          gh release upload "${{ needs.publish.outputs.tag }}" \
+            --repo "${{ github.repository }}" \
+            "${artifacts[@]}" \
+            --clobber
+
+  finalize:
+    needs:
+      - publish
+      - image-manifest
+      - launcher-assets
+    if: ${{ always() && needs.publish.result == 'success' && needs.image-manifest.result == 'success' && needs.launcher-assets.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Verify the complete draft release payload
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ needs.publish.outputs.version }}
+        run: |
+          set -euo pipefail
+          if [ "$(gh release view "${{ needs.publish.outputs.tag }}" \
+            --repo "${{ github.repository }}" \
+            --json isDraft --jq '.isDraft')" != "true" ]; then
+            echo "Release ${{ needs.publish.outputs.tag }} became public before final validation." >&2
+            exit 1
+          fi
+          verification_dir="$(mktemp -d)"
+          trap 'rm -rf "$verification_dir"' EXIT
+          bundle_name="omlorix-server-${RELEASE_VERSION}.tar.gz"
+          gh release download "${{ needs.publish.outputs.tag }}" \
+            --repo "${{ github.repository }}" \
+            --pattern "$bundle_name" \
+            --pattern "$bundle_name.sha256" \
+            --pattern "omlorix-release-manifest.json" \
+            --dir "$verification_dir"
+          (
+            cd "$verification_dir"
+            sha256sum --check "$bundle_name.sha256"
+            test -s omlorix-release-manifest.json
+          )
+
+      - name: Prepare and validate channel feed payload
+        env:
+          RELEASE_CHANNEL: ${{ needs.publish.outputs.channel }}
+          RELEASE_VERSION: ${{ needs.publish.outputs.version }}
+          RELEASE_TAG: ${{ needs.publish.outputs.tag }}
+          LAUNCHER_VERSION: ${{ needs.publish.outputs.launcher_version }}
+          LAUNCHER_TAG: ${{ needs.publish.outputs.launcher_tag }}
+          MINIMUM_LAUNCHER_VERSION: ${{ inputs.minimum_launcher_version }}
+          LAUNCHER_UPDATE_REASON: ${{ inputs.launcher_update_reason }}
+        run: |
+          set -euo pipefail
+          payload_dir="$RUNNER_TEMP/server-release-feed"
+          mkdir -p "$payload_dir"
+          export PAYLOAD_DIR="$payload_dir"
+          python3 - <<'PY'
+          """Build and validate feed files before any public pointer moves."""
+
+          import json
+          import os
+          from pathlib import Path
+
+          channel = os.environ["RELEASE_CHANNEL"]
+          version = os.environ["RELEASE_VERSION"]
+          tag = os.environ["RELEASE_TAG"]
+          launcher_version = os.environ["LAUNCHER_VERSION"]
+          launcher_tag = os.environ["LAUNCHER_TAG"]
+          repo = os.environ["GITHUB_REPOSITORY"]
+          release_base = f"https://github.com/{repo}/releases"
+          asset_base = f"{release_base}/download/{tag}"
+          feed = {
+              "schemaVersion": 1,
+              "channel": channel,
+              "version": version,
+              "tag": tag,
+              "prerelease": channel == "beta",
+              "releaseUrl": f"{release_base}/tag/{tag}",
+              "manifestUrl": f"{asset_base}/omlorix-release-manifest.json",
+              "serverBundleUrl": f"{asset_base}/omlorix-server-{version}.tar.gz",
+              "serverBundleSha256Url": f"{asset_base}/omlorix-server-{version}.tar.gz.sha256",
+              "backendImage": f"ghcr.io/{repo.split('/')[0]}/omlorix-backend:{version}",
+              "frontendImage": f"ghcr.io/{repo.split('/')[0]}/omlorix-frontend:{version}",
+              "launcherVersion": launcher_version,
+              "launcherReleaseTag": launcher_tag,
+              "launcherReleaseUrl": f"{release_base}/tag/{launcher_tag}",
+              "minimumLauncherVersion": (os.environ.get("MINIMUM_LAUNCHER_VERSION") or "").strip() or "0.0.0",
+              "launcherUpdateReason": (os.environ.get("LAUNCHER_UPDATE_REASON") or "").strip(),
+          }
+          payload_dir = Path(os.environ["PAYLOAD_DIR"])
+          payload_dir.joinpath(f"{channel}.json").write_text(
+              json.dumps(feed, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          if channel == "stable":
+              # Stable is a safe initial beta fallback until a true beta has
+              # been published. A later beta release replaces this payload.
+              beta_baseline = {
+                  **feed,
+                  "channel": "beta",
+                  "prerelease": False,
+                  "fallbackChannel": "stable",
+              }
+              payload_dir.joinpath("beta-baseline.json").write_text(
+                  json.dumps(beta_baseline, indent=2) + "\n",
+                  encoding="utf-8",
+              )
+
+          required_paths = [payload_dir / f"{channel}.json"]
+          if channel == "stable":
+              required_paths.append(payload_dir / "beta-baseline.json")
+          for path in required_paths:
+              payload = json.loads(path.read_text(encoding="utf-8"))
+              missing = [
+                  key for key in ("version", "tag", "serverBundleUrl", "serverBundleSha256Url")
+                  if not str(payload.get(key) or "").strip()
+              ]
+              if missing:
+                  raise SystemExit(f"{path} is missing required feed fields: {missing}")
+          PY
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Promote verified image manifests to the release channel
+        env:
+          IMAGE_CHANNEL: ${{ needs.publish.outputs.channel }}
+          IMAGE_VERSION: ${{ needs.publish.outputs.version }}
+        run: |
+          set -euo pipefail
+          for image_repository in omlorix-backend omlorix-frontend; do
+            image_name="ghcr.io/${{ github.repository_owner }}/${image_repository}"
+            # Version manifests were assembled and architecture-checked by the
+            # image-manifest jobs. Advance mutable channels only after every
+            # release build and asset-staging dependency has succeeded.
+            docker buildx imagetools create \
+              --tag "${image_name}:${IMAGE_CHANNEL}" \
+              "${image_name}:${IMAGE_VERSION}"
+            docker buildx imagetools inspect "${image_name}:${IMAGE_CHANNEL}"
+          done
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release edit "${{ needs.publish.outputs.tag }}" --repo "${{ github.repository }}" --draft=false
+
+      - name: Publish channel feed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_CHANNEL: ${{ needs.publish.outputs.channel }}
+          RELEASE_VERSION: ${{ needs.publish.outputs.version }}
+          RELEASE_TAG: ${{ needs.publish.outputs.tag }}
+          LAUNCHER_VERSION: ${{ needs.publish.outputs.launcher_version }}
+          LAUNCHER_TAG: ${{ needs.publish.outputs.launcher_tag }}
+          MINIMUM_LAUNCHER_VERSION: ${{ inputs.minimum_launcher_version }}
+          LAUNCHER_UPDATE_REASON: ${{ inputs.launcher_update_reason }}
+        run: |
+          set -euo pipefail
+          payload_dir="$RUNNER_TEMP/server-release-feed"
+          workdir="$(mktemp -d)"
+          trap 'rm -rf "$workdir"' EXIT
+          repo_url="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+
+          refresh_stable_beta_fallback() {
+          python3 - <<'PY'
+          """Refresh beta only when it is still the stable fallback feed."""
+
+          import json
+          import os
+          import shutil
+          from pathlib import Path
+
+          baseline_path = Path(os.environ["BETA_BASELINE_PATH"])
+          beta_path = Path(os.environ["BETA_CHANNEL_PATH"])
+          refresh_reason = "missing"
+          if beta_path.exists():
+              existing_beta = json.loads(beta_path.read_text(encoding="utf-8"))
+              if existing_beta.get("fallbackChannel") != "stable":
+                  raise SystemExit(0)
+              refresh_reason = "stable fallback"
+
+          shutil.copyfile(baseline_path, beta_path)
+          print(f"Refreshed the {refresh_reason} beta feed from the current stable release.")
+          PY
+          }
+
+          validate_channel_files() {
+          python3 - <<'PY'
+          """Validate the requested feed files on the fetched branch tip."""
+
+          import json
+          import os
+          from pathlib import Path
+
+          channels_dir = Path(os.environ["CHANNELS_DIR"])
+          required = [os.environ["RELEASE_CHANNEL"]]
+          if os.environ["RELEASE_CHANNEL"] == "stable":
+              required.append("beta")
+          for channel in required:
+              path = channels_dir / f"{channel}.json"
+              payload = json.loads(path.read_text(encoding="utf-8"))
+              missing = [
+                  key for key in ("version", "tag", "serverBundleUrl", "serverBundleSha256Url")
+                  if not str(payload.get(key) or "").strip()
+              ]
+              if missing:
+                  raise SystemExit(f"{path} is missing required feed fields: {missing}")
+          PY
+          }
+
+          # Launcher and server releases both update release-feed. Rebuild the
+          # small commit on the newest remote tip after a competing push rather
+          # than failing an otherwise complete release with a non-fast-forward.
+          for attempt in 1 2 3 4 5; do
+            find "$workdir" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+            git -C "$workdir" init -q
+            git -C "$workdir" remote add origin "$repo_url"
+            if git -C "$workdir" fetch origin release-feed >/dev/null 2>&1; then
+              git -C "$workdir" checkout -q --detach FETCH_HEAD
+            else
+              git -C "$workdir" checkout -q --orphan release-feed
+              git -C "$workdir" rm -rf . >/dev/null 2>&1 || true
+            fi
+
+            mkdir -p "$workdir/channels"
+            cp "$payload_dir/${RELEASE_CHANNEL}.json" "$workdir/channels/${RELEASE_CHANNEL}.json"
+          if [ "$RELEASE_CHANNEL" = "stable" ]; then
+            export BETA_BASELINE_PATH="$payload_dir/beta-baseline.json"
+            export BETA_CHANNEL_PATH="$workdir/channels/beta.json"
+            refresh_stable_beta_fallback
+          fi
+          export CHANNELS_DIR="$workdir/channels"
+          validate_channel_files
+            git -C "$workdir" config user.name "github-actions[bot]"
+            git -C "$workdir" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git -C "$workdir" add "channels/${RELEASE_CHANNEL}.json"
+            if [ "$RELEASE_CHANNEL" = "stable" ]; then
+              git -C "$workdir" add "channels/beta.json"
+            fi
+            if git -C "$workdir" diff --cached --quiet; then
+              echo "Channel feed is already current."
+              exit 0
+            fi
+
+            git -C "$workdir" commit -q -m "release-feed: ${RELEASE_CHANNEL} ${RELEASE_TAG}"
+            if git -C "$workdir" push origin HEAD:release-feed; then
+              exit 0
+            fi
+            echo "release-feed changed during attempt ${attempt}; retrying from its new tip." >&2
+          done
+
+          echo "Could not update release-feed after five concurrent pushes." >&2
+          exit 1
+
+  sync-main-version:
+    name: Synchronize released version on main
+    needs:
+      - prepare
+      - publish
+      - finalize
+    if: ${{ needs.prepare.outputs.mode == 'release' && needs.finalize.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out current main branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.ref_name }}
+
+      - name: Synchronize released version metadata
+        id: synchronize
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.publish.outputs.tag }}
+          RELEASE_VERSION: ${{ needs.publish.outputs.version }}
+          TARGET_BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          repo_url="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          version_paths=(
+            backend/app/version.py
+            .env.example
+          )
+
+          # Each retry starts at the latest main tip. Only the version fields are
+          # changed below so concurrent edits elsewhere in these files survive.
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          for attempt in 1 2 3 4 5 6 7 8; do
+            git fetch "$repo_url" "refs/heads/${TARGET_BRANCH}"
+            git checkout -q --detach FETCH_HEAD
+
+            current_version="$(python3 - <<'PY'
+          import pathlib
+          import re
+
+          patterns = {
+              "backend/app/version.py": r'^APP_VERSION = "([^"]+)"$',
+              ".env.example": r'^OMLORIX_VERSION="?([^"\n]+)"?$',
+          }
+          versions = {}
+          for file_name, pattern in patterns.items():
+              content = pathlib.Path(file_name).read_text(encoding="utf-8")
+              match = re.search(pattern, content, re.MULTILINE)
+              if not match:
+                  raise SystemExit(f"Could not determine the version in {file_name}.")
+              versions[file_name] = match.group(1)
+
+          unique_versions = set(versions.values())
+          if len(unique_versions) != 1:
+              raise SystemExit(f"Main has inconsistent release metadata: {versions}")
+          print(unique_versions.pop())
+          PY
+            )"
+            relation="$(CURRENT_VERSION="$current_version" python3 - <<'PY'
+          import os
+          import re
+
+          pattern = re.compile(
+              r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)"
+              r"(?:-(beta)\.([1-9]\d*))?$"
+          )
+
+          def key(value):
+              match = pattern.fullmatch(value)
+              if not match:
+                  raise SystemExit(f"Invalid release version: {value}")
+              major, minor, patch, prerelease, number = match.groups()
+              # Stable is newer than every beta with the same core version.
+              prerelease_rank = int(number or 0) if prerelease else 10**18
+              return int(major), int(minor), int(patch), prerelease_rank
+
+          current = key(os.environ["CURRENT_VERSION"])
+          released = key(os.environ["RELEASE_VERSION"])
+          print("older" if current < released else "current")
+          PY
+            )"
+
+            if [ "$relation" = "current" ]; then
+              echo "Main already contains version ${current_version}; no synchronization is needed."
+              exit 0
+            fi
+
+            python3 - <<'PY'
+          import os
+          import pathlib
+          import re
+
+          released_version = os.environ["RELEASE_VERSION"]
+          replacements = {
+              "backend/app/version.py": (
+                  r'^APP_VERSION = "[^"]+"$',
+                  f'APP_VERSION = "{released_version}"',
+              ),
+              ".env.example": (
+                  r'^OMLORIX_VERSION="?[^"\n]+"?$',
+                  f"OMLORIX_VERSION={released_version}",
+              ),
+          }
+
+          for file_name, (pattern, replacement) in replacements.items():
+              path = pathlib.Path(file_name)
+              content = path.read_text(encoding="utf-8")
+              updated, count = re.subn(
+                  pattern,
+                  replacement,
+                  content,
+                  count=1,
+                  flags=re.MULTILINE,
+              )
+              if count != 1:
+                  raise SystemExit(f"Could not update the version field in {file_name}.")
+              path.write_text(updated, encoding="utf-8")
+          PY
+            git add "${version_paths[@]}"
+            if git diff --cached --quiet; then
+              echo "Released version metadata is already current."
+              exit 0
+            fi
+
+            git commit -q -m "release: synchronize ${RELEASE_TAG} metadata"
+            if git push "$repo_url" "HEAD:refs/heads/${TARGET_BRANCH}"; then
+              exit 0
+            fi
+            echo "Main changed during synchronization attempt ${attempt}; retrying." >&2
+          done
+
+          echo "Could not synchronize release metadata after eight concurrent pushes." >&2
+          exit 1
+
+      - name: Report deferred version synchronization
+        if: ${{ steps.synchronize.outcome == 'failure' }}
+        env:
+          RELEASE_TAG: ${{ needs.publish.outputs.tag }}
+        run: |
+          echo "::warning::${RELEASE_TAG} was published successfully, but main's version metadata could not be synchronized. The next release will still advance from the immutable release tags."
+          echo "### Version synchronization deferred" >> "$GITHUB_STEP_SUMMARY"
+          echo "${RELEASE_TAG} is published. Re-run the metadata synchronization after main becomes quiet if you want the branch files updated immediately." >> "$GITHUB_STEP_SUMMARY"

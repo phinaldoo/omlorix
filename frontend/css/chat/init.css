@@ -1,0 +1,135 @@
+/*
+ * Chat-only design tokens.
+ *
+ * These values support content and controls that exist on index.html and the
+ * read-only chat share surfaces. General page colors and reusable component
+ * surfaces remain in common/init.css.
+ */
+[data-mode="light"] {
+    --chat-info-color: #3b82f6;
+    --chat-warning-color: #f59e0b;
+    --chat-warning-background: rgba(245, 158, 11, 0.1);
+    --chat-warning-border: rgba(245, 158, 11, 0.3);
+    /* Vector documents commonly assume a white page regardless of UI mode. */
+    --document-preview-background: #ffffff;
+    --files-table-header-bg: #f7f6f3;
+    --files-filetype-bg: #f7f6f3;
+    --code-token-comment: #6a737d;
+    --code-token-punctuation: #4d5562;
+    --code-token-operator: #b31d82;
+    --code-token-keyword: #b31d82;
+    --code-token-function: #005cc5;
+    --code-token-string: #22863a;
+    --code-token-number: #b36b00;
+    --code-token-boolean: #b31d82;
+    --code-token-class: #1b7fd4;
+    --code-token-attr: #6f42c1;
+    --code-token-tag: #d73a49;
+    --code-token-regex: #2f7c4d;
+    --code-token-inserted-bg: rgba(46, 160, 67, 0.18);
+    --code-token-deleted-bg: rgba(248, 81, 73, 0.18);
+    --code-token-selection: rgba(3, 102, 214, 0.18);
+    --code-token-line-highlight: rgba(3, 102, 214, 0.08);
+    --rate-limit-border: rgba(245, 158, 11, 0.25);
+    --rate-limit-bg: linear-gradient(135deg, rgba(245, 158, 11, 0.06) 0%, rgba(245, 158, 11, 0.02) 100%);
+    --rate-limit-icon-bg: rgba(245, 158, 11, 0.12);
+    --rate-limit-icon-color: #d97706;
+    --rate-limit-title-color: #b45309;
+}
+
+[data-mode="dark"] {
+    --chat-info-color: #60a5fa;
+    --chat-warning-color: #fbbf24;
+    --chat-warning-background: rgba(251, 191, 36, 0.15);
+    --chat-warning-border: rgba(251, 191, 36, 0.4);
+    /* A dedicated blue keeps links recognizable in the monochrome theme. */
+    --chat-markdown-link-color: #8AB4F8;
+    --chat-markdown-link-hover-color: #AECBFA;
+    --chat-markdown-link-decoration-color: rgba(138, 180, 248, 0.58);
+    --document-preview-background: #ffffff;
+    --files-table-header-bg: #272729;
+    --files-filetype-bg: rgba(255, 255, 255, 0.07);
+    --code-token-comment: #7f8c98;
+    --code-token-punctuation: #aab2bf;
+    --code-token-operator: #c792ea;
+    --code-token-keyword: #c792ea;
+    --code-token-function: #82aaff;
+    --code-token-string: #c3e88d;
+    --code-token-number: #f78c6c;
+    --code-token-boolean: #ff5370;
+    --code-token-class: #ffcb6b;
+    --code-token-attr: #80cbc4;
+    --code-token-tag: #ff5370;
+    --code-token-regex: #89ddff;
+    --code-token-inserted-bg: rgba(76, 175, 80, 0.25);
+    --code-token-deleted-bg: rgba(244, 67, 54, 0.25);
+    --code-token-selection: rgba(33, 150, 243, 0.35);
+    --code-token-line-highlight: rgba(255, 255, 255, 0.08);
+    --rate-limit-border: rgba(245, 158, 11, 0.2);
+    --rate-limit-bg: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(245, 158, 11, 0.03) 100%);
+    --rate-limit-icon-bg: rgba(245, 158, 11, 0.15);
+    --rate-limit-icon-color: #fbbf24;
+    --rate-limit-title-color: #fbbf24;
+}
+
+/*
+ * User-message color choices
+ *
+ * Each choice may set only --user-message-bg. Global UI controls inherit the
+ * fixed monochrome interaction palette from common/init.css.
+ */
+[data-theme="blue"][data-mode="light"] {
+    --user-message-bg: color-mix(in srgb, #3a95e9 12%, var(--background));
+}
+
+[data-theme="blue"][data-mode="dark"] {
+    --user-message-bg: color-mix(in srgb, #4E89F9 18%, var(--background));
+}
+
+[data-theme="green"][data-mode="light"] {
+    --user-message-bg: color-mix(in srgb, #3dd598 12%, var(--background));
+}
+
+[data-theme="green"][data-mode="dark"] {
+    --user-message-bg: color-mix(in srgb, #4CC278 18%, var(--background));
+}
+
+[data-theme="coral"][data-mode="light"] {
+    --user-message-bg: color-mix(in srgb, #FF6B6B 12%, var(--background));
+}
+
+[data-theme="coral"][data-mode="dark"] {
+    --user-message-bg: color-mix(in srgb, #FF7E7E 18%, var(--background));
+}
+
+[data-theme="purple"][data-mode="light"] {
+    --user-message-bg: color-mix(in srgb, #a979e6 12%, var(--background));
+}
+
+[data-theme="purple"][data-mode="dark"] {
+    --user-message-bg: color-mix(in srgb, #BB86FC 18%, var(--background));
+}
+
+[data-theme="teal"][data-mode="light"] {
+    --user-message-bg: color-mix(in srgb, #00BFA5 12%, var(--background));
+}
+
+[data-theme="teal"][data-mode="dark"] {
+    --user-message-bg: color-mix(in srgb, #00E5B3 18%, var(--background));
+}
+
+[data-theme="amber"][data-mode="light"] {
+    --user-message-bg: color-mix(in srgb, #FF9800 12%, var(--background));
+}
+
+[data-theme="amber"][data-mode="dark"] {
+    --user-message-bg: color-mix(in srgb, #FFAB40 18%, var(--background));
+}
+
+[data-theme="mono"][data-mode="light"] {
+    --user-message-bg: var(--input-bg);
+}
+
+[data-theme="mono"][data-mode="dark"] {
+    --user-message-bg: var(--input-bg);
+}

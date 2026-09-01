@@ -1,0 +1,7 @@
+{
+  "terms_page_title": "服务条款",
+  "terms_loading": "正在加载服务条款...",
+  "terms_load_error": "无法加载服务条款。请稍后重试。",
+  "terms_default_template_warning_emphasis": "重要提示：",
+  "terms_default_template_warning": "此实例仍在使用默认的服务条款模板。在启用公开注册之前，运营方必须将其替换为适用于当前部署的法律内容。"
+}

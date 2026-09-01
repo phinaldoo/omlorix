@@ -1,0 +1,188 @@
+/* Admin skill package import UI. Kept separate from the production-locked adminSkills.css. */
+
+.admin-skill-import-body {
+    display: grid;
+    gap: 16px;
+    padding: 18px 24px 0;
+}
+
+.admin-skill-import-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px;
+    padding: 4px;
+    border: 1px solid var(--admin-border);
+    border-radius: 12px;
+    background: var(--admin-hover);
+}
+
+.admin-skill-import-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 38px;
+    padding: 8px 12px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--admin-text-secondary);
+    font: inherit;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.admin-skill-import-tab svg {
+    width: 18px;
+    height: 18px;
+}
+
+.admin-skill-import-tab.active {
+    background: var(--admin-bg-elevated, var(--background));
+    color: var(--admin-text);
+    box-shadow: var(--admin-shadow-sm, 0 1px 3px var(--shadow-color));
+}
+
+.admin-skill-import-panel[hidden] {
+    display: none;
+}
+
+.admin-skill-import-dropzone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 24px 18px;
+    border: 2px dashed var(--admin-border);
+    border-radius: 12px;
+    background: var(--admin-bg, var(--bg-normal));
+    color: var(--admin-text-secondary);
+    text-align: center;
+    cursor: pointer;
+}
+
+.admin-skill-import-dropzone.drag-over {
+    border-color: var(--admin-accent);
+    background: var(--admin-accent-subtle);
+}
+
+.admin-skill-import-dropzone-icon {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    margin-bottom: 4px;
+    border-radius: 10px;
+    background: var(--admin-hover);
+    color: var(--admin-accent);
+}
+
+.admin-skill-import-dropzone-icon svg {
+    width: 24px;
+    height: 24px;
+}
+
+.admin-skill-import-dropzone-title,
+.admin-skill-import-dropzone-hint,
+.admin-skill-import-dropzone-formats {
+    margin: 0;
+}
+
+.admin-skill-import-dropzone-title {
+    color: var(--admin-text);
+    font-weight: 600;
+}
+
+.admin-skill-import-dropzone-hint {
+    font-size: 0.88rem;
+}
+
+.admin-skill-import-dropzone-formats {
+    color: var(--admin-text-tertiary);
+    font-size: 0.8rem;
+    line-height: 1.4;
+}
+
+.admin-skill-import-browse,
+.admin-skill-import-paste-clear {
+    border: 0;
+    background: transparent;
+    color: var(--admin-accent);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.admin-skill-import-browse {
+    padding: 0;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.admin-skill-import-paste-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+    color: var(--admin-text-secondary);
+    font-size: 0.88rem;
+    font-weight: 600;
+}
+
+.admin-skill-import-paste-clear[hidden] {
+    display: none;
+}
+
+.admin-skill-import-paste {
+    width: 100%;
+    min-height: 190px;
+    max-height: 320px;
+    box-sizing: border-box;
+    padding: 12px;
+    border: 1px solid var(--admin-border);
+    border-radius: 10px;
+    background: var(--admin-bg, var(--bg-normal));
+    color: var(--admin-text);
+    font-family: var(--font-mono, monospace);
+    font-size: 0.82rem;
+    line-height: 1.55;
+    resize: vertical;
+}
+
+#importAdminSkillsSelectionControls[hidden] {
+    display: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .admin-skill-import-tab:hover:not(.active),
+    .admin-skill-import-dropzone:hover {
+        background: var(--admin-hover);
+        color: var(--admin-text);
+    }
+
+    .admin-skill-import-dropzone:hover {
+        border-color: var(--admin-accent);
+    }
+
+    .admin-skill-import-browse:hover,
+    .admin-skill-import-paste-clear:hover {
+        text-decoration: underline;
+        text-underline-offset: 2px;
+    }
+}
+
+@media (max-width: 640px) {
+    .admin-skill-import-body {
+        padding-right: 18px;
+        padding-left: 18px;
+    }
+
+    .admin-skill-import-tab {
+        gap: 6px;
+        padding-right: 8px;
+        padding-left: 8px;
+        font-size: 0.82rem;
+    }
+}

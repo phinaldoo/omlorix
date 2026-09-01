@@ -1,0 +1,1015 @@
+/* Sidebar */
+.sidebar-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-width: 250px;
+    max-width: 250px;
+    overflow-y: auto;
+    font-size: 14px;
+    transition: min-width 0.3s ease, max-width 0.3s ease, width 0.3s ease;
+    border-right: 1px solid var(--border-color);
+    user-select: none;
+    -webkit-user-select: none;
+    /* Safari, Chrome, Opera, iOS Safari */
+    -moz-user-select: none;
+    /* Firefox */
+    -ms-user-select: none;
+    /* Internet Explorer/Edge */;
+}
+.sidebar-header {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background-color: var(--background);
+}
+
+.sidebar-container.sidebar-collapsing .sidebar-brand-title,
+.sidebar-container.sidebar-collapsed .sidebar-brand-title {
+    display: none;
+}
+
+.sidebar-mid {
+    padding: 10px 8px;
+    position: sticky;
+    top: 50px;
+    z-index: 1;
+    background-color: var(--background);
+}
+.sidebar-element {
+    position: relative;
+    max-height: 36px;
+    width: 100%;
+    overflow: visible;
+    opacity: 1;
+    transition: max-height 0.25s ease, opacity 0.25s ease;
+}
+/* Keep chat row menus above chat composer controls and model-select layers. */
+#history .sidebar-element > .select-dropdown,
+#pinnedChats .sidebar-element > .select-dropdown,
+.project-sidebar [data-section-list] .sidebar-element > .select-dropdown {
+    position: fixed;
+    z-index: 2100;
+}
+
+.sidebar-element-button {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 36px;
+    gap: 8px;
+    padding: 8px;
+    color: var(--text-color);
+    border-radius: 8px;
+}
+.sidebar-element[data-chat-id] > .sidebar-element-button {
+    padding-inline-end: 40px;
+}
+.sidebar-element-button svg {
+    min-height: var(--svg-size);
+    max-height: var(--svg-size);
+    min-width: var(--svg-size);
+    max-width: var(--svg-size);
+}
+.chat-title-with-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+.chat-title-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    color: var(--text-color-tertiary);
+    line-height: 0;
+}
+.chat-title-badge svg {
+    width: 14px;
+    height: 14px;
+}
+.chat-title-text {
+    display: block;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.chat-unread-indicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 12px;
+    height: 12px;
+}
+.chat-unread-dot {
+    display: block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--primary-color);
+}
+.sidebar-element-button p {
+    overflow-x: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+.sidebar-element-shorcut {
+    color: var(--text-color-tertiary);
+    font-size: 14px;
+    margin-left: auto;
+    white-space: nowrap;
+    display: none;
+}
+
+.sidebar-quick-models {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 14px;
+}
+
+.sidebar-quick-models[hidden] {
+    display: none;
+}
+
+.sidebar-quick-models-header {
+    padding: 0 8px;
+}
+
+.sidebar-quick-models-header p {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: var(--text-color-tertiary);
+    text-transform: uppercase;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.sidebar-quick-models-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.sidebar-quick-model {
+    position: relative;
+    display: block;
+    width: 100%;
+}
+
+.sidebar-quick-model-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    height: 34px;
+    padding: 0 40px 0 8px;
+    border-radius: 10px;
+    color: var(--text-color);
+    background: transparent;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.sidebar-quick-model-button:focus-visible {
+    background: var(--hover);
+    outline: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .sidebar-quick-model-button:hover {
+        background: var(--hover);
+        outline: none;
+    }
+}
+
+.sidebar-quick-model-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    min-height: 18px;
+    color: var(--text-color);
+    opacity: 0.9;
+    flex-shrink: 0;
+}
+
+.sidebar-quick-model-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+.sidebar-quick-model-icon img {
+    width: 18px;
+    height: 18px;
+    object-fit: cover;
+    display: block;
+    border-radius: 50%;
+}
+
+.sidebar-quick-model-label {
+    display: block;
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    text-align: left;
+}
+
+.sidebar-quick-model-unpin {
+    position: absolute;
+    top: 50%;
+    right: 6px;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    color: var(--primary-color);
+    background: transparent;
+    opacity: 0;
+    transition: opacity 0.15s ease, background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.sidebar-quick-model-unpin svg {
+    width: 14px;
+    height: 14px;
+    display: block;
+}
+.sidebar-quick-model:focus-within .sidebar-quick-model-unpin {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .sidebar-quick-model:hover .sidebar-quick-model-unpin {
+        opacity: 1;
+        pointer-events: auto;
+    }
+}
+@media (hover: none), (pointer: coarse) {
+    .sidebar-quick-model .sidebar-quick-model-unpin {
+        opacity: 1;
+        pointer-events: auto;
+    }
+}
+
+.sidebar-quick-model-unpin:focus-visible {
+    opacity: 1;
+    color: var(--primary-color);
+    background: color-mix(in srgb, var(--primary-color) 10%, transparent);
+    transform: translateY(-50%) scale(1.02);
+    outline: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .sidebar-quick-model-unpin:hover {
+        opacity: 1;
+        color: var(--primary-color);
+        background: color-mix(in srgb, var(--primary-color) 10%, transparent);
+        transform: translateY(-50%) scale(1.02);
+        outline: none;
+    }
+}
+@media (hover: none), (pointer: coarse) {
+    .sidebar-quick-model-unpin {
+        opacity: 1;
+        transform: translateY(-50%) scale(1.02);
+    }
+}
+
+.sidebar-container.sidebar-collapsing .sidebar-quick-models-header,
+.sidebar-container.sidebar-collapsed .sidebar-quick-models-header,
+.sidebar-container.sidebar-collapsed .sidebar-quick-model-label,
+.sidebar-container.sidebar-collapsed .sidebar-quick-model-unpin {
+    display: none;
+}
+
+.sidebar-container.sidebar-collapsing .sidebar-quick-models {
+    margin-top: 10px;
+}
+
+.sidebar-container.sidebar-collapsed .sidebar-quick-models {
+    gap: 6px;
+    margin-top: 10px;
+}
+
+.sidebar-container.sidebar-collapsed .sidebar-quick-model-button {
+    justify-content: center;
+    height: 36px;
+    padding: 6px 8px;
+    border-radius: 8px;
+}
+
+.sidebar-container.sidebar-collapsed .sidebar-quick-model-icon {
+    width: var(--svg-size);
+    height: var(--svg-size);
+    opacity: 1;
+}
+
+.sidebar-element-button.red svg {
+    fill: var(--error-color);
+}
+.sidebar-element-button.red p {
+    color: var(--error-color);
+}
+/* Ellipsis visibility: keep menu buttons in the accessibility tree; reveal
+   them visually on hover/focus, and keep them visible on touch devices. */
+.sidebar-element-menu-trigger {
+    display: inline-flex;
+    opacity: 0;
+    pointer-events: none;
+    position: absolute;
+    top: 50%;
+    inset-inline-end: 4px;
+    z-index: 1;
+    width: 28px;
+    height: 28px;
+    padding: 4px;
+    transform: translateY(-50%);
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-color-tertiary);
+    cursor: pointer;
+}
+
+.sidebar-element-menu-trigger svg {
+    width: var(--svg-size);
+    height: var(--svg-size);
+}
+
+.sidebar-element-menu-trigger:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: -2px;
+}
+
+@media (hover: none), (pointer: coarse) {
+    .sidebar-element-menu-trigger {
+        opacity: 1;
+        pointer-events: auto;
+    }
+    .sidebar-quick-model-unpin {
+        opacity: 1;
+        pointer-events: auto;
+    }
+    .sidebar-element-button:active,
+    .sidebar-element-button:focus {
+        background-color: transparent;
+    }
+    .sidebar-element-button:active .sidebar-element-shorcut,
+    .sidebar-element-button:focus .sidebar-element-shorcut {
+        display: none;
+    }
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .sidebar-element-button:hover {
+        background-color: var(--hover);
+    }
+
+    .sidebar-element[data-chat-id]:hover > .sidebar-element-button,
+    .sidebar-element[data-chat-id]:focus-within > .sidebar-element-button,
+    .sidebar-element-menu-trigger:hover {
+        background-color: var(--hover);
+    }
+
+    .sidebar-element-button:hover .sidebar-element-shorcut {
+        display: none;
+    }
+}
+
+/* Inline rename */
+.sidebar-element.inline-renaming .sidebar-element-menu-trigger {
+    display: none !important;
+}
+.inline-rename-input {
+    flex: 1;
+    min-width: 0;
+    font: inherit;
+    font-size: 14px;
+    color: var(--text-color);
+    background: var(--bg-color-secondary, var(--bg-color));
+    border: 1px solid var(--accent-color, #666);
+    border-radius: 4px;
+    padding: 2px 6px;
+    outline: none;
+    height: 24px;
+    box-sizing: border-box;
+}
+.inline-rename-input:focus {
+    border-color: var(--accent-color, #888);
+    box-shadow: 0 0 0 1px var(--accent-color, #888);
+}
+
+.sidebar-main {
+    flex: 1 1 auto;
+    /* grow to take space between header and profile */
+    overflow: visible;
+    /* no internal scroll */
+    padding: 0 8px var(--small-sidebar-width) 0;
+    /* bottom padding ensures last chat not covered by profile */;
+}
+.sidebar-section {
+    width: 100%;
+    height: auto;
+    padding-left: 8px;
+}
+.sidebar-section + .sidebar-section {
+    margin-top: 20px;
+}
+.sidebar-section-button {
+    display: none;
+    width: 100%;
+    height: 100%;
+    cursor: e-resize;
+}
+.sidebar-section-header {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px;
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text-color-tertiary);
+    min-height: 36px;
+}
+.sidebar-section-header-right {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    height: 19px;
+    width: 19px;
+    pointer-events: none;
+    border-radius: 50%;
+}
+
+.chats-container {
+    padding-right: 8px;
+}
+
+.sidebar-footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px;
+    height: var(--small-sidebar-width);
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    background-color: var(--background);
+}
+.sidebar-profile-button {
+    display: flex;
+    align-items: center;
+    height: 36px;
+    width: 100%;
+    border-radius: 8px;
+    padding: 0px 5px 0px 5px;
+    gap: 8px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .sidebar-profile-button:hover {
+        background-color: var(--hover);
+    }
+}
+
+/* Keep the profile row stationary while setup resolves the avatar fallback. */
+.sidebar-profile-avatar {
+    position: relative;
+    display: block;
+    width: 26px;
+    height: 26px;
+    min-width: 26px;
+    flex: 0 0 26px;
+}
+
+.sidebar-profile-button img {
+    position: absolute;
+    inset: 0;
+    height: 26px;
+    width: 26px;
+    min-width: 26px;
+    border-radius: 50%;
+    font-size: 11px;
+    object-fit: cover;
+}
+
+/* Stack the decoded image, initials fallback, and loading skeleton in one slot. */
+.sidebar-profile-button .profile-initials {
+    position: absolute;
+    inset: 0;
+    width: 26px;
+    height: 26px;
+    min-width: 26px;
+    font-size: 11px;
+}
+
+.sidebar-profile-button img[hidden],
+.sidebar-profile-button .profile-initials[hidden] {
+    display: none !important;
+}
+
+.sidebar-profile-skeleton {
+    display: block;
+    background-color: var(--border-color);
+    animation: skeleton-pulse 1.5s infinite ease-in-out;
+    pointer-events: none;
+}
+
+.sidebar-profile-avatar-skeleton {
+    position: absolute;
+    inset: 0;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+}
+
+.sidebar-profile-name-skeleton {
+    width: 92px;
+    height: 12px;
+    max-width: calc(100% - 42px);
+    border-radius: 6px;
+}
+
+.sidebar-profile-button p {
+    overflow-x: hidden;
+    white-space: nowrap;
+    color: var(--text-color);
+    text-overflow: ellipsis;
+}
+
+.sidebar-profile-dropdown {
+    position:fixed;
+    bottom: 50px;
+    left: 7px;
+    width: 234px;
+    background-color: var(--surface-elevated, var(--background));
+    z-index: 1100;
+    border-radius: 16px;
+    border: 1px solid var(--surface-elevated-border, var(--border-color));
+    padding: 6px;
+    box-shadow: var(--surface-elevated-shadow, 0 2px 4px var(--shadow-color));
+    /* Animation defaults */
+    opacity: 0;
+    transform: translateY(10px);
+    pointer-events: none;
+    transition: opacity 0.1s ease, transform 0.1s ease;
+    user-select: none;
+    -webkit-user-select: none;
+    /* Safari, Chrome, Opera, iOS Safari */
+    -moz-user-select: none;
+    /* Firefox */
+    -ms-user-select: none;
+    /* Internet Explorer/Edge */;
+}
+
+/* Visible state */
+.sidebar-profile-dropdown.open {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.4);
+    backdrop-filter: var(--modal-overlay-backdrop-filter);
+    -webkit-backdrop-filter: var(--modal-overlay-backdrop-filter);
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+    transition: opacity 0.3s ease;
+    z-index: 1000;
+}
+
+.sidebar-backdrop.is-visible {
+    opacity: 1;
+    pointer-events: auto;
+    visibility: visible;
+}
+.sidebar-profile-dropdown-button {
+    display: flex;
+    align-items: center;
+    height: 36px;
+    width: 100%;
+    border-radius: 10px;
+    gap: 6px;
+    padding: 6px 10px;
+    color: var(--text-color);
+}
+
+.sidebar-profile-dropdown-button[hidden] {
+    display: none;
+}
+
+.sidebar-profile-dropdown-button-red {
+    color: var(--error-color, rgb(206, 64, 53));
+}
+
+.sidebar-profile-dropdown-button svg {
+    height: var(--svg-size);
+    width: var(--svg-size);
+}
+
+.sidebar-profile-dropdown-icon {
+    display: inline-flex;
+    flex: 0 0 auto;
+}
+
+.sidebar-profile-dropdown-button p {
+    font-size: 14px;
+}
+
+.sidebar-profile-dropdown-divider {
+    height: 1px;
+    background: var(--surface-elevated-border, var(--border-color));
+    margin: 6px 4px;
+}
+
+.sidebar-profile-accounts {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.sidebar-account-summary {
+    border-radius: 12px;
+    background: var(--surface-muted, var(--hover));
+}
+
+/* Keyboard users receive the same distinct interaction layer as pointer users. */
+.sidebar-profile-dropdown-button:focus-visible {
+    background: var(--surface-interactive-hover, var(--hover));
+    outline: 2px solid var(--surface-elevated-border, var(--primary-color));
+    outline-offset: 1px;
+}
+
+.sidebar-account-summary-name,
+.sidebar-account-row-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-color);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sidebar-account-list,
+.sidebar-account-manager {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.sidebar-account-row,
+.sidebar-account-manager-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 10px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    border-radius: 10px;
+    text-align: left;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .sidebar-account-row:hover, .sidebar-account-manager-row:hover, .sidebar-account-action:hover, .sidebar-account-add-button:hover {
+        background: var(--surface-interactive-hover, var(--hover));
+    }
+}
+
+.sidebar-account-row.active {
+    background: var(--surface-interactive-active, var(--hover));
+}
+
+
+.sidebar-account-main {
+    min-width: 0;
+    flex: 1;
+}
+
+.sidebar-account-badge {
+    font-size: 11px;
+    color: var(--text-color-secondary);
+}
+
+.sidebar-account-manager-title {
+    font-size: 12px;
+    color: var(--text-color-secondary);
+    padding: 4px 10px 0;
+}
+
+.sidebar-account-manager-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.sidebar-account-action {
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-color);
+    font-size: 12px;
+    padding: 6px 8px;
+}
+
+.sidebar-account-action--danger {
+    color: var(--error-color, rgb(206, 64, 53));
+}
+
+/* Sidebar section collapse styles */
+.sidebar-section-header-right svg {
+    transition: transform 0.2s ease;
+}
+.sidebar-section.collapsed .sidebar-section-header-right svg {
+    transform: rotate(-90deg);
+}
+.sidebar-section.collapsed .sidebar-element {
+    max-height: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Drag and Drop Styles */
+.sidebar-element {
+    /* max-height keeps the sidebar section collapse animation working */
+    transition: opacity 0.15s ease, transform 0.15s ease, max-height 0.2s ease;
+}
+
+/* Source row while it is being dragged: fade it back subtly instead of
+   rotating it, keeping the sidebar calm and minimal. */
+.sidebar-element.dragging {
+    opacity: 0.35;
+    transform: scale(0.98);
+    z-index: 1000;
+}
+
+/* Reorder insertion indicator: a slim accent line with a leading dot,
+   drawn without shifting the row (no layout jump while dragging). */
+.sidebar-element.drag-over {
+    position: relative;
+}
+
+.sidebar-element.drag-over::before {
+    content: "";
+    position: absolute;
+    top: -2px;
+    left: 10px;
+    right: 6px;
+    height: 2px;
+    border-radius: 999px;
+    background: var(--accent-color, #3b82f6);
+    pointer-events: none;
+    z-index: 5;
+}
+
+.sidebar-element.drag-over::after {
+    content: "";
+    position: absolute;
+    top: -4px;
+    left: 4px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent-color, #3b82f6);
+    pointer-events: none;
+    z-index: 5;
+}
+
+/* Visual feedback for drop zones */
+.sidebar-section {
+    position: relative;
+}
+
+/* Custom drag ghost that follows the cursor while dragging a chat.
+   Rendered off-screen; browsers snapshot it via setDragImage. */
+.sidebar-chat-drag-ghost {
+    position: absolute;
+    top: -1000px;
+    left: -1000px;
+    z-index: 10000;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 240px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: var(--background);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 8px 24px var(--shadow-color, rgba(0, 0, 0, 0.15));
+    color: var(--text-color);
+    font-size: 13px;
+    font-weight: 500;
+    pointer-events: none;
+}
+
+.sidebar-chat-drag-ghost-icon {
+    display: inline-flex;
+    flex-shrink: 0;
+    color: var(--accent-color, #3b82f6);
+}
+
+.sidebar-chat-drag-ghost-icon svg {
+    width: 16px;
+    height: 16px;
+}
+
+.sidebar-chat-drag-ghost-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sidebar-element {
+        transition: none;
+    }
+}
+
+/* Improve dragging cursor */
+.sidebar-element[draggable="true"] {
+    cursor: grab;
+}
+
+.sidebar-element[draggable="true"]:active {
+    cursor: grabbing;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .sidebar-element:focus-within .sidebar-element-menu-trigger,
+    .sidebar-element:hover .sidebar-element-menu-trigger {
+        opacity: 1;
+        pointer-events: auto;
+    }
+    .sidebar-element:focus-within .chat-unread-indicator,
+    .sidebar-element:hover .chat-unread-indicator {display: none;}
+    .sidebar-section:hover .sidebar-section-header-right {display: flex;
+        pointer-events: auto;}
+    .sidebar-section-header-right:hover {cursor: pointer;
+        background-color: var(--hover);
+        border-radius: 50%;}
+    .sidebar-profile-dropdown-button:hover {background-color: var(--surface-interactive-hover, var(--hover));
+        cursor: pointer;}   
+    .sidebar-profile-dropdown-button-red:hover {background-color: var(--danger-hover-bg);}
+    .sidebar-element-button.red:hover {background-color: var(--danger-hover-bg);}
+    .sidebar-element:focus-within .sidebar-element-shorcut {display: flex;}.sidebar-element:hover .sidebar-element-shorcut {display: flex;}
+}
+
+.sidebar-element:has(> .select-dropdown.open) > .sidebar-element-menu-trigger {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* ------------------------------------------------------------ */
+/* Responsive Sidebar Styles                                    */
+/* ------------------------------------------------------------ */
+
+/* Overlay mode – toggled by JS based on .main-container width */
+body.sidebar-overlay-mode .sidebar-container {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100%;
+    z-index: 2200;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
+    background-color: var(--background);
+
+    /* Override JS inline styles for width when it's an overlay */
+    min-width: 250px !important;
+    max-width: 250px !important;
+    width: 250px !important;
+
+    /* Ensure content is always visible and scrollable */
+    display: flex !important;
+    overflow-y: auto !important;
+}
+
+body.sidebar-overlay-mode.sidebar-open .sidebar-container {
+    transform: translateX(0);
+    box-shadow: 4px 0 15px rgba(0,0,0,0.1);
+}
+
+body.sidebar-overlay-mode .sidebar-profile-dropdown {
+    z-index: 2305;
+}
+
+/* Show the toggle button in the main header when in overlay mode */
+body.sidebar-overlay-mode .main-container-header #mainContainerSidebarCloseButton {
+    display: flex;
+}
+
+/* Ensure internal parts of sidebar are visible when overlay mode is active */
+body.sidebar-overlay-mode .sidebar-main {
+    display: block !important;
+}
+body.sidebar-overlay-mode .sidebar-section-button {
+    display: none !important;
+}
+
+body.sidebar-overlay-mode .sidebar-backdrop {
+    display: block;
+}
+
+/* Show create-chat button in main header when in overlay mode */
+body.sidebar-overlay-mode #mainHeaderCreateChatButton {
+    display: flex;
+}
+
+/* Mobile full-width sidebar – stays viewport-based for smartphones */
+@media (max-width: 500px) {
+    body.sidebar-overlay-mode .sidebar-container {
+        min-width: 100% !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        border-right: none;
+        box-shadow: none;
+    }
+
+    .sidebar-profile-dropdown {
+        width: calc(100% - 7px - 7px);
+    }
+}
+
+/* =========================== */
+/* Lazy Loading Skeleton */
+/* =========================== */
+.sidebar-element-loading {
+    cursor: default;
+    pointer-events: none;
+}
+
+.sidebar-element-loading .skeleton-text {
+    height: 14px;
+    width: 70%;
+    background-color: var(--border-color);
+    border-radius: 4px;
+    animation: skeleton-pulse 1.5s infinite ease-in-out;
+    opacity: 0.5;
+}
+
+.chats-loading-sentinel {
+    height: 1px;
+    width: 100%;
+    pointer-events: none;
+}
+
+/* =============================================
+   Chat History Time Dividers
+   ============================================= */
+.chat-time-divider {
+    padding: 18px 8px 4px;
+    max-height: 40px;
+    overflow: hidden;
+    user-select: none;
+    pointer-events: none;
+    transition: max-height 0.25s ease, opacity 0.25s ease, padding 0.25s ease;
+}
+
+.chat-time-divider:first-child {
+    padding-top: 6px;
+}
+
+.chat-time-divider-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-color-tertiary);
+    letter-spacing: 0.015em;
+}
+
+/* Hide dividers when section is collapsed */
+.sidebar-section.collapsed .chat-time-divider {
+    max-height: 0;
+    opacity: 0;
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+    pointer-events: none;
+}

@@ -1,0 +1,522 @@
+.service-connections-toolbar .om-button.border svg {
+    width: 16px;
+    height: 16px;
+}
+
+.service-connections-table-wrapper {
+    max-width: 100%;
+    margin-top: 16px;
+    overflow-x: auto;
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius);
+    background: var(--bg-normal);
+}
+
+.service-connections-table {
+    min-width: 1040px;
+}
+
+.service-connections-table th:nth-child(1),
+.service-connections-table td:nth-child(1) {
+    width: 18%;
+}
+
+.service-connections-table th:nth-child(2),
+.service-connections-table td:nth-child(2) {
+    width: 23%;
+}
+
+.service-connections-table th:nth-child(3),
+.service-connections-table td:nth-child(3) {
+    width: 19%;
+}
+
+.service-connections-table th:nth-child(4),
+.service-connections-table td:nth-child(4) {
+    width: 7%;
+}
+
+.service-connections-table th:nth-child(5),
+.service-connections-table td:nth-child(5) {
+    width: 21%;
+}
+
+.service-connections-table th:nth-child(6),
+.service-connections-table td:nth-child(6) {
+    width: 12%;
+}
+
+.service-connections-table td {
+    vertical-align: top;
+}
+
+.service-connection-name {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.4;
+    color: var(--admin-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.service-connection-url {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+    color: var(--admin-text);
+    line-height: 1.45;
+}
+
+.service-connection-subtle {
+    margin-top: 3px;
+    font-size: 12px;
+    line-height: 1.35;
+    color: var(--admin-text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.service-connections-table td:nth-child(5) {
+    white-space: normal;
+}
+
+.service-connection-status-details {
+    max-width: 100%;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.service-connection-purposes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-height: 24px;
+    align-items: center;
+}
+
+.service-connection-purpose,
+.service-connection-status {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.service-connection-purpose {
+    background: var(--admin-bg);
+    border: 1px solid var(--admin-border);
+    color: var(--admin-text-secondary);
+}
+
+.service-connection-purpose.muted {
+    color: var(--admin-text-tertiary);
+}
+
+.service-connection-status.up {
+    background: var(--admin-success-bg);
+    color: var(--admin-success);
+}
+
+.service-connection-status.down {
+    background: var(--admin-danger-bg);
+    color: var(--admin-danger);
+}
+
+.service-connection-status.disabled {
+    background: var(--admin-bg);
+    color: var(--admin-text-tertiary);
+}
+
+.service-connection-status.unknown {
+    background: var(--admin-warning-bg);
+    color: var(--admin-warning);
+}
+
+.service-connection-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+}
+
+.service-connection-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: 1px solid transparent;
+    border-radius: var(--admin-radius-sm);
+    background: transparent;
+    color: var(--admin-text-secondary);
+    cursor: pointer;
+    transition: background var(--admin-transition), color var(--admin-transition), border-color var(--admin-transition);
+}
+
+.service-connection-icon-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .service-connection-icon-btn:hover {
+        background: var(--admin-hover);
+        color: var(--admin-text);
+        border-color: var(--admin-border);
+    }
+
+    .service-connection-icon-btn.danger:hover {
+        color: var(--admin-danger);
+    }
+}
+
+.service-connection-icon-btn:disabled {
+    cursor: wait;
+    opacity: 0.55;
+}
+
+.service-connection-form-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.service-connection-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.service-connection-field.compact {
+    max-width: 180px;
+}
+
+.service-connection-field label,
+.service-connection-toggle-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--admin-text);
+}
+
+.service-connection-field input {
+    width: 100%;
+    min-height: 40px;
+    padding: 9px 12px;
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-sm);
+    background: var(--bg-normal);
+    color: var(--admin-text);
+    font-size: 14px;
+    font-family: inherit;
+}
+
+.service-connection-field input:focus {
+    outline: none;
+    border-color: var(--admin-text);
+}
+
+.service-connection-toggle-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.service-connection-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 10px 12px;
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-sm);
+    cursor: pointer;
+    transition: border-color var(--admin-transition), background var(--admin-transition), box-shadow var(--admin-transition);
+}
+
+/* Keep the shared switch geometry intact while centering it within the larger modal label row. */
+.service-connection-toggle .toggle-switch {
+    flex: 0 0 auto;
+}
+
+.service-connection-toggle .toggle-input:focus-visible + .toggle-slider {
+    outline: 2px solid var(--admin-text);
+    outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .service-connection-toggle:hover {
+        border-color: var(--admin-border-strong, var(--admin-border));
+        background: var(--admin-hover);
+    }
+}
+
+.service-connection-toggle:focus-within {
+    border-color: var(--admin-text);
+    box-shadow: 0 0 0 1px var(--admin-text);
+}
+
+.service-connection-checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--admin-text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.service-connection-checkbox input {
+    width: auto;
+    min-height: auto;
+}
+
+@media (max-width: 768px) {
+    .service-connections-toolbar {
+        align-items: stretch;
+    }
+
+    .service-connections-toolbar .admin-toolbar-right {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        width: 100%;
+    }
+
+    .service-connections-toolbar .om-button.border {
+        width: 100%;
+        min-width: 0;
+        min-height: 44px;
+        padding-inline: 10px;
+        justify-content: center;
+        text-align: center;
+        white-space: normal;
+    }
+
+    /* Keep the primary action prominent without squeezing three buttons onto
+       one row. The two maintenance actions remain balanced above it. */
+    .service-connections-toolbar .service-connections-primary-action {
+        grid-column: 1 / -1;
+    }
+
+    /* The desktop table deliberately has a wide minimum width. On smaller
+       screens, preserve the table semantics while presenting each row as a
+       self-contained, labelled card. */
+    .service-connections-table-wrapper {
+        overflow: visible;
+        border: none;
+        border-radius: 0;
+        background: transparent;
+    }
+
+    .service-connections-table,
+    .service-connections-table tbody {
+        display: block;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .service-connections-table tbody {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    /* Keep the real column headers available to assistive technology. The
+       visible labels come from each cell's translated data-label attribute. */
+    .service-connections-table thead {
+        position: absolute;
+        display: block;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
+    .service-connections-table tbody tr {
+        display: grid;
+        width: 100%;
+        grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+        grid-template-areas:
+            "name url"
+            "purposes purposes"
+            "weight status"
+            "actions actions";
+        align-items: stretch;
+        gap: 0;
+        overflow: hidden;
+        border: 1px solid var(--admin-border-subtle);
+        border-radius: var(--admin-radius, 12px);
+        background: var(--bg-normal);
+        box-shadow: var(--admin-shadow-sm);
+    }
+
+    .service-connections-table .service-connection-cell,
+    .service-connections-table tbody tr:last-child .service-connection-cell {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        min-width: 0;
+        box-sizing: border-box;
+        padding: 11px 16px;
+        border-right: none;
+        border-bottom: 1px solid var(--admin-border-subtle);
+        overflow: visible;
+        text-overflow: clip;
+        white-space: normal;
+    }
+
+    /* Desktop column percentages otherwise continue constraining the grid
+       items and recreate the narrow, mostly empty card shown on phones. Keep
+       this selector at least as specific as the nth-child width rules above. */
+    .service-connections-table td.service-connection-cell {
+        width: auto;
+    }
+
+    .service-connections-table .service-connection-cell::before {
+        content: attr(data-label);
+        font-size: 10px;
+        line-height: 1.2;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--admin-text-tertiary);
+    }
+
+    .service-connections-table .service-connection-cell-name {
+        grid-area: name;
+        padding-block: 14px;
+        background: var(--admin-bg);
+        border-right: 1px solid var(--admin-border-subtle);
+    }
+
+    .service-connections-table .service-connection-cell-url {
+        grid-area: url;
+        padding-block: 14px;
+        background: var(--admin-bg);
+    }
+
+    .service-connections-table .service-connection-cell-purposes {
+        grid-area: purposes;
+    }
+
+    .service-connections-table .service-connection-cell-weight {
+        grid-area: weight;
+        border-right: 1px solid var(--admin-border-subtle);
+    }
+
+    .service-connections-table .service-connection-cell-status {
+        grid-area: status;
+    }
+
+    .service-connections-table .service-connection-cell-actions,
+    .service-connections-table tbody tr:last-child .service-connection-cell-actions {
+        grid-area: actions;
+        flex-direction: row;
+        align-items: center;
+        min-height: 54px;
+        padding-block: 8px;
+        border-bottom: none;
+    }
+
+    .service-connections-table .service-connection-cell-actions::before {
+        margin-right: auto;
+    }
+
+    .service-connections-table .service-connection-url,
+    .service-connections-table .service-connection-name,
+    .service-connections-table .service-connection-subtle {
+        max-width: 100%;
+        overflow: visible;
+        text-overflow: clip;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .service-connections-table .service-connection-status {
+        align-self: flex-start;
+    }
+
+    .service-connections-table .service-connection-actions {
+        gap: 8px;
+    }
+
+    /* Touch targets grow independently of the denser desktop controls. */
+    .service-connections-table .service-connection-icon-btn {
+        width: 44px;
+        height: 44px;
+    }
+
+    /* Loading and empty states remain one simple panel instead of inheriting
+       the data-card grid intended for actual connections. */
+    .service-connections-table tbody tr.stats-table-empty {
+        display: block;
+        overflow: hidden;
+    }
+
+    .service-connections-table tbody tr.stats-table-empty td {
+        display: block;
+        width: 100%;
+        padding: 40px 16px;
+        border: none;
+        text-align: center;
+    }
+
+    .service-connection-toggle-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 520px) {
+    /* Translated maintenance labels can be substantially longer than English,
+       so every action gets its own row at phone widths. */
+    .service-connections-toolbar .admin-toolbar-right {
+        grid-template-columns: 1fr;
+    }
+
+    .service-connections-toolbar .service-connections-primary-action {
+        grid-column: auto;
+    }
+
+    .service-connections-table tbody tr {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas:
+            "name"
+            "url"
+            "purposes"
+            "weight"
+            "status"
+            "actions";
+    }
+
+    .service-connections-table .service-connection-cell-name {
+        border-right: none;
+    }
+
+    .service-connections-table .service-connection-cell-weight {
+        border-right: none;
+    }
+}
+
+@media (max-width: 360px) {
+    .service-connections-table .service-connection-cell,
+    .service-connections-table tbody tr:last-child .service-connection-cell {
+        padding-inline: 12px;
+    }
+
+    .service-connections-table .service-connection-purpose {
+        max-width: 100%;
+        white-space: normal;
+    }
+}

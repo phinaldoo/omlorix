@@ -1,0 +1,677 @@
+.database-page .db-entity-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+}
+
+.database-page .db-history-pagination {
+    margin: 0 16px 16px;
+}
+
+.database-page .db-list-item {
+    align-items: stretch;
+    gap: 18px;
+    padding: 18px 20px;
+    border: 1px solid var(--admin-border-subtle);
+    border-radius: var(--admin-radius);
+    transition: background var(--admin-transition);
+}
+
+.database-page .settings-section-body .db-entity-list .db-list-item {
+    border-bottom: 1px solid var(--admin-border-subtle);
+    padding: 18px 20px;
+}
+
+.database-page .settings-section-body .db-entity-list .db-list-item:first-child {
+    padding-top: 18px;
+}
+
+.database-page .settings-section-body .db-entity-list .db-list-item:last-child {
+    border-bottom: 1px solid var(--admin-border-subtle);
+    padding-bottom: 18px;
+}
+
+.database-page .db-entity-id {
+    overflow-wrap: anywhere;
+}
+
+.database-page .db-action-grid {
+    width: min(100%, 360px);
+    display: grid;
+    grid-template-columns: repeat(2, minmax(136px, 1fr));
+    align-content: start;
+    gap: 8px;
+}
+
+.database-page .db-action-grid .om-button.border {
+    width: 100%;
+    min-width: 0;
+    padding: 0 12px;
+}
+
+.database-page .db-action-grid .om-button.border span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* The shared loading indicator replaces the action glyph so the busy state
+ * remains clear without showing two competing icons in the compact grid. */
+.database-page .db-action-button.loading > svg {
+    display: none;
+}
+
+/* Backup destinations use a dedicated card layout instead of the generic
+ * settings row. Provider-aware summaries stay scannable without exposing the
+ * encrypted configuration object or its redaction markers. */
+.database-page .db-destination-section-header {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.database-page .db-destination-section-heading {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+}
+
+.database-page .db-destination-section-header > .om-button.border {
+    flex: 0 0 auto;
+}
+
+.database-page .db-destination-section-body {
+    border: 0;
+    background: transparent;
+}
+
+.database-page .db-destination-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 480px), 1fr));
+    gap: 12px;
+    padding: 0;
+}
+
+.database-page .db-destination-list > .provider-empty-state {
+    grid-column: 1 / -1;
+    padding: 28px 20px;
+    border: 1px dashed var(--admin-border);
+    border-radius: var(--admin-radius);
+    background: var(--bg-normal);
+}
+
+.database-page .db-destination-card {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius);
+    background: var(--bg-normal);
+}
+
+.database-page .db-destination-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 18px 16px;
+}
+
+.database-page .db-destination-identity {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.database-page .db-destination-provider-icon {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border: 1px solid var(--admin-border-subtle);
+    border-radius: 10px;
+    background: var(--admin-bg);
+    color: var(--admin-text-secondary);
+}
+
+.database-page .db-destination-provider-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+.database-page .db-destination-title-group {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+}
+
+.database-page .db-destination-name {
+    margin: 0;
+    overflow: hidden;
+    color: var(--admin-text);
+    font-size: 14px;
+    font-weight: 650;
+    line-height: 1.35;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.database-page .db-destination-badges {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+
+.database-page .db-destination-provider-badge,
+.database-page .db-destination-status {
+    display: inline-flex;
+    align-items: center;
+    min-height: 22px;
+    padding: 2px 7px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.database-page .db-destination-provider-badge {
+    border: 1px solid var(--admin-border);
+    background: var(--admin-bg);
+    color: var(--admin-text-secondary);
+}
+
+.database-page .db-destination-status {
+    gap: 6px;
+    color: var(--admin-text-secondary);
+}
+
+.database-page .db-destination-status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--admin-text-tertiary);
+}
+
+.database-page .db-destination-status.is-active {
+    background: var(--admin-success-bg);
+    color: var(--admin-success-text);
+}
+
+.database-page .db-destination-status.is-active .db-destination-status-dot {
+    background: var(--admin-success);
+}
+
+.database-page .db-destination-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px 24px;
+    margin: 0;
+    padding: 2px 18px 18px;
+}
+
+.database-page .db-destination-summary-item {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+}
+
+.database-page .db-destination-summary dt {
+    color: var(--admin-text-tertiary);
+    font-size: 11px;
+    font-weight: 550;
+    line-height: 1.3;
+}
+
+.database-page .db-destination-summary dd {
+    margin: 0;
+    overflow: hidden;
+    color: var(--admin-text);
+    font-size: 13px;
+    line-height: 1.4;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.database-page .db-destination-summary-item.is-warning dd {
+    color: var(--admin-warning-text);
+}
+
+.database-page .db-destination-security-warning,
+.database-page .db-destination-test-result {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 0 18px 16px;
+    padding: 10px 11px;
+    border-radius: var(--admin-radius-sm);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.database-page .db-destination-security-warning {
+    border: 1px solid var(--admin-warning-border);
+    background: var(--admin-warning-bg);
+    color: var(--admin-warning-text);
+}
+
+.database-page .db-destination-security-warning svg,
+.database-page .db-destination-test-result svg {
+    flex: 0 0 auto;
+    width: 16px;
+    height: 16px;
+    margin-top: 1px;
+}
+
+.database-page .db-destination-test-result {
+    border: 1px solid var(--admin-border-subtle);
+    background: var(--admin-bg);
+    color: var(--admin-text-secondary);
+}
+
+.database-page .db-destination-test-result.is-success {
+    border-color: var(--admin-success-border);
+    background: var(--admin-success-bg);
+    color: var(--admin-success-text);
+}
+
+.database-page .db-destination-test-result.is-error {
+    border-color: var(--admin-error-border);
+    background: var(--admin-error-bg);
+    color: var(--admin-error-text);
+}
+
+.database-page .db-destination-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 18px;
+    border-top: 1px solid var(--admin-border-subtle);
+}
+
+.database-page .db-destination-card-actions .om-button.border {
+    height: 34px;
+    padding-inline: 12px;
+}
+
+.database-page .db-destination-delete-action {
+    width: 34px;
+    padding: 0 !important;
+    margin-inline-start: auto;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .database-page .db-list-item:hover {
+        background: var(--admin-hover);
+        border-color: var(--admin-border);
+    }
+
+    .database-page .db-destination-card:hover {
+        border-color: var(--admin-border);
+    }
+}
+
+@media (max-width: 1100px) {
+    .database-page .db-list-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .database-page .db-action-grid {
+        width: 100%;
+    }
+}
+
+@media (max-width: 420px) {
+    .database-page .db-entity-list {
+        padding: 12px;
+    }
+
+    .database-page .db-destination-list {
+        padding: 0;
+    }
+
+    .database-page .db-destination-summary {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .database-page .db-destination-card-actions .om-button.border:not(.db-destination-delete-action) {
+        flex: 1 1 0;
+        min-width: 0;
+        padding-inline: 8px;
+    }
+
+    .database-page .db-action-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 560px) {
+    .database-page .db-destination-section-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .database-page .db-destination-section-header > .om-button.border {
+        width: 100%;
+    }
+}
+
+.database-page .settings-row-desc code {
+    display: inline-block;
+    max-width: min(100%, 720px);
+    padding: 2px 6px;
+    border: 1px solid var(--admin-border-subtle);
+    border-radius: 6px;
+    background: var(--admin-bg);
+    font-size: 12px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.database-page #databaseRefreshButton {
+    border-color: var(--admin-border);
+    background: var(--bg-normal);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .database-page #databaseRefreshButton:hover {
+        border-color: var(--admin-text-tertiary);
+        background: var(--admin-hover);
+        box-shadow: none;
+    }
+}
+
+/* Form composition belongs to the database feature; the surrounding modal
+ * frame, spacing, scrolling, and actions come from the shared modal shell. */
+.database-page .database-modal-body .form-group {
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.database-page .database-modal-body .form-group:last-child,
+.database-page .database-modal-body .db-destination-field {
+    margin-bottom: 0;
+}
+
+.database-page .database-modal-body .form-label {
+    display: block;
+    margin-bottom: 6px;
+}
+
+.database-page .database-modal-body .form-field-stack,
+.database-page .database-modal-body .backup-schedule-time-controls,
+.database-page .database-modal-body .backup-schedule-days-panel {
+    display: flex;
+    flex-direction: column;
+}
+
+.database-page .database-modal-body .form-field-stack {
+    gap: 14px;
+}
+
+.database-page .database-modal-body .form-field-stack-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.database-page .database-modal-body .backup-schedule-time-controls {
+    gap: 12px;
+}
+
+.database-page .database-modal-body .backup-schedule-days-panel {
+    gap: 6px;
+}
+
+.database-page .database-modal-body .backup-schedule-time-panel[hidden],
+.database-page .database-modal-body .backup-schedule-days-panel[hidden] {
+    display: none !important;
+}
+
+.database-page .database-modal-body .backup-schedule-minute-input {
+    width: 90px;
+}
+
+.database-page .database-modal-body .form-group .settings-row-desc {
+    margin: 0 0 10px;
+}
+
+.database-page .database-modal-body .form-checkbox-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+    margin-top: 4px;
+    color: var(--admin-text);
+    font-size: 14px;
+    line-height: 1.5;
+    text-align: left;
+    cursor: pointer;
+}
+
+.database-page .database-modal-body .form-checkbox-row .form-checkbox {
+    margin-top: 2px;
+}
+
+.database-page .database-modal-body .form-checkbox-row span {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.database-page .database-modal-body > p:last-child {
+    margin-bottom: 0;
+}
+
+.database-page #backupNowSettingsContent[hidden],
+.database-page #backupNowSetupRequired[hidden],
+.database-page #backupNowCreateButton[hidden] {
+    display: none !important;
+}
+
+.database-page .db-backup-setup-required {
+    padding: 18px;
+    border: 1px solid var(--admin-warning-border);
+    border-radius: var(--admin-radius-sm);
+    background: var(--admin-warning-bg);
+    text-align: left;
+}
+
+.database-page .db-backup-setup-kicker {
+    margin: 0 0 8px;
+    color: var(--admin-warning-text);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: uppercase;
+}
+
+.database-page .db-backup-setup-title {
+    margin: 0 0 8px;
+    color: var(--admin-text);
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+.database-page .db-backup-setup-desc {
+    margin: 0;
+    color: var(--admin-text-secondary);
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.database-page .db-backup-setup-desc + .db-backup-env-var,
+.database-page .db-backup-env-var + .db-backup-setup-desc {
+    margin-top: 16px;
+}
+
+.database-page .db-backup-env-var {
+    display: grid;
+    gap: 8px;
+    padding: 12px;
+    border: 1px solid var(--admin-border-subtle);
+    border-radius: var(--admin-radius-sm);
+    background: var(--admin-bg);
+}
+
+.database-page .db-backup-env-var span {
+    color: var(--admin-text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.database-page .db-backup-env-var code {
+    display: block;
+    max-width: 100%;
+    color: var(--admin-text);
+    font-size: 13px;
+    overflow-wrap: anywhere;
+}
+
+/* Backup destination editor */
+.database-page .db-destination-form-status {
+    padding: 10px 12px;
+    border: 1px solid var(--admin-error);
+    border-radius: var(--admin-radius-sm);
+    background: var(--admin-error-bg);
+    color: var(--admin-error);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.database-page .db-destination-form-status[hidden],
+.database-page .db-destination-advanced .field-error-message[hidden] {
+    display: none;
+}
+
+.database-page .db-destination-config {
+    display: grid;
+    gap: 14px;
+    padding: 16px;
+    border: 1px solid var(--admin-border-subtle);
+    border-radius: var(--admin-radius-sm);
+    background: var(--admin-bg);
+    margin-bottom: 20px;
+}
+
+.database-page .db-destination-config-heading {
+    display: grid;
+    gap: 4px;
+}
+
+.database-page .db-destination-config-heading h3 {
+    margin: 0;
+    color: var(--admin-text);
+    font-size: 14px;
+    font-weight: 650;
+}
+
+.database-page .db-destination-config-heading p {
+    margin: 0;
+}
+
+.database-page .db-destination-field-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.database-page .db-destination-field {
+    min-width: 0;
+    margin-bottom: 0;
+}
+
+.database-page .db-destination-field .form-label {
+    display: block;
+    margin-bottom: 7px;
+}
+
+.database-page .db-destination-field--checkbox {
+    display: flex;
+    align-items: center;
+    min-height: 42px;
+}
+
+.database-page .db-field-required {
+    color: var(--admin-text-secondary);
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.database-page .db-saved-secret {
+    display: grid;
+    gap: 6px;
+    margin-top: 7px;
+    color: var(--admin-text-secondary);
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.database-page .db-secret-clear-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    width: fit-content;
+    color: var(--admin-error);
+    cursor: pointer;
+}
+
+.database-page .db-destination-advanced {
+    border: 1px solid var(--admin-border-subtle);
+    border-radius: var(--admin-radius-sm);
+    background: var(--admin-bg);
+    margin-bottom: 20px;
+}
+
+.database-page .db-destination-advanced summary {
+    padding: 13px 16px;
+    color: var(--admin-text);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .database-page .db-destination-advanced summary:hover {
+        background: var(--admin-hover);
+    }
+}
+
+.database-page .db-destination-advanced-content {
+    display: grid;
+    gap: 12px;
+    padding: 0 16px 16px;
+}
+
+.database-page .db-destination-advanced-content > p {
+    margin: 0;
+}
+
+.database-page .db-config-textarea {
+    min-height: 112px;
+    resize: vertical;
+    font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+    line-height: 1.5;
+    tab-size: 2;
+}
+
+.database-page .db-destination-json-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.database-page .field-error[aria-invalid="true"] {
+    border-color: var(--admin-error);
+}
+
+@media (max-width: 700px) {
+    .database-page .db-destination-field-grid {
+        grid-template-columns: 1fr;
+    }
+}

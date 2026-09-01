@@ -1,0 +1,103 @@
+/*
+ * Shared status banner for account data operations and workspace file uploads.
+ * It follows the notification stack's top-center placement so every caller
+ * receives one consistent, viewport-level progress surface.
+ */
+.dc-status-banner {
+    position: fixed;
+    top: 16px;
+    left: 50%;
+    /* Sit just below real toast notifications (z-index 10000) so alerts win. */
+    z-index: 9999;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: min(420px, calc(100vw - 32px));
+    padding: 12px 16px;
+    border: 1px solid color-mix(in srgb, var(--border-color) 84%, var(--primary-color) 16%);
+    border-radius: 16px;
+    background: var(--bg-normal-elevated, var(--background));
+    background: color-mix(in srgb, var(--bg-normal-elevated, var(--background)) 92%, transparent);
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.10), 0 3px 12px rgba(0, 0, 0, 0.08);
+    color: var(--text-color);
+    backdrop-filter: blur(18px) saturate(1.15);
+    -webkit-backdrop-filter: blur(18px) saturate(1.15);
+    transform-origin: top center;
+    animation: dataControlStatusSlideIn 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.dc-status-banner[hidden],
+.dc-status-banner__spinner[hidden] {
+    display: none;
+}
+
+/* Minimal circular spinner echoing the accent colour. */
+.dc-status-banner__spinner {
+    flex: 0 0 auto;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid color-mix(in srgb, var(--primary-color) 24%, transparent);
+    border-top-color: var(--primary-color);
+    animation: spin 0.7s linear infinite;
+}
+
+.dc-status-banner__body {
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.dc-status-banner__message {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--text-color);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dc-status-banner__track {
+    position: relative;
+    width: 100%;
+    height: 4px;
+    border-radius: 9999px;
+    background: color-mix(in srgb, var(--text-color-secondary) 20%, transparent);
+    overflow: hidden;
+}
+
+.dc-status-banner__bar {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 0;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--primary-color);
+    transition: width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Keep a meaningful base width even when reduced motion disables animation. */
+.dc-status-banner--indeterminate .dc-status-banner__bar {
+    width: 40%;
+    transition: none;
+    animation: progressIndeterminate 1.2s ease-in-out infinite;
+}
+
+@media (max-width: 640px) {
+    .dc-status-banner {
+        top: 12px;
+        width: calc(100vw - 24px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dc-status-banner,
+    .dc-status-banner__spinner,
+    .dc-status-banner__bar {
+        animation: none;
+        transition: none;
+    }
+}

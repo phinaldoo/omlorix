@@ -1,0 +1,15 @@
+{
+  "subject": "Your {application_name} verification code",
+  "html_title": "{application_name} Verification Code",
+  "headline": "Your verification code",
+  "expires_text": "This code expires in {expires_in_minutes} minutes.",
+  "ignore_text": "If you didn’t request this, you can ignore this email.",
+  "plain_text_body": "Your {application_name} verification code is {code}. This code expires in {expires_in_minutes} minutes.",
+  "sms_body": "Your {application_name} verification code is {code}. It expires in {expires_in_minutes} minutes.",
+  "deactivated_subject": "{application_name}: two-factor authentication was deactivated",
+  "deactivated_html_title": "Two-factor authentication deactivated | {application_name}",
+  "deactivated_headline": "Two-factor authentication was deactivated",
+  "deactivated_body": "Two-factor authentication was deactivated for your {application_name} account.",
+  "deactivated_action": "If you did not make this change, sign in immediately, re-enable 2FA, and review your active sessions.",
+  "deactivated_plain_text_body": "Two-factor authentication was deactivated for your {application_name} account. If you did not make this change, sign in immediately, re-enable 2FA, and review your active sessions."
+}

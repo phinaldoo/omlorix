@@ -1,0 +1,582 @@
+/* ===================== */
+/* User Settings Page    */
+/* ===================== */
+
+.user-settings-card {
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-lg);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.user-settings-page {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.user-settings-page[hidden] {
+    display: none !important;
+}
+
+.user-settings-page > .user-settings-card {
+    flex: 1 1 auto;
+    min-height: 0;
+    border: none;
+    border-radius: 0;
+}
+
+/*
+ * User and group edit forms are full-surface admin pages. Remove the shared
+ * content inset only while one of these pages is active so other admin pages
+ * keep their normal spacing.
+ */
+.content:has(> .user-settings-page:not([hidden])) {
+    padding: 0;
+}
+
+.user-settings-card > form {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+}
+
+/* Header */
+.user-settings-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 24px 28px;
+    border-bottom: 1px solid var(--admin-border);
+    background: var(--admin-bg);
+    flex-shrink: 0;
+}
+
+.user-settings-summary {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-width: 0;
+}
+
+.user-settings-avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--admin-info) 0%, #6366f1 100%);
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    letter-spacing: 0.02em;
+}
+
+.user-settings-title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--admin-text);
+    letter-spacing: -0.02em;
+    line-height: 1.3;
+}
+
+.user-settings-subtitle {
+    margin: 4px 0 0 0;
+    font-size: 14px;
+    color: var(--admin-text-secondary);
+    line-height: 1.4;
+}
+
+.user-settings-header-actions {
+    flex-shrink: 0;
+}
+
+.user-settings-actions {
+    display: flex;
+    gap: 10px;
+}
+
+/* Body layout */
+.user-settings-body {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* Sidebar navigation */
+.user-settings-sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+    border-right: 1px solid var(--admin-border);
+    background: var(--admin-bg);
+    gap: 4px;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.user-settings-sidebar-empty {
+    margin: 0;
+    padding: 16px 12px;
+    color: var(--admin-text-tertiary);
+    font-size: 14px;
+    text-align: center;
+    line-height: 1.5;
+}
+
+/* Sidebar nav items */
+.user-settings-nav-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 14px;
+    border: none;
+    border-radius: var(--admin-radius-sm);
+    background: transparent;
+    color: var(--admin-text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    transition: all var(--admin-transition);
+    position: relative;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .user-settings-nav-item:hover {
+        background: var(--admin-hover);
+        color: var(--admin-text);
+    }
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .user-settings-nav-item:hover .user-settings-nav-icon {
+        color: var(--admin-text);
+    }
+}
+
+.user-settings-nav-item:focus-visible {
+    outline: 2px solid var(--admin-info);
+    outline-offset: -2px;
+}
+
+.user-settings-nav-item.active {
+    background: var(--bg-normal);
+    color: var(--admin-text);
+    font-weight: 600;
+    box-shadow: var(--admin-shadow-sm);
+}
+
+.user-settings-nav-item.active .user-settings-nav-icon {
+    color: var(--admin-info);
+}
+
+/* Active indicator bar */
+.user-settings-nav-item.active::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 20px;
+    background: var(--admin-info);
+    border-radius: 0 2px 2px 0;
+}
+
+/* Nav icon */
+.user-settings-nav-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--admin-text-tertiary);
+    transition: color var(--admin-transition);
+}
+
+.user-settings-nav-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* Nav label */
+.user-settings-nav-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Dirty indicator dot */
+.user-settings-nav-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--admin-warning);
+    flex-shrink: 0;
+    display: none;
+}
+
+.user-settings-nav-item[data-dirty="true"] .user-settings-nav-indicator {
+    display: block;
+}
+
+/* Main content area */
+.user-settings-content {
+    flex: 1;
+    padding: 28px;
+    background: var(--bg-normal);
+    overflow-y: auto;
+    min-height: 0;
+    min-width: 0;
+}
+
+.user-settings-empty {
+    color: var(--admin-text-secondary);
+    font-size: 14px;
+    padding: 24px;
+    text-align: center;
+    margin: 0;
+}
+
+/* Pages container */
+.user-settings-pages {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.user-settings-pages h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--admin-text);
+    letter-spacing: -0.01em;
+}
+
+.user-settings-description {
+    margin: -12px 0 0 0;
+    font-size: 14px;
+    color: var(--admin-text-secondary);
+    line-height: 1.5;
+}
+
+/* Individual field rows */
+.user-settings-field-pending {
+    position: relative;
+}
+
+.user-settings-field-pending::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--admin-warning);
+    border-radius: 0 2px 2px 0;
+}
+
+/* ===================== */
+/* Responsive Styles     */
+/* ===================== */
+
+@media (max-width: 900px) {
+    .user-settings-body {
+        flex-direction: column;
+        min-height: auto;
+    }
+
+    .user-settings-sidebar {
+        width: 100%;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        border-right: none;
+        border-bottom: 1px solid var(--admin-border);
+        padding: 12px 16px;
+        gap: 8px;
+        overflow-x: auto;
+        overflow-y: hidden;
+    }
+
+    .user-settings-sidebar-empty {
+        width: 100%;
+    }
+
+    .user-settings-nav-item {
+        flex: 0 0 auto;
+        width: auto;
+        padding: 10px 16px;
+    }
+
+    .user-settings-nav-item.active::before {
+        display: none;
+    }
+
+    .user-settings-nav-item.active {
+        background: var(--admin-info-bg);
+        color: var(--admin-info);
+    }
+
+    .user-settings-nav-item.active .user-settings-nav-icon {
+        color: var(--admin-info);
+    }
+
+    .user-settings-content {
+        padding: 20px;
+    }
+}
+
+/* Between the stacked form breakpoint above and the mobile document-scroll
+   breakpoint in style.css, the admin shell still has a fixed viewport height.
+   Allow the form body to shrink in that range so its content panel remains the
+   vertical scroll container instead of overflowing behind the clipped card. */
+@media (min-width: 769px) and (max-width: 900px) {
+    .user-settings-body {
+        min-height: 0;
+    }
+}
+
+@media (max-width: 640px) {
+    .user-settings-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+        padding: 20px;
+    }
+
+    .user-settings-header-actions {
+        width: 100%;
+    }
+
+    .user-settings-actions {
+        width: 100%;
+    }
+
+    .user-settings-avatar {
+        width: 44px;
+        height: 44px;
+        font-size: 16px;
+    }
+
+    .user-settings-title {
+        font-size: 18px;
+    }
+
+    .user-settings-sidebar {
+        padding: 12px;
+        gap: 6px;
+    }
+
+    .user-settings-nav-item {
+        padding: 8px 12px;
+        font-size: 13px;
+        gap: 8px;
+    }
+
+    .user-settings-nav-icon {
+        width: 16px;
+        height: 16px;
+    }
+
+    .user-settings-nav-icon svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    .user-settings-content {
+        padding: 16px;
+    }
+
+    .user-settings-pages h3 {
+        font-size: 16px;
+    }
+}
+
+/* ===================== */
+/* LLM Access Controls   */
+/* ===================== */
+
+.llm-access-admin-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+}
+
+.llm-access-admin-controls .llm-access-mode-selector {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.llm-access-admin-controls .llm-mode-btn {
+    padding: 8px 16px;
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-sm);
+    background: var(--bg-normal);
+    color: var(--admin-text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--admin-transition);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .llm-access-admin-controls .llm-mode-btn:hover {
+        background: var(--admin-hover);
+        color: var(--admin-text);
+        border-color: var(--admin-text-tertiary);
+    }
+}
+
+.llm-access-admin-controls .llm-mode-btn.active {
+    background: var(--admin-info-bg);
+    color: var(--admin-info);
+    border-color: var(--admin-info);
+}
+
+.llm-access-admin-controls .llm-access-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+    padding: 16px;
+    background: var(--admin-bg);
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-sm);
+}
+
+.llm-access-admin-controls .llm-access-fields.boolean-map-control {
+    grid-template-columns: 1fr;
+    padding: 0;
+    background: transparent;
+    border: 0;
+}
+
+.llm-access-admin-controls .llm-field-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 12px;
+    background: var(--bg-normal);
+    border-radius: var(--admin-radius-sm);
+    font-size: 13px;
+    color: var(--admin-text);
+}
+
+.llm-access-admin-controls .llm-field-toggle span {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.llm-access-admin-controls .llm-field-toggle.boolean-map-item {
+    padding: 12px 14px;
+    background: var(--admin-bg);
+    font-size: inherit;
+}
+
+.llm-access-admin-controls .llm-field-toggle.boolean-map-item .boolean-map-item-text {
+    flex: 1 1 auto;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+}
+
+.llm-access-admin-controls .llm-field-toggle.boolean-map-item .toggle-switch,
+.llm-access-admin-controls .llm-field-toggle.boolean-map-item .toggle-slider {
+    flex: 0 0 auto;
+}
+
+.boolean-map-control:not(select) {
+    display: grid;
+    gap: 10px;
+    width: 100%;
+}
+
+.boolean-map-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 14px;
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-sm);
+    background: var(--admin-bg);
+}
+
+.boolean-map-item-text {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+}
+
+.boolean-map-item-title {
+    color: var(--admin-text);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.35;
+}
+
+/* Small toggle switch */
+.toggle-switch.small {
+    width: 36px;
+    height: 20px;
+}
+
+.toggle-switch.small .toggle-slider {
+    width: 36px;
+    height: 20px;
+}
+
+.toggle-switch.small .toggle-slider::before {
+    width: 14px;
+    height: 14px;
+    left: 3px;
+    bottom: 3px;
+}
+
+.toggle-switch.small .toggle-input:checked + .toggle-slider::before {
+    transform: translateX(16px);
+}
+
+/* Scrollbar styling for content area */
+.user-settings-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.user-settings-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.user-settings-content::-webkit-scrollbar-thumb {
+    background: var(--admin-scrollbar);
+    border-radius: 3px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .user-settings-content::-webkit-scrollbar-thumb:hover {
+        background: var(--admin-scrollbar-hover);
+    }
+}

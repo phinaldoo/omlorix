@@ -1,0 +1,7 @@
+{
+  "terms_page_title": "利用規約",
+  "terms_loading": "利用規約を読み込んでいます...",
+  "terms_load_error": "利用規約を読み込めませんでした。後でもう一度お試しください。",
+  "terms_default_template_warning_emphasis": "重要:",
+  "terms_default_template_warning": "このインスタンスでは、まだ既定の利用規約テンプレートを使用しています。公開サインアップを有効にする前に、運営者がデプロイ固有の法的文面に置き換える必要があります。"
+}

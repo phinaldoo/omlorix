@@ -1,0 +1,615 @@
+x-backend-image: &backend-image
+  image: ghcr.io/phinaldoo/omlorix-backend:${OMLORIX_VERSION:?OMLORIX_VERSION is required}
+
+x-omlorix-labels: &omlorix-labels
+  com.omlorix.installation.id: ${OMLORIX_INSTALLATION_ID:-unmanaged}
+
+x-backend-env: &backend-env
+  env_file:
+    - .env
+  environment:
+    DATABASE_URL: ${DATABASE_URL-}
+    DATABASE_HOST: ${DATABASE_HOST_OVERRIDE:-postgres}
+    DATABASE_USER: ${DATABASE_USER:-postgres}
+    DATABASE_PASSWORD: ${DATABASE_PASSWORD:?DATABASE_PASSWORD is required}
+    DATABASE_PORT: ${DATABASE_PORT_OVERRIDE:-5432}
+    DATABASE_NAME: ${DATABASE_NAME:-omlorix}
+    REDIS_ENABLED: ${REDIS_ENABLED:-true}
+    REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+    BACKUP_LOCAL_DIR: /app/backups
+    BACKUP_WRITE_FREEZE_MAX_SECONDS: ${BACKUP_WRITE_FREEZE_MAX_SECONDS:-300}
+    FILE_STORAGE_LOCAL_BASE_PATH: /app/app/data/userFiles
+
+x-backend-volumes: &backend-volumes
+  volumes:
+    - app_logs:/app/app/logs
+    - app_data:/app/app/data
+    - backups_data:/app/backups
+
+x-backend-depends: &backend-depends
+  depends_on:
+    postgres:
+      condition: service_healthy
+      required: false
+    pgbouncer:
+      condition: service_healthy
+      required: false
+    redis:
+      condition: service_healthy
+      required: false
+    migrate:
+      condition: service_completed_successfully
+
+x-durable-worker-environment: &durable-worker-environment
+  DATABASE_URL: ${DATABASE_URL-}
+  DATABASE_HOST: ${DATABASE_HOST_OVERRIDE:-postgres}
+  DATABASE_USER: ${DATABASE_USER:-postgres}
+  DATABASE_PASSWORD: ${DATABASE_PASSWORD:?DATABASE_PASSWORD is required}
+  DATABASE_PORT: ${DATABASE_PORT_OVERRIDE:-5432}
+  DATABASE_NAME: ${DATABASE_NAME:-omlorix}
+  REDIS_ENABLED: ${REDIS_ENABLED:-true}
+  REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+  PYTHONPATH: /app
+  BACKUP_LOCAL_DIR: /app/backups
+  FILE_STORAGE_LOCAL_BASE_PATH: /app/app/data/userFiles
+  DB_MIGRATIONS_MODE: off
+  OMLORIX_AUTO_CREATE_DATABASES: "false"
+  OPERATIONS_WORKER_MODE: external
+  OPERATIONS_IMPORT_MAX_BYTES: ${OPERATIONS_IMPORT_MAX_BYTES:-536870912}
+  OPERATIONS_IMPORT_STAGING_GLOBAL_MAX_BYTES: ${OPERATIONS_IMPORT_STAGING_GLOBAL_MAX_BYTES:-8589934592}
+  OPERATIONS_IMPORT_STAGING_PRINCIPAL_MAX_BYTES: ${OPERATIONS_IMPORT_STAGING_PRINCIPAL_MAX_BYTES:-1073741824}
+  OPERATIONS_IMPORT_STAGING_GLOBAL_MAX_SLOTS: ${OPERATIONS_IMPORT_STAGING_GLOBAL_MAX_SLOTS:-1000}
+  OPERATIONS_IMPORT_STAGING_PRINCIPAL_MAX_SLOTS: ${OPERATIONS_IMPORT_STAGING_PRINCIPAL_MAX_SLOTS:-10}
+  GENERATION_WORKER_MODE: external
+  RESEARCH_WORKER_MODE: external
+  FILE_PROCESSING_WORKER_MODE: external
+  ACCOUNT_LIFECYCLE_WORKER_MODE: external
+  MAINTENANCE_WORKER_MODE: external
+  RENDERING_WORKER_MODE: external
+  MEDIA_WORKER_MODE: external
+  CONNECTOR_WORKER_MODE: external
+  AUDIT_EVENT_WORKER_MODE: external
+
+services:
+  postgres:
+    labels: *omlorix-labels
+    image: postgres:${POSTGRES_IMAGE_TAG:-18.4@sha256:8ff36f3c66371cba71d20ceedccfc3de9669a68737607888c4ef0af93abe8e39}
+    profiles: ["bundled-db"]
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME:-omlorix}
+      POSTGRES_USER: ${DATABASE_USER:-postgres}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?DATABASE_PASSWORD is required}
+      PGDATA: ${POSTGRES_PGDATA:-/var/lib/postgresql/18/docker}
+    volumes:
+      - postgres_data:${POSTGRES_VOLUME_MOUNT_PATH:-/var/lib/postgresql}
+    entrypoint:
+      - sh
+      - -ec
+      - |
+        if [ ! -s "$${PGDATA}/PG_VERSION" ] && [ -s /var/lib/postgresql/PG_VERSION ]; then
+          pgdata_top=$$(printf '%s\n' "$${PGDATA#/var/lib/postgresql/}" | cut -d/ -f1)
+          mkdir -p "$${PGDATA}"
+          find /var/lib/postgresql -mindepth 1 -maxdepth 1 ! -name "$${pgdata_top}" -exec mv -t "$${PGDATA}" -- {} +
+        fi
+        exec docker-entrypoint.sh "$$@"
+      - docker-entrypoint.sh
+    command: ["postgres"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB} -h localhost"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    networks:
+      - omlorix-network
+
+  redis:
+    labels: *omlorix-labels
+    image: redis:8.4.6-alpine3.22@sha256:12da49daa000c2be4d55118574f889c8cc298140ecf343d04f345c818f227823
+    profiles: ["bundled-redis"]
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    command: ["sh", "-c", "redis-server --save 60 1 --appendonly yes --appendfsync everysec --requirepass \"$${REDIS_PASSWORD}\""]
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$${REDIS_PASSWORD}\" ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    networks:
+      - omlorix-network
+
+  migrate:
+    labels: *omlorix-labels
+    <<: [*backend-image, *backend-env, *backend-volumes]
+    environment:
+      DATABASE_URL: ${DATABASE_URL-}
+      # Bootstrap stays on the direct PostgreSQL endpoint. Long-running
+      # services use DATABASE_HOST_OVERRIDE, which is routed through PgBouncer
+      # when pooling is enabled.
+      DATABASE_HOST: ${DATABASE_MIGRATION_HOST_OVERRIDE:-postgres}
+      DATABASE_USER: ${DATABASE_USER:-postgres}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:?DATABASE_PASSWORD is required}
+      DATABASE_PORT: ${DATABASE_MIGRATION_PORT_OVERRIDE:-5432}
+      DATABASE_NAME: ${DATABASE_NAME:-omlorix}
+      REDIS_ENABLED: ${REDIS_ENABLED:-true}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      BACKUP_LOCAL_DIR: /app/backups
+      FILE_STORAGE_LOCAL_BASE_PATH: /app/app/data/userFiles
+      DB_MIGRATIONS_MODE: run
+      OMLORIX_AUTO_CREATE_DATABASES: ${OMLORIX_AUTO_CREATE_DATABASES:-true}
+      DB_MIGRATIONS_LOCK_TIMEOUT_SECONDS: ${DB_MIGRATIONS_LOCK_TIMEOUT_SECONDS:-120}
+    depends_on:
+      postgres:
+        condition: service_healthy
+        required: false
+    restart: "no"
+    command: >
+      sh -c "mkdir -p /app/app/logs /app/app/data /app/backups && chown appuser:appuser /app/app/logs /app/app/data /app/backups && exec gosu appuser ./migrate.sh"
+    networks:
+      - omlorix-network
+
+  fastapi:
+    labels: *omlorix-labels
+    <<: [*backend-image, *backend-env, *backend-volumes, *backend-depends]
+    environment:
+      DATABASE_URL: ${DATABASE_URL-}
+      DATABASE_HOST: ${DATABASE_HOST_OVERRIDE:-postgres}
+      DATABASE_USER: ${DATABASE_USER:-postgres}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:?DATABASE_PASSWORD is required}
+      DATABASE_PORT: ${DATABASE_PORT_OVERRIDE:-5432}
+      DATABASE_NAME: ${DATABASE_NAME:-omlorix}
+      REDIS_ENABLED: ${REDIS_ENABLED:-true}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      AUTOMATION_SCHEDULER_ENABLED: "false"
+      BACKUP_LOCAL_DIR: /app/backups
+      BACKUP_SCHEDULER_ENABLED: "false"
+      BACKUP_SCHEDULER_INTERVAL_SECONDS: ${BACKUP_SCHEDULER_INTERVAL_SECONDS:-60}
+      BACKUP_WRITE_FREEZE_MAX_SECONDS: ${BACKUP_WRITE_FREEZE_MAX_SECONDS:-300}
+      FILE_STORAGE_LOCAL_BASE_PATH: /app/app/data/userFiles
+      OPERATIONS_WORKER_MODE: external
+      OPERATIONS_IMPORT_MAX_BYTES: ${OPERATIONS_IMPORT_MAX_BYTES:-536870912}
+      OPERATIONS_IMPORT_STAGING_GLOBAL_MAX_BYTES: ${OPERATIONS_IMPORT_STAGING_GLOBAL_MAX_BYTES:-8589934592}
+      OPERATIONS_IMPORT_STAGING_PRINCIPAL_MAX_BYTES: ${OPERATIONS_IMPORT_STAGING_PRINCIPAL_MAX_BYTES:-1073741824}
+      OPERATIONS_IMPORT_STAGING_GLOBAL_MAX_SLOTS: ${OPERATIONS_IMPORT_STAGING_GLOBAL_MAX_SLOTS:-1000}
+      OPERATIONS_IMPORT_STAGING_PRINCIPAL_MAX_SLOTS: ${OPERATIONS_IMPORT_STAGING_PRINCIPAL_MAX_SLOTS:-10}
+      GENERATION_WORKER_MODE: external
+      RESEARCH_WORKER_MODE: external
+      FILE_PROCESSING_WORKER_MODE: external
+      ACCOUNT_LIFECYCLE_WORKER_MODE: external
+      MAINTENANCE_WORKER_MODE: external
+      RENDERING_WORKER_MODE: external
+      MEDIA_WORKER_MODE: external
+      CONNECTOR_WORKER_MODE: external
+      AUDIT_EVENT_WORKER_MODE: external
+      REALTIME_GATEWAY_MODE: external
+      DB_MIGRATIONS_MODE: off
+      OMLORIX_AUTO_CREATE_DATABASES: "false"
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
+    restart: unless-stopped
+    command: >
+      sh -c "mkdir -p /app/app/logs /app/app/data /app/backups && chown appuser:appuser /app/app/logs /app/app/data /app/backups && exec gosu appuser uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips \"$${UVICORN_FORWARDED_ALLOW_IPS:-127.0.0.1,::1}\""
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/ready', timeout=3).read()\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    networks:
+      - omlorix-network
+
+  automation_scheduler:
+    labels: *omlorix-labels
+    <<: [*backend-image, *backend-env, *backend-volumes, *backend-depends]
+    profiles: ["redis-enabled"]
+    environment:
+      DATABASE_URL: ${DATABASE_URL-}
+      DATABASE_HOST: ${DATABASE_HOST_OVERRIDE:-postgres}
+      DATABASE_USER: ${DATABASE_USER:-postgres}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:?DATABASE_PASSWORD is required}
+      DATABASE_PORT: ${DATABASE_PORT_OVERRIDE:-5432}
+      DATABASE_NAME: ${DATABASE_NAME:-omlorix}
+      REDIS_ENABLED: ${REDIS_ENABLED:-true}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      AUTOMATION_SCHEDULER_ENABLED: "true"
+      AUDIT_EVENT_WORKER_MODE: external
+      BACKUP_LOCAL_DIR: /app/backups
+      FILE_STORAGE_LOCAL_BASE_PATH: /app/app/data/userFiles
+      DB_MIGRATIONS_MODE: off
+      OMLORIX_AUTO_CREATE_DATABASES: "false"
+    restart: unless-stopped
+    command: >
+      sh -c "mkdir -p /app/app/logs /app/app/data /app/backups && chown appuser:appuser /app/app/logs /app/app/data /app/backups && exec gosu appuser python -m app.automations.scheduler"
+    networks:
+      - omlorix-network
+
+  automation_worker:
+    labels: *omlorix-labels
+    <<: [*backend-image, *backend-env, *backend-volumes, *backend-depends]
+    profiles: ["redis-enabled"]
+    environment:
+      DATABASE_URL: ${DATABASE_URL-}
+      DATABASE_HOST: ${DATABASE_HOST_OVERRIDE:-postgres}
+      DATABASE_USER: ${DATABASE_USER:-postgres}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:?DATABASE_PASSWORD is required}
+      DATABASE_PORT: ${DATABASE_PORT_OVERRIDE:-5432}
+      DATABASE_NAME: ${DATABASE_NAME:-omlorix}
+      REDIS_ENABLED: ${REDIS_ENABLED:-true}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      PYTHONPATH: /app
+      BACKUP_LOCAL_DIR: /app/backups
+      FILE_STORAGE_LOCAL_BASE_PATH: /app/app/data/userFiles
+      DB_MIGRATIONS_MODE: off
+      OMLORIX_AUTO_CREATE_DATABASES: "false"
+      RESEARCH_WORKER_MODE: external
+      FILE_PROCESSING_WORKER_MODE: external
+      RENDERING_WORKER_MODE: external
+      MEDIA_WORKER_MODE: external
+      CONNECTOR_WORKER_MODE: external
+      AUDIT_EVENT_WORKER_MODE: external
+    restart: unless-stopped
+    command: >
+      sh -c "mkdir -p /app/app/logs /app/app/data /app/backups && chown appuser:appuser /app/app/logs /app/app/data /app/backups && exec gosu appuser rq worker --worker-class app.automations.rq_worker.TelemetryWorker --url \"$${REDIS_URL}\" \"$${AUTOMATION_QUEUE_NAME:-omlorix-automations}\""
+    networks:
+      - omlorix-network
+
+  email_worker:
+    labels: *omlorix-labels
+    <<: [*backend-image, *backend-env, *backend-volumes, *backend-depends]
+    environment:
+      DATABASE_URL: ${DATABASE_URL-}
+      DATABASE_HOST: ${DATABASE_HOST_OVERRIDE:-postgres}
+      DATABASE_USER: ${DATABASE_USER:-postgres}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:?DATABASE_PASSWORD is required}
+      DATABASE_PORT: ${DATABASE_PORT_OVERRIDE:-5432}
+      DATABASE_NAME: ${DATABASE_NAME:-omlorix}
+      PYTHONPATH: /app
+      OTEL_SERVICE_NAME: ${EMAIL_WORKER_OTEL_SERVICE_NAME:-omlorix-email-worker}
+      BACKUP_LOCAL_DIR: /app/backups
+      FILE_STORAGE_LOCAL_BASE_PATH: /app/app/data/userFiles
+      DB_MIGRATIONS_MODE: off
+      OMLORIX_AUTO_CREATE_DATABASES: "false"
+      AUDIT_EVENT_WORKER_MODE: external
+    restart: unless-stopped
+    stop_grace_period: 30s
+    command: >
+      sh -c "mkdir -p /app/app/logs /app/app/data /app/backups && chown appuser:appuser /app/app/logs /app/app/data /app/backups && exec gosu appuser python -m app.email.worker run"
+    healthcheck:
+      test: ["CMD", "python", "-m", "app.email.worker", "healthcheck"]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    networks:
+      - omlorix-network
+
+  operations_worker:
+    labels: *omlorix-labels
+    <<: [*backend-image, *backend-env, *backend-volumes, *backend-depends]
+    environment:
+      <<: *durable-worker-environment
+      OTEL_SERVICE_NAME: ${OPERATIONS_WORKER_OTEL_SERVICE_NAME:-omlorix-operations-worker}
+      BACKUP_SCHEDULER_ENABLED: "true"
+      BACKUP_SCHEDULER_INTERVAL_SECONDS: ${BACKUP_SCHEDULER_INTERVAL_SECONDS:-60}
+      BACKUP_WRITE_FREEZE_MAX_SECONDS: ${BACKUP_WRITE_FREEZE_MAX_SECONDS:-300}
+    restart: unless-stopped
+    stop_grace_period: 60s
+    command: >
+      sh -c "mkdir -p /app/app/logs /app/app/data /app/backups && chown appuser:appuser /app/app/logs /app/app/data /app/backups && exec gosu appuser python -m app.workers.operations run"
+    healthcheck:
+      test: ["CMD", "python", "-m", "app.workers.operations", "healthcheck"]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    networks:
+      - omlorix-network
+
+  generation_worker:
+    labels: *omlorix-labels
+    <<: [*backend-image, *backend-env, *backend-volumes, *backend-depends]
+    environment:
+      <<: *durable-worker-environment
+      OTEL_SERVICE_NAME: ${GENERATION_WORKER_OTEL_SERVICE_NAME:-omlorix-generation-worker}
+    restart: unless-stopped
+    stop_grace_period: 60s
+    command: >
+      sh -c "mkdir -p /app/app/logs /app/app/data /app/backups && chown appuser:appuser /app/app/logs /app/app/data /app/backups && exec gosu appuser python -m app.workers.generation run"
+    healthcheck:
+      test: ["CMD", "python", "-m", "app.workers.generation", "healthcheck"]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    networks:
+      - omlorix-network
+
+  research_worker:
+    labels: *omlorix-labels
+    <<: [*backend-image, *backend-env, *backend-volumes, *backend-depends]
+    environment:
+      <<: *durable-worker-environment
+      OTEL_SERVICE_NAME: ${RESEARCH_WORKER_OTEL_SERVICE_NAME:-omlorix-research-worker}
+    restart: unless-stopped
+    stop_grace_period: 60s
+    command: >
+      sh -c "mkdir -p /app/app/logs /app/app/data /app/backups && chown appuser:appuser /app/app/logs /app/app/data /app/backups && exec gosu appuser python -m app.workers.research run"
+    healthcheck:
+      test: ["CMD", "python", "-m", "app.workers.research", "healthcheck"]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    networks:
+      - omlorix-network
+
+  file_processing_worker:
+    labels: *omlorix-labels
+    <<: [*backend-image, *backend-env, *backend-volumes, *backend-depends]
+    environment:
+      <<: *durable-worker-environment
+      OTEL_SERVICE_NAME: ${FILE_PROCESSING_WORKER_OTEL_SERVICE_NAME:-omlorix-file-processing-worker}
+    restart: unless-stopped
+    stop_grace_period: 60s
+    command: >
+      sh -c "mkdir -p /app/app/logs /app/app/data /app/backups && chown appuser:appuser /app/app/logs /app/app/data /app/backups && exec gosu appuser python -m app.workers.files run"
+    healthcheck:
+      test: ["CMD", "python", "-m", "app.workers.files", "healthcheck"]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    networks:
+      - omlorix-network
+
+  account_lifecycle_worker:
+    labels: *omlorix-labels
+    <<: [*backend-image, *backend-env, *backend-volumes, *backend-depends]
+    environment:
+      <<: *durable-worker-environment
+      OTEL_SERVICE_NAME: ${ACCOUNT_LIFECYCLE_WORKER_OTEL_SERVICE_NAME:-omlorix-account-lifecycle-worker}
+    restart: unless-stopped
+    stop_grace_period: 60s
+    command: >
+      sh -c "mkdir -p /app/app/logs /app/app/data /app/backups && chown appuser:appuser /app/app/logs /app/app/data /app/backups && exec gosu appuser python -m app.workers.lifecycle run"
+    healthcheck:
+      test: ["CMD", "python", "-m", "app.workers.lifecycle", "healthcheck"]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    networks:
+      - omlorix-network
+
+  maintenance_worker:
+    labels: *omlorix-labels
+    <<: [*backend-image, *backend-env, *backend-volumes, *backend-depends]
+    environment:
+      <<: *durable-worker-environment
+      OTEL_SERVICE_NAME: ${MAINTENANCE_WORKER_OTEL_SERVICE_NAME:-omlorix-maintenance-worker}
+      MAINTENANCE_WORKER_MODE: external
+    restart: unless-stopped
+    stop_grace_period: 60s
+    command: >
+      sh -c "mkdir -p /app/app/logs /app/app/data /app/backups && chown appuser:appuser /app/app/logs /app/app/data /app/backups && exec gosu appuser python -m app.workers.maintenance run"
+    healthcheck:
+      test: ["CMD", "python", "-m", "app.workers.maintenance", "healthcheck"]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    networks:
+      - omlorix-network
+
+  rendering_worker:
+    labels: *omlorix-labels
+    <<: [*backend-image, *backend-env, *backend-volumes, *backend-depends]
+    environment:
+      <<: *durable-worker-environment
+      OTEL_SERVICE_NAME: ${RENDERING_WORKER_OTEL_SERVICE_NAME:-omlorix-rendering-worker}
+    restart: unless-stopped
+    stop_grace_period: 60s
+    command: >
+      sh -c "mkdir -p /app/app/logs /app/app/data /app/backups && chown appuser:appuser /app/app/logs /app/app/data /app/backups && exec gosu appuser python -m app.workers.rendering run"
+    healthcheck:
+      test: ["CMD", "python", "-m", "app.workers.rendering", "healthcheck"]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    networks:
+      - omlorix-network
+
+  media_worker:
+    labels: *omlorix-labels
+    <<: [*backend-image, *backend-env, *backend-volumes, *backend-depends]
+    environment:
+      <<: *durable-worker-environment
+      OTEL_SERVICE_NAME: ${MEDIA_WORKER_OTEL_SERVICE_NAME:-omlorix-media-worker}
+    restart: unless-stopped
+    stop_grace_period: 60s
+    command: >
+      sh -c "mkdir -p /app/app/logs /app/app/data /app/backups && chown appuser:appuser /app/app/logs /app/app/data /app/backups && exec gosu appuser python -m app.workers.media run"
+    healthcheck:
+      test: ["CMD", "python", "-m", "app.workers.media", "healthcheck"]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    networks:
+      - omlorix-network
+
+  connector_worker:
+    labels: *omlorix-labels
+    <<: [*backend-image, *backend-env, *backend-volumes, *backend-depends]
+    environment:
+      <<: *durable-worker-environment
+      OTEL_SERVICE_NAME: ${CONNECTOR_WORKER_OTEL_SERVICE_NAME:-omlorix-connector-worker}
+    restart: unless-stopped
+    stop_grace_period: 60s
+    command: >
+      sh -c "mkdir -p /app/app/logs /app/app/data /app/backups && chown appuser:appuser /app/app/logs /app/app/data /app/backups && exec gosu appuser python -m app.workers.ingestion run"
+    healthcheck:
+      test: ["CMD", "python", "-m", "app.workers.ingestion", "healthcheck"]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    networks:
+      - omlorix-network
+
+  audit_event_worker:
+    labels: *omlorix-labels
+    <<: [*backend-image, *backend-env, *backend-volumes, *backend-depends]
+    environment:
+      <<: *durable-worker-environment
+      OTEL_SERVICE_NAME: ${AUDIT_EVENT_WORKER_OTEL_SERVICE_NAME:-omlorix-audit-event-worker}
+    restart: unless-stopped
+    stop_grace_period: 60s
+    command: >
+      sh -c "mkdir -p /app/app/logs /app/app/data /app/backups && chown appuser:appuser /app/app/logs /app/app/data /app/backups && exec gosu appuser python -m app.workers.events run"
+    healthcheck:
+      test: ["CMD", "python", "-m", "app.workers.events", "healthcheck"]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    networks:
+      - omlorix-network
+
+  realtime_gateway:
+    labels: *omlorix-labels
+    <<: [*backend-image, *backend-env, *backend-volumes, *backend-depends]
+    environment:
+      <<: *durable-worker-environment
+      AUTOMATION_SCHEDULER_ENABLED: "false"
+      BACKUP_SCHEDULER_ENABLED: "false"
+      OPERATIONS_WORKER_MODE: external
+      GENERATION_WORKER_MODE: external
+      RESEARCH_WORKER_MODE: external
+      FILE_PROCESSING_WORKER_MODE: external
+      ACCOUNT_LIFECYCLE_WORKER_MODE: external
+      MAINTENANCE_WORKER_MODE: external
+      REALTIME_GATEWAY_MODE: gateway
+      OTEL_SERVICE_NAME: ${REALTIME_GATEWAY_OTEL_SERVICE_NAME:-omlorix-realtime-gateway}
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
+    restart: unless-stopped
+    stop_grace_period: 60s
+    command: >
+      sh -c "mkdir -p /app/app/logs /app/app/data /app/backups && chown appuser:appuser /app/app/logs /app/app/data /app/backups && exec gosu appuser uvicorn app.realtime.gateway:app --host 0.0.0.0 --port 8001 --proxy-headers --forwarded-allow-ips \"$${UVICORN_FORWARDED_ALLOW_IPS:-127.0.0.1,::1}\""
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8001/ready', timeout=3).read()\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    networks:
+      - omlorix-network
+
+  pgbouncer:
+    labels: *omlorix-labels
+    image: edoburu/pgbouncer:v1.23.1-p3@sha256:377dec3c0e4a66a1077ec043e16a26ed5702a6d954011a7983a1457c2e070b1d
+    profiles: ["pgbouncer"]
+    environment:
+      DB_HOST: ${PGBOUNCER_DB_HOST:-postgres}
+      DB_PORT: ${PGBOUNCER_DB_PORT:-5432}
+      DB_USER: ${DATABASE_USER:-postgres}
+      DB_PASSWORD: ${DATABASE_PASSWORD:?DATABASE_PASSWORD is required}
+      DB_NAME: ${DATABASE_NAME:-omlorix}
+      AUTH_TYPE: scram-sha-256
+      POOL_MODE: ${PGBOUNCER_POOL_MODE:-transaction}
+      MAX_CLIENT_CONN: ${PGBOUNCER_MAX_CLIENT_CONN:-200}
+      DEFAULT_POOL_SIZE: ${PGBOUNCER_DEFAULT_POOL_SIZE:-40}
+      RESERVE_POOL_SIZE: ${PGBOUNCER_RESERVE_POOL_SIZE:-10}
+    depends_on:
+      postgres:
+        condition: service_healthy
+        required: false
+    ports:
+      - "${PGBOUNCER_HOST_BIND:-127.0.0.1}:${PGBOUNCER_HOST_PORT:-6432}:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "PGPASSWORD=\"$${DB_PASSWORD}\" psql -w -h 127.0.0.1 -p 5432 -U \"$${DB_USER}\" -d \"$${DB_NAME}\" -tAc 'SELECT 1' | grep -qx 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    networks:
+      - omlorix-network
+
+  minio:
+    labels: *omlorix-labels
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z-cpuv1@sha256:13582eff79c6605a2d315bdd0e70164142ea7e98fc8411e9e10d089502a6d883
+    profiles: ["bundled-storage"]
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
+    ports:
+      - "${MINIO_API_HOST_BIND:-127.0.0.1}:${MINIO_API_HOST_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_HOST_BIND:-127.0.0.1}:${MINIO_CONSOLE_HOST_PORT:-9001}:9001"
+    volumes:
+      - minio_data:/data
+    restart: unless-stopped
+    networks:
+      - omlorix-network
+
+  minio_init:
+    labels: *omlorix-labels
+    image: minio/mc:RELEASE.2025-08-13T08-35-41Z@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727
+    profiles: ["bundled-storage"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
+      FILE_STORAGE_S3_BUCKET: ${FILE_STORAGE_S3_BUCKET:-omlorix-user-files}
+    depends_on:
+      minio:
+        condition: service_started
+    restart: "no"
+    networks:
+      - omlorix-network
+    entrypoint: >
+      sh -c "
+      until mc alias set local http://minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD}; do sleep 1; done;
+      mc mb --ignore-existing local/$${FILE_STORAGE_S3_BUCKET:-omlorix-user-files};
+      mc anonymous set none local/$${FILE_STORAGE_S3_BUCKET:-omlorix-user-files};
+      "
+
+  frontend:
+    labels: *omlorix-labels
+    image: ghcr.io/phinaldoo/omlorix-frontend:${OMLORIX_VERSION:?OMLORIX_VERSION is required}
+    environment:
+      FRONTEND_TRUST_PROXY_HEADERS: ${FRONTEND_TRUST_PROXY_HEADERS:-false}
+      FRONTEND_TRUSTED_UPSTREAMS: ${FRONTEND_TRUSTED_UPSTREAMS:-}
+      OMLORIX_LAUNCHER_PROXY_SECRET: ${OMLORIX_LAUNCHER_PROXY_SECRET:-}
+    depends_on:
+      fastapi:
+        condition: service_healthy
+      realtime_gateway:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:8080/"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    networks:
+      - omlorix-network
+
+networks:
+  omlorix-network:
+    driver: bridge
+    labels: *omlorix-labels
+
+volumes:
+  postgres_data:
+  redis_data:
+  app_logs:
+  app_data:
+  backups_data:
+  minio_data:

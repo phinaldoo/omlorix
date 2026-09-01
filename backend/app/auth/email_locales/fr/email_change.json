@@ -1,0 +1,20 @@
+{
+  "verify_subject": "Vérifiez votre nouvelle adresse e-mail {application_name}",
+  "verify_headline": "Vérifiez votre nouvelle adresse e-mail",
+  "verify_intro": "Confirmez cette adresse pour terminer la modification de l’e-mail de votre compte {application_name}.",
+  "verify_button": "Vérifier l’adresse e-mail",
+  "verify_expires": "Ce lien expire dans {expires_in_hours} heures.",
+  "verify_ignore": "Si vous n’avez pas demandé cette modification, ne la confirmez pas.",
+  "requested_subject": "{application_name} : modification d’e-mail demandée",
+  "requested_headline": "Modification de l’adresse e-mail demandée",
+  "requested_intro": "Une nouvelle adresse a été demandée pour votre compte. L’adresse actuelle reste active jusqu’à la vérification de la nouvelle.",
+  "cancel_button": "Annuler la modification",
+  "requested_action": "Si vous n’êtes pas à l’origine de cette demande, annulez-la et sécurisez immédiatement votre compte.",
+  "changed_subject": "{application_name} : adresse e-mail modifiée",
+  "changed_headline": "Votre adresse e-mail a été modifiée",
+  "changed_intro": "L’adresse utilisée pour vous connecter à votre compte {application_name} a changé. Toutes les sessions et tous les liens de réinitialisation existants ont été révoqués.",
+  "changed_action": "Si vous n’êtes pas à l’origine de cette modification, sécurisez immédiatement votre compte et contactez un administrateur.",
+  "cancelled_subject": "{application_name} : modification d’e-mail annulée",
+  "cancelled_headline": "Modification d’e-mail annulée",
+  "cancelled_intro": "La modification en attente a été annulée. Votre adresse actuelle reste active."
+}

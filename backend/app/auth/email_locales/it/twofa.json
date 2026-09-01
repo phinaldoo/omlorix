@@ -1,0 +1,15 @@
+{
+  "subject": "Il tuo codice di verifica per {application_name}",
+  "html_title": "Codice di verifica per {application_name}",
+  "headline": "Il tuo codice di verifica",
+  "expires_text": "Questo codice scade tra {expires_in_minutes} minuti.",
+  "ignore_text": "Se non hai richiesto questa operazione, puoi ignorare questa e-mail.",
+  "plain_text_body": "Il tuo codice di verifica per {application_name} è {code}. Questo codice scade tra {expires_in_minutes} minuti.",
+  "sms_body": "Il tuo codice di verifica per {application_name} è {code}. Scade tra {expires_in_minutes} minuti.",
+  "deactivated_subject": "{application_name}: l’autenticazione a due fattori è stata disattivata",
+  "deactivated_html_title": "Autenticazione a due fattori disattivata | {application_name}",
+  "deactivated_headline": "L’autenticazione a due fattori è stata disattivata",
+  "deactivated_body": "L’autenticazione a due fattori è stata disattivata per il tuo account {application_name}.",
+  "deactivated_action": "Se non hai effettuato questa modifica, accedi immediatamente, riattiva la 2FA e controlla le sessioni attive.",
+  "deactivated_plain_text_body": "L’autenticazione a due fattori è stata disattivata per il tuo account {application_name}. Se non hai effettuato questa modifica, accedi immediatamente, riattiva la 2FA e controlla le sessioni attive."
+}

@@ -1,0 +1,15 @@
+{
+  "subject": "आपका {application_name} सत्यापन कोड",
+  "html_title": "{application_name} सत्यापन कोड",
+  "headline": "आपका सत्यापन कोड",
+  "expires_text": "यह कोड {expires_in_minutes} मिनट में समाप्त हो जाएगा।",
+  "ignore_text": "यदि आपने इसका अनुरोध नहीं किया है, तो आप इस ईमेल को अनदेखा कर सकते हैं।",
+  "plain_text_body": "आपका {application_name} सत्यापन कोड {code} है। यह कोड {expires_in_minutes} मिनट में समाप्त हो जाएगा।",
+  "sms_body": "आपका {application_name} सत्यापन कोड {code} है। यह {expires_in_minutes} मिनट में समाप्त हो जाएगा।",
+  "deactivated_subject": "{application_name}: दो-कारक प्रमाणीकरण निष्क्रिय किया गया",
+  "deactivated_html_title": "दो-कारक प्रमाणीकरण निष्क्रिय किया गया | {application_name}",
+  "deactivated_headline": "दो-कारक प्रमाणीकरण निष्क्रिय किया गया",
+  "deactivated_body": "आपके {application_name} खाते के लिए दो-कारक प्रमाणीकरण निष्क्रिय कर दिया गया है।",
+  "deactivated_action": "यदि आपने यह बदलाव नहीं किया है, तो तुरंत साइन इन करें, 2FA फिर से चालू करें और अपने सक्रिय सत्रों की समीक्षा करें।",
+  "deactivated_plain_text_body": "आपके {application_name} खाते के लिए दो-कारक प्रमाणीकरण निष्क्रिय कर दिया गया है। यदि आपने यह बदलाव नहीं किया है, तो तुरंत साइन इन करें, 2FA फिर से चालू करें और अपने सक्रिय सत्रों की समीक्षा करें।"
+}

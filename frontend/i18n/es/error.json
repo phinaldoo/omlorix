@@ -1,0 +1,7 @@
+{
+  "page_title": "Error del sistema",
+  "message": "Algo salió mal",
+  "description": "No se pudo cargar la página que buscas. Puede que sea un problema temporal; inténtalo de nuevo o vuelve a la página de inicio.",
+  "btn_home": "Volver al inicio",
+  "help_text": "Si el problema persiste, intenta borrar la caché del navegador o ponte en contacto con tu administrador."
+}

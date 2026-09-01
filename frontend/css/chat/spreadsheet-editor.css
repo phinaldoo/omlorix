@@ -1,0 +1,477 @@
+.canvas-spreadsheet-editor {
+    --spreadsheet-grid-bg: var(--background);
+    --spreadsheet-panel-bg: var(--surface-muted, var(--background));
+    --spreadsheet-line: color-mix(in srgb, var(--border-color) 58%, transparent);
+    --spreadsheet-border: var(--border-color);
+    --spreadsheet-text: var(--text-color);
+    --spreadsheet-muted: var(--text-color-secondary);
+    --spreadsheet-selection: color-mix(in srgb, var(--accent-color) 10%, transparent);
+    --spreadsheet-search-match: color-mix(in srgb, var(--chat-warning-color) 30%, transparent);
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    flex-direction: column;
+    overflow: hidden;
+    color: var(--spreadsheet-text);
+    background: var(--background);
+    font-size: 13px;
+}
+
+.canvas-markdown-preview-panel[data-content-type="csv"] .canvas-markdown-preview-track,
+.canvas-markdown-preview-panel[data-content-type="tsv"] .canvas-markdown-preview-track,
+.canvas-markdown-preview-panel[data-content-type="xlsx"] .canvas-markdown-preview-track,
+.canvas-markdown-preview-panel[data-content-type="xls"] .canvas-markdown-preview-track {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    overflow: hidden;
+}
+
+.canvas-spreadsheet-host {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+}
+
+/* Component display declarations otherwise override the browser's default
+   `[hidden]` rule. Keep unavailable sheet and footer controls truly absent. */
+.canvas-spreadsheet-tabs-bar[hidden],
+.canvas-spreadsheet-sheet-controls[hidden],
+.canvas-spreadsheet-tabs-bar > [hidden],
+.canvas-spreadsheet-sheet-controls > [hidden] {
+    display: none;
+}
+
+.canvas-spreadsheet-editor button,
+.canvas-spreadsheet-editor input {
+    font: inherit;
+    color: inherit;
+}
+
+.canvas-spreadsheet-toolbar,
+.canvas-spreadsheet-formula-bar,
+.canvas-spreadsheet-tabs-bar,
+.canvas-spreadsheet-status {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+}
+
+.canvas-spreadsheet-toolbar {
+    min-height: 44px;
+    gap: 5px;
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--spreadsheet-border);
+    background: var(--background);
+}
+
+.canvas-spreadsheet-icon-btn,
+.canvas-spreadsheet-mini-btn,
+.canvas-spreadsheet-tab,
+.canvas-spreadsheet-column-header,
+.canvas-spreadsheet-row-number,
+.canvas-spreadsheet-corner {
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+}
+
+.canvas-spreadsheet-icon-btn {
+    width: 31px;
+    height: 31px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+}
+
+.canvas-spreadsheet-icon-btn svg {
+    width: 17px;
+    height: 17px;
+}
+
+.canvas-spreadsheet-icon-btn:disabled,
+.canvas-spreadsheet-mini-btn:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.canvas-spreadsheet-toolbar-separator {
+    width: 1px;
+    height: 18px;
+    margin: 0 4px;
+    background: var(--spreadsheet-border);
+}
+
+.canvas-spreadsheet-toolbar-spacer {
+    flex: 1;
+}
+
+.canvas-spreadsheet-search {
+    height: 31px;
+    min-width: 190px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 9px;
+    border-radius: 8px;
+    background: var(--surface-control, var(--hover));
+}
+
+.canvas-spreadsheet-search > span:first-child,
+.canvas-spreadsheet-search > span:first-child svg {
+    width: 15px;
+    height: 15px;
+    color: var(--spreadsheet-muted);
+}
+
+.canvas-spreadsheet-search input {
+    min-width: 80px;
+    flex: 1;
+    border: 0;
+    outline: none;
+    background: transparent;
+}
+
+.canvas-spreadsheet-search-count {
+    color: var(--spreadsheet-muted);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.canvas-spreadsheet-compatibility {
+    max-width: min(45%, 440px);
+    overflow: hidden;
+    padding: 5px 9px;
+    border: 1px solid color-mix(in srgb, var(--chat-warning-color) 32%, transparent);
+    border-radius: 999px;
+    color: var(--chat-warning-color);
+    background: color-mix(in srgb, var(--chat-warning-color) 9%, transparent);
+    cursor: help;
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.canvas-spreadsheet-formula-bar {
+    min-height: 36px;
+    border-bottom: 1px solid var(--spreadsheet-border);
+    background: var(--spreadsheet-grid-bg);
+}
+
+.canvas-spreadsheet-name-box {
+    width: 76px;
+    flex: 0 0 76px;
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-inline-end: 1px solid var(--spreadsheet-border);
+    color: var(--spreadsheet-muted);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+
+.canvas-spreadsheet-fx {
+    padding: 0 10px;
+    color: var(--spreadsheet-muted);
+    font-family: Georgia, serif;
+    font-size: 14px;
+    font-style: italic;
+}
+
+.canvas-spreadsheet-formula-input {
+    min-width: 0;
+    flex: 1;
+    align-self: stretch;
+    padding: 0 10px 0 0;
+    border: 0;
+    outline: none;
+    background: transparent;
+    font-family: var(--font-monospace, ui-monospace, SFMono-Regular, Menlo, monospace);
+    font-size: 12px;
+}
+
+.canvas-spreadsheet-formula-input:focus-visible {
+    box-shadow: inset 0 -2px 0 var(--accent-color);
+}
+
+.canvas-spreadsheet-grid-wrap {
+    flex: 1;
+    min-height: 0;
+    padding: 10px 12px 0;
+}
+
+.canvas-spreadsheet-viewport {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    border: 1px solid var(--spreadsheet-border);
+    border-radius: 11px;
+    outline: none;
+    background: var(--spreadsheet-grid-bg);
+    cursor: cell;
+    user-select: none;
+    scrollbar-color: var(--spreadsheet-border) transparent;
+    scrollbar-width: thin;
+}
+
+.canvas-spreadsheet-viewport:focus-visible {
+    border-color: color-mix(in srgb, var(--accent-color) 65%, var(--spreadsheet-border));
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-color) 14%, transparent);
+}
+
+.canvas-spreadsheet-canvas {
+    position: relative;
+    min-width: 100%;
+    min-height: 100%;
+}
+
+.canvas-spreadsheet-header {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    height: 32px;
+    background: var(--spreadsheet-panel-bg);
+}
+
+.canvas-spreadsheet-corner {
+    position: sticky;
+    inset-inline-start: 0;
+    z-index: 7;
+    width: 48px;
+    height: 32px;
+    border-inline-end: 1px solid var(--spreadsheet-border);
+    border-bottom: 1px solid var(--spreadsheet-border);
+    background: var(--spreadsheet-panel-bg);
+}
+
+.canvas-spreadsheet-column-header {
+    position: absolute;
+    top: 0;
+    height: 32px;
+    overflow: hidden;
+    border-inline-end: 1px solid var(--spreadsheet-line);
+    border-bottom: 1px solid var(--spreadsheet-border);
+    color: var(--spreadsheet-muted);
+    background: var(--spreadsheet-panel-bg);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+}
+
+.canvas-spreadsheet-column-resize {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-end: -4px;
+    z-index: 2;
+    width: 8px;
+    cursor: col-resize;
+}
+
+body.is-resizing-spreadsheet-column,
+body.is-resizing-spreadsheet-column * {
+    cursor: col-resize !important;
+    user-select: none !important;
+}
+
+.canvas-spreadsheet-column-header.is-selected {
+    color: var(--spreadsheet-text);
+    background: var(--spreadsheet-selection);
+    box-shadow: inset 0 -2px 0 var(--accent-color);
+}
+
+.canvas-spreadsheet-row {
+    position: absolute;
+    inset-inline-start: 0;
+    height: 30px;
+}
+
+.canvas-spreadsheet-row-number {
+    position: sticky;
+    inset-inline-start: 0;
+    z-index: 3;
+    width: 48px;
+    height: 30px;
+    border-inline-end: 1px solid var(--spreadsheet-border);
+    border-bottom: 1px solid var(--spreadsheet-line);
+    color: var(--spreadsheet-muted);
+    background: var(--spreadsheet-panel-bg);
+    font-size: 10.5px;
+    font-variant-numeric: tabular-nums;
+}
+
+.canvas-spreadsheet-row-number.is-selected {
+    color: var(--spreadsheet-text);
+    background: var(--spreadsheet-selection);
+    box-shadow: inset -2px 0 0 var(--accent-color);
+}
+
+.canvas-spreadsheet-cell {
+    position: absolute;
+    top: 0;
+    height: 30px;
+    overflow: hidden;
+    padding: 0 8px;
+    border-inline-end: 1px solid var(--spreadsheet-line);
+    border-bottom: 1px solid var(--spreadsheet-line);
+    line-height: 29px;
+    text-overflow: ellipsis;
+    white-space: pre;
+    font-size: 12.5px;
+    font-variant-numeric: tabular-nums;
+}
+
+.canvas-spreadsheet-cell.is-number {
+    text-align: end;
+}
+
+.canvas-spreadsheet-cell.is-match {
+    background: var(--spreadsheet-search-match);
+}
+
+.canvas-spreadsheet-selection-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.canvas-spreadsheet-selection {
+    position: absolute;
+    border: 2px solid var(--accent-color);
+    border-radius: 2px;
+    background: var(--spreadsheet-selection);
+}
+
+.canvas-spreadsheet-cell-editor {
+    position: absolute;
+    z-index: 8;
+    min-width: 0;
+    padding: 0 7px;
+    border: 2px solid var(--accent-color);
+    border-radius: 2px;
+    outline: none;
+    color: var(--spreadsheet-text);
+    background: var(--spreadsheet-grid-bg);
+    box-shadow: var(--surface-elevated-shadow);
+}
+
+.canvas-spreadsheet-tabs-bar {
+    min-height: 39px;
+    gap: 3px;
+    padding: 3px 12px;
+    border-top: 1px solid var(--spreadsheet-border);
+}
+
+.canvas-spreadsheet-sheet-controls {
+    min-width: 0;
+    display: flex;
+    flex: 0 1 auto;
+    align-items: center;
+    gap: 3px;
+}
+
+.canvas-spreadsheet-tabs {
+    min-width: 0;
+    display: flex;
+    flex: 0 1 auto;
+    gap: 2px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.canvas-spreadsheet-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.canvas-spreadsheet-tab,
+.canvas-spreadsheet-mini-btn {
+    min-height: 29px;
+    padding: 0 10px;
+    border-radius: 7px;
+    color: var(--spreadsheet-muted);
+    white-space: nowrap;
+    font-size: 12px;
+}
+
+.canvas-spreadsheet-tab.is-active {
+    color: var(--spreadsheet-text);
+    background: var(--bg-hover);
+    font-weight: 600;
+}
+
+.canvas-spreadsheet-sheet-controls > [data-action="add-sheet"] {
+    width: 29px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.canvas-spreadsheet-sheet-controls > [data-action="add-sheet"] svg {
+    width: 15px;
+    height: 15px;
+}
+
+.canvas-spreadsheet-status {
+    min-height: 28px;
+    gap: 7px;
+    padding: 0 17px 4px;
+    color: var(--spreadsheet-muted);
+    font-size: 11.5px;
+    font-variant-numeric: tabular-nums;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .canvas-spreadsheet-icon-btn:not(:disabled):hover,
+    .canvas-spreadsheet-mini-btn:not(:disabled):hover,
+    .canvas-spreadsheet-tab:hover,
+    .canvas-spreadsheet-column-header:hover,
+    .canvas-spreadsheet-row-number:hover,
+    .canvas-spreadsheet-corner:hover {
+        color: var(--spreadsheet-text);
+        background: var(--bg-hover);
+    }
+
+    .canvas-spreadsheet-row:hover .canvas-spreadsheet-cell {
+        background-color: color-mix(in srgb, var(--bg-hover) 55%, transparent);
+    }
+
+    .canvas-spreadsheet-row:hover .canvas-spreadsheet-cell.is-match {
+        background: var(--spreadsheet-search-match);
+    }
+}
+
+@container canvas-preview (max-width: 650px) {
+    .canvas-spreadsheet-toolbar {
+        flex-wrap: wrap;
+    }
+
+    .canvas-spreadsheet-search {
+        flex: 1 1 170px;
+    }
+
+    .canvas-spreadsheet-compatibility {
+        order: 5;
+        max-width: 100%;
+        flex-basis: 100%;
+    }
+
+    .canvas-spreadsheet-status [data-role="statistics"] {
+        display: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .canvas-spreadsheet-editor *,
+    .canvas-spreadsheet-editor *::before,
+    .canvas-spreadsheet-editor *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+    }
+}

@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#1F1F1F" media="(prefers-color-scheme: dark)">
+    <title data-i18n="header_title">Server Setup</title>
+    <link rel="stylesheet" href="/css/fonts.css">
+    <link rel="stylesheet" href="/css/common/animations.css">
+    <link rel="icon" href="/api/v1/settings/icon/get?size=16" sizes="16x16" >
+    <link rel="icon" href="/api/v1/settings/icon/get?size=32" sizes="32x32" type="image/svg+xml">
+    <link rel="apple-touch-icon" sizes="180x180" href="/api/v1/settings/icon/get?size=180"/>
+    <link rel="manifest" href="/api/v1/settings/site.webmanifest"/>
+    <style>
+        /* Fallback CSS Variables for resilience if external CSS fails */
+        :root {
+            --background: #ffffff;
+            --text-color: #111111;
+            --text-color-secondary: #666666;
+            --text-color-tertiary: #757575;
+            --border-color: #e0e0e0;
+            --hover: #f5f5f5;
+            --admin-accent: #007bff;
+            --shadow-color: rgba(0, 0, 0, 0.08);
+        }
+
+        html[data-mode="dark"] {
+            --background: #1F1F1F;
+            --text-color: #ffffff;
+            --text-color-secondary: #aaaaaa;
+            --text-color-tertiary: #999999;
+            --border-color: #333333;
+            --hover: #2a2a2a;
+            --shadow-color: rgba(0, 0, 0, 0.4);
+        }
+
+        html, body {
+            background-color: var(--background) !important;
+            transition: none !important;
+        }
+
+        :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+            outline: 2px solid var(--admin-accent);
+            outline-offset: 2px;
+            border-radius: 4px;
+        }
+    </style>
+    <link rel="stylesheet" href="/css/common/init.css">
+    <link rel="stylesheet" href="/css/common/elements.css">
+    <link rel="stylesheet" href="/css/common/elementsNew.css">
+    <link rel="stylesheet" href="/css/common/adminSelect.css">
+    <link rel="stylesheet" href="/css/serverSetup/style.css">
+    <link rel="stylesheet" href="/css/common/warning.css">
+    <link rel="stylesheet" href="/css/common/notification.css">
+    <link rel="stylesheet" href="/css/common/tooltip.css">
+    <script src="/js/server_setup/boot.js"></script>
+    <noscript>
+        <meta http-equiv="refresh" content="0; url=/error">
+    </noscript>
+    <script src="/js/common/pwaVersionGuard.js" defer></script>
+    <script src="/js/common/language.js" defer></script>
+    <script src="/js/common/theme.js" defer></script>
+    <script src="/js/common/notification.js" defer></script>
+    <script src="/js/common/auth.js" defer></script>
+    <script src="/js/common/dropdown.js" defer></script>
+    <script src="/js/common/icons.js" defer></script>
+    <script src="/js/admin/helper/core.js" defer></script>
+    <script src="/js/admin/helper/generatedMarkup.js" defer></script>
+    <script src="/js/admin/helper/schemaMetadata.js" defer></script>
+    <script src="/js/admin/helper/uiState.js" defer></script>
+    <script src="/js/admin/helper/fieldLayout.js" defer></script>
+    <script src="/js/admin/helper/selectControls.js" defer></script>
+    <script src="/js/admin/helper/fieldControls.js" defer></script>
+    <script src="/js/admin/helper/api.js" defer></script>
+    <script src="/js/admin/helper/settingsController.js" defer></script>
+    <script src="/js/admin/helper/fieldValidation.js" defer></script>
+    <script src="/js/admin/helper.js" defer></script>
+    <script src="/js/common/setupSelects.js" defer></script>
+    <script src="/js/common/setupKeyboardNavigation.js" defer></script>
+    <script src="/js/common/tooltip.js" defer></script>
+    <script src="/js/server_setup/state.js" defer></script>
+    <script src="/js/server_setup/publicUrls.js" defer></script>
+    <script src="/js/server_setup/navigation.js" defer></script>
+    <script src="/js/server_setup/upload.js" defer></script>
+    <script src="/js/server_setup/api.js" defer></script>
+    <script src="/js/server_setup/main.js" defer></script>
+</head>
+<body data-page="server_setup">
+    <a class="skip-link" href="#setupMain" data-i18n="skip_to_main">Skip to main content</a>
+    <!-- Notification Container (will be populated by JS) -->
+    <div id="notificationContainer" class="notification-container" role="region" aria-label="Error notifications" data-i18n-attr="aria-label:error_notifications_aria" aria-live="polite"></div>
+    <main class="container" id="setupMain" aria-labelledby="setupPageHeading">
+        <h1 class="header" id="setupPageHeading" data-i18n="header_title">Server Setup</h1>
+        <p id="stepAnnouncement" class="sr-only" aria-live="polite" aria-atomic="true"></p>
+        
+        <div class="progress-container hidden" id="setupProgressContainer" hidden aria-hidden="true">
+            <div class="progress-bar" id="setupProgressBar" role="progressbar" aria-label="Setup progress" data-i18n-attr="aria-label:progress_aria_label" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="0%">
+                <div class="progress-fill"></div>
+            </div>
+        </div>
+
+        <div class="content">
+            <!-- Step 0: Splash Screen -->
+            <div class="step active" data-step="0" aria-hidden="false">
+                <div class="splash-screen">
+                    <h2 class="splash-title" data-i18n="splash_title">Welcome</h2>
+                    <p class="splash-subtitle" data-i18n="splash_subtitle">Let's configure your server in just a few steps</p>
+                    <p class="splash-note" data-i18n="splash_settings_note">You can change all of these settings later in Admin Settings.</p>
+                    <button class="start-btn" id="startSetupButton" type="button" data-i18n="btn_get_started">Get Started</button>
+                </div>
+            </div>
+
+            <!-- Step 1: Donation -->
+            <div class="step" data-step="1" hidden aria-hidden="true">
+                <div class="step-content">
+                    <div class="step-copy">
+                        <h2 class="step-title" data-i18n="step_donation_title">Support Omlorix</h2>
+                        <p class="step-subtitle" data-i18n="step_donation_subtitle">This is the only time we'll ask: if you find this app useful, please consider supporting its development with a donation. Your contribution helps us maintain and improve the project.</p>
+                    </div>
+                    <div class="step-form">
+                        <div class="form-group">
+                            <!-- Keep the future support action visible without sending users to a dead URL. -->
+                            <button type="button" class="donate-btn" disabled aria-disabled="true" data-i18n-attr="aria-label:btn_support_info_aria">
+                                <span data-i18n="btn_support_info">Coming soon</span>
+                            </button>
+                            <p class="donation-note" data-i18n="donation_note">Thank you for considering a donation. You can skip this step if you prefer.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Application Name -->
+            <div class="step" data-step="2" hidden aria-hidden="true">
+                <div class="step-content">
+                    <div class="step-copy">
+                        <h2 class="step-title" data-i18n="step_appname_title">Name Your Application</h2>
+                        <p class="step-subtitle" data-i18n="step_appname_subtitle">Choose a name that will be displayed throughout the application</p>
+                    </div>
+                    <div class="step-form">
+                        <div class="form-group">
+                            <label class="form-label" for="appNameInput" id="appNameLabel" data-i18n="label_app_name">Application Name</label>
+                            <input type="text" class="input" id="appNameInput" data-field="applicationName" placeholder="Omlorix" data-i18n-attr="placeholder:appname_placeholder" maxlength="50" autocomplete="organization" required aria-required="true" aria-describedby="appNameError">
+                            <div class="field-error" id="appNameError" data-error-for="applicationName" role="alert" aria-live="assertive" aria-hidden="true"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: Public URLs -->
+            <div class="step" data-step="3" hidden aria-hidden="true">
+                <div class="step-content">
+                    <div class="step-copy">
+                        <h2 class="step-title" data-i18n="step_url_title">Configure Public URLs</h2>
+                        <p class="step-subtitle" data-i18n="step_url_subtitle">Add every browser origin that may access this application.</p>
+                    </div>
+                    <div class="step-form">
+                        <div class="form-group">
+                            <div class="form-label" id="publicUrlLabel" data-i18n="label_public_url">Public URLs</div>
+                            <div class="public-urls-editor" role="group" aria-labelledby="publicUrlLabel" aria-describedby="publicUrlHint publicUrlError">
+                                <div class="public-url-list" id="publicUrlList"></div>
+                                <button class="public-url-add-btn" id="addPublicUrlButton" type="button">
+                                    <span aria-hidden="true">+</span>
+                                    <span data-i18n="btn_add_public_url">Add public URL</span>
+                                </button>
+                            </div>
+                            <p class="input-hint" id="publicUrlHint" data-i18n="url_hint">The first URL is primary and is used for generated links and callbacks.</p>
+                            <div class="field-error" id="publicUrlError" data-error-for="publicUrls" role="alert" aria-live="assertive" aria-hidden="true"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 4: Logo & Icon Upload -->
+            <div class="step" data-step="4" hidden aria-hidden="true">
+                <div class="step-content">
+                    <div class="step-copy">
+                        <h2 class="step-title" data-i18n="step_branding_title">Upload Brand Assets</h2>
+                        <p class="step-subtitle" data-i18n="step_branding_subtitle">Drop in your logos and favicon so the product feels yours from day one.</p>
+                    </div>
+                    <div class="step-form">
+                        <div class="upload-section">
+                            <div class="upload-group">
+                                <label class="form-label" data-i18n="label_logo_light">Logo (Light Theme)</label>
+                                <label class="upload-area" id="logoLightUpload" for="logoLightInput" role="button" tabindex="0" aria-controls="logoLightInput" aria-describedby="brandAssetsError" aria-label="Upload light theme logo" data-i18n-attr="aria-label:upload_logo_light_aria">
+                                    <div class="upload-preview theme-logo-preview" id="logoLightPreview" data-mode="light">
+                                        <span data-omlorix-icon="image_gen"></span>
+                                        <span data-i18n="upload_logo">Click to upload</span>
+                                    </div>
+                                </label>
+                                <input type="file" id="logoLightInput" accept="image/*,.svg" class="upload-input">
+                            </div>
+
+                            <div class="upload-group">
+                                <label class="form-label" data-i18n="label_logo_dark">Logo (Dark Theme)</label>
+                                <label class="upload-area" id="logoDarkUpload" for="logoDarkInput" role="button" tabindex="0" aria-controls="logoDarkInput" aria-describedby="brandAssetsError" aria-label="Upload dark theme logo" data-i18n-attr="aria-label:upload_logo_dark_aria">
+                                    <div class="upload-preview theme-logo-preview" id="logoDarkPreview" data-mode="dark">
+                                        <span data-omlorix-icon="image_gen"></span>
+                                        <span data-i18n="upload_logo">Click to upload</span>
+                                    </div>
+                                </label>
+                                <input type="file" id="logoDarkInput" accept="image/*,.svg" class="upload-input">
+                            </div>
+                        </div>
+
+                        <div class="field-error brand-assets-error" id="brandAssetsError" data-error-for="brandAssets" role="alert" aria-live="assertive" aria-hidden="true"></div>
+
+                        <div class="upload-group icon-upload-group">
+                            <label class="form-label" data-i18n="label_favicon">Favicon / App Icon</label>
+                            <label class="upload-area icon-upload" id="iconUpload" for="iconInput" role="button" tabindex="0" aria-controls="iconInput" aria-describedby="iconHint" aria-label="Upload favicon or app icon" data-i18n-attr="aria-label:upload_icon_aria">
+                                <div class="upload-preview icon-preview" id="iconPreview">
+                                    <span data-omlorix-icon="chip"></span>
+                                    <span data-i18n="upload_icon">Click to upload</span>
+                                </div>
+                            </label>
+                            <input type="file" id="iconInput" accept="image/*,.svg" class="upload-input">
+                            <p class="input-hint" id="iconHint" data-i18n="icon_hint">SVG recommended for best quality. Other image formats are also supported.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 5: Default Role -->
+            <div class="step" data-step="5" hidden aria-hidden="true">
+                <div class="step-content">
+                    <div class="step-copy">
+                        <h2 class="step-title" data-i18n="step_role_title">Choose Default Role</h2>
+                        <p class="step-subtitle" data-i18n="step_role_subtitle">Decide which role is automatically assigned to every new account.</p>
+                    </div>
+                    <div class="step-form">
+                        <div class="form-group">
+                            <label class="form-label" id="defaultRoleLabel" for="defaultUserRoleInput" data-i18n="label_default_role">Default user role</label>
+                            <select id="defaultUserRoleInput" class="select" data-setup-select="admin" data-field="defaultUserRole" aria-labelledby="defaultRoleLabel" aria-describedby="defaultUserRoleHint defaultUserRoleError">
+                                <option value="pending" selected data-i18n="role_option_pending">Pending (manual approval)</option>
+                                <option value="user" data-i18n="role_option_user">User (limited access, without manual approval)</option>
+                            </select>
+                            <p class="input-hint" id="defaultUserRoleHint" data-i18n="role_hint">The selected role will be used for every newly created account until you change it in the admin settings.</p>
+                            <div class="field-error" id="defaultUserRoleError" data-error-for="defaultUserRole" role="alert" aria-live="assertive" aria-hidden="true"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 6: Complete Screen -->
+            <div class="step" data-step="6" hidden aria-hidden="true">
+                <div class="complete-screen">
+                    <div class="complete-icon">
+                        <span data-omlorix-icon="check"></span>
+                    </div>
+                    <h2 class="complete-title" data-i18n="complete_title">Setup Complete!</h2>
+                    <p class="complete-subtitle" data-i18n="complete_subtitle">Your server has been configured successfully</p>
+                </div>
+            </div>
+        </div>
+
+        <nav class="navigation" aria-label="Setup navigation" data-i18n-attr="aria-label:setup_navigation_aria">
+            <button class="om-button border cancel hidden" id="serverSetupBackButton" type="button" data-i18n="btn_back" hidden aria-hidden="true">Back</button>
+            <button class="om-button border submit hidden" id="serverSetupNextButton" type="button" data-i18n="btn_next" hidden aria-hidden="true">Next</button>
+        </nav>
+    </main>
+    <div class="warning-overlay" id="currentOriginWarning" role="dialog" aria-modal="true" aria-labelledby="currentOriginWarningTitle" aria-describedby="currentOriginWarningMessage" aria-hidden="true" inert>
+        <div class="warning-card" role="document">
+            <h2 class="warning-header-title" id="currentOriginWarningTitle" data-i18n="current_origin_warning_title">Current address not included</h2>
+            <p class="warning-message" id="currentOriginWarningMessage"></p>
+            <div class="warning-navigation">
+                <button class="om-button border cancel" id="continueWithoutCurrentOriginButton" type="button" data-i18n="current_origin_warning_continue">Continue anyway</button>
+                <button class="om-button border submit" id="addCurrentOriginButton" type="button" data-i18n="current_origin_warning_add">Add current URL</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

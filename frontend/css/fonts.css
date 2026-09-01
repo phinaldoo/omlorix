@@ -1,0 +1,18 @@
+/* Clean Inter font-face declarations using locally hosted variable woff2 files */
+/* Normal (upright) variable font covering 100–900 */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('../assets/fonts/Inter-roman.var.woff2') format('woff2');
+}
+
+/* Italic variable font covering 100–900 */
+@font-face {
+  font-family: 'Inter';
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('../assets/fonts/Inter-italic.var.woff2') format('woff2');
+}

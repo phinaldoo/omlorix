@@ -1,0 +1,321 @@
+/* YouTube Embed Styles */
+
+.youtube-embed-container {
+    position: relative;
+    width: 100%;
+    max-width: 560px;
+    margin: 16px 0;
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--surface-muted, #f4f4f5);
+}
+
+.youtube-embed-wrapper {
+    position: relative;
+    padding-bottom: 56.25%;
+    /* 16:9 aspect ratio */
+    height: 0;
+    overflow: hidden;
+}
+
+.youtube-embed-wrapper iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+    border-radius: 12px;
+}
+
+.youtube-consent-placeholder {
+    position: relative;
+    width: 100%;
+    box-sizing: border-box;
+    /* Theme surfaces keep the card and inherited text in the same color mode. */
+    background: linear-gradient(
+        135deg,
+        var(--surface-elevated, #ffffff) 0%,
+        var(--surface-muted, #f4f4f5) 100%
+    );
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--surface-elevated-border, #dedee2);
+    display: flex;
+}
+
+.youtube-consent-content {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 32px 28px;
+    text-align: center;
+    gap: 14px;
+    min-height: 260px;
+}
+
+.youtube-consent-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: rgba(217, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.youtube-consent-icon svg {
+    width: 32px;
+    height: 32px;
+    fill: #d90000;
+}
+
+.youtube-consent-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--admin-text, var(--text-color, #333333));
+    margin: 0;
+    line-height: 1.3;
+}
+
+.youtube-consent-description {
+    font-size: 13px;
+    color: var(--admin-text-secondary, var(--text-color-secondary, #666666));
+    margin: 0;
+    max-width: 420px;
+    line-height: 1.5;
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
+    hyphens: auto;
+}
+
+.youtube-consent-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 18px;
+    align-items: center;
+    justify-content: center;
+    margin-top: 6px;
+    width: 100%;
+}
+
+.youtube-consent-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 22px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+    border: none;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.youtube-consent-btn svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+.youtube-consent-btn-primary {
+    /* Darker than YouTube red so white button text remains clearly readable. */
+    background: #d90000;
+    color: #ffffff;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .youtube-consent-btn-primary:hover {
+        background: #b80000;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(217, 0, 0, 0.3);
+    }
+}
+
+.youtube-consent-btn-primary:active {
+    transform: translateY(0);
+}
+
+.youtube-consent-btn-primary:focus-visible {
+    outline: 2px solid var(--admin-text, var(--text-color, #333333));
+    outline-offset: 2px;
+}
+
+.youtube-consent-checkbox-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    color: var(--admin-text-secondary, var(--text-color-secondary, #666666));
+    cursor: pointer;
+    user-select: none;
+    line-height: 1.2;
+    transition: color 0.15s ease;
+}
+
+.youtube-consent-checkbox-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: #d90000;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin: 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .youtube-consent-checkbox-label:hover {
+        color: var(--admin-text, var(--text-color, #333333));
+    }
+}
+
+/* Loading State */
+.youtube-embed-loading {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface-muted, #f4f4f5);
+}
+
+.youtube-embed-loading::after {
+    content: "";
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--surface-elevated-border, #dedee2);
+    border-top-color: #d90000;
+    border-radius: 50%;
+    animation: spinTo360 0.8s linear infinite;
+}
+
+/* Respect reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+    .youtube-consent-btn,
+.youtube-consent-checkbox-label{
+        transition: none;
+    }
+    .youtube-embed-loading::after {
+        animation: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) and (hover: hover) and (pointer: fine) {
+    .youtube-consent-btn-primary:hover {
+        transform: none;
+    }
+}
+
+/* Dark mode uses a brighter red for non-text branding and fallback links. */
+[data-mode="dark"] .youtube-consent-icon {
+    background: rgba(255, 64, 64, 0.16);
+}
+
+[data-mode="dark"] .youtube-consent-icon svg {
+    fill: #ff4d4d;
+}
+
+/* ---------------------------------------------------------------------------
+   Responsive
+
+   - >= 480px : icon + text + actions all fit comfortably; actions can sit on
+     one row (checkbox + button).
+   - < 480px  : tighten paddings, stack actions vertically, full-width button.
+   - < 360px  : extra compact for very small widths (split-screen, sidebars).
+   --------------------------------------------------------------------------- */
+@media (max-width: 600px) {
+    .youtube-embed-container {
+        border-radius: 10px;
+    }
+
+    .youtube-embed-wrapper iframe {
+        border-radius: 10px;
+    }
+
+    .youtube-consent-placeholder {
+        border-radius: 10px;
+    }
+
+    .youtube-consent-content {
+        padding: 24px 18px;
+        gap: 12px;
+        min-height: 240px;
+    }
+
+    .youtube-consent-icon {
+        width: 48px;
+        height: 48px;
+    }
+
+    .youtube-consent-icon svg {
+        width: 28px;
+        height: 28px;
+    }
+
+    .youtube-consent-title {
+        font-size: 15px;
+    }
+
+    .youtube-consent-description {
+        font-size: 12.5px;
+    }
+}
+
+@media (max-width: 480px) {
+    .youtube-consent-actions {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .youtube-consent-btn {
+        width: 100%;
+        max-width: 280px;
+        padding: 11px 20px;
+    }
+}
+
+@media (max-width: 360px) {
+    .youtube-consent-content {
+        padding: 20px 14px;
+        gap: 10px;
+        min-height: 220px;
+    }
+
+    .youtube-consent-icon {
+        width: 44px;
+        height: 44px;
+    }
+
+    .youtube-consent-icon svg {
+        width: 24px;
+        height: 24px;
+    }
+
+    .youtube-consent-title {
+        font-size: 14px;
+    }
+
+    .youtube-consent-description {
+        font-size: 12px;
+        line-height: 1.45;
+    }
+
+    .youtube-consent-btn {
+        font-size: 13px;
+        padding: 10px 16px;
+    }
+
+    .youtube-consent-checkbox-label {
+        font-size: 12px;
+    }
+}

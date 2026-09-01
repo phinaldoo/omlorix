@@ -1,0 +1,1416 @@
+/* ===========================================
+   Slides Presentation Confirmation Widget & Preview Panel
+   =========================================== */
+
+/* ── Theme Tokens ────────────────────────── */
+:root {
+    --slide-presentation-card-bg: var(--bg-primary, #ffffff);
+    --slide-presentation-card-border: var(--border-color, rgba(0, 0, 0, 0.08));
+    --slide-presentation-card-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    --slide-presentation-text-primary: var(--text-color, #1a1a1a);
+    --slide-presentation-text-secondary: var(--text-color-secondary, #6b7280);
+    --slide-presentation-input-bg: var(--surface-elevated);
+    --slide-presentation-input-border: var(--border-color, rgba(0, 0, 0, 0.1));
+    --slide-presentation-input-focus: var(--accent-color, #3b82f6);
+    --slide-presentation-btn-primary-bg: var(--accent-color, #3b82f6);
+    --slide-presentation-btn-primary-text: #ffffff;
+    --slide-presentation-btn-secondary-bg: var(--surface-elevated);
+    --slide-presentation-btn-secondary-text: var(--text-color, #374151);
+    --slide-presentation-accent: var(--accent-color, #3b82f6);
+    --slide-presentation-toggle-bg: var(--admin-hover, #e5e7eb);
+    --slide-presentation-toggle-active: var(--accent-color, #3b82f6);
+    --slide-presentation-preview-border: var(--border-color, rgba(0, 0, 0, 0.08));
+}
+
+:root[data-mode="dark"] {
+    --slide-presentation-card-bg: var(--bg-primary, #18181b);
+    --slide-presentation-card-border: var(--border-color, rgba(255, 255, 255, 0.08));
+    --slide-presentation-card-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    --slide-presentation-text-primary: var(--text-color, #f5f5f5);
+    --slide-presentation-text-secondary: var(--text-color-secondary, #a1a1aa);
+    --slide-presentation-input-bg: #27272a;
+    --slide-presentation-input-border: rgba(255, 255, 255, 0.1);
+    --slide-presentation-btn-secondary-bg: #27272a;
+    --slide-presentation-btn-secondary-text: var(--text-color, #e4e4e7);
+    --slide-presentation-toggle-bg: #3f3f46;
+    --slide-presentation-preview-border: rgba(255, 255, 255, 0.06);
+}
+
+/* ── Shared Canvas panel integration ──────────────────────── */
+/* Layout, sizing, transitions, header, title, status, and workspace chrome
+   come from canvas-widget.css through the shared canvas-markdown-* classes. */
+body.slide-presentation-preview-open .main-container {
+    margin-right: var(--canvas-markdown-resolved-preview-width);
+    transition: margin-right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.slide-presentation-preview-panel-right {
+    max-width: 100%;
+}
+
+.slide-presentation-preview-btn-label {
+    display: inline;
+}
+
+/* The presentation preview is resizable independently of the browser. Match
+   the shared Canvas header breakpoint so its text actions collapse when the
+   panel itself runs out of room, including on a wide desktop viewport. */
+@container canvas-preview (max-width: 600px) {
+    .slide-presentation-preview-btn-label {
+        display: none;
+    }
+}
+
+@media (max-width: 900px) {
+    body.slide-presentation-preview-open .main-container {
+        margin-right: 0;
+    }
+}
+/* Download controls pill */
+.slide-presentation-preview-download-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--slide-presentation-card-bg);
+    border: 1px solid var(--slide-presentation-preview-border);
+    border-radius: 999px;
+    padding-left: 10px;
+}
+
+.slide-presentation-preview-download-select {
+    border: none;
+    background: transparent;
+    color: var(--slide-presentation-text-primary);
+    font-size: 12px;
+    font-weight: 500;
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    padding-right: 4px;
+}
+
+/* Custom download split button
+   ----------------------------
+   Canvas and Notes progressively enhance their native format select into this
+   control. The format trigger and download action share one quiet surface,
+   while the menu is anchored to (and exactly as wide as) the complete control
+   rather than only the format label. */
+.slide-presentation-preview-download-controls.custom-download-control {
+    position: relative;
+    display: inline-flex;
+    align-items: stretch;
+    gap: 0;
+    height: 36px;
+    padding: 0;
+    overflow: visible;
+    border: 1px solid var(--surface-control-border);
+    border-radius: 10px;
+    background: var(--surface-control-button);
+    transition: border-color 140ms ease, box-shadow 140ms ease, background-color 140ms ease;
+}
+
+.slide-presentation-preview-download-controls.custom-download-control[hidden],
+.custom-download-format-menu[hidden],
+.custom-download-native-select {
+    display: none !important;
+}
+
+.slide-presentation-preview-download-controls.custom-download-control.is-open {
+    z-index: 80;
+    border-color: color-mix(in srgb, var(--primary-color) 44%, var(--surface-control-border));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 12%, transparent);
+}
+
+.custom-download-format-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 9px;
+    min-width: 62px;
+    height: 34px;
+    padding: 0 10px 0 12px;
+    border: 0;
+    border-radius: 9px 0 0 9px;
+    background: transparent;
+    color: var(--text-color);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 560;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color 140ms ease, color 140ms ease;
+}
+
+.custom-download-format-label {
+    padding: 0;
+    white-space: nowrap;
+}
+
+.custom-download-format-chevron {
+    width: 6px;
+    height: 6px;
+    margin-top: -3px;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    opacity: 0.58;
+    transform: rotate(45deg);
+    transition: transform 140ms ease, opacity 140ms ease;
+}
+
+.custom-download-control.is-open .custom-download-format-chevron {
+    margin-top: 3px;
+    opacity: 0.85;
+    transform: rotate(225deg);
+}
+
+.custom-download-format-trigger:disabled {
+    opacity: 0.38;
+    cursor: not-allowed;
+}
+
+.custom-download-control > .slide-presentation-preview-download-btn {
+    width: 36px;
+    min-width: 36px;
+    height: 34px;
+    padding: 7px;
+    border: 0;
+    border-inline-start: 1px solid var(--surface-control-border);
+    border-radius: 0 9px 9px 0;
+    background: transparent;
+    color: var(--text-color-secondary);
+    transition: background-color 140ms ease, color 140ms ease;
+}
+
+.custom-download-control > .slide-presentation-preview-download-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .custom-download-format-trigger:not(:disabled):hover,
+    .custom-download-control > .slide-presentation-preview-download-btn:not(.disabled):hover {
+        background: var(--surface-interactive-hover);
+        color: var(--text-color);
+    }
+}
+
+.custom-download-format-trigger:active,
+.custom-download-control > .slide-presentation-preview-download-btn:not(.disabled):active {
+    background: var(--surface-interactive-active);
+}
+
+.custom-download-format-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    inset-inline-start: -1px;
+    width: calc(100% + 2px);
+    box-sizing: border-box;
+    display: grid;
+    gap: 2px;
+    padding: 4px;
+    border: 1px solid var(--surface-elevated-border);
+    border-radius: 11px;
+    background: var(--surface-elevated);
+    box-shadow: var(--surface-elevated-shadow);
+    color: var(--text-color);
+    animation: dropdownSlideIn 130ms ease-out both;
+}
+
+.custom-download-format-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    min-height: 34px;
+    padding: 0 9px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--text-color);
+    font: inherit;
+    font-size: 13px;
+    line-height: 1.2;
+    text-align: start;
+    cursor: pointer;
+}
+
+.custom-download-format-option[aria-selected="true"] {
+    background: var(--surface-muted);
+    font-weight: 600;
+}
+
+.custom-download-format-option:disabled {
+    opacity: 0.38;
+    cursor: not-allowed;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .custom-download-format-option:not(:disabled):hover {
+        background: var(--surface-interactive-hover);
+    }
+}
+
+.custom-download-format-option:not(:disabled):active {
+    background: var(--surface-interactive-active);
+}
+
+.custom-download-format-check {
+    width: 6px;
+    height: 10px;
+    flex: 0 0 auto;
+    margin: -2px 2px 0 0;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    opacity: 0;
+    transform: rotate(45deg);
+}
+
+.custom-download-format-option[aria-selected="true"] .custom-download-format-check {
+    opacity: 0.8;
+}
+
+.slide-presentation-preview-download-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--slide-presentation-text-primary);
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .slide-presentation-preview-download-btn:not(.disabled):hover {
+        color: var(--slide-presentation-accent);
+    }
+}
+
+.slide-presentation-preview-download-btn.disabled {
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+.slide-presentation-preview-download-btn,
+.slide-presentation-preview-panel-btn-present {
+    max-width: 100%;
+}
+
+/* Secondary button (Sidebar toggle) */
+.slide-presentation-preview-panel-btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 9999px;
+    border: 1px solid var(--slide-presentation-preview-border);
+    background: var(--slide-presentation-card-bg);
+    color: var(--slide-presentation-text-primary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.slide-presentation-preview-panel-btn-secondary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.slide-presentation-preview-panel-btn-secondary:focus-visible {
+    outline: 2px solid var(--slide-presentation-accent);
+    outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .slide-presentation-preview-panel-btn-secondary:not(:disabled):hover {
+        border-color: color-mix(in srgb, var(--slide-presentation-accent) 45%, var(--slide-presentation-preview-border));
+        color: var(--slide-presentation-accent);
+        background: var(--surface-interactive-hover);
+    }
+}
+
+.slide-presentation-preview-edit-icon,
+.slide-presentation-preview-edit-icon svg {
+    width: 17px;
+    height: 17px;
+    display: block;
+}
+
+/* ── Native whole-site presentation editor ─────────────────────────── */
+body.slide-presentation-editor-open {
+    overflow: hidden;
+}
+
+.slide-presentation-editor-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 12000;
+    display: none;
+    background: var(--surface-elevated);
+    backdrop-filter: var(--modal-overlay-backdrop-filter);
+    -webkit-backdrop-filter: var(--modal-overlay-backdrop-filter);
+}
+
+.slide-presentation-editor-overlay.open {
+    display: block;
+}
+
+.slide-presentation-editor-host {
+    width: 100%;
+    height: 100%;
+    display: block;
+    border: 0;
+    background: var(--surface-elevated);
+    overflow: hidden;
+    opacity: 0;
+}
+
+.slide-presentation-editor-overlay.ready .slide-presentation-editor-host {
+    opacity: 1;
+}
+
+.slide-presentation-editor-loading {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    color: var(--text-color-secondary);
+    background: var(--surface-elevated);
+}
+
+.slide-presentation-editor-overlay.ready .slide-presentation-editor-loading {
+    display: none;
+}
+
+.slide-presentation-editor-fallback-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    z-index: 2;
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    color: var(--text-color);
+    background: var(--surface-elevated);
+    cursor: pointer;
+}
+
+.slide-presentation-editor-fallback-close span,
+.slide-presentation-editor-fallback-close svg {
+    width: 18px;
+    height: 18px;
+    display: block;
+}
+
+.slide-presentation-editor-overlay.ready .slide-presentation-editor-fallback-close {
+    display: none;
+}
+
+.slide-presentation-editor-fallback-close:focus-visible {
+    outline: 2px solid var(--slide-presentation-accent);
+    outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .slide-presentation-editor-fallback-close:hover {
+        background: var(--surface-interactive-hover);
+    }
+}
+
+.slide-presentation-preview-spinner {
+    width: 22px;
+    height: 22px;
+    border: 2px solid var(--slide-presentation-preview-border);
+    border-top-color: var(--slide-presentation-accent);
+    border-radius: 50%;
+    animation: spin 800ms linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .slide-presentation-preview-spinner {
+        animation: none;
+    }
+}
+
+/* Present button */
+.slide-presentation-preview-panel-btn-present {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: var(--slide-presentation-accent);
+    color: var(--slide-presentation-btn-primary-text);
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .slide-presentation-preview-panel-btn-present:hover {
+        opacity: 0.85;
+    }
+}
+
+.slide-presentation-preview-panel-btn-present:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Sidebar (thumbnails) */
+.slide-presentation-preview-sidebar {
+    width: 180px;
+    background: var(--slide-presentation-card-bg);
+    border-right: 1px solid var(--slide-presentation-preview-border);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow: hidden;
+    flex-shrink: 0;
+    opacity: 1;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                padding 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.25s ease,
+                border-right-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.slide-presentation-preview-sidebar.collapsed {
+    width: 0;
+    padding: 0;
+    opacity: 0;
+    border-right-width: 0;
+    pointer-events: none;
+}
+
+.slide-presentation-preview-sidebar:not(.collapsed) {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+}
+
+.slide-presentation-preview-sidebar-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--slide-presentation-text-secondary);
+    letter-spacing: 0.05em;
+}
+
+.slide-presentation-preview-thumbnails {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.slide-presentation-preview-thumbnail {
+    position: relative;
+    width: 100%;
+    flex: 0 0 auto;
+    aspect-ratio: 16 / 9;
+    background: var(--slide-presentation-input-bg);
+    border-radius: 6px;
+    overflow: hidden;
+    cursor: pointer;
+    border: 2px solid transparent;
+    padding: 0;
+    appearance: none;
+    color: inherit;
+    font: inherit;
+    text-align: initial;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .slide-presentation-preview-thumbnail:hover {
+        border-color: var(--slide-presentation-text-secondary);
+    }
+}
+
+.slide-presentation-preview-thumbnail.active {
+    border-color: var(--slide-presentation-accent);
+}
+
+.slide-presentation-preview-thumbnail:focus-visible {
+    outline: 2px solid var(--slide-presentation-accent);
+    outline-offset: 2px;
+}
+
+.slide-presentation-preview-thumbnail-number {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.slide-presentation-preview-thumbnail iframe {
+    width: 1920px;
+    height: 1080px;
+    border: none;
+    transform-origin: top left;
+    pointer-events: none;
+    display: block;
+}
+
+/* Rendered PNGs already have the final 16:9 dimensions. Let the browser size
+   the raster directly instead of scaling a 1920x1080 element with a transform.
+   Transform scaling inside a rounded clipping layer can reveal a light
+   antialiasing fringe at fractional preview widths. */
+.slide-presentation-preview-thumbnail img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: fill;
+    border: none;
+    background: transparent;
+    pointer-events: none;
+    display: block;
+    transform: none;
+}
+
+.slide-presentation-preview-image-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--slide-presentation-text-secondary);
+    background: var(--slide-presentation-input-bg);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+/* Main Preview Area */
+.slide-presentation-preview-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    position: relative;
+    min-width: 0;
+    overflow: hidden;
+}
+
+/* Keep the last complete revision visible while the backend renders edited
+   source. A quiet, centered spinner and label communicate progress without
+   replacing the deck with a blank loading screen. */
+.slide-presentation-preview-updating {
+    position: absolute;
+    inset: 0;
+    z-index: 12;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 24px;
+    color: var(--slide-presentation-text-primary);
+    pointer-events: none;
+    transition: opacity 160ms ease;
+}
+
+.slide-presentation-preview-updating.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.slide-presentation-preview-updating[hidden] {
+    display: none;
+}
+
+.slide-presentation-preview-updating.error {
+    pointer-events: auto;
+}
+
+.slide-presentation-preview-updating .slide-presentation-preview-spinner {
+    width: 30px;
+    height: 30px;
+    border-width: 2px;
+    border-color: color-mix(in srgb, var(--slide-presentation-text-primary) 22%, transparent);
+    border-top-color: var(--slide-presentation-accent);
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.16));
+}
+
+.slide-presentation-preview-updating span {
+    max-width: min(320px, 100%);
+    overflow-wrap: anywhere;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.35;
+}
+
+.slide-presentation-preview-update-retry {
+    flex: 0 0 auto;
+    min-height: 28px;
+    padding: 0 10px;
+    border: 1px solid var(--slide-presentation-preview-border);
+    border-radius: 8px;
+    color: var(--slide-presentation-text-primary);
+    background: var(--surface-interactive);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.slide-presentation-preview-update-retry.hidden {
+    display: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .slide-presentation-preview-update-retry:hover {
+        background: var(--surface-interactive-hover);
+    }
+}
+
+.slide-presentation-preview-main.is-updating .slide-presentation-preview-slides-track {
+    opacity: 0.58;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .slide-presentation-preview-updating,
+    .slide-presentation-preview-slides-track {
+        transition: none;
+    }
+}
+
+/* Generating State */
+.slide-presentation-preview-generating {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    transition: opacity 0.4s ease;
+}
+
+.slide-presentation-preview-generating.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.slide-presentation-preview-generating-inner {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr);
+    align-items: center;
+    gap: 14px 12px;
+    max-width: 520px;
+    width: 100%;
+    padding: 0 24px;
+}
+
+/* Phase icon */
+.slide-presentation-gen-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--slide-presentation-accent) 12%, transparent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--slide-presentation-accent);
+    animation: slide-presentation-GenIconPulse 2.4s ease-in-out infinite;
+}
+
+.slide-presentation-gen-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* Phase label */
+.slide-presentation-gen-phase-label {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--slide-presentation-text-primary);
+    text-align: start;
+}
+
+/* Skeleton slide placeholder */
+.slide-presentation-gen-skeleton {
+    grid-column: 1 / -1;
+    width: 100%;
+}
+
+.slide-presentation-gen-skeleton-slide {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: var(--slide-presentation-card-bg);
+    border: 1px solid var(--slide-presentation-card-border);
+    border-radius: 10px;
+    padding: 14% 8% 8%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+:root[data-mode="dark"] .slide-presentation-gen-skeleton-slide {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.slide-presentation-skel-title {
+    width: 50%;
+    height: 14px;
+    border-radius: 4px;
+    background: var(--slide-presentation-preview-border);
+    animation: slide-presentation-SkelShimmer 1.6s ease-in-out infinite;
+}
+
+.slide-presentation-skel-line {
+    height: 8px;
+    border-radius: 3px;
+    background: var(--slide-presentation-preview-border);
+    animation: slide-presentation-SkelShimmer 1.6s ease-in-out infinite;
+}
+
+.slide-presentation-skel-line.w80 {
+    width: 80%;
+    animation-delay: 0.1s;
+}
+.slide-presentation-skel-line.w60 {
+    width: 60%;
+    animation-delay: 0.2s;
+}
+.slide-presentation-skel-line.w70 {
+    width: 70%;
+    animation-delay: 0.3s;
+}
+
+.slide-presentation-skel-blocks {
+    display: flex;
+    gap: 6px;
+    margin-top: auto;
+}
+
+.slide-presentation-skel-block {
+    flex: 1;
+    aspect-ratio: 1;
+    border-radius: 6px;
+    background: var(--slide-presentation-preview-border);
+    animation: slide-presentation-SkelShimmer 1.6s ease-in-out infinite;
+}
+
+.slide-presentation-skel-block:nth-child(1) { animation-delay: 0.15s; }
+.slide-presentation-skel-block:nth-child(2) { animation-delay: 0.3s; }
+.slide-presentation-skel-block:nth-child(3) { animation-delay: 0.45s; }
+
+/* ── Scrollable Snap Slides Track ───────── */
+.slide-presentation-preview-slides-track {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    touch-action: pan-y;
+    scroll-snap-type: y proximity;
+    scroll-padding-block: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    padding: 24px 24px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--slide-presentation-preview-border) transparent;
+    transition: opacity 160ms ease;
+}
+
+.slide-presentation-preview-slides-track::-webkit-scrollbar {
+    width: 6px;
+}
+.slide-presentation-preview-slides-track::-webkit-scrollbar-track {
+    background: transparent;
+}
+.slide-presentation-preview-slides-track::-webkit-scrollbar-thumb {
+    background: var(--slide-presentation-preview-border);
+    border-radius: 3px;
+}
+
+/* Each slide wrapper inside the track */
+.slide-presentation-preview-slide-item {
+    flex-shrink: 0;
+    width: 100%;
+    max-width: 860px;
+    aspect-ratio: 16 / 9;
+    background: transparent;
+    border-radius: 8px;
+    overflow: hidden;
+    isolation: isolate;
+    scroll-snap-align: center;
+    scroll-snap-stop: normal;
+    position: relative;
+    transition:
+        box-shadow 240ms ease,
+        transform 200ms cubic-bezier(0.2, 0.7, 0.2, 1),
+        opacity 160ms ease-out;
+    transform: scale(0.97);
+    opacity: 0.75;
+}
+
+.slide-presentation-preview-slide-item.active {
+    transform: scale(1);
+    opacity: 1;
+}
+
+/* A complete refinement revision replaces images atomically. This brief,
+   low-motion emphasis communicates the update without clearing the deck or
+   moving the user's current slide. */
+.slide-presentation-preview-slide-item.revision-updated {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--slide-presentation-accent) 48%, transparent),
+                0 8px 40px color-mix(in srgb, var(--slide-presentation-accent) 14%, transparent);
+}
+
+.slide-presentation-preview-thumbnail.revision-updated {
+    border-color: color-mix(in srgb, var(--slide-presentation-accent) 62%, var(--slide-presentation-preview-border));
+}
+
+.slide-presentation-preview-panel-status.warning {
+    color: var(--slide-presentation-text-secondary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .slide-presentation-preview-slide-item {
+        transition: none;
+    }
+
+    .slide-presentation-gen-icon,
+    .slide-presentation-gen-skeleton-slide * {
+        animation: none;
+    }
+}
+
+.slide-presentation-preview-slide-item iframe {
+    width: 1920px;
+    height: 1080px;
+    border: none;
+    transform-origin: top left;
+    background: white;
+    pointer-events: none;
+    display: block;
+}
+
+/* Keep the rounded clip on the slide wrapper, but make the rendered image a
+   full-size, untransformed layer. This prevents the image's former white
+   background from being blended into the rounded edge by the compositor. */
+.slide-presentation-preview-slide-item img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: fill;
+    border: none;
+    background: transparent;
+    pointer-events: none;
+    display: block;
+    transform: none;
+}
+
+/* Counter overlay (bottom of main area) */
+.slide-presentation-preview-slide-nav {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(0,0,0,0.45);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: 20px;
+    padding: 5px 14px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    z-index: 5;
+}
+
+.slide-presentation-preview-slide-nav.visible {
+    opacity: 1;
+}
+
+.slide-presentation-preview-slide-counter {
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.85);
+    min-width: 48px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ── Canvas Files Dropdown ───────────────── */
+.canvas-files-dropdown-wrap {
+    position: relative;
+}
+
+.canvas-files-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 220px;
+    background: var(--bg-primary, #fff);
+    border: 1px solid var(--border-color, rgba(0,0,0,0.1));
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    padding: 6px;
+    z-index: 200;
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+    pointer-events: none;
+    transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+:root[data-mode="dark"] .canvas-files-dropdown {
+    background: var(--bg-primary, #18181b);
+    border-color: var(--border-color, rgba(255,255,255,0.08));
+    box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+}
+
+.canvas-files-dropdown.open {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+}
+
+.canvas-files-dropdown-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-color-secondary, #6b7280);
+    padding: 4px 10px 6px;
+}
+
+.canvas-files-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+    border: 1px solid transparent;
+    background: transparent;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+    color: var(--text-color, #1a1a1a);
+}
+
+:root[data-mode="dark"] .canvas-files-dropdown-item {
+    color: var(--text-color, #f5f5f5);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .canvas-files-dropdown-item:hover {
+        background: color-mix(in srgb, var(--primary-color, #3b82f6) 12%, var(--background, #ffffff));
+        border-color: color-mix(in srgb, var(--primary-color, #3b82f6) 28%, transparent);
+        color: var(--primary-color, #3b82f6);
+    }
+
+    :root[data-mode="dark"] .canvas-files-dropdown-item:hover {
+        background: color-mix(in srgb, var(--primary-color, #4E89F9) 18%, var(--background, #1F1F1F));
+        border-color: color-mix(in srgb, var(--primary-color, #4E89F9) 36%, transparent);
+    }
+}
+
+.canvas-files-dropdown-item-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 7px;
+    background: rgba(59,130,246,0.1);
+    color: #3b82f6;
+    transition: background 0.12s ease, color 0.12s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+:root[data-mode="dark"] .canvas-files-dropdown-item-icon {
+    background: rgba(59,130,246,0.15);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .canvas-files-dropdown-item:hover .canvas-files-dropdown-item-icon {
+        background: var(--primary-color, #3b82f6);
+        color: #ffffff;
+    }
+}
+
+.canvas-files-dropdown-item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.canvas-files-dropdown-item-name {
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.canvas-files-dropdown-item-type {
+    font-size: 11px;
+    color: var(--text-color-secondary, #6b7280);
+    margin-top: 1px;
+}
+
+/* ═══════════════════════════════════════════
+   Slideshow Overlay (fullscreen viewer)
+   ═══════════════════════════════════════════ */
+.slide-presentation-slideshow-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 350ms cubic-bezier(.4,0,.2,1), visibility 0s linear 350ms;
+}
+
+.slide-presentation-slideshow-overlay.open {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 350ms cubic-bezier(.4,0,.2,1), visibility 0s linear 0s;
+}
+
+.slide-presentation-slideshow-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.92);
+    backdrop-filter: var(--modal-overlay-backdrop-filter);
+    -webkit-backdrop-filter: var(--modal-overlay-backdrop-filter);
+}
+
+.slide-presentation-slideshow-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+}
+
+.slide-presentation-slideshow-loader {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    transition: opacity 400ms ease;
+}
+
+.slide-presentation-slideshow-loader.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.slide-presentation-slideshow-loader-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.slide-presentation-slideshow-loader-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(255,255,255,0.12);
+    border-top-color: rgba(255,255,255,0.8);
+    border-radius: 50%;
+    animation: spinTo360 700ms linear infinite;
+}
+
+.slide-presentation-slideshow-loader-text {
+    font-size: 15px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.7);
+    letter-spacing: -0.01em;
+}
+
+.slide-presentation-slideshow-loader-progress {
+    width: 200px;
+    height: 3px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.slide-presentation-slideshow-loader-bar {
+    height: 100%;
+    width: 0%;
+    background: rgba(255,255,255,0.7);
+    border-radius: 3px;
+    transition: width 250ms ease;
+}
+
+.slide-presentation-slideshow-loader-count {
+    font-size: 12px;
+    color: rgba(255,255,255,0.35);
+}
+
+/* Editor-triggered preview opens before its updated derivatives exist. Keep
+   that short wait intentionally minimal: one spinner and one clear status. */
+.slide-presentation-slideshow-overlay.is-rerendering .slide-presentation-slideshow-loader-progress,
+.slide-presentation-slideshow-overlay.is-rerendering .slide-presentation-slideshow-loader-count,
+.slide-presentation-slideshow-overlay.is-rerendering .slide-presentation-ss-nav,
+.slide-presentation-slideshow-overlay.is-rerendering #slide-presentation-SsFullscreen,
+.slide-presentation-slideshow-overlay.is-rerendering .slide-presentation-slideshow-progress {
+    display: none;
+}
+
+.slide-presentation-slideshow-overlay.is-rerendering .slide-presentation-slideshow-controls {
+    inset: 20px 20px auto auto;
+    transform: none;
+    padding: 2px;
+    opacity: 1;
+    background: rgba(30, 30, 30, 0.48);
+}
+
+.slide-presentation-slideshow-overlay.is-rerendering .slide-presentation-slideshow-loader-inner {
+    gap: 14px;
+}
+
+.slide-presentation-slideshow-overlay.is-rerendering .slide-presentation-slideshow-loader-spinner {
+    width: 30px;
+    height: 30px;
+    border-width: 2px;
+}
+
+.slide-presentation-slideshow-stage {
+    position: relative;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 20px 60px;
+    opacity: 0;
+    transition: opacity 400ms ease;
+    user-select: none;
+}
+
+.slide-presentation-slideshow-stage.visible {
+    opacity: 1;
+}
+
+.slide-presentation-slideshow-img,
+.slide-presentation-ss-img-real,
+.slide-presentation-ss-iframe {
+    max-width: 100%;
+    max-height: calc(100vh - 120px);
+    object-fit: contain;
+    border-radius: 6px;
+    box-shadow: 0 8px 60px rgba(0,0,0,0.6);
+    transition: opacity 250ms ease;
+    will-change: opacity;
+    position: relative;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.slide-presentation-slideshow-img.fading,
+.slide-presentation-ss-img-real.fading,
+.slide-presentation-ss-iframe.fading {
+    opacity: 0;
+}
+
+.slide-presentation-ss-img-real.switching-in,
+.slide-presentation-ss-iframe.switching-in {
+    animation: slide-presentation-slideshow-crossfade-in 360ms ease both;
+    will-change: opacity, filter;
+}
+
+.slide-presentation-slideshow-overlay.is-fullscreen .slide-presentation-slideshow-stage {
+    padding: 0;
+    width: 100vw;
+    height: 100vh;
+}
+
+.slide-presentation-slideshow-overlay.is-fullscreen .slide-presentation-slideshow-img,
+.slide-presentation-slideshow-overlay.is-fullscreen .slide-presentation-ss-img-real,
+.slide-presentation-slideshow-overlay.is-fullscreen .slide-presentation-ss-iframe {
+    max-height: 100vh;
+    max-width: 100vw;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .slide-presentation-ss-img-real.switching-in,
+    .slide-presentation-ss-iframe.switching-in {
+        animation: none;
+    }
+}
+
+.slide-presentation-slideshow-controls {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(30, 30, 30, 0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 6px 10px;
+    opacity: 0;
+    transition: opacity 300ms ease;
+    z-index: 20;
+}
+
+.slide-presentation-slideshow-overlay.show-controls .slide-presentation-slideshow-controls,
+.slide-presentation-slideshow-controls:focus-within{
+    opacity: 1;
+}
+
+.slide-presentation-slideshow-overlay.is-fullscreen .slide-presentation-slideshow-controls {
+    bottom: clamp(16px, 4vh, 48px);
+}
+
+.slide-presentation-ss-btn {
+    background: transparent;
+    border: none;
+    color: rgba(255,255,255,0.7);
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 180ms ease;
+    flex-shrink: 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .slide-presentation-ss-btn:hover {
+        background: rgba(255,255,255,0.1);
+        color: #fff;
+    }
+}
+
+.slide-presentation-ss-btn:active {
+    transform: scale(0.92);
+}
+
+.slide-presentation-ss-btn:disabled {
+    opacity: 0.25;
+    cursor: not-allowed;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .slide-presentation-ss-btn:disabled:hover {
+        background: transparent;
+    }
+}
+
+.slide-presentation-ss-nav {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.slide-presentation-ss-counter {
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.6);
+    min-width: 56px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    user-select: none;
+}
+
+.slide-presentation-slideshow-progress {
+    position: absolute;
+    bottom: 76px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 6px;
+    z-index: 20;
+    opacity: 0;
+    transition: opacity 300ms ease;
+}
+
+.slide-presentation-slideshow-overlay.show-controls .slide-presentation-slideshow-progress {
+    opacity: 1;
+}
+
+.slide-presentation-slideshow-overlay.is-fullscreen .slide-presentation-slideshow-progress {
+    bottom: clamp(96px, 12vh, 140px);
+}
+
+.slide-presentation-ss-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    cursor: pointer;
+    border: 0;
+    padding: 0;
+    transition: all 250ms ease;
+}
+
+.slide-presentation-ss-dot:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 3px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .slide-presentation-ss-dot:hover {
+        background: rgba(255,255,255,0.5);
+        transform: scale(1.3);
+    }
+}
+
+.slide-presentation-ss-dot.active {
+    background: rgba(255,255,255,0.85);
+    transform: scale(1.2);
+}
+
+/* ── Responsive ──────────────────────────── */
+@media (max-width: 768px) {
+    .slide-presentation-slideshow-stage {
+        padding: 16px;
+    }
+    .slide-presentation-slideshow-img {
+        max-height: calc(100vh - 100px);
+    }
+    .slide-presentation-slideshow-controls {
+        bottom: 16px;
+        padding: 4px 8px;
+    }
+    .slide-presentation-slideshow-progress {
+        bottom: 64px;
+    }
+     }

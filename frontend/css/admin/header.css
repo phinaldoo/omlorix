@@ -1,0 +1,196 @@
+.admin-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 56px;
+    padding: 0 20px;
+    background: var(--admin-bg);
+    border-bottom: 1px solid var(--admin-border-subtle);
+}
+
+.admin-header-left {
+    display: flex;
+    align-items: center;
+}
+
+.admin-header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Shared icon button base styles */
+.admin-header-icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    color: var(--admin-text-secondary);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.admin-header-icon-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* Mobile menu toggle */
+.admin-header-menu-btn {
+    display: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .admin-header-icon-btn:hover {
+        background: var(--admin-hover);
+        color: var(--admin-text);
+    }
+}
+
+.admin-header-icon-btn:focus-visible {
+    outline: none;
+    background: var(--admin-hover);
+}
+
+.admin-profile-toggle {
+    position: relative;
+}
+
+/* Profile dropdown - uses the common dropdown and theme-selector components. */
+.admin-profile-toggle .select-dropdown {
+    top: calc(100% + 6px);
+    width: min(220px, calc(100vw - 32px));
+    box-sizing: border-box;
+    background: var(--bg-normal-elevated);
+    border-color: var(--admin-border);
+    box-shadow: var(--admin-shadow-lg);
+    z-index: 200;
+}
+
+#adminProfileDropdown {
+    display: flex;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(-8px) scale(0.96);
+    transform-origin: top right;
+    transition:
+        opacity 0.18s ease,
+        transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1),
+        visibility 0s linear 0.18s;
+    will-change: opacity, transform;
+}
+
+#adminProfileDropdown.open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateY(0) scale(1);
+    transition:
+        opacity 0.18s ease,
+        transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1),
+        visibility 0s linear 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #adminProfileDropdown,
+    #adminProfileDropdown.open {
+        transition: none;
+        transform: none;
+    }
+}
+
+.admin-profile-toggle .select-dropdown-button {
+    color: var(--admin-text);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .admin-profile-toggle .select-dropdown-button:hover {
+        background: var(--admin-hover);
+    }
+}
+
+/* Profile button */
+.admin-profile-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: var(--admin-hover);
+    color: var(--admin-text);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    overflow: hidden;
+    transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .admin-profile-btn:hover {
+        background: var(--admin-active);
+    }
+}
+
+.admin-profile-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--admin-bg), 0 0 0 4px var(--admin-text);
+}
+
+.admin-profile-btn img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.admin-profile-btn span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+
+/* Profile dropdown - uses common select-dropdown component */
+.admin-profile-toggle .select-dropdown-button svg {
+    width: 16px;
+    height: 16px;
+    opacity: 0.6;
+}
+
+.admin-profile-toggle .select-dropdown-button-red {
+    color: var(--admin-error);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .admin-profile-toggle .select-dropdown-button-red:hover {
+        background: var(--admin-error-bg);
+    }
+}
+
+.admin-profile-toggle .select-dropdown-button-red svg {
+    color: var(--admin-error);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .admin-header {
+        padding: 0 16px;
+    }
+
+    body.admin-mobile-nav-open .admin-header {
+        z-index: 110;
+    }
+
+    .admin-header-menu-btn {
+        display: flex;
+    }
+}

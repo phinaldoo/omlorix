@@ -1,0 +1,97 @@
+.mcp-admin-meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 10px;
+    margin-top: 2px;
+}
+
+.mcp-admin-meta-chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--admin-accent-subtle);
+    color: var(--admin-text);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.mcp-admin-meta-text {
+    font-size: 13px;
+    color: var(--text-color-secondary);
+    word-break: break-word;
+}
+
+.mcp-settings-toggle-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.mcp-settings-toggle-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.mcp-settings-toggle-label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.mcp-settings-toggle-label strong {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--admin-text);
+}
+
+.mcp-settings-toggle-label small {
+    font-size: 12px;
+    color: var(--admin-text-secondary);
+    line-height: 1.45;
+}
+
+.mcp-server-form .provider-form-actions {
+    justify-content: flex-start;
+}
+
+.mcp-server-form select.provider-form-control,
+.mcp-server-form .mcp-server-custom-select {
+    width: 100%;
+}
+
+/* Match MCP text fields while using the shared accessible custom-select menu. */
+.mcp-server-form .mcp-server-custom-select .admin-select-trigger {
+    height: 40px;
+    border-color: var(--admin-border);
+    border-radius: 8px;
+    background: var(--bg-normal);
+    color: var(--admin-text);
+}
+
+.mcp-server-form .mcp-server-custom-select .admin-select-trigger:focus,
+.mcp-server-form .mcp-server-custom-select .admin-select-trigger:focus-visible {
+    outline: none;
+    border-color: var(--admin-accent);
+    box-shadow: 0 0 0 3px var(--admin-accent-subtle);
+}
+
+textarea#mcpServerCreateHeaders,
+textarea#mcpServerCreateEnv,
+textarea#mcpServerCreateArgs,
+textarea#mcpServerEditHeaders,
+textarea#mcpServerEditEnv,
+textarea#mcpServerEditArgs {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 13px;
+}
+
+@media (max-width: 640px) {
+    .mcp-settings-toggle-row {
+        flex-direction: column;
+    }
+}

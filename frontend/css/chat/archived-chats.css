@@ -1,0 +1,113 @@
+.archived-chats-overlay {
+    --shared-modal-z-index: 2000;
+}
+
+.archived-chats-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+}
+
+.archived-chats-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.archived-chat-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    border-radius: 10px;
+    background-color: var(--background);
+    border: 1px solid var(--border-color);
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .archived-chat-item:hover {
+        background-color: var(--hover);
+        border-color: var(--border-color-hover, var(--border-color));
+    }
+}
+
+.archived-chat-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.archived-chat-title {
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.archived-chat-date {
+    font-size: 12px;
+    color: var(--text-color-tertiary);
+}
+
+.archived-chat-actions {
+    display: flex;
+    align-items: center;
+    margin-left: 12px;
+}
+
+.archived-chat-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: background-color 0.15s ease;
+}
+
+.archived-chat-btn.unarchive {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .archived-chat-btn.unarchive:hover {
+        background-color: var(--accent-color-hover, var(--accent-color));
+        opacity: 0.9;
+    }
+}
+
+.archived-chat-btn.unarchive:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.archived-chat-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* Mobile responsive */
+@media (max-width: 600px) {
+    .archived-chat-item {
+        padding: 10px 12px;
+    }
+
+    .archived-chat-btn {
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+
+    .archived-chat-btn span {
+        display: none;
+    }
+
+    .archived-chat-btn svg {
+        width: 18px;
+        height: 18px;
+    }
+}

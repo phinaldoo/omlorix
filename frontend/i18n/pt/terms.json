@@ -1,0 +1,7 @@
+{
+  "terms_page_title": "Termos de Serviço",
+  "terms_loading": "A carregar os termos de serviço...",
+  "terms_load_error": "Não foi possível carregar os termos de serviço. Tente novamente mais tarde.",
+  "terms_default_template_warning_emphasis": "Importante:",
+  "terms_default_template_warning": "Esta instância ainda usa o modelo predefinido dos Termos de Serviço. O operador deve substituí-lo por conteúdo jurídico específico da implantação antes de ativar o registo público."
+}

@@ -1,0 +1,491 @@
+/* Message queue controls and overlay styles. */
+
+.om-button.send[data-mode="queue"] {
+    box-shadow: none;
+}
+
+.om-button.send[data-mode="queue"]:focus-visible {
+    background-color: var(--chat-composer-primary-control-hover, var(--chat-composer-primary-control-background));
+    color: var(--chat-composer-primary-control-text, var(--background));
+    outline: 2px solid var(--surface-elevated-border, var(--primary-color));
+    outline-offset: 2px;
+}
+.chat-queue-chip {
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+    min-width: 0;
+    height: 32px;
+    margin-left: 6px;
+    border-radius: 999px;
+    border: 1px solid var(--chat-composer-border, var(--surface-control-border, var(--border-color)));
+    background: var(--chat-composer-control, var(--surface-control-button, var(--background)));
+    overflow: hidden;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+/* Keep the queue chip fully hidden until there is at least one queued message. */
+.chat-queue-chip[hidden] {
+    display: none;
+}
+
+.chat-queue-chip.is-paused {
+    border-color: color-mix(in srgb, var(--warning-color, #b7791f) 35%, var(--surface-control-border, var(--border-color)));
+}
+
+.chat-queue-chip.is-open {
+    background: var(--chat-composer-control-hover, var(--surface-interactive-active, var(--hover)));
+}
+
+.chat-queue-chip__toggle {
+    border: none;
+    background: transparent;
+    color: var(--text-color);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+    height: 100%;
+    padding: 0 8px 0 9px;
+    border-radius: 999px;
+    color: var(--text-color);
+    transition: background-color 0.15s ease;
+}
+
+.chat-queue-chip__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 15px;
+    height: 15px;
+    color: var(--text-color-secondary);
+    flex-shrink: 0;
+}
+
+.chat-queue-chip__icon svg {
+    width: 15px;
+    height: 15px;
+}
+
+.chat-queue-chip__label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-color);
+    white-space: nowrap;
+}
+
+.chat-queue-chip__count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: var(--chat-composer-control-hover, var(--surface-interactive-active, var(--hover)));
+    color: var(--text-color-secondary);
+    font-size: 0.68rem;
+    font-weight: 650;
+    line-height: 1;
+}
+
+.chat-queue-chip.is-paused .chat-queue-chip__icon {
+    color: var(--warning-color, #b7791f);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .chat-queue-chip__toggle:hover {
+        background: var(--chat-composer-control-hover, var(--surface-interactive-hover, var(--hover)));
+    }
+}
+
+.chat-queue-chip__toggle:focus-visible {
+    outline: 2px solid var(--surface-elevated-border, var(--primary-color));
+    outline-offset: 2px;
+}
+
+.chat-queue-chip__toggle:disabled {
+    cursor: default;
+    opacity: 0.45;
+}
+
+@media (max-width: 640px) {
+    .chat-queue-chip {
+        height: 36px;
+        margin-left: 6px;
+        width: 36px;
+    }
+
+    .chat-queue-chip__toggle {
+        width: 100%;
+        justify-content: center;
+        padding: 0;
+    }
+
+    .chat-queue-chip__label {
+        display: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .chat-queue-chip,
+    .chat-queue-chip__toggle {
+        transition: none;
+    }
+}
+
+.message-queue-overlay {
+    display: none;
+    flex-direction: column;
+    max-height: min(300px, 42dvh);
+    margin: 2px 2px 10px;
+    border: 1px solid var(--surface-control-border, var(--border-color));
+    border-radius: 14px;
+    overflow: hidden;
+    position: relative;
+}
+
+.message-queue-overlay.open {
+    display: flex;
+}
+
+.message-queue-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 44px;
+    padding: 6px 8px 6px 12px;
+    gap: 8px;
+    border-bottom: 1px solid var(--surface-control-border, var(--border-color));
+}
+
+.message-queue-heading {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 8px;
+}
+
+.message-queue-title {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 7px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.message-queue-title > span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.message-queue-title-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 15px;
+    height: 15px;
+    color: var(--text-color-secondary);
+    flex: 0 0 auto;
+}
+
+.message-queue-title-icon svg {
+    width: 15px;
+    height: 15px;
+}
+
+.message-queue-meta {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.72rem;
+    color: var(--text-color-secondary);
+    white-space: nowrap;
+}
+
+.message-queue-meta::before {
+    content: "";
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: var(--text-color-secondary);
+    opacity: 0.55;
+}
+
+.message-queue-header-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    flex: 0 0 auto;
+}
+
+.message-queue-header-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-color-secondary);
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+}
+
+.message-queue-header-action svg {
+    width: 15px;
+    height: 15px;
+}
+
+.message-queue-header-action.is-active {
+    color: var(--warning-color, #b7791f);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .message-queue-header-action:hover:not(:disabled) {
+        background: var(--surface-interactive-hover, var(--hover));
+        color: var(--text-color);
+    }
+
+    .message-queue-header-action--clear:hover:not(:disabled) {
+        background: var(--danger-hover-bg, color-mix(in srgb, var(--error-color) 10%, transparent));
+        color: var(--error-color);
+    }
+}
+
+.message-queue-header-action:focus-visible {
+    outline: 2px solid var(--surface-elevated-border, var(--primary-color));
+    outline-offset: 1px;
+}
+
+.message-queue-header-action:disabled {
+    cursor: default;
+    opacity: 0.35;
+}
+
+.message-queue-list {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.message-queue-empty {
+    padding: 22px 16px;
+    text-align: center;
+    color: var(--text-color-secondary);
+    font-size: 0.8rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.message-queue-item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    min-height: 48px;
+    padding: 6px 8px 6px 12px;
+    border-bottom: 1px solid var(--surface-control-border, var(--border-color));
+    transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+
+.message-queue-item:last-child {
+    border-bottom: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .message-queue-item:hover {
+        background: var(--surface-interactive-hover, var(--hover));
+    }
+}
+
+.message-queue-item:focus-within {
+    background: var(--surface-interactive-hover, var(--hover));
+}
+
+.message-queue-item.dragging {
+    opacity: 0.5;
+    background: var(--surface-interactive-active, var(--hover));
+}
+
+.message-queue-item.drop-target-before,
+.message-queue-item.drop-target-after {
+    position: relative;
+}
+
+.message-queue-item.drop-target-before::before,
+.message-queue-item.drop-target-after::after {
+    content: "";
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    height: 2px;
+    background: var(--primary-color);
+    border-radius: 999px;
+}
+
+.message-queue-item.drop-target-before::before {
+    top: 4px;
+}
+
+.message-queue-item.drop-target-after::after {
+    bottom: 4px;
+}
+
+.message-queue-item-main {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    min-width: 0;
+    padding: 3px 0;
+    border: none;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    text-align: left;
+}
+
+.message-queue-item-main:focus-visible {
+    outline: 2px solid var(--surface-elevated-border, var(--primary-color));
+    outline-offset: 2px;
+    border-radius: 7px;
+}
+
+.message-queue-item-index {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 7px;
+    background: var(--surface-muted, var(--input-bg));
+    color: var(--text-color-secondary);
+    font-size: 0.68rem;
+    font-weight: 650;
+    flex-shrink: 0;
+}
+
+.message-queue-item-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    color: var(--text-color);
+}
+
+.message-queue-item-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 1px;
+    flex-shrink: 0;
+}
+
+.message-queue-item-message {
+    font-size: 0.82rem;
+    font-weight: 450;
+    color: var(--text-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.message-queue-item-message--placeholder {
+    color: var(--text-color-secondary);
+    font-style: italic;
+}
+
+.message-queue-item-timestamp {
+    font-size: 0.68rem;
+    color: var(--text-color-secondary);
+}
+
+.message-queue-item-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    border-radius: 8px;
+    color: var(--text-color-secondary);
+    cursor: pointer;
+    opacity: 0.65;
+    transition: background-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+    flex-shrink: 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .message-queue-item-action:hover:not(:disabled) {
+        background: var(--surface-interactive-active, var(--hover));
+        color: var(--text-color);
+        opacity: 1;
+    }
+
+    .message-queue-item-delete:hover:not(:disabled) {
+        background: var(--danger-hover-bg, color-mix(in srgb, var(--error-color) 10%, transparent));
+        color: var(--error-color);
+    }
+}
+
+.message-queue-item-action:focus-visible {
+    outline: 2px solid var(--surface-elevated-border, var(--primary-color));
+    outline-offset: 1px;
+    opacity: 1;
+}
+
+.message-queue-item-action:disabled {
+    cursor: default;
+    opacity: 0.45;
+    color: var(--text-color-secondary);
+}
+
+.message-queue-item-action svg {
+    width: 16px;
+    height: 16px;
+}
+
+@media (max-width: 640px) {
+    .message-queue-overlay {
+        max-height: min(280px, 45dvh);
+        margin-inline: 0;
+    }
+
+    .message-queue-meta {
+        display: none;
+    }
+
+    .message-queue-header {
+        min-height: 48px;
+        padding-left: 10px;
+    }
+
+    .message-queue-item {
+        min-height: 52px;
+        padding-left: 10px;
+    }
+
+    .message-queue-header-action,
+    .message-queue-item-action {
+        width: 34px;
+        height: 34px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .message-queue-header-action,
+    .message-queue-item,
+    .message-queue-item-action {
+        transition: none;
+    }
+}

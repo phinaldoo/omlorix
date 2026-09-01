@@ -1,0 +1,302 @@
+/*
+ * Dedicated realtime-call presentation.
+ *
+ * The normal transcript remains mounted behind this surface while orb mode is
+ * active. That lets users move between the visual call and text views without
+ * losing streaming content, tool results, scroll position, or accessibility
+ * metadata from the shared chat renderer.
+ */
+
+.realtime-call-surface {
+    --realtime-call-control-size: 56px;
+    --realtime-orb-size: clamp(220px, 46vmin, 420px);
+    position: relative;
+    display: none;
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    width: 100%;
+    flex-direction: column;
+    align-items: center;
+    overflow: hidden;
+    padding: clamp(12px, 2.5vh, 28px) clamp(16px, 4vw, 48px)
+        calc(20px + env(safe-area-inset-bottom, 0px));
+    color: var(--text-color);
+    background: var(--background);
+    isolation: isolate;
+}
+
+body.realtime-call-route:not(.realtime-call-text-mode) .realtime-call-surface {
+    display: flex;
+}
+
+body.realtime-call-route:not(.realtime-call-text-mode) #chatArea,
+body.realtime-call-route:not(.realtime-call-text-mode) #chatContainerWelcome,
+body.realtime-call-route:not(.realtime-call-text-mode) .chat-box-warning {
+    display: none !important;
+}
+
+body.realtime-call-route .chat-container-main {
+    border-top-color: transparent;
+}
+
+/* Keep ordinary chat-only header actions out of the focused call header. */
+body.realtime-call-route #headerSplitScreenButton,
+body.realtime-call-route #headerShareButton,
+body.realtime-call-route #headerCanvasButtonWrap,
+body.realtime-call-route #headerTempChatButton,
+body.realtime-call-route #headerSaveTempChatButton,
+body.realtime-call-route #headerDotsButton {
+    display: none !important;
+}
+
+.realtime-call-header-controls {
+    display: none;
+    align-items: center;
+    gap: 6px;
+}
+
+body.realtime-call-route .realtime-call-header-controls {
+    display: flex;
+}
+
+.realtime-call-header-button {
+    color: var(--text-color-secondary);
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color 140ms ease, color 140ms ease;
+}
+
+.realtime-call-header-button svg {
+    flex: 0 0 auto;
+}
+
+.realtime-call-header-button[aria-pressed="true"] {
+    background: color-mix(in srgb, var(--primary-color) 18%, transparent);
+    color: var(--primary-color);
+}
+
+.realtime-call-header-button[hidden] {
+    display: none;
+}
+
+.realtime-call-header-button:focus-visible,
+.realtime-call-control-button:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 3px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .realtime-call-header-button[aria-pressed="true"]:hover {
+        background: color-mix(in srgb, var(--primary-color) 24%, transparent);
+    }
+}
+
+.realtime-call-stage {
+    --realtime-orb-halo-color: color-mix(in srgb, var(--text-color) 6%, transparent);
+    position: relative;
+    z-index: 0;
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    width: min(100%, 820px);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(4px, 1vh, 10px);
+}
+
+.realtime-call-stage::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    top: 50%;
+    left: 50%;
+    width: calc(var(--realtime-orb-size) * 1.55);
+    height: calc(var(--realtime-orb-size) * 1.55);
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--realtime-orb-halo-color) 0%, transparent 64%);
+    transform: translate(-50%, -56%);
+    pointer-events: none;
+}
+
+.realtime-call-orb {
+    position: relative;
+    display: block;
+    width: var(--realtime-orb-size);
+    height: var(--realtime-orb-size);
+    max-width: 100%;
+    flex: 0 1 auto;
+    color: color-mix(in srgb, var(--text-color) 62%, var(--text-color-secondary));
+}
+
+.realtime-call-status {
+    min-height: 1.5em;
+    margin: 0;
+    color: var(--text-color-secondary);
+    font-size: clamp(0.92rem, 0.35vw + 0.84rem, 1.08rem);
+    font-weight: 540;
+    letter-spacing: 0.01em;
+    line-height: 1.5;
+    text-align: center;
+    transition: opacity 140ms ease;
+}
+
+.realtime-call-status.is-changing {
+    opacity: 0;
+}
+
+.realtime-call-transcript {
+    display: none;
+    width: min(100%, 680px);
+    max-height: min(19vh, 9.5rem);
+    margin-top: clamp(5px, 1vh, 12px);
+    overflow: hidden;
+    color: var(--text-color);
+    font-size: clamp(1.05rem, 1.1vw + 0.75rem, 1.38rem);
+    font-weight: 510;
+    line-height: 1.48;
+    text-align: center;
+    text-wrap: pretty;
+    white-space: pre-wrap;
+    mask-image: linear-gradient(to bottom, #000 0%, #000 64%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 64%, transparent 100%);
+}
+
+.realtime-call-surface.is-transcript-visible .realtime-call-transcript:not([hidden]) {
+    display: block;
+}
+
+.realtime-call-transcript p {
+    margin: 0;
+}
+
+.realtime-call-controls {
+    display: none;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding-top: clamp(12px, 2vh, 22px);
+}
+
+.realtime-call-control-button {
+    display: inline-flex;
+    width: var(--realtime-call-control-size);
+    height: var(--realtime-call-control-size);
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--surface-control-border, transparent);
+    border-radius: 50%;
+    background: var(--surface-control, var(--surface-muted));
+    color: var(--text-color);
+    box-shadow: 0 7px 20px color-mix(in srgb, var(--shadow-color) 42%, transparent);
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color 140ms ease, color 140ms ease, transform 140ms ease;
+}
+
+.realtime-call-control-button svg {
+    width: 22px;
+    height: 22px;
+}
+
+.realtime-call-control-button:active {
+    transform: scale(0.94);
+}
+
+.realtime-call-control-button.is-muted {
+    color: var(--error-color);
+}
+
+.realtime-call-control-button.is-end {
+    border-color: transparent;
+    background: var(--text-color);
+    color: var(--background);
+}
+
+.realtime-call-control-button:disabled {
+    cursor: progress;
+    opacity: 0.58;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .realtime-call-control-button:hover {
+        background: var(--surface-interactive-hover, var(--hover));
+    }
+
+    .realtime-call-control-button.is-end:hover {
+        background: var(--error-color);
+        color: var(--background);
+    }
+}
+
+@media (max-width: 600px) {
+    /* Orb mode is intentionally distraction-free on phones. Text mode removes
+       this override and restores the complete shared chat composer. */
+    body.realtime-call-route:not(.realtime-call-text-mode) #chatBoxArea {
+        display: none !important;
+    }
+
+    .realtime-call-surface {
+        --realtime-call-control-size: 54px;
+        --realtime-orb-size: clamp(205px, 68vw, 330px);
+        padding-right: 18px;
+        padding-left: 18px;
+    }
+
+    .realtime-call-controls {
+        display: flex;
+    }
+
+    .realtime-call-transcript {
+        max-height: min(20vh, 8rem);
+        font-size: clamp(1rem, 4.6vw, 1.18rem);
+        line-height: 1.42;
+    }
+}
+
+@media (max-height: 700px) {
+    .realtime-call-surface {
+        --realtime-orb-size: clamp(180px, 43vh, 280px);
+        padding-top: 8px;
+    }
+
+    .realtime-call-transcript {
+        max-height: 16vh;
+    }
+}
+
+@media (max-height: 540px) and (orientation: landscape) {
+    .realtime-call-surface {
+        --realtime-orb-size: clamp(150px, 48vh, 230px);
+        flex-direction: row;
+        gap: 20px;
+        padding-top: 8px;
+    }
+
+    .realtime-call-stage {
+        width: auto;
+    }
+
+    .realtime-call-stage::before {
+        transform: translate(-50%, -50%);
+    }
+
+    .realtime-call-transcript {
+        max-width: 42vw;
+        max-height: 21vh;
+        font-size: 1rem;
+    }
+
+    .realtime-call-controls {
+        flex-direction: column;
+        padding-top: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .realtime-call-status,
+    .realtime-call-header-button,
+    .realtime-call-control-button {
+        transition: none;
+    }
+}

@@ -1,0 +1,1024 @@
+/* ===================== */
+/* Model Actions Menu    */
+/* ===================== */
+.model-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.models-edit-banner {
+    margin-bottom: 20px;
+    padding: 14px 16px;
+    border-radius: var(--admin-radius-sm);
+    border: 1px solid color-mix(in srgb, var(--admin-accent) 22%, var(--admin-border));
+    background: color-mix(in srgb, var(--admin-accent) 8%, var(--bg-normal));
+    color: var(--admin-text);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.models-edit-banner strong {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 14px;
+}
+
+.model-actions-primary {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.model-actions-menu {
+    position: relative;
+}
+
+.model-menu-toggle {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--admin-radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--admin-text-secondary);
+    transition: all var(--admin-transition);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .model-menu-toggle:hover {
+        background: var(--admin-hover);
+        color: var(--admin-text);
+    }
+}
+
+.model-menu-toggle svg {
+    width: 18px;
+    height: 18px;
+}
+
+.model-menu-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    min-width: 160px;
+    background: var(--bg-normal-elevated);
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-sm);
+    box-shadow: var(--admin-shadow);
+    z-index: 50;
+    display: none;
+    padding: 4px;
+}
+
+.model-actions-menu.open-up .model-menu-dropdown {
+    top: auto;
+    bottom: calc(100% + 4px);
+}
+
+.model-actions-menu.open .model-menu-dropdown {
+    display: block;
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 12px;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--admin-text);
+    text-align: left;
+    transition: background var(--admin-transition);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .dropdown-item:hover {
+        background: var(--admin-hover);
+    }
+}
+
+.dropdown-item svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    color: var(--admin-text-secondary);
+}
+
+/* ===================== */
+/* Keyword Tags          */
+/* ===================== */
+.keyword-tags-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.keyword-tags-input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-sm);
+    font-size: 14px;
+    background: var(--bg-normal);
+    color: var(--admin-text);
+    transition: all var(--admin-transition);
+    outline: none;
+}
+
+.keyword-tags-input:focus {
+    border-color: var(--admin-text);
+}
+
+.keyword-tags-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 40px;
+}
+
+.keyword-tag {
+    background: var(--admin-info-bg);
+    color: var(--admin-info);
+    padding: 6px 12px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    font-size: 14px;
+    font-weight: 500;
+    animation: keywordPopIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transition: all var(--admin-transition);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .keyword-tag:hover {
+        background: rgba(59, 130, 246, 0.2);
+    }
+}
+
+.keyword-tag button {
+    margin-left: 8px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--admin-info);
+    opacity: 0.6;
+    border-radius: 50%;
+    transition: all var(--admin-transition);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .keyword-tag button:hover {
+        opacity: 1;
+        background: var(--admin-hover);
+    }
+}
+
+.keyword-tag button svg {
+    width: 14px;
+    height: 14px;
+}
+
+.keyword-tags-empty {
+    color: var(--admin-text-tertiary);
+    font-style: italic;
+    font-size: 14px;
+}
+
+.keyword-tags-container[data-ordered-list="true"] .keyword-tags-list {
+    flex-direction: column;
+    flex-wrap: nowrap;
+}
+
+.keyword-tag.keyword-tag-ordered {
+    width: 100%;
+    min-width: 0;
+    gap: 8px;
+    padding: 8px 10px 8px 12px;
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-sm);
+    background: var(--bg-normal);
+    color: var(--admin-text);
+}
+
+.keyword-tag-ordered .keyword-tag-value {
+    min-width: 0;
+    flex: 1;
+    overflow-wrap: anywhere;
+}
+
+.keyword-tag-primary {
+    flex: 0 0 auto;
+    padding: 3px 7px;
+    border-radius: 999px;
+    background: var(--admin-info-bg);
+    color: var(--admin-info);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.keyword-tag-actions {
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+    gap: 2px;
+}
+
+.keyword-tag-ordered .keyword-tag-action {
+    width: 28px;
+    height: 28px;
+    margin-left: 0;
+    color: var(--admin-text-secondary);
+    opacity: 1;
+}
+
+.keyword-tag-ordered .keyword-tag-action:disabled {
+    cursor: not-allowed;
+    opacity: 0.3;
+}
+
+.keyword-tag-ordered .keyword-tag-action:focus-visible {
+    outline: 2px solid var(--admin-text);
+    outline-offset: 1px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .keyword-tag.keyword-tag-ordered:hover {
+        background: var(--bg-normal);
+    }
+
+    .keyword-tag-ordered .keyword-tag-action:hover:not(:disabled) {
+        color: var(--admin-text);
+        background: var(--admin-hover);
+    }
+}
+
+/* ===================== */
+/* User Create Forms     */
+/* ===================== */
+.user-create-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+}
+
+.user-create-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.user-create-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--admin-text);
+}
+
+.user-create-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: var(--admin-text);
+}
+
+.user-create-toggle input {
+    width: 18px;
+    height: 18px;
+}
+
+.user-create-actions {
+    display: flex;
+    justify-content: flex-start;
+}
+
+/* ===================== */
+/* Model Base Select     */
+/* ===================== */
+.model-base-select-wrapper {
+    margin: 24px 0 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.model-base-select {
+    position: relative;
+    max-width: 640px;
+}
+
+.model-base-select-trigger {
+    width: 100%;
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius);
+    padding: 14px 18px;
+    background: var(--bg-normal);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    cursor: pointer;
+    transition: all var(--admin-transition);
+}
+
+.model-base-select.open .model-base-select-trigger {
+    border-color: var(--admin-text);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .model-base-select-trigger:hover {
+        border-color: var(--admin-text);
+    }
+}
+
+.model-base-select-trigger-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    text-align: left;
+}
+
+.model-base-select-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--admin-text-secondary);
+}
+
+.model-base-select-value {
+    font-size: 15px;
+    color: var(--admin-text);
+}
+
+.model-base-select:not(.has-selection) .model-base-select-value {
+    color: var(--admin-text-secondary);
+}
+
+.model-base-select-chevron {
+    color: var(--admin-text-secondary);
+    transition: transform var(--admin-transition);
+}
+
+.model-base-select.open .model-base-select-chevron {
+    transform: rotate(180deg);
+}
+
+.model-base-select-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    width: 100%;
+    max-height: 360px;
+    background: var(--bg-normal-elevated);
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius);
+    box-shadow: var(--admin-shadow-lg);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    z-index: 20;
+}
+
+.model-base-select-dropdown[hidden] {
+    display: none !important;
+}
+
+.model-base-select-search {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-sm);
+    background: var(--admin-bg);
+}
+
+.model-base-select-search input {
+    border: none;
+    background: transparent;
+    flex: 1;
+    font-size: 14px;
+    color: var(--admin-text);
+}
+
+.model-base-select-search input:focus {
+    outline: none;
+}
+
+.model-base-select-list {
+    max-height: 260px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-right: 4px;
+}
+
+.model-base-select-placeholder {
+    font-size: 14px;
+    color: var(--admin-text-secondary);
+    text-align: center;
+    padding: 24px 0;
+}
+
+.model-base-select-item {
+    width: 100%;
+    text-align: left;
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius);
+    padding: 14px 16px;
+    background: var(--bg-normal);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    cursor: pointer;
+    transition: all var(--admin-transition);
+}
+
+.model-base-select-item:focus-visible {
+    border-color: var(--admin-text);
+    outline: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .model-base-select-item:hover {
+        border-color: var(--admin-text);
+        outline: none;
+    }
+}
+
+.model-base-select-item.selected {
+    border-color: var(--admin-info);
+    background: var(--admin-info-bg);
+}
+
+.model-base-select-item-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--admin-text);
+}
+
+.model-base-select-item-meta {
+    font-size: 13px;
+    color: var(--admin-text-secondary);
+}
+
+.model-base-select-item-desc {
+    margin: 0;
+    font-size: 13px;
+    color: var(--admin-text-secondary);
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-height: calc(3 * 1.4em);
+}
+
+.model-base-select-hint {
+    margin: 0;
+    font-size: 13px;
+    color: var(--admin-text-secondary);
+}
+
+/* ===================== */
+/* Ollama Models Section */
+/* ===================== */
+.ollama-models-section {
+    margin-bottom: 32px;
+}
+
+.ollama-models-section:last-child {
+    margin-bottom: 0;
+}
+
+.ollama-models-header {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 16px;
+}
+
+.ollama-models-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--admin-text);
+    letter-spacing: -0.01em;
+}
+
+.ollama-models-description {
+    margin: 0;
+    font-size: 13px;
+    color: var(--admin-text-secondary);
+    line-height: 1.5;
+}
+
+.ollama-models-body {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius);
+    background: var(--bg-normal);
+    overflow: hidden;
+}
+
+/* Searchable model-action menus extend beyond their management card. Keep
+   table sections clipped independently, but let the Ollama and LM Studio
+   management bodies overlay later rows and the form actions when a select is
+   opened near the bottom of the section. */
+.ollama-models-download-section .ollama-models-body,
+.lmstudio-models-management-section .ollama-models-body {
+    overflow: visible;
+}
+
+.ollama-models-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px 24px;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--admin-border-subtle);
+}
+
+.ollama-models-row:last-child {
+    border-bottom: none;
+}
+
+.ollama-models-row-left {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+}
+
+.ollama-models-row-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--admin-text);
+}
+
+.ollama-models-row-desc {
+    font-size: 13px;
+    color: var(--admin-text-secondary);
+    line-height: 1.5;
+}
+
+.ollama-models-row-right {
+    flex-shrink: 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.ollama-models-input-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 280px;
+}
+
+/* Rows with multi-field grids (LM Studio options) get more breathing room. */
+.ollama-models-input-wrapper:has(.ollama-models-input-grid),
+.ollama-models-input-wrapper:has(.ollama-models-input-stack) {
+    width: 340px;
+}
+
+/* Compact icon button that triggers the row action (e.g. start download). */
+.ollama-models-row-button {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    margin: 0;
+    padding: 0;
+    border-radius: var(--admin-radius-sm);
+    border: 1px solid var(--admin-border);
+    background: var(--bg-normal);
+    color: var(--admin-text-secondary);
+    cursor: pointer;
+    transition: border-color var(--admin-transition), color var(--admin-transition), background var(--admin-transition), transform var(--admin-transition);
+}
+
+.ollama-models-row-button svg {
+    width: 18px;
+    height: 18px;
+    display: block;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .ollama-models-row-button:hover:not(:disabled) {
+        color: var(--admin-text);
+        border-color: var(--admin-text-tertiary);
+        background: var(--admin-hover);
+    }
+}
+
+.ollama-models-row-button:active:not(:disabled) {
+    transform: scale(0.96);
+}
+
+.ollama-models-row-button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.ollama-models-row-button:focus-visible {
+    outline: 2px solid var(--admin-info);
+    outline-offset: 2px;
+}
+
+/* Inline status messages span the full row width below the controls. */
+.ollama-models-row-status {
+    flex-basis: 100%;
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--admin-text-secondary);
+    overflow-wrap: anywhere;
+}
+
+.ollama-models-row-status[hidden] {
+    display: none;
+}
+
+.ollama-models-row-status[data-tone="error"] {
+    color: var(--admin-error);
+}
+
+.ollama-models-row-status[data-tone="success"] {
+    color: var(--admin-success);
+}
+
+.ollama-models-row-status[data-tone="info"] {
+    color: var(--admin-text-secondary);
+}
+
+.ollama-models-input {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: var(--admin-radius-sm);
+    border: 1px solid var(--admin-border);
+    font-size: 14px;
+    background: var(--bg-normal);
+    color: var(--admin-text);
+    transition: border-color var(--admin-transition);
+}
+
+.ollama-models-input:focus {
+    outline: none;
+    border-color: var(--admin-text);
+}
+
+.ollama-models-input::placeholder {
+    color: var(--admin-text-tertiary);
+}
+
+.ollama-models-input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.ollama-models-input-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    width: 100%;
+}
+
+.ollama-models-input-grid .ollama-models-input,
+.ollama-models-input-grid select.ollama-models-input {
+    width: 100%;
+}
+
+.ollama-models-input-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
+.ollama-models-table-note {
+    font-size: 12px;
+    color: var(--admin-text-tertiary);
+}
+
+/* Download progress panel: quiet surface with icon, headline and slim bar. */
+.ollama-models-progress {
+    flex-basis: 100%;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 14px 16px;
+    border-radius: var(--admin-radius-sm);
+    background: var(--admin-bg);
+}
+
+.ollama-models-progress[hidden] {
+    display: none;
+}
+
+.ollama-models-progress-icon {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    margin-top: 1px;
+    color: var(--admin-text-tertiary);
+}
+
+.ollama-models-progress-icon svg {
+    display: block;
+    width: 20px;
+    height: 20px;
+}
+
+.ollama-models-progress-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ollama-models-progress-headline {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.ollama-models-progress-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--admin-text);
+    overflow-wrap: anywhere;
+}
+
+.ollama-models-progress-percent {
+    flex-shrink: 0;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--admin-text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+.ollama-models-progress-bar {
+    height: 4px;
+    background: var(--admin-border);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.ollama-models-progress-fill {
+    height: 100%;
+    background: var(--admin-text);
+    border-radius: 999px;
+    width: 0%;
+    transition: width 0.2s ease;
+}
+
+.ollama-models-progress-text {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--admin-text-tertiary);
+    overflow-wrap: anywhere;
+}
+
+/* Loaded models table */
+.ollama-models-table-section {
+    margin-top: 32px;
+}
+
+.ollama-models-table-wrapper {
+    overflow-x: auto;
+}
+
+.ollama-models-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.ollama-models-table th,
+.ollama-models-table td {
+    padding: 14px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--admin-border-subtle);
+}
+
+.ollama-models-table th {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--admin-text-tertiary);
+    background: var(--admin-bg);
+}
+
+.ollama-models-table th:first-child {
+    border-top-left-radius: var(--admin-radius-sm);
+}
+
+.ollama-models-table th:last-child {
+    border-top-right-radius: var(--admin-radius-sm);
+}
+
+.ollama-models-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.ollama-models-table td {
+    color: var(--admin-text);
+}
+
+.ollama-models-table td:first-child {
+    font-weight: 500;
+}
+
+.ollama-models-table tbody tr {
+    transition: background var(--admin-transition);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .ollama-models-table tbody tr:hover {
+        background: var(--admin-hover);
+    }
+}
+
+/* Empty state */
+.ollama-models-empty {
+    padding: 40px 24px;
+    text-align: center;
+    color: var(--admin-text-secondary);
+    font-size: 14px;
+}
+
+/* Version badge */
+.ollama-models-version {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    gap: 6px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--admin-text-secondary);
+    background: var(--admin-hover);
+    border-radius: 999px;
+    margin-top: 12px;
+}
+
+.ollama-models-version-label {
+    color: var(--admin-text-tertiary);
+}
+
+.ollama-models-version-value {
+    color: var(--admin-text);
+}
+
+/* Header with version */
+.ollama-models-header {
+    position: relative;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .ollama-models-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 16px 20px;
+    }
+
+    .ollama-models-row-right {
+        width: 100%;
+    }
+
+    .ollama-models-input-wrapper {
+        flex: 1;
+        width: auto;
+    }
+
+    /* Multi-field wrappers also take the remaining space next to the button. */
+    .ollama-models-input-wrapper:has(.ollama-models-input-grid),
+    .ollama-models-input-wrapper:has(.ollama-models-input-stack) {
+        width: auto;
+    }
+
+    .ollama-models-input-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .ollama-models-table th,
+    .ollama-models-table td {
+        padding: 12px;
+        font-size: 13px;
+    }
+
+    .ollama-models-table th {
+        font-size: 11px;
+    }
+
+    /* Present loaded Ollama and LM Studio models as labelled cards instead of
+       forcing a wide table to scroll horizontally on a phone. */
+    .ollama-models-table-wrapper {
+        overflow-x: visible;
+        padding: 12px;
+    }
+
+    .ollama-models-table,
+    .ollama-models-table tbody {
+        display: block;
+        width: 100%;
+    }
+
+    .ollama-models-table thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border-width: 0;
+    }
+
+    .ollama-models-table tbody {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .ollama-models-table tbody tr {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        overflow: hidden;
+        border: 1px solid var(--admin-border-subtle);
+        border-radius: var(--admin-radius-sm);
+        background: var(--bg-normal);
+    }
+
+    .ollama-models-table tbody tr:hover {
+        background: var(--bg-normal);
+    }
+
+    .ollama-models-table td,
+    .ollama-models-table tbody tr:last-child td {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--admin-border-subtle);
+        overflow-wrap: anywhere;
+    }
+
+    .ollama-models-table td:nth-child(odd) {
+        border-right: 1px solid var(--admin-border-subtle);
+    }
+
+    .ollama-models-table td:nth-last-child(-n + 2) {
+        border-bottom: none;
+    }
+
+    .ollama-models-table td::before {
+        content: attr(data-label);
+        font-size: 10px;
+        line-height: 1.2;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--admin-text-tertiary);
+    }
+}
+
+@media (max-width: 480px) {
+    .ollama-models-row {
+        padding: 14px;
+    }
+
+    .ollama-models-progress {
+        padding: 12px 14px;
+    }
+}
+

@@ -1,0 +1,152 @@
+{
+  "name": "omlorix-server-launcher",
+  "version": "0.9.0",
+  "description": "Cross-platform desktop launcher for running Omlorix Server with Docker.",
+  "main": "electron/main.js",
+  "license": "SEE LICENSE IN LICENSE",
+  "scripts": {
+    "dev": "node electron/scripts/run-desktop-dev.cjs .",
+    "lint:js": "eslint electron frontend/js",
+    "lint:python": "ruff check backend/app backend/tests --target-version py313 --select E9,F821",
+    "test:desktop": "node --test \"electron/**/*.test.js\"",
+    "test:frontend": "node --test \"frontend/js/**/*.test.js\"",
+    "pack": "node electron/scripts/package-desktop.mjs dir",
+    "dist:mac": "node electron/scripts/package-desktop.mjs mac",
+    "dist:win": "node electron/scripts/package-desktop.mjs win",
+    "dist:linux": "node electron/scripts/package-desktop.mjs linux"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9",
+    "http-proxy": "^1.18.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "electron": "^44.0.0",
+    "electron-builder": "^26.15.3",
+    "eslint": "^10.9.1",
+    "globals": "^17.11.0",
+    "js-yaml": "^5.4.0"
+  },
+  "build": {
+    "afterSign": "electron/scripts/notarize.cjs",
+    "appId": "com.omlorix.serverlauncher",
+    "productName": "Omlorix Server Launcher",
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
+    "publish": {
+      "provider": "github",
+      "owner": "phinaldoo",
+      "repo": "omlorix",
+      "channel": "latest",
+      "releaseType": "draft",
+      "publishAutoUpdate": true
+    },
+    "files": [
+      "electron/**/*",
+      "frontend/js/common/icons.js",
+      "cmd/omlorix-server-cli/server-files.json",
+      "cmd/omlorix-server-cli/server-management-contract.json",
+      "third_party_licenses/electron/**/*",
+      "third_party_licenses/go/**/*",
+      "frontend/legal/third_party_licenses/**/*",
+      "frontend/js/vendor/lucide.LICENSE.txt",
+      "third_party_assets_manifest/provider-brand-assets.*",
+      "THIRD_PARTY_NOTICES.md",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "electron/required-env.json",
+      "electron/env-metadata.json"
+    ],
+    "extraResources": [
+      {
+        "from": ".",
+        "to": "deployment-assets",
+        "filter": [
+          ".env.example",
+          "THIRD_PARTY_NOTICES.md",
+          "electron/required-env.json",
+          "electron/env-metadata.json",
+          "docker-compose.server.yml",
+          "docker-compose.frontend-port.yml",
+          "docker-compose.dev-ports.yml",
+          "docker-compose.managed-cloud.yml",
+          "docker-compose.observability.yml",
+          "docker-compose.observability-linux.yml",
+          "docker-compose.launcher-services.yml",
+          "otel/**",
+          "script/compose.sh",
+          "script/validate-production-env.sh",
+          "script/validate-external-services-env.sh",
+          "script/validate-external-storage-env.sh",
+          "script/server-launcher/start.sh",
+          "script/server-launcher/start.ps1"
+        ]
+      },
+      {
+        "from": "electron/code-execution",
+        "to": "code-execution-bundle",
+        "filter": [
+          "docker-compose.yml",
+          "haproxy.cfg",
+          "TECNATIVA_DOCKER_SOCKET_PROXY_LICENSE.txt",
+          ".env.example"
+        ]
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "hardenedRuntime": true,
+      "minimumSystemVersion": "13.0",
+      "entitlements": "electron/entitlements.mac.plist",
+      "entitlementsInherit": "electron/entitlements.mac.plist",
+      "extraResources": [
+        {
+          "from": ".build/native-macos/OmlorixUpdateProgress.app",
+          "to": "native/OmlorixUpdateProgress.app"
+        },
+        {
+          "from": ".build/cli/omlorix-server",
+          "to": "native/omlorix-server"
+        }
+      ],
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "icon": "electron/assets/launcher-icon.icon"
+    },
+    "win": {
+      "extraResources": [
+        {
+          "from": ".build/cli/omlorix-server.exe",
+          "to": "native/omlorix-server.exe"
+        }
+      ],
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "electron/assets/launcher-icon.png"
+    },
+    "nsis": {
+      "artifactName": "${productName}-${version}-${os}-${arch}-setup.${ext}"
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-${os}-${arch}-portable.${ext}"
+    },
+    "linux": {
+      "extraResources": [
+        {
+          "from": ".build/cli/omlorix-server",
+          "to": "native/omlorix-server"
+        }
+      ],
+      "target": [
+        "AppImage",
+        "tar.gz"
+      ],
+      "category": "Office",
+      "icon": "electron/assets/launcher-icon.png"
+    }
+  }
+}

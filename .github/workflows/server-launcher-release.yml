@@ -1,0 +1,983 @@
+name: Server Launcher Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Release mode
+        required: true
+        type: choice
+        options:
+          - release
+          - rerelease
+        default: release
+      bump:
+        description: Launcher version bump type
+        required: false
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+        default: patch
+      channel:
+        description: Launcher release channel
+        required: true
+        type: choice
+        options:
+          - stable
+          - beta
+        default: stable
+      target_tag:
+        description: Existing launcher tag to rebuild in rerelease mode (for example server-launcher-v0.9.12)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: server-launcher-release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  LAUNCHER_RELEASE_PREFIX: server-launcher-v
+  RELEASE_CANDIDATE_ARCHIVE: server-launcher-release-candidate.tar.gz
+  RELEASE_CANDIDATE_ARTIFACT: server-launcher-release-candidate
+
+jobs:
+  prepare:
+    if: github.ref_name == 'main' || github.ref_name == 'master'
+    runs-on: ubuntu-latest
+    outputs:
+      mode: ${{ steps.workflow_inputs.outputs.mode }}
+      version: ${{ steps.release_metadata.outputs.version }}
+      tag: ${{ steps.release_metadata.outputs.tag }}
+      channel: ${{ steps.release_metadata.outputs.channel }}
+    steps:
+      - name: Validate workflow inputs
+        id: workflow_inputs
+        env:
+          INPUT_MODE: ${{ inputs.mode }}
+          INPUT_BUMP: ${{ inputs.bump }}
+          INPUT_CHANNEL: ${{ inputs.channel }}
+          INPUT_TARGET_TAG: ${{ inputs.target_tag }}
+        run: |
+          set -euo pipefail
+
+          mode="$INPUT_MODE"
+          bump="$INPUT_BUMP"
+          channel="$INPUT_CHANNEL"
+          target_tag="$INPUT_TARGET_TAG"
+
+          case "$channel" in
+            stable|beta)
+              ;;
+            *)
+              echo "The channel input must be stable or beta." >&2
+              exit 1
+              ;;
+          esac
+
+          case "$mode" in
+            release)
+              case "$bump" in
+                patch|minor|major)
+                  ;;
+                *)
+                  echo "The bump input must be patch, minor, or major when mode=release." >&2
+                  exit 1
+                  ;;
+              esac
+              ;;
+            rerelease)
+              if [ -z "$target_tag" ]; then
+                echo "The target_tag input is required when mode=rerelease." >&2
+                exit 1
+              fi
+              if ! printf '%s\n' "$target_tag" | grep -Eq '^server-launcher-v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-beta\.[1-9][0-9]*)?$'; then
+                echo "The target_tag input must be a launcher release tag such as server-launcher-v0.9.12 or server-launcher-v0.9.12-beta.1." >&2
+                exit 1
+              fi
+              if [ "$channel" = "beta" ] && [[ ! "$target_tag" =~ -beta\.[1-9][0-9]*$ ]]; then
+                echo "Beta rereleases require a beta target tag such as server-launcher-v0.9.12-beta.1." >&2
+                exit 1
+              fi
+              if [ "$channel" = "stable" ] && [[ "$target_tag" =~ -beta\. ]]; then
+                echo "Stable rereleases cannot target a beta launcher release tag." >&2
+                exit 1
+              fi
+              ;;
+            *)
+              echo "The mode input must be release or rerelease." >&2
+              exit 1
+              ;;
+          esac
+
+          {
+            echo "mode=$mode"
+            echo "bump=$bump"
+            echo "channel=$channel"
+            echo "target_tag=$target_tag"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Check out repo for release
+        if: ${{ steps.workflow_inputs.outputs.mode == 'release' }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.sha }}
+
+      - name: Check out repo for rerelease
+        if: ${{ steps.workflow_inputs.outputs.mode == 'rerelease' }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: refs/tags/${{ steps.workflow_inputs.outputs.target_tag }}
+
+      - name: Reject stale launcher rerelease targets
+        if: ${{ steps.workflow_inputs.outputs.mode == 'rerelease' }}
+        env:
+          RELEASE_CHANNEL: ${{ steps.workflow_inputs.outputs.channel }}
+          TARGET_TAG: ${{ steps.workflow_inputs.outputs.target_tag }}
+        run: |
+          python3 - <<'PY'
+          """Require rereleases to rebuild only the newest launcher channel tag."""
+
+          import os
+          import re
+          import subprocess
+
+          prefix = "server-launcher-v"
+          version_re = re.compile(
+              r"^server-launcher-v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)"
+              r"(?:-(beta)\.([1-9]\d*))?$"
+          )
+
+          def version_key(tag: str) -> tuple[int, int, int, int]:
+              """Return a SemVer key where stable follows betas of one core."""
+              match = version_re.fullmatch(tag)
+              if not match:
+                  raise ValueError(f"Invalid launcher release tag: {tag}")
+              major, minor, patch, prerelease, number = match.groups()
+              prerelease_rank = int(number or 0) if prerelease else 10**18
+              return int(major), int(minor), int(patch), prerelease_rank
+
+          channel = os.environ["RELEASE_CHANNEL"]
+          target_tag = os.environ["TARGET_TAG"]
+          tags = subprocess.run(
+              ["git", "tag", "--list", f"{prefix}*"],
+              check=True,
+              capture_output=True,
+              text=True,
+          ).stdout.splitlines()
+          channel_tags = [
+              tag for tag in tags
+              if version_re.fullmatch(tag)
+              and (("-beta." in tag) == (channel == "beta"))
+          ]
+          if not channel_tags:
+              raise SystemExit(f"No {channel} launcher release tag exists to rerelease.")
+          newest_tag = max(channel_tags, key=version_key)
+          if target_tag != newest_tag:
+              raise SystemExit(
+                  f"Rerelease target {target_tag} would move the {channel} launcher channel backward; "
+                  f"the newest eligible tag is {newest_tag}."
+              )
+          print(f"Validated newest {channel} launcher rerelease target {target_tag}.")
+          PY
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Bump launcher version files
+        if: ${{ steps.workflow_inputs.outputs.mode == 'release' }}
+        env:
+          VERSION_BUMP: ${{ steps.workflow_inputs.outputs.bump }}
+          RELEASE_CHANNEL: ${{ steps.workflow_inputs.outputs.channel }}
+        run: |
+          python .github/scripts/bump_version.py "$VERSION_BUMP" \
+            --channel "$RELEASE_CHANNEL" \
+            --scope launcher \
+            --base-tag-prefix "${{ env.LAUNCHER_RELEASE_PREFIX }}"
+
+      - name: Validate launcher package metadata
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const packageLock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
+          const version = packageJson.version;
+          const semver = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-beta\.[1-9]\d*)?$/;
+          if (!semver.test(version)) {
+            throw new Error(`Invalid launcher version: ${version}`);
+          }
+          if (packageLock.version !== version || packageLock.packages?.['']?.version !== version) {
+            throw new Error('package-lock.json is not in sync with package.json.');
+          }
+          console.log(`Validated launcher version ${version}`);
+          NODE
+
+      - name: Resolve release metadata
+        id: release_metadata
+        env:
+          RELEASE_CHANNEL: ${{ steps.workflow_inputs.outputs.channel }}
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=${{ env.LAUNCHER_RELEASE_PREFIX }}$version" >> "$GITHUB_OUTPUT"
+          echo "channel=$RELEASE_CHANNEL" >> "$GITHUB_OUTPUT"
+
+      - name: Archive release candidate
+        run: |
+          tar --exclude=.git -czf "$RUNNER_TEMP/${{ env.RELEASE_CANDIDATE_ARCHIVE }}" .
+
+      - name: Upload release candidate
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ env.RELEASE_CANDIDATE_ARTIFACT }}
+          path: ${{ runner.temp }}/${{ env.RELEASE_CANDIDATE_ARCHIVE }}
+          retention-days: 1
+
+  validate:
+    name: Validate launcher package
+    needs: prepare
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download release candidate
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ env.RELEASE_CANDIDATE_ARTIFACT }}
+          path: ${{ runner.temp }}
+
+      - name: Prepare workspace
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE"
+          find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+
+      - name: Extract release candidate
+        run: |
+          tar -xzf "$RUNNER_TEMP/${{ env.RELEASE_CANDIDATE_ARCHIVE }}" -C "$GITHUB_WORKSPACE"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install desktop dependencies
+        run: npm ci
+
+      - name: Run frontend tests
+        run: npm run test:frontend
+
+      - name: Run desktop tests
+        run: npm run test:desktop
+
+      - name: Validate desktop package inputs
+        run: npm run pack
+
+  publish:
+    needs:
+      - prepare
+      - validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ needs.prepare.outputs.version }}
+      tag: ${{ needs.prepare.outputs.tag }}
+      channel: ${{ needs.prepare.outputs.channel }}
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ needs.prepare.outputs.mode == 'rerelease' && needs.prepare.outputs.tag || github.sha }}
+
+      - name: Download release candidate
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ env.RELEASE_CANDIDATE_ARTIFACT }}
+          path: ${{ runner.temp }}
+
+      - name: Apply release candidate changes
+        run: |
+          tar -xzf "$RUNNER_TEMP/${{ env.RELEASE_CANDIDATE_ARCHIVE }}" -C "$GITHUB_WORKSPACE"
+
+      - name: Commit and tag launcher release
+        if: ${{ needs.prepare.outputs.mode == 'release' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          repo_url="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          git commit -m "release: server launcher v${{ needs.prepare.outputs.version }}"
+          git tag -a "${{ needs.prepare.outputs.tag }}" -m "Omlorix Server Launcher v${{ needs.prepare.outputs.version }}"
+          git push "$repo_url" HEAD:${{ github.ref_name }} --follow-tags
+
+      - name: Ensure draft GitHub release exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "${{ needs.prepare.outputs.tag }}" >/dev/null 2>&1; then
+            is_draft="$(gh release view "${{ needs.prepare.outputs.tag }}" --json isDraft --jq '.isDraft')"
+            if [ "$is_draft" != "true" ]; then
+              echo "Release ${{ needs.prepare.outputs.tag }} is already public and immutable. Bump the version instead of replacing published assets." >&2
+              exit 1
+            fi
+            echo "Draft release ${{ needs.prepare.outputs.tag }} already exists; repairing it."
+            if [ "${{ needs.prepare.outputs.channel }}" = "beta" ]; then
+              gh release edit "${{ needs.prepare.outputs.tag }}" --prerelease
+            fi
+          else
+            prerelease_args=""
+            if [ "${{ needs.prepare.outputs.channel }}" = "beta" ]; then
+              prerelease_args="--prerelease"
+            fi
+            gh release create "${{ needs.prepare.outputs.tag }}" \
+              --verify-tag \
+              --title "Omlorix Server Launcher v${{ needs.prepare.outputs.version }}" \
+              --notes "Omlorix Server Launcher v${{ needs.prepare.outputs.version }}" \
+              $prerelease_args \
+              --draft
+          fi
+
+  desktop:
+    needs: publish
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux
+            runner: ubuntu-latest
+            script: dist:linux
+          - platform: macos
+            runner: macos-latest
+            script: dist:mac
+          - platform: windows
+            runner: windows-latest
+            script: dist:win
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+    steps:
+      - name: Check out launcher release tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.publish.outputs.tag }}
+          persist-credentials: false
+
+      - name: Check out current macOS release security policy
+        if: ${{ matrix.platform == 'macos' }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: .release-security-policy
+          persist-credentials: false
+          sparse-checkout: |
+            electron/scripts/notarize.cjs
+            electron/scripts/staple-desktop-artifacts.mjs
+            electron/scripts/validate-desktop-signing.mjs
+            electron/scripts/verify-macos-artifacts.mjs
+          sparse-checkout-cone-mode: false
+
+      - name: Apply current macOS release security policy
+        if: ${{ matrix.platform == 'macos' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Rereleases build historical launcher tags. Copy the current policy
+          # helpers over that checkout so an old tag cannot silently restore the
+          # former behavior that coupled signing and notarization.
+          for script in \
+            notarize.cjs \
+            staple-desktop-artifacts.mjs \
+            validate-desktop-signing.mjs \
+            verify-macos-artifacts.mjs
+          do
+            cp ".release-security-policy/electron/scripts/$script" "electron/scripts/$script"
+          done
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install desktop dependencies
+        run: npm ci
+
+      - name: Set up Go for the shared proxy service
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.26.6"
+
+      - name: Determine macOS notarization mode
+        id: macos_security
+        if: ${{ matrix.platform == 'macos' }}
+        env:
+          MACOS_NOTARIZATION_ENABLED: ${{ secrets.MACOS_NOTARIZATION_ENABLED }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Repository secrets are strings. Treat a missing secret exactly like
+          # false, accept either letter case, and reject typos rather than
+          # accidentally changing the security policy of a release.
+          notarization_value="$(printf '%s' "$MACOS_NOTARIZATION_ENABLED" | tr '[:upper:]' '[:lower:]')"
+          case "$notarization_value" in
+            ""|false)
+              should_notarize=0
+              ;;
+            true)
+              should_notarize=1
+              ;;
+            *)
+              echo "The MACOS_NOTARIZATION_ENABLED repository secret must be true, false, or unset." >&2
+              exit 1
+              ;;
+          esac
+
+          echo "should_notarize=$should_notarize" >> "$GITHUB_OUTPUT"
+
+      - name: Validate desktop signing configuration
+        if: ${{ matrix.platform == 'macos' }}
+        env:
+          OMLORIX_REQUIRE_DESKTOP_SIGNING: "1"
+          OMLORIX_REQUIRE_MACOS_NOTARIZATION: ${{ steps.macos_security.outputs.should_notarize || '0' }}
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ steps.macos_security.outputs.should_notarize == '1' && secrets.APPLE_ID || '' }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ steps.macos_security.outputs.should_notarize == '1' && secrets.APPLE_APP_SPECIFIC_PASSWORD || '' }}
+          APPLE_TEAM_ID: ${{ steps.macos_security.outputs.should_notarize == '1' && secrets.APPLE_TEAM_ID || '' }}
+        run: node electron/scripts/validate-desktop-signing.mjs
+
+      - name: Build macOS desktop artifacts
+        if: ${{ matrix.platform == 'macos' }}
+        env:
+          OMLORIX_REQUIRE_DESKTOP_SIGNING: "1"
+          OMLORIX_REQUIRE_MACOS_NOTARIZATION: ${{ steps.macos_security.outputs.should_notarize || '0' }}
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ steps.macos_security.outputs.should_notarize == '1' && secrets.APPLE_ID || '' }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ steps.macos_security.outputs.should_notarize == '1' && secrets.APPLE_APP_SPECIFIC_PASSWORD || '' }}
+          APPLE_TEAM_ID: ${{ steps.macos_security.outputs.should_notarize == '1' && secrets.APPLE_TEAM_ID || '' }}
+          OMLORIX_LAUNCHER_UPDATE_CHANNEL: ${{ needs.publish.outputs.channel }}
+          ELECTRON_CACHE: ${{ runner.temp }}/electron-cache
+          ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/electron-builder-cache
+        run: npm run ${{ matrix.script }} -- -c.afterSign=electron/scripts/notarize.cjs
+
+      - name: Build Windows desktop artifacts
+        if: ${{ matrix.platform == 'windows' }}
+        env:
+          OMLORIX_LAUNCHER_UPDATE_CHANNEL: ${{ needs.publish.outputs.channel }}
+          ELECTRON_CACHE: ${{ runner.temp }}/electron-cache
+          ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/electron-builder-cache
+        shell: bash
+        run: |
+          # A rerelease checks out the historical launcher tag, whose package
+          # metadata may predate the distinct NSIS and portable artifact names.
+          # Pass the templates through the packaging script so both new releases
+          # and historical rereleases produce the files expected below.
+          npm run ${{ matrix.script }} -- \
+            '-c.nsis.artifactName=${productName}-${version}-${os}-${arch}-setup.${ext}' \
+            '-c.portable.artifactName=${productName}-${version}-${os}-${arch}-portable.${ext}'
+
+      - name: Build Linux desktop artifacts
+        if: ${{ matrix.platform == 'linux' }}
+        env:
+          OMLORIX_LAUNCHER_UPDATE_CHANNEL: ${{ needs.publish.outputs.channel }}
+          ELECTRON_CACHE: ${{ runner.temp }}/electron-cache
+          ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/electron-builder-cache
+        run: npm run ${{ matrix.script }}
+
+      - name: Notarize and staple packaged macOS artifacts
+        if: ${{ matrix.platform == 'macos' && steps.macos_security.outputs.should_notarize == '1' }}
+        env:
+          OMLORIX_REQUIRE_MACOS_NOTARIZATION: ${{ steps.macos_security.outputs.should_notarize || '0' }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: node electron/scripts/staple-desktop-artifacts.mjs
+
+      - name: Verify desktop code signing and optional notarization
+        if: ${{ matrix.platform == 'macos' }}
+        env:
+          OMLORIX_REQUIRE_MACOS_NOTARIZATION: ${{ steps.macos_security.outputs.should_notarize || '0' }}
+        run: node electron/scripts/verify-macos-artifacts.mjs
+
+      - name: Create latest desktop download aliases
+        shell: bash
+        run: |
+          set -euo pipefail
+          channel="${{ needs.publish.outputs.channel }}"
+          alias_suffix=""
+          if [ "$channel" = "beta" ]; then
+            alias_suffix="-beta"
+          fi
+          case "${{ matrix.platform }}" in
+            macos)
+              artifact="$(find dist -maxdepth 1 -type f -name 'Omlorix Server Launcher-*.dmg' | sort | sed -n '1p')"
+              alias="dist/omlorix-server-launcher${alias_suffix}-macos.dmg"
+              ;;
+            windows)
+              # The stable Windows download must always be the installed NSIS
+              # build. The portable target is published separately and must
+              # never be selected merely because its filename sorts first.
+              artifact="$(find dist -maxdepth 1 -type f -name 'Omlorix Server Launcher-*-setup.exe' | sort | sed -n '1p')"
+              alias="dist/omlorix-server-launcher${alias_suffix}-windows.exe"
+              ;;
+            linux)
+              artifact="$(find dist -maxdepth 1 -type f -name 'Omlorix Server Launcher-*.AppImage' | sort | sed -n '1p')"
+              alias="dist/omlorix-server-launcher${alias_suffix}-linux.AppImage"
+              ;;
+            *)
+              echo "Unsupported desktop platform: ${{ matrix.platform }}" >&2
+              exit 1
+              ;;
+          esac
+          if [ -z "$artifact" ]; then
+            echo "Could not find a desktop artifact for ${{ matrix.platform }}." >&2
+            exit 1
+          fi
+          cp "$artifact" "$alias"
+
+      - name: Normalize desktop release asset filenames
+        shell: bash
+        run: |
+          set -euo pipefail
+          find dist -maxdepth 1 -type f -name '* *' -print0 | while IFS= read -r -d '' artifact; do
+            artifact_dir="$(dirname "$artifact")"
+            artifact_name="$(basename "$artifact")"
+            normalized_name="${artifact_name// /-}"
+            normalized_path="$artifact_dir/$normalized_name"
+            if [ -e "$normalized_path" ]; then
+              echo "Normalized desktop artifact already exists: $normalized_name" >&2
+              exit 1
+            fi
+            mv -- "$artifact" "$normalized_path"
+          done
+
+      - name: Checksum desktop artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          find dist -maxdepth 1 -type f \
+            \( -name '*.dmg' -o -name '*.zip' -o -name '*.exe' -o -name '*.AppImage' -o -name '*.tar.gz' \) \
+            -print0 | while IFS= read -r -d '' artifact; do
+              artifact_dir="$(dirname "$artifact")"
+              artifact_name="$(basename "$artifact")"
+              if command -v sha256sum >/dev/null 2>&1; then
+                (cd "$artifact_dir" && sha256sum "$artifact_name" > "$artifact_name.sha256")
+              else
+                (cd "$artifact_dir" && shasum -a 256 "$artifact_name" > "$artifact_name.sha256")
+              fi
+            done
+
+      - name: Stage desktop artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: launcher-release-desktop-${{ matrix.platform }}
+          path: |
+            dist/*.dmg
+            dist/*.zip
+            dist/*.exe
+            dist/*.AppImage
+            dist/*.tar.gz
+            dist/*.sha256
+            dist/*.yml
+            dist/*.blockmap
+          if-no-files-found: error
+          retention-days: 1
+
+  cli:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+            ext: ""
+          - goos: linux
+            goarch: arm64
+            ext: ""
+          - goos: darwin
+            goarch: amd64
+            ext: ""
+          - goos: darwin
+            goarch: arm64
+            ext: ""
+          - goos: windows
+            goarch: amd64
+            ext: ".exe"
+    steps:
+      - name: Check out launcher release tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.publish.outputs.tag }}
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.26.6"
+
+      - name: Build CLI
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+          CLI_VERSION: ${{ needs.publish.outputs.version }}
+        run: |
+          sh dev_scripts/server-launcher/prepare-cli-assets.sh
+          mkdir -p dist
+          output="dist/omlorix-server-cli-${GOOS}-${GOARCH}${{ matrix.ext }}"
+          go build -trimpath -ldflags="-s -w -X main.cliVersion=${CLI_VERSION}" -o "$output" ./cmd/omlorix-server-cli
+          output_name="$(basename "$output")"
+          (cd dist && sha256sum "$output_name" > "$output_name.sha256")
+          if [ "$GOOS/$GOARCH" = "linux/amd64" ]; then
+            notice_archive="omlorix-server-cli-third-party-licenses.tar.gz"
+            tar -czf "dist/$notice_archive" \
+              THIRD_PARTY_NOTICES.md \
+              third_party_licenses/go \
+              electron/code-execution/TECNATIVA_DOCKER_SOCKET_PROXY_LICENSE.txt
+            (cd dist && sha256sum "$notice_archive" > "$notice_archive.sha256")
+          fi
+
+      - name: Stage non-Windows CLI artifacts
+        if: ${{ matrix.goos != 'windows' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: launcher-release-cli-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/omlorix-server-cli-*
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Stage Windows CLI signing candidate
+        if: ${{ matrix.goos == 'windows' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: launcher-candidate-cli-windows-amd64
+          path: dist/omlorix-server-cli-*
+          if-no-files-found: error
+          retention-days: 1
+
+  windows_cli_signing:
+    name: Sign Windows CLI
+    needs:
+      - publish
+      - cli
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    # GitHub does not allow the secrets context directly in step conditions.
+    # Expose the certificate through the job environment so every signing-only
+    # step can be skipped when Windows code signing has not been configured.
+    env:
+      WINDOWS_CODESIGN_PFX_BASE64: ${{ secrets.WINDOWS_CODESIGN_PFX_BASE64 }}
+    steps:
+      - name: Download the Windows CLI release candidate
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: launcher-candidate-cli-windows-amd64
+          path: dist
+
+      - name: Sign and verify the Windows CLI
+        if: ${{ env.WINDOWS_CODESIGN_PFX_BASE64 != '' }}
+        env:
+          WINDOWS_CODESIGN_PASSWORD: ${{ secrets.WINDOWS_CODESIGN_PASSWORD }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ([string]::IsNullOrWhiteSpace($env:WINDOWS_CODESIGN_PFX_BASE64)) {
+            throw 'WINDOWS_CODESIGN_PFX_BASE64 is required for launcher releases.'
+          }
+          if ([string]::IsNullOrWhiteSpace($env:WINDOWS_CODESIGN_PASSWORD)) {
+            throw 'WINDOWS_CODESIGN_PASSWORD is required for launcher releases.'
+          }
+
+          $certificatePath = Join-Path $env:RUNNER_TEMP 'omlorix-windows-signing.pfx'
+          [IO.File]::WriteAllBytes(
+            $certificatePath,
+            [Convert]::FromBase64String($env:WINDOWS_CODESIGN_PFX_BASE64)
+          )
+          try {
+            $kitsRoot = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\bin'
+            $signTool = Get-ChildItem $kitsRoot -Recurse -Filter signtool.exe |
+              Where-Object { $_.FullName -match '\\x64\\signtool\.exe$' } |
+              Sort-Object FullName -Descending |
+              Select-Object -First 1
+            if (-not $signTool) {
+              throw 'The Windows SDK signtool.exe could not be found.'
+            }
+
+            $executable = Resolve-Path 'dist/omlorix-server-cli-windows-amd64.exe'
+            & $signTool.FullName sign /fd SHA256 /td SHA256 `
+              /tr 'http://timestamp.digicert.com' `
+              /f $certificatePath /p $env:WINDOWS_CODESIGN_PASSWORD `
+              $executable.Path
+            if ($LASTEXITCODE -ne 0) { throw 'Authenticode signing failed.' }
+
+            & $signTool.FullName verify /pa /all /v $executable.Path
+            if ($LASTEXITCODE -ne 0) { throw 'Authenticode verification failed.' }
+            $signature = Get-AuthenticodeSignature $executable.Path
+            if ($signature.Status -ne 'Valid') {
+              throw "Windows CLI signature status is $($signature.Status), expected Valid."
+            }
+
+            $hash = (Get-FileHash $executable.Path -Algorithm SHA256).Hash.ToLowerInvariant()
+            $checksum = "$hash  $([IO.Path]::GetFileName($executable.Path))`n"
+            [IO.File]::WriteAllText("$($executable.Path).sha256", $checksum, [Text.UTF8Encoding]::new($false))
+          } finally {
+            Remove-Item -LiteralPath $certificatePath -Force -ErrorAction SilentlyContinue
+          }
+
+      - name: Stage final Windows CLI artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: launcher-release-cli-windows-amd64
+          path: dist/omlorix-server-cli-*
+          if-no-files-found: error
+          retention-days: 1
+
+  upload:
+    name: Upload launcher release assets
+    needs:
+      - publish
+      - desktop
+      - cli
+      - windows_cli_signing
+    if: ${{ always() && needs.publish.result == 'success' && contains(fromJSON('["success","skipped"]'), needs.desktop.result) && needs.cli.result == 'success' && needs.windows_cli_signing.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - name: Check out release checksum verification policy
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          sparse-checkout: dev_scripts/server-launcher/verify-release-checksums.sh
+          sparse-checkout-cone-mode: false
+
+      - name: Download staged launcher and CLI artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: launcher-release-*
+          path: ${{ runner.temp }}/launcher-release-artifacts
+          merge-multiple: true
+
+      - name: Verify and upload the complete launcher asset set to the draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [ "$(gh release view "${{ needs.publish.outputs.tag }}" \
+            --repo "${{ github.repository }}" \
+            --json isDraft --jq '.isDraft')" != "true" ]; then
+            echo "Release ${{ needs.publish.outputs.tag }} became public before final asset upload." >&2
+            exit 1
+          fi
+          artifact_dir="$RUNNER_TEMP/launcher-release-artifacts"
+          mapfile -d '' artifacts < <(find "$artifact_dir" -maxdepth 1 -type f -print0)
+          if [ "${#artifacts[@]}" -eq 0 ]; then
+            echo "No staged launcher artifacts were downloaded." >&2
+            exit 1
+          fi
+          bash dev_scripts/server-launcher/verify-release-checksums.sh "$artifact_dir" sha256sum
+          gh release upload "${{ needs.publish.outputs.tag }}" \
+            --repo "${{ github.repository }}" \
+            "${artifacts[@]}" \
+            --clobber
+
+  verify_release_assets:
+    name: Verify clean release download (${{ matrix.verifier }})
+    needs:
+      - publish
+      - upload
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            verifier: sha256sum
+          - runner: macos-latest
+            verifier: shasum
+    steps:
+      - name: Check out release checksum verification policy
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          sparse-checkout: dev_scripts/server-launcher/verify-release-checksums.sh
+          sparse-checkout-cone-mode: false
+
+      - name: Download and verify the draft release as a consumer
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          download_dir="$RUNNER_TEMP/launcher-release-download"
+          mkdir -p "$download_dir"
+          gh release download "${{ needs.publish.outputs.tag }}" \
+            --repo "${{ github.repository }}" \
+            --dir "$download_dir"
+          bash dev_scripts/server-launcher/verify-release-checksums.sh \
+            "$download_dir" "${{ matrix.verifier }}"
+
+  finalize:
+    needs:
+      - publish
+      - verify_release_assets
+    if: ${{ needs.publish.result == 'success' && needs.verify_release_assets.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Publish launcher release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release edit "${{ needs.publish.outputs.tag }}" \
+            --repo "${{ github.repository }}" \
+            --draft=false
+
+      - name: Publish launcher channel feed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_CHANNEL: ${{ needs.publish.outputs.channel }}
+          LAUNCHER_VERSION: ${{ needs.publish.outputs.version }}
+          LAUNCHER_TAG: ${{ needs.publish.outputs.tag }}
+        run: |
+          set -euo pipefail
+          workdir="$(mktemp -d)"
+          trap 'rm -rf "$workdir"' EXIT
+          repo_url="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git -C "$workdir" init
+          git -C "$workdir" remote add origin "$repo_url"
+          if git -C "$workdir" fetch origin release-feed >/dev/null 2>&1; then
+            git -C "$workdir" checkout release-feed
+          else
+            git -C "$workdir" checkout --orphan release-feed
+            git -C "$workdir" rm -rf . >/dev/null 2>&1 || true
+          fi
+          mkdir -p "$workdir/channels"
+          export WORKDIR="$workdir"
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          channel = os.environ["RELEASE_CHANNEL"]
+          launcher_version = os.environ["LAUNCHER_VERSION"]
+          launcher_tag = os.environ["LAUNCHER_TAG"]
+          repo = os.environ["GITHUB_REPOSITORY"]
+          release_base = f"https://github.com/{repo}/releases"
+          launcher_feed = {
+              "schemaVersion": 1,
+              "channel": channel,
+              "version": launcher_version,
+              "tag": launcher_tag,
+              "releaseUrl": f"{release_base}/tag/{launcher_tag}",
+              "electronUpdaterProvider": "generic",
+              "electronUpdaterChannel": "beta" if channel == "beta" else "latest",
+              "electronUpdaterUrl": f"{release_base}/download/{launcher_tag}/",
+              "launcherVersion": launcher_version,
+              "launcherReleaseTag": launcher_tag,
+              "launcherReleaseUrl": f"{release_base}/tag/{launcher_tag}",
+          }
+          Path(os.environ["WORKDIR"], "channels", f"launcher-{channel}.json").write_text(
+              json.dumps(launcher_feed, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          if channel == "stable":
+              beta_baseline = {
+                  **launcher_feed,
+                  "channel": "beta",
+                  # The baseline points at a stable release, whose generic
+                  # updater metadata is latest.yml. A real launcher beta later
+                  # replaces the feed and selects beta.yml.
+                  "electronUpdaterChannel": "latest",
+                  "fallbackChannel": "stable",
+              }
+              beta_path = Path(os.environ["WORKDIR"], "channels", "launcher-beta.json")
+              existing_beta = (
+                  json.loads(beta_path.read_text(encoding="utf-8"))
+                  if beta_path.exists()
+                  else None
+              )
+              if existing_beta is None or existing_beta.get("fallbackChannel") == "stable":
+                  beta_path.write_text(
+                      json.dumps(beta_baseline, indent=2) + "\n",
+                      encoding="utf-8",
+                  )
+          PY
+
+          export CHANNELS_DIR="$workdir/channels"
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          channels_dir = Path(os.environ["CHANNELS_DIR"])
+          required = [f"launcher-{os.environ['RELEASE_CHANNEL']}"]
+          if os.environ["RELEASE_CHANNEL"] == "stable":
+              required.append("launcher-beta")
+          for name in required:
+              path = channels_dir / f"{name}.json"
+              payload = json.loads(path.read_text(encoding="utf-8"))
+              missing = [
+                  key for key in ("version", "tag", "electronUpdaterUrl", "electronUpdaterChannel")
+                  if not str(payload.get(key) or "").strip()
+              ]
+              if missing:
+                  raise SystemExit(f"{path} is missing required launcher feed fields: {missing}")
+          PY
+          git -C "$workdir" config user.name "github-actions[bot]"
+          git -C "$workdir" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C "$workdir" add "channels/launcher-${RELEASE_CHANNEL}.json"
+          if [ "$RELEASE_CHANNEL" = "stable" ]; then
+            git -C "$workdir" add "channels/launcher-beta.json"
+          fi
+          if git -C "$workdir" diff --cached --quiet; then
+            echo "Launcher channel feed is already current."
+            exit 0
+          else
+            git -C "$workdir" commit -m "release-feed: launcher ${RELEASE_CHANNEL} ${LAUNCHER_TAG}"
+          fi
+
+          # The server release workflow writes different files on this branch
+          # and may land between our fetch and push. Rebase that independent
+          # commit and retry instead of failing an otherwise complete release.
+          for attempt in 1 2 3 4 5; do
+            if git -C "$workdir" push origin HEAD:release-feed; then
+              exit 0
+            fi
+            git -C "$workdir" fetch origin release-feed
+            git -C "$workdir" rebase FETCH_HEAD
+            echo "release-feed changed during launcher attempt ${attempt}; retrying from its new tip." >&2
+          done
+
+          echo "Could not update the launcher release feed after five concurrent pushes." >&2
+          exit 1

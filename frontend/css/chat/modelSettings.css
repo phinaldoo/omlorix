@@ -1,0 +1,870 @@
+/* ============================================
+   Model Settings Sidebar - Clean & Minimal
+   ============================================ */
+
+:root {
+    --ms-sidebar-width: 340px;
+    --ms-transition: 280ms cubic-bezier(0.32, 0.72, 0, 1);
+    --ms-radius: 8px;
+    --ms-radius-sm: 6px;
+}
+
+/* ===================== */
+/* Main container body   */
+/* ===================== */
+.main-container {
+    flex-direction: row !important;
+}
+
+.main-container-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
+}
+
+.main-container-body > .main-container-header {
+    flex: 0 0 auto;
+}
+
+/* ===================== */
+/* Sidebar Container     */
+/* ===================== */
+.right-sidebar {
+    position: relative;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    width: 0;
+    height: 100%;
+    background: var(--background);
+    border-left: 0px solid var(--border-color);
+    overflow: hidden;
+    pointer-events: none;
+    transition: width var(--ms-transition), border-left-width var(--ms-transition);
+    will-change: width;
+}
+
+.right-sidebar.right-sidebar--visible.open {
+    width: var(--ms-sidebar-width);
+    border-left-width: 1px;
+    pointer-events: auto;
+}
+
+/* Backdrop */
+.right-sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 99;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: var(--modal-overlay-backdrop-filter);
+    -webkit-backdrop-filter: var(--modal-overlay-backdrop-filter);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--ms-transition);
+    display: none;
+}
+
+.right-sidebar-backdrop.is-visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* ===================== */
+/* Sidebar Header        */
+/* ===================== */
+.right-sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 0px 8px;
+    min-height: 50px;
+    flex-shrink: 0;
+    height: 50px;
+}
+
+.right-sidebar-header .chat-header-left {
+    flex: 1;
+    min-width: 0;
+}
+
+.right-sidebar-header .chat-header-left p {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-color);
+    letter-spacing: -0.01em;
+}
+
+/* When split-settings tabs are visible, remove the header border-bottom
+   so the tabs section provides the visual separation instead */
+body.split-screen-active .right-sidebar-header {
+    border-bottom: none;
+}
+
+/* ===================== */
+/* Sidebar Content Area  */
+/* ===================== */
+.right-sidebar-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 0 12px 24px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    border-top: 1px solid var(--border-color);
+}
+
+/* Scrollbar styling */
+.right-sidebar-area::-webkit-scrollbar {
+    width: 6px;
+}
+
+.right-sidebar-area::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.right-sidebar-area::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .right-sidebar-area::-webkit-scrollbar-thumb:hover {
+        background: var(--text-color-secondary);
+    }
+}
+
+/* ===================== */
+/* Loading & Empty       */
+/* ===================== */
+.model-settings-loading,
+.model-settings-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    min-height: 140px;
+    padding: 32px 16px;
+    color: var(--text-color-secondary);
+    font-size: 13px;
+    text-align: center;
+    line-height: 1.5;
+    min-width: 315px;
+}
+
+.model-settings-loading {
+    animation: ms-pulse 1.6s ease-in-out infinite;
+}
+
+/* ===================== */
+/* Sections              */
+/* ===================== */
+.model-settings-section {
+    padding: 16px 0;
+}
+
+.model-settings-section + .model-settings-section {
+    border-top: 1px solid var(--border-color);
+}
+
+.model-settings-section-header {
+    margin-bottom: 16px;
+}
+
+.model-settings-section-header h4 {
+    margin: 0;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-color-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.model-settings-section-header p {
+    margin: 4px 0 0;
+    font-size: 12px;
+    color: var(--text-color-secondary);
+    line-height: 1.4;
+    opacity: 0.8;
+}
+
+.model-settings-section-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* ===================== */
+/* Fields                */
+/* ===================== */
+.model-settings-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.model-settings-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-color);
+    cursor: default;
+}
+
+.model-settings-description {
+    font-size: 12px;
+    color: var(--text-color-secondary);
+    line-height: 1.4;
+    margin: 0;
+}
+
+.model-settings-description[hidden] {
+    display: none;
+}
+
+/* Toggle Fields */
+.model-settings-field-toggle {
+    gap: 0;
+}
+
+.model-settings-toggle-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.model-settings-toggle-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.model-settings-toggle-text .model-settings-label {
+    cursor: pointer;
+}
+
+.model-settings-toggle-text .model-settings-description {
+    margin: 0;
+}
+
+/* ===================== */
+/* Inputs                */
+/* ===================== */
+.model-settings-input {
+    width: 100%;
+}
+
+.model-settings-input input[type="text"],
+.model-settings-input input[type="number"],
+.model-settings-input input[type="date"],
+.model-settings-input textarea,
+.model-settings-input select {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--ms-radius);
+    font-size: 13px;
+    font-family: inherit;
+    background: var(--background);
+    color: var(--text-color);
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    box-sizing: border-box;
+}
+
+.model-settings-input input[type="text"]:focus,
+.model-settings-input input[type="number"]:focus,
+.model-settings-input input[type="date"]:focus,
+.model-settings-input textarea:focus,
+.model-settings-input select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color) 15%, transparent);
+}
+
+.model-settings-input input[aria-invalid="true"],
+.model-settings-input textarea[aria-invalid="true"] {
+    border-color: var(--error-color, #d92d20);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--error-color, #d92d20) 15%, transparent);
+}
+
+.model-settings-input input::placeholder,
+.model-settings-input textarea::placeholder {
+    color: var(--text-color-secondary);
+    opacity: 0.6;
+}
+
+.model-settings-input textarea {
+    min-height: 72px;
+    resize: vertical;
+    line-height: 1.5;
+}
+
+/* Number input - hide spinners */
+.model-settings-input input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+.model-settings-input input[type="number"]::-webkit-outer-spin-button,
+.model-settings-input input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Select */
+.model-settings-input select {
+    padding-right: 32px;
+    cursor: pointer;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 14px;
+}
+
+.model-settings-input select[multiple] {
+    padding: 8px;
+    background-image: none;
+    min-height: 80px;
+}
+
+/* Disabled states */
+.model-settings-input input:disabled,
+.model-settings-input textarea:disabled,
+.model-settings-input select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: var(--hover, rgba(0, 0, 0, 0.02));
+}
+
+/* ===================== */
+/* Multi-Select          */
+/* ===================== */
+.model-settings-multiselect {
+    position: relative;
+    width: 100%;
+}
+
+.model-settings-multiselect-trigger {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 9px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--ms-radius);
+    font-size: 13px;
+    font-family: inherit;
+    background: var(--background);
+    color: var(--text-color);
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.model-settings-multiselect-trigger.placeholder {
+    color: var(--text-color-secondary);
+    opacity: 0.6;
+}
+
+.model-settings-multiselect-trigger:focus,
+.model-settings-multiselect-trigger:focus-visible {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color) 15%, transparent);
+}
+
+.model-settings-multiselect-value {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.model-settings-multiselect-caret {
+    flex-shrink: 0;
+    width: 14px;
+    height: 14px;
+    background-color: var(--text-color-secondary);
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    mask-position: center;
+    mask-repeat: no-repeat;
+    mask-size: contain;
+    transition: transform 0.2s ease;
+}
+
+.model-settings-multiselect.open .model-settings-multiselect-caret {
+    transform: rotate(180deg);
+}
+
+.model-settings-multiselect-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    z-index: 50;
+    background: var(--background);
+    border: 1px solid var(--border-color);
+    border-radius: var(--ms-radius);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    max-height: 200px;
+    overflow-y: auto;
+    opacity: 0;
+    transform: translateY(-4px);
+    pointer-events: none;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.model-settings-multiselect-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--background);
+}
+
+.model-settings-multiselect-search-icon {
+    width: 16px;
+    height: 16px;
+    color: var(--text-color-secondary);
+    flex-shrink: 0;
+}
+
+.model-settings-multiselect-search-icon svg {
+    display: block;
+    width: 16px;
+    height: 16px;
+}
+
+.model-settings-multiselect-search-input {
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    font: inherit;
+    color: var(--text-color);
+    background: transparent;
+    outline: none;
+    appearance: none;
+}
+
+.model-settings-multiselect-search-input:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+    border-radius: var(--ms-radius-sm);
+}
+
+.model-settings-multiselect-search-input::placeholder {
+    color: var(--text-color-secondary);
+    opacity: 0.6;
+}
+
+.model-settings-multiselect-actions {
+    display: flex;
+    gap: 6px;
+    padding: 8px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.model-settings-multiselect-action-btn {
+    flex: 1;
+    padding: 6px 10px;
+    font-size: 11px;
+    font-weight: 500;
+    font-family: inherit;
+    color: var(--text-color-secondary);
+    background: var(--hover, rgba(0, 0, 0, 0.03));
+    border: none;
+    border-radius: var(--ms-radius-sm);
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .model-settings-multiselect-action-btn:hover {
+        background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+        color: var(--primary-color);
+    }
+}
+
+.model-settings-multiselect-action-btn:focus,
+.model-settings-multiselect-action-btn:focus-visible {
+    outline: none;
+    background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+    color: var(--primary-color);
+}
+
+.model-settings-multiselect-option {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: transparent;
+    border: none;
+    font-size: 13px;
+    font-family: inherit;
+    color: var(--text-color);
+    cursor: pointer;
+    text-align: left;
+    transition: background-color 0.1s ease;
+}
+
+.model-settings-multiselect-option:focus, .model-settings-multiselect-option.keyboard-focus {
+    outline: none;
+    background: var(--hover, rgba(0, 0, 0, 0.03));
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .model-settings-multiselect-option:hover {
+        outline: none;
+        background: var(--hover, rgba(0, 0, 0, 0.03));
+    }
+}
+
+.model-settings-multiselect-check {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    border: 1.5px solid var(--border-color);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.model-settings-multiselect-option.selected .model-settings-multiselect-check {
+    border-color: var(--primary-color);
+    background-color: var(--primary-color);
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3.5 8.5L6.5 11.5L12.5 5.5' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 10px;
+}
+
+.model-settings-multiselect-text {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.model-settings-multiselect-empty {
+    padding: 16px 12px;
+    font-size: 13px;
+    color: var(--text-color-secondary);
+    text-align: center;
+}
+
+.model-settings-multiselect-native {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    width: 0;
+    height: 0;
+}
+
+.model-settings-multiselect.disabled .model-settings-multiselect-trigger {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ===================== */
+/* Presets Container     */
+/* ===================== */
+.presets-container {
+    padding: 12px;
+    flex-shrink: 0;
+    border-top: 1px solid var(--border-color)
+}
+
+.presets-container[hidden] {
+    display: none;
+}
+
+.presets-select-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.presets-dropdown {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+}
+
+.presets-dropdown-trigger {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--ms-radius);
+    background: var(--background);
+    color: var(--text-color);
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .presets-dropdown-trigger:hover {
+        border-color: var(--primary-color);
+    }
+}
+
+.presets-dropdown-trigger:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color) 15%, transparent);
+}
+
+.presets-dropdown-label {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.presets-dropdown-caret {
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+
+.presets-dropdown.open .presets-dropdown-caret {
+    transform: rotate(180deg);
+}
+
+.presets-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    z-index: 50;
+    background: var(--background);
+    border: 1px solid var(--border-color);
+    border-radius: var(--ms-radius);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    max-height: 220px;
+    overflow-y: auto;
+    opacity: 0;
+    transform: translateY(-4px);
+    pointer-events: none;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.presets-dropdown-list {
+    padding: 4px 0;
+}
+
+.presets-dropdown-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: background-color 0.1s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .presets-dropdown-item:hover {
+        background: var(--hover, rgba(0, 0, 0, 0.03));
+    }
+}
+
+.presets-dropdown-item.active {
+    background: color-mix(in srgb, var(--primary-color) 10%, transparent);
+}
+
+.presets-dropdown-item-name {
+    flex: 1;
+    min-width: 0;
+    font-size: 13px;
+    color: var(--text-color);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.presets-dropdown-item-delete {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: transparent;
+    color: var(--text-color-secondary);
+    border-radius: var(--ms-radius-sm);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.1s ease, background-color 0.1s ease, color 0.1s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .presets-dropdown-item:hover .presets-dropdown-item-delete {
+        opacity: 1;
+    }
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .presets-dropdown-item-delete:hover {
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+    }
+}
+
+.presets-save-btn {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--ms-radius);
+    background: var(--background);
+    color: var(--text-color-secondary);
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .presets-save-btn:hover {
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+    }
+}
+
+.presets-save-btn:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color) 15%, transparent);
+}
+
+/* ===================== */
+/* Preset Overlays       */
+/* ===================== */
+.preset-overlay {
+    --shared-modal-z-index: 1000;
+}
+
+.preset-overlay.open {
+    display: grid;
+}
+
+.preset-save-description {
+    display: block;
+    margin: 0 0 12px;
+}
+
+.preset-overlay-content input[type="text"] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--ms-radius);
+    font-size: 14px;
+    font-family: inherit;
+    background: var(--background);
+    color: var(--text-color);
+    box-sizing: border-box;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.preset-overlay-content input[type="text"]:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color) 15%, transparent);
+}
+
+/* ===================== */
+/* Mobile Responsive     */
+/* ===================== */
+@media (max-width: 768px) {
+    .right-sidebar {
+        position: fixed;
+        top: 0;
+        right: 0;
+        z-index: 100;
+        width: 0;
+        height: 100vh;
+        height: 100dvh;
+        max-width: 100vw;
+        border-left: none;
+        transform: none;
+    }
+
+    .right-sidebar.right-sidebar--visible.open {
+        width: 100vw;
+        border-left-width: 0;
+    }
+
+    .right-sidebar-backdrop {
+        display: block;
+    }
+
+    .right-sidebar-header {
+        padding: 8px;
+        padding-top: calc(8px + env(safe-area-inset-top, 0px));
+    }
+
+    .right-sidebar-area {
+        padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .presets-container {
+        padding-bottom: 12px;
+    }
+
+    .model-settings-section {
+        padding: 14px 0;
+    }
+
+    .model-settings-section-body {
+        gap: 14px;
+    }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+    :root {
+        --ms-sidebar-width: 320px;
+    }
+}
+
+@media (min-width: 769px) {
+    .right-sidebar-backdrop {
+        display: none;
+    }
+}
+
+/* Hover states - pointer devices only */
+@media (hover: hover) and (pointer: fine) {
+    .model-settings-input input[type="text"]:hover, .model-settings-input input[type="number"]:hover, .model-settings-input input[type="date"]:hover, .model-settings-input textarea:hover, .model-settings-input select:hover, .model-settings-multiselect-trigger:hover {
+        border-color: color-mix(in srgb, var(--primary-color) 50%, var(--border-color));
+    }
+}

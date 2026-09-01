@@ -1,0 +1,257 @@
+.tools-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.tool-card {
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius);
+    background: var(--bg-normal);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    text-align: left;
+    cursor: pointer;
+    transition: all var(--admin-transition);
+}
+
+.tool-card:focus-visible {
+    outline: 2px solid var(--admin-text);
+    outline-offset: 2px;
+}
+
+.tool-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--admin-text-tertiary);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.tool-card-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--admin-radius-sm);
+    background: var(--admin-text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--admin-bg);
+}
+
+.tool-card-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+.tool-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.tool-card-title {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--admin-text);
+    letter-spacing: -0.01em;
+}
+
+.tool-card-description {
+    margin: 0;
+    font-size: 14px;
+    color: var(--admin-text-secondary);
+    line-height: 1.5;
+}
+
+.tool-card-footer {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--admin-text);
+    font-weight: 500;
+    margin-top: auto;
+    opacity: 0.8;
+}
+
+.tool-card-footer svg {
+    flex-shrink: 0;
+    width: 14px;
+    height: 14px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .tool-card:hover {
+        border-color: var(--admin-text-tertiary);
+        transform: translateY(-2px);
+        box-shadow: var(--admin-shadow);
+    }
+    .tool-card:hover .tool-card-footer {
+        opacity: 1;
+    }
+}
+
+/* Custom Python tool editor */
+.custom-tool-editor {
+    width: 100%;
+    max-width: 1120px;
+}
+
+.custom-tool-editor-form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.custom-tool-editor .settings-section {
+    margin-bottom: 0;
+}
+
+.custom-tool-editor .form-label {
+    display: inline-flex;
+    margin-bottom: 8px;
+}
+
+.custom-tool-timeout-input {
+    width: 140px;
+    min-width: 140px;
+    text-align: right;
+}
+
+.custom-tool-code-editor,
+.custom-tool-arguments-editor {
+    display: block;
+    width: 100%;
+    min-height: 420px;
+    resize: vertical;
+    line-height: 1.55;
+    tab-size: 4;
+    background: var(--bg-normal);
+}
+
+.custom-tool-arguments-editor {
+    min-height: 140px;
+}
+
+.custom-tool-editor-status {
+    margin-top: 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-sm);
+    background: var(--admin-bg);
+    color: var(--admin-text-secondary);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.custom-tool-editor-status[data-state="success"] {
+    border-color: var(--admin-success, var(--admin-border));
+    background: var(--admin-success-bg, var(--admin-bg));
+    color: var(--admin-success, var(--admin-text));
+}
+
+.custom-tool-editor-status[data-state="error"] {
+    border-color: var(--admin-error, var(--admin-border));
+    background: var(--admin-error-bg, var(--admin-bg));
+    color: var(--admin-error, var(--admin-text));
+}
+
+.custom-python-tools-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 0;
+}
+
+.custom-python-tools-preview-card {
+    min-width: 0;
+}
+
+.custom-python-tools-preview-card .dashboard-card-header {
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--admin-border-subtle);
+}
+
+.custom-python-tools-preview-card-body {
+    min-width: 0;
+}
+
+.custom-python-tools-preview-card-body pre,
+.custom-python-tools-preview-empty {
+    margin: 0;
+    max-height: 420px;
+    overflow: auto;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.custom-python-tools-preview-card-body pre {
+    padding: 12px;
+    border: 1px solid var(--admin-border-subtle);
+    border-radius: var(--admin-radius-sm);
+    background: var(--admin-bg);
+    color: var(--admin-text);
+}
+
+.custom-python-tools-preview-empty {
+    padding: 12px;
+    border: 1px dashed var(--admin-border);
+    border-radius: var(--admin-radius-sm);
+    color: var(--admin-text-secondary);
+    background: var(--admin-bg);
+}
+
+.custom-python-tools-meta {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--admin-text-secondary);
+}
+
+.custom-python-tools-meta strong {
+    color: var(--admin-text);
+    font-weight: 600;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .custom-tool-code-editor:hover,
+    .custom-tool-arguments-editor:hover,
+    .custom-tool-timeout-input:hover {
+        border-color: var(--admin-text-tertiary);
+    }
+}
+
+@media (max-width: 1100px) {
+    .custom-python-tools-preview-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .custom-tool-editor-form {
+        gap: 20px;
+    }
+
+    .custom-tool-editor .settings-row {
+        align-items: flex-start;
+    }
+
+    .custom-tool-timeout-input {
+        width: 100%;
+        min-width: 0;
+    }
+}

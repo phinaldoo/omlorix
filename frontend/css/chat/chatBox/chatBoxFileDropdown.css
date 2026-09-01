@@ -1,0 +1,183 @@
+.select-dropdown.chatbox-attachment-menu {
+    inset: auto auto 48px 0;
+    width: 320px;
+    min-width: 320px;
+    max-width: calc(100vw - 20px);
+}
+
+.chatbox-attachment-section-label {
+    margin: 12px 10px 6px;
+    color: var(--text-color-tertiary);
+    font-size: 10.5px;
+    font-weight: 650;
+    letter-spacing: 0.065em;
+    text-transform: uppercase;
+}
+
+.chatbox-attachment-search-icon {
+    display: block;
+    width: 15px;
+    height: 15px;
+    flex: 0 0 auto;
+    color: var(--text-color-tertiary);
+}
+
+.chatbox-attachment-divider {
+    height: 1px;
+    margin: 7px 10px;
+    background: var(--border-color);
+}
+
+.chatbox-attachment-search-wrap {
+    position: relative;
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    padding: 10px 12px 7px;
+}
+
+.chatbox-attachment-search-icon {
+    position: absolute;
+    left: 24px;
+    width: 14px;
+    height: 14px;
+    border: 1.5px solid currentColor;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.chatbox-attachment-search-icon::after {
+    position: absolute;
+    right: -4px;
+    bottom: -2px;
+    width: 5px;
+    height: 1.5px;
+    background: currentColor;
+    content: "";
+    transform: rotate(45deg);
+    transform-origin: left center;
+}
+
+.chatbox-attachment-search-wrap input {
+    width: 100%;
+    height: 38px;
+    padding: 0 12px 0 36px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    outline: 0;
+    color: var(--text-color);
+    background: var(--surface-muted);
+    font-size: 12.5px;
+    transition: border-color 140ms ease, background-color 140ms ease, box-shadow 140ms ease;
+}
+
+.chatbox-attachment-search-wrap input::placeholder {
+    color: var(--text-color-tertiary);
+}
+
+.chatbox-attachment-search-wrap input:focus {
+    border-color: var(--surface-elevated-border);
+    background: var(--surface-elevated);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 10%, transparent);
+}
+
+.chatbox-attachment-menu .chatbox-files-quickpick__list {
+    display: flex;
+    max-height: none;
+    flex-direction: column;
+    gap: 2px;
+    padding: 1px 8px 8px;
+    overflow: visible;
+}
+
+.chatbox-attachment-menu .chatbox-files-quickpick__item {
+    display: flex;
+    width: 100%;
+    min-height: 54px;
+    align-items: center;
+    gap: 11px;
+    padding: 7px 9px;
+    border-radius: 10px;
+    color: var(--text-color);
+    background: transparent;
+    cursor: pointer;
+    font-size: 13px;
+    text-align: left;
+    transition: background-color 110ms ease;
+}
+
+.chatbox-attachment-menu .chatbox-files-quickpick__item.is-selected {
+    background: var(--primary-light);
+}
+
+.chatbox-attachment-menu .chatbox-files-quickpick__item-icon {
+    display: grid;
+    width: 32px;
+    height: 32px;
+    flex: 0 0 auto;
+    border: 1px solid var(--border-color);
+    border-radius: 9px;
+    color: var(--text-color-secondary);
+    background: var(--surface-elevated);
+    place-items: center;
+}
+
+.chatbox-attachment-menu .chatbox-files-quickpick__item-icon img {
+    width: 20px;
+    height: 20px;
+}
+
+.chatbox-attachment-menu .chatbox-files-quickpick__item-name {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+    font-weight: 560;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.chatbox-attachment-menu .chatbox-files-quickpick__item > .form-checkbox {
+    margin-left: auto;
+    pointer-events: none;
+}
+
+.chatbox-attachment-menu .chatbox-files-quickpick__empty {
+    padding: 52px 20px;
+    color: var(--text-color-tertiary);
+    font-size: 12.5px;
+    text-align: center;
+}
+
+.select-dropdown-button .chatbox-attachment-provider-state {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--success-color);
+    font-size: 10.5px;
+    font-weight: 580;
+}
+
+.chatbox-attachment-provider-state::before {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: currentColor;
+    content: "";
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .chatbox-attachment-menu .chatbox-files-quickpick__item:hover {
+        color: var(--text-color);
+        background: var(--surface-interactive-hover);
+    }
+}
+
+@media (max-width: 768px) {
+    .chatbox-attachment-menu {
+        right: auto;
+        left: 0;
+        width: min(320px, calc(100vw - 20px));
+        min-width: 0;
+        max-width: none;
+    }
+}

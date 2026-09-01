@@ -1,0 +1,8 @@
+{
+  "logs": {
+    "defaultLines": 220,
+    "minimumLines": 1,
+    "maximumLines": 5000,
+    "maximumTimeBoundLength": 128
+  }
+}

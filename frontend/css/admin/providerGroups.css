@@ -1,0 +1,598 @@
+/* Provider Groups Page Styles */
+
+/* ===================== */
+/* Provider Groups List  */
+/* ===================== */
+.provider-group-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-top: 1rem;
+    background: var(--bg-normal);
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius);
+    overflow: hidden;
+}
+
+.provider-group-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1.5rem;
+    text-align: center;
+}
+
+.provider-group-empty-icon {
+    color: var(--admin-text-tertiary);
+    margin-bottom: 1rem;
+}
+
+.provider-group-empty-icon svg {
+    width: 48px;
+    height: 48px;
+    stroke-width: 1.5;
+}
+
+.provider-group-empty-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--admin-text);
+    margin: 0 0 0.5rem;
+}
+
+.provider-group-empty-text {
+    color: var(--admin-text-secondary);
+    margin: 0;
+    max-width: 320px;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+/* ===================== */
+/* Provider Group Card   */
+/* ===================== */
+.provider-group-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 16px 20px;
+    background: transparent;
+    border-bottom: 1px solid var(--admin-border-subtle);
+    cursor: pointer;
+    transition: background var(--admin-transition);
+}
+
+.provider-group-card:last-child {
+    border-bottom: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .provider-group-card:hover {
+        background: var(--admin-hover);
+    }
+}
+
+.provider-group-card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    background: var(--admin-bg);
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-sm);
+    color: var(--admin-text-secondary);
+    flex-shrink: 0;
+}
+
+.provider-group-card-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+.provider-group-card-icon img {
+    width: 32px;
+    height: 32px;
+    display: block;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.provider-group-card-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.provider-group-card-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--admin-text);
+    margin-bottom: 2px;
+}
+
+.provider-group-card-meta {
+    font-size: 12px;
+    color: var(--admin-text-secondary);
+}
+
+.provider-group-card-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+/* ===================== */
+/* Provider Group Form   */
+/* ===================== */
+.provider-group-form-wrapper {
+    display: flex;
+}
+
+.provider-group-form-wrapper > form {
+    width: 100%;
+}
+
+.provider-group-form-section {
+    margin-bottom: 32px;
+}
+
+.provider-group-form-section:last-of-type {
+    margin-bottom: 0;
+}
+
+.provider-group-form-section-header {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 16px;
+}
+
+.provider-group-form-section-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--admin-text);
+    letter-spacing: -0.01em;
+}
+
+.provider-group-form-section-description {
+    margin: 0;
+    font-size: 13px;
+    color: var(--admin-text-secondary);
+    line-height: 1.5;
+}
+
+.provider-group-form-section-body {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius);
+    background: var(--bg-normal);
+    overflow: visible;
+}
+
+.provider-group-form-section-body .provider-group-form-row {
+    margin: 0;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--admin-border-subtle);
+}
+
+.provider-group-form-section-body .provider-group-form-row:first-child {
+    padding-top: 20px;
+}
+
+.provider-group-form-section-body .provider-group-form-row:last-child {
+    border-bottom: none;
+    padding-bottom: 20px;
+}
+
+.provider-group-form-input {
+    width: 100%;
+    max-width: 320px;
+    padding: 10px 14px;
+    font-size: 14px;
+    font-family: inherit;
+    background: var(--bg-normal);
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-sm);
+    color: var(--admin-text);
+    transition: all var(--admin-transition);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .provider-group-form-input:hover {
+        border-color: var(--admin-text-tertiary);
+    }
+}
+
+.provider-group-form-input:focus {
+    outline: none;
+    border-color: var(--admin-text);
+}
+
+.provider-group-form-input::placeholder {
+    color: var(--admin-text-tertiary);
+}
+
+.provider-group-form-input.full-width {
+    max-width: 100%;
+}
+
+/* Icon Picker Wrapper */
+.provider-group-icon-picker-wrapper {
+    width: 100%;
+}
+
+.provider-group-icon-picker-wrapper .icon-picker {
+    width: 100%;
+}
+
+.provider-group-icon-picker-wrapper .icon-picker-control-wrapper {
+    width: 100%;
+}
+
+/* ===================== */
+/* Member Providers      */
+/* ===================== */
+.provider-group-members-section {
+    position: relative;
+}
+
+.provider-group-type-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: var(--admin-info-bg);
+    border: 1px solid var(--admin-info-border, var(--admin-info));
+    border-radius: var(--admin-radius-sm);
+    color: var(--admin-info, var(--admin-text));
+}
+
+.provider-group-type-label {
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: inherit;
+}
+
+.provider-group-type-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: inherit;
+}
+
+.provider-group-members {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    min-height: 60px;
+    background: var(--bg-normal);
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius);
+    overflow: hidden;
+}
+
+.provider-group-members-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 24px;
+    text-align: center;
+}
+
+.provider-group-members-empty-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    background: var(--admin-bg);
+    border: 1px solid var(--admin-border);
+    border-radius: 12px;
+    color: var(--admin-text-tertiary);
+    margin-bottom: 12px;
+}
+
+.provider-group-members-empty-icon svg {
+    width: 24px;
+    height: 24px;
+}
+
+.provider-group-members-empty-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--admin-text);
+    margin: 0 0 4px;
+}
+
+.provider-group-members-empty-text {
+    font-size: 13px;
+    color: var(--admin-text-secondary);
+    margin: 0;
+}
+
+.provider-group-member-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    background: transparent;
+    border-bottom: 1px solid var(--admin-border-subtle);
+    transition: background var(--admin-transition);
+}
+
+.provider-group-member-row:last-child {
+    border-bottom: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .provider-group-member-row:hover {
+        background: var(--admin-hover);
+    }
+}
+
+.provider-group-member-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: var(--admin-bg);
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-sm);
+    color: var(--admin-text-secondary);
+    flex-shrink: 0;
+}
+
+.provider-group-member-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+.provider-group-member-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.provider-group-member-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--admin-text);
+    display: block;
+}
+
+.provider-group-member-type {
+    font-size: 12px;
+    color: var(--admin-text-secondary);
+}
+
+.provider-group-member-weight {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.provider-group-weight-input {
+    width: 64px;
+    padding: 8px 10px;
+    text-align: center;
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-sm);
+    background: var(--bg-normal);
+    color: var(--admin-text);
+    font-size: 14px;
+    font-family: inherit;
+    transition: border-color var(--admin-transition);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .provider-group-weight-input:hover {
+        border-color: var(--admin-text-tertiary);
+    }
+}
+
+.provider-group-weight-input:focus {
+    outline: none;
+    border-color: var(--admin-text);
+}
+
+.provider-group-weight-label {
+    font-size: 12px;
+    color: var(--admin-text-secondary);
+    min-width: 40px;
+}
+
+.provider-group-member-remove {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: transparent;
+    border: none;
+    border-radius: var(--admin-radius-sm);
+    color: var(--admin-text-tertiary);
+    cursor: pointer;
+    transition: all var(--admin-transition);
+}
+
+.provider-group-member-remove svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* Add Member Section */
+.provider-group-add-member-wrapper {
+    position: relative;
+    margin-top: 12px;
+}
+
+.provider-group-add-member-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.provider-group-add-member-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* Add Member Dropdown */
+.provider-group-add-dropdown {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    margin-bottom: 4px;
+    min-width: 320px;
+    max-width: 400px;
+    max-height: 320px;
+    overflow-y: auto;
+    background: var(--bg-normal);
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius);
+    box-shadow: var(--admin-shadow);
+    z-index: 100;
+}
+
+.provider-group-add-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 12px 16px;
+    background: none;
+    border: none;
+    border-bottom: 1px solid var(--admin-border-subtle);
+    text-align: left;
+    cursor: pointer;
+    transition: background var(--admin-transition);
+}
+
+.provider-group-add-dropdown-item:last-child {
+    border-bottom: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .provider-group-add-dropdown-item:hover {
+        background: var(--admin-hover);
+    }
+}
+
+.provider-group-add-dropdown-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: var(--admin-bg);
+    border: 1px solid var(--admin-border);
+    border-radius: 6px;
+    color: var(--admin-text-secondary);
+    flex-shrink: 0;
+}
+
+.provider-group-add-dropdown-icon svg {
+    width: 16px;
+    height: 16px;
+}
+
+.provider-group-add-dropdown-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.provider-group-add-dropdown-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--admin-text);
+    display: block;
+}
+
+.provider-group-add-dropdown-type {
+    font-size: 12px;
+    color: var(--admin-text-secondary);
+}
+
+/* Form Actions */
+.provider-group-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid var(--admin-border-subtle);
+}
+
+/* Provider Group Badge in Model Create */
+.provider-group-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    background: var(--admin-info-bg);
+    color: var(--admin-info);
+    border-radius: 4px;
+    margin-left: 8px;
+}
+
+.available-provider-card.provider-group-card {
+    border: 1px dashed var(--admin-info);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .available-provider-card.provider-group-card:hover {
+        border-style: solid;
+        background: var(--admin-info-bg);
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .provider-group-form-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .provider-group-form-input {
+        max-width: 100%;
+    }
+
+    .provider-group-form-section-body .provider-group-form-row {
+        padding: 16px 20px;
+    }
+
+    .provider-group-member-row {
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .provider-group-member-weight {
+        margin-left: auto;
+    }
+
+    .provider-group-add-dropdown {
+        min-width: 280px;
+        max-width: calc(100vw - 40px);
+    }
+}
+
+@media (max-width: 480px) {
+    .provider-group-card {
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .provider-group-card-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+}

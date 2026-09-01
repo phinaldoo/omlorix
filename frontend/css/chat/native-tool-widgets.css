@@ -1,0 +1,316 @@
+.native-tool-widget {
+    --native-widget-accent: var(--accent-color, #0f766e);
+    --native-widget-positive: var(--success-color, #15803d);
+    --native-widget-negative: var(--error-color, #be123c);
+    width: 100%;
+    padding: 20px;
+    display: grid;
+    gap: 16px;
+    color: var(--text-color);
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 18px;
+}
+
+.native-widget-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.native-widget-title-wrap {
+    min-width: 0;
+    display: grid;
+    gap: 4px;
+}
+
+.native-widget-title,
+.native-widget-subtitle,
+.native-widget-eyebrow,
+.native-widget-caption,
+.native-widget-feedback,
+.native-widget-result-title,
+.native-widget-result-copy {
+    margin: 0;
+}
+
+.native-widget-title {
+    font-size: 1.15rem;
+    line-height: 1.3;
+}
+
+.native-widget-subtitle,
+.native-widget-caption,
+.native-widget-feedback,
+.native-widget-result-copy {
+    color: var(--text-color-secondary);
+    line-height: 1.5;
+}
+
+.native-widget-eyebrow,
+.native-widget-progress-copy,
+.flashcards-native-side-label {
+    color: var(--text-color-secondary);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.native-widget-header-actions,
+.native-widget-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.native-widget-actions {
+    justify-content: flex-end;
+}
+
+.native-widget-pill,
+.native-widget-primary-button,
+.native-widget-secondary-button,
+.quiz-native-option {
+    min-height: 38px;
+    padding: 8px 13px;
+    color: var(--text-color);
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    font: inherit;
+    cursor: pointer;
+}
+
+.native-widget-pill {
+    min-height: 32px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+}
+
+.native-widget-primary-button,
+.native-widget-pill.is-active,
+.native-widget-pill[aria-pressed="true"] {
+    color: var(--button-primary-text, #fff);
+    background: var(--native-widget-accent);
+    border-color: var(--native-widget-accent);
+}
+
+.native-widget-pill:focus-visible,
+.native-widget-primary-button:focus-visible,
+.native-widget-secondary-button:focus-visible,
+.quiz-native-option:focus-visible,
+.flashcards-native-card:focus-visible {
+    outline: 2px solid var(--native-widget-accent);
+    outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .native-widget-pill:hover,
+    .native-widget-secondary-button:hover,
+    .quiz-native-option:hover {
+        border-color: var(--native-widget-accent);
+        background: var(--bg-hover);
+    }
+
+    .native-widget-primary-button:hover {
+        filter: brightness(1.08);
+    }
+}
+
+.native-widget-metrics {
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 8px;
+}
+
+.native-widget-metric {
+    margin: 0;
+    padding: 10px 12px;
+    display: grid;
+    gap: 3px;
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: 11px;
+}
+
+.native-widget-metric dt {
+    color: var(--text-color-secondary);
+    font-size: 0.75rem;
+}
+
+.native-widget-metric dd {
+    margin: 0;
+    font-weight: 650;
+}
+
+.weather-native-current {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.weather-native-current-copy {
+    display: grid;
+    gap: 3px;
+}
+
+.weather-native-temperature {
+    font-size: clamp(2.3rem, 8vw, 4.2rem);
+    line-height: 1;
+}
+
+.weather-native-condition {
+    color: var(--text-color-secondary);
+}
+
+.weather-native-symbol {
+    font-size: clamp(3rem, 10vw, 5.5rem);
+    line-height: 1;
+}
+
+.weather-native-forecast {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(82px, 1fr));
+    gap: 8px;
+}
+
+.weather-native-day {
+    padding: 10px 8px;
+    display: grid;
+    justify-items: center;
+    gap: 6px;
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    text-align: center;
+}
+
+.weather-native-day-name,
+.weather-native-day-temperature {
+    font-size: 0.78rem;
+}
+
+.weather-native-day-symbol {
+    font-size: 1.3rem;
+}
+
+.quiz-native-body,
+.quiz-native-fieldset {
+    display: grid;
+    gap: 10px;
+}
+
+.quiz-native-fieldset {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.quiz-native-question {
+    margin-bottom: 6px;
+    font-size: 1.05rem;
+    font-weight: 650;
+    line-height: 1.5;
+}
+
+.quiz-native-option {
+    width: 100%;
+    min-height: 46px;
+    text-align: left;
+}
+
+.quiz-native-option[data-answer="correct"] {
+    color: var(--native-widget-positive);
+    border-color: var(--native-widget-positive);
+    background: color-mix(in srgb, var(--native-widget-positive) 10%, var(--surface-elevated));
+}
+
+.quiz-native-option[data-answer="incorrect"] {
+    color: var(--native-widget-negative);
+    border-color: var(--native-widget-negative);
+    background: color-mix(in srgb, var(--native-widget-negative) 10%, var(--surface-elevated));
+}
+
+.flashcards-native-stage {
+    display: grid;
+    gap: 12px;
+}
+
+.flashcards-native-card {
+    width: 100%;
+    min-height: 220px;
+    padding: 22px;
+    display: grid;
+    align-content: center;
+    justify-items: start;
+    gap: 12px;
+    color: var(--text-color);
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: 15px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.flashcards-native-card.is-revealed {
+    border-color: var(--native-widget-accent);
+    background: color-mix(in srgb, var(--native-widget-accent) 8%, var(--surface-elevated));
+}
+
+.flashcards-native-text {
+    font-size: clamp(1.15rem, 4vw, 1.65rem);
+    line-height: 1.45;
+}
+
+.flashcards-native-support {
+    display: grid;
+    gap: 6px;
+}
+
+.flashcards-native-support-item {
+    margin: 0;
+    color: var(--text-color-secondary);
+    line-height: 1.45;
+}
+
+.flashcards-native-support-item span {
+    color: var(--text-color);
+    font-weight: 650;
+}
+
+@media (max-width: 600px) {
+    .native-tool-widget {
+        padding: 14px;
+        border-radius: 14px;
+    }
+
+    .native-widget-header {
+        flex-direction: column;
+    }
+
+    .native-widget-header-actions,
+    .native-widget-actions {
+        width: 100%;
+    }
+
+    .native-widget-actions > button {
+        flex: 1 1 120px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .native-tool-widget *,
+    .native-tool-widget *::before,
+    .native-tool-widget *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+    }
+}

@@ -1,0 +1,83 @@
+/* Privacy Policy Page Styling */
+#page-privacy-policy,
+#page-terms-of-service {
+    flex-direction: column;
+    gap: 24px;
+    padding-bottom: 40px;
+    max-width: 1100px;
+    margin: 0 auto;
+    width: 100%;
+    height: 100%;
+}
+
+.privacy-editor-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 14px;
+    overflow: hidden;
+    height: calc(100vh - 200px);
+    min-height: 500px;
+    margin-top: 32px;
+}
+
+.privacy-editor-toolbar {
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    background: #fafafa;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.privacy-editor-toolbar-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.privacy-editor-textarea {
+    flex: 1;
+    width: 100%;
+    padding: 24px;
+    border: none;
+    resize: none;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
+    font-size: 14px;
+    line-height: 1.7;
+    color: #0f172a;
+    outline: none;
+    background-color: #ffffff;
+}
+
+.privacy-editor-textarea--short {
+    min-height: 120px;
+    height: 120px;
+    padding: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    resize: vertical;
+}
+
+.privacy-editor-textarea:focus {
+    background-color: #ffffff;
+}
+
+.privacy-editor-textarea::placeholder {
+    color: #94a3b8;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .privacy-editor-toolbar {
+        padding: 12px 16px;
+    }
+    
+    .privacy-editor-textarea {
+        padding: 18px;
+    }
+}
