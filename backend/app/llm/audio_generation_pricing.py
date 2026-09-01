@@ -8,7 +8,7 @@ OPENAI_TTS_1_DOCS_URL = "https://developers.openai.com/api/docs/models/tts-1"
 OPENAI_TTS_1_HD_DOCS_URL = "https://developers.openai.com/api/docs/models/tts-1-hd"
 GOOGLE_AISTUDIO_TTS_PRICING_DOCS_URL = "https://ai.google.dev/gemini-api/docs/pricing"
 ELEVENLABS_TTS_PRICING_DOCS_URL = "https://elevenlabs.io/pricing/api"
-ELEVENLABS_TTS_MODELS_DOCS_URL = "https://elevenlabs.io/docs/models"
+ELEVENLABS_TTS_MODELS_DOCS_URL = "https://elevenlabs.io/docs/overview/models"
 XAI_TTS_PRICING_DOCS_URL = "https://docs.x.ai/developers/model-capabilities/audio/text-to-speech"
 
 
@@ -21,13 +21,6 @@ OPENAI_AUDIO_GENERATION_PRICING: dict[str, dict[str, Any]] = {
         "source_url": OPENAI_GPT_4O_MINI_TTS_DOCS_URL,
     },
     "gpt-4o-mini-tts-2025-12-15": {
-        "pricing_model": "per_million_tokens",
-        "input_text": 0.60,
-        "output_audio": 12.00,
-        "currency": "USD",
-        "source_url": OPENAI_GPT_4O_MINI_TTS_DOCS_URL,
-    },
-    "gpt-4o-mini-tts-2025-03-20": {
         "pricing_model": "per_million_tokens",
         "input_text": 0.60,
         "output_audio": 12.00,
@@ -61,6 +54,13 @@ OPENAI_AUDIO_GENERATION_PRICING: dict[str, dict[str, Any]] = {
 }
 
 GOOGLE_AISTUDIO_AUDIO_GENERATION_PRICING: dict[str, dict[str, Any]] = {
+    "gemini-3.1-flash-tts-preview": {
+        "pricing_model": "per_million_tokens",
+        "input_text": 1.00,
+        "output_audio": 20.00,
+        "currency": "USD",
+        "source_url": GOOGLE_AISTUDIO_TTS_PRICING_DOCS_URL,
+    },
     "gemini-2.5-flash-preview-tts": {
         "pricing_model": "per_million_tokens",
         "input_text": 0.50,
@@ -78,6 +78,12 @@ GOOGLE_AISTUDIO_AUDIO_GENERATION_PRICING: dict[str, dict[str, Any]] = {
 }
 
 ELEVENLABS_AUDIO_GENERATION_PRICING: dict[str, dict[str, Any]] = {
+    "eleven_v3_conversational": {
+        "pricing_model": "per_thousand_characters",
+        "input_characters": 0.10,
+        "currency": "USD",
+        "source_url": ELEVENLABS_TTS_PRICING_DOCS_URL,
+    },
     "eleven_v3": {
         "pricing_model": "per_thousand_characters",
         "input_characters": 0.10,
@@ -85,12 +91,6 @@ ELEVENLABS_AUDIO_GENERATION_PRICING: dict[str, dict[str, Any]] = {
         "source_url": ELEVENLABS_TTS_PRICING_DOCS_URL,
     },
     "eleven_multilingual_v2": {
-        "pricing_model": "per_thousand_characters",
-        "input_characters": 0.10,
-        "currency": "USD",
-        "source_url": ELEVENLABS_TTS_PRICING_DOCS_URL,
-    },
-    "eleven_multilingual_v1": {
         "pricing_model": "per_thousand_characters",
         "input_characters": 0.10,
         "currency": "USD",

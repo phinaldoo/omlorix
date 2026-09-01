@@ -604,7 +604,7 @@
   "schema_xai_image_model_desc": "Выберите модель xAI Imagine.",
   "schema_xai_image_settings_desc": "Настройте генерацию и редактирование с помощью xAI Imagine.",
   "schema_xai_image_aspect_ratio_desc": "Целевое соотношение сторон создаваемых изображений.",
-  "schema_xai_image_edit_desc": "Разрешить xAI Imagine редактировать до трёх референсных изображений.",
+  "schema_xai_image_edit_desc": "Разрешить xAI Imagine редактировать до пяти референсных изображений.",
   "schema_xai_video_reference_desc": "Разрешить генератору видео xAI использовать референсные изображения из чата.",
   "schema_xai_audio_generation_title": "Генерация аудио xAI",
   "schema_xai_audio_model_desc": "Выберите модель преобразования текста в речь xAI.",

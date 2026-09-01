@@ -185,7 +185,7 @@ def test_xai_catalog_resolves_current_models_aliases_and_capabilities():
     grok_43 = get_xai_model_capabilities("grok-latest")
     multi_agent = get_xai_model_capabilities("grok-4.20-multi-agent")
 
-    assert XAI_CATALOG_LAST_VERIFIED == "2026-08-12"
+    assert XAI_CATALOG_LAST_VERIFIED == "2026-09-01"
     assert grok_46 is XAI_MODEL_DICT["grok-4.6"]
     assert grok_46["input_token_limit"] == 500_000
     assert grok_46["thinking"]["thinking_effort"] == [
@@ -482,6 +482,33 @@ def test_xai_image_generation_preserves_jpeg_type_and_provider_cost(monkeypatch)
     assert result["cost"] == pytest.approx(0.02)
 
 
+def test_xai_image_20_sends_quality_and_uses_current_static_price(monkeypatch):
+    png_bytes = b"\x89PNG\r\n\x1a\nxai-png"
+    captured = {}
+
+    def fake_post(url, **kwargs):
+        captured.update({"url": url, **kwargs})
+        return _Response(
+            payload={
+                "data": [{"b64_json": base64.b64encode(png_bytes).decode("ascii")}],
+            }
+        )
+
+    monkeypatch.setattr(image_generation.requests, "post", fake_post)
+
+    result = image_generation.generate_image(
+        _provider(),
+        "grok-imagine-image-2.0",
+        "A cinematic landscape",
+        {"aspect_ratio": "21:9", "resolution": "2k", "quality": "medium"},
+    )
+
+    assert captured["json"]["quality"] == "medium"
+    assert captured["json"]["aspect_ratio"] == "21:9"
+    assert result["cost"] == pytest.approx(0.08)
+    assert result["cost_details"]["pricing_source"] == "static_catalog"
+
+
 def test_xai_single_image_edit_uses_the_native_url_object(monkeypatch):
     """Single-image edits omit the multi-image type discriminator."""
     captured = {}
@@ -505,6 +532,29 @@ def test_xai_single_image_edit_uses_the_native_url_object(monkeypatch):
         "url": captured["payload"]["image"]["url"],
     }
     assert captured["payload"]["image"]["url"].startswith("data:image/png;base64,")
+
+
+def test_xai_image_20_edit_accepts_five_reference_images(monkeypatch):
+    captured = {}
+
+    def fake_request(_provider, *, endpoint, payload):
+        captured.update({"endpoint": endpoint, "payload": payload})
+        return {"image_bytes": b"image"}
+
+    monkeypatch.setattr(image_generation, "_request_image", fake_request)
+
+    image_generation.edit_image(
+        _provider(),
+        "grok-imagine-image-2.0",
+        "Combine these references",
+        {"quality": "auto", "resolution": "2k"},
+        [{"mime_type": "image/png", "bytes": bytes([index])} for index in range(6)],
+    )
+
+    assert captured["endpoint"] == "images/edits"
+    assert len(captured["payload"]["images"]) == 5
+    assert captured["payload"]["quality"] == "auto"
+    assert captured["payload"]["resolution"] == "2k"
 
 
 def test_xai_result_download_blocks_private_network_targets():

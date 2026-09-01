@@ -604,7 +604,7 @@
   "schema_xai_image_model_desc": "उपयोग करने के लिए xAI Imagine मॉडल चुनें।",
   "schema_xai_image_settings_desc": "xAI Imagine निर्माण और संपादन कॉन्फ़िगर करें।",
   "schema_xai_image_aspect_ratio_desc": "बनाए गए चित्रों का लक्षित आस्पेक्ट रेशियो।",
-  "schema_xai_image_edit_desc": "xAI Imagine को अधिकतम तीन संदर्भ चित्र संपादित करने दें।",
+  "schema_xai_image_edit_desc": "xAI Imagine को अधिकतम पाँच संदर्भ चित्र संपादित करने दें।",
   "schema_xai_video_reference_desc": "xAI वीडियो निर्माण को चैट के संदर्भ चित्र उपयोग करने दें।",
   "schema_xai_audio_generation_title": "xAI ऑडियो निर्माण",
   "schema_xai_audio_model_desc": "xAI टेक्स्ट-टू-स्पीच मॉडल चुनें।",

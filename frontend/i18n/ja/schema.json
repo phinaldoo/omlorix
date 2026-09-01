@@ -604,7 +604,7 @@
   "schema_xai_image_model_desc": "使用する xAI Imagine モデルを選択します。",
   "schema_xai_image_settings_desc": "xAI Imagine の生成と編集を設定します。",
   "schema_xai_image_aspect_ratio_desc": "生成画像の目標アスペクト比です。",
-  "schema_xai_image_edit_desc": "xAI Imagine が最大 3 枚の参照画像を編集できるようにします。",
+  "schema_xai_image_edit_desc": "xAI Imagine が最大 5 枚の参照画像を編集できるようにします。",
   "schema_xai_video_reference_desc": "xAI 動画生成でチャット内の参照画像を使用できるようにします。",
   "schema_xai_audio_generation_title": "xAI 音声生成",
   "schema_xai_audio_model_desc": "xAI のテキスト読み上げモデルを選択します。",

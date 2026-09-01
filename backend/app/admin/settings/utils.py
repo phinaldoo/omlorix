@@ -681,12 +681,9 @@ VIDEO_GENERATION_MODELS_BY_PROVIDER: dict[str, list[str]] = {
         "veo-3.1-generate-preview",
         "veo-3.1-fast-generate-preview",
         "veo-3.1-lite-generate-preview",
-        "veo-3.0-generate-001",
-        "veo-3.0-fast-generate-001",
-        "veo-2.0-generate-001",
     ],
     ProviderEnum.openrouter.value: [],
-    ProviderEnum.xai.value: ["grok-imagine-video", "grok-imagine-video-1.5"],
+    ProviderEnum.xai.value: ["grok-imagine-video-1.5", "grok-imagine-video"],
 }
 
 SECURITY_API_KEY_FIELDS = ("ipinfo", "ipstack")

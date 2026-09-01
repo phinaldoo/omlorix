@@ -1,7 +1,7 @@
 # Verified against Ollama's gpt-oss library entry and OpenAI-compatible API
-# documentation on 2026-07-27. Ollama supplies no per-token USD accounting:
+# documentation on 2026-09-01. Ollama supplies no per-token USD accounting:
 # local runs have no provider token bill and cloud billing is usage-level based.
-OLLAMA_CATALOG_LAST_VERIFIED = "2026-07-27"
+OLLAMA_CATALOG_LAST_VERIFIED = "2026-09-01"
 OLLAMA_GPT_OSS_DOCS_URL = "https://ollama.com/library/gpt-oss"
 
 OLLAMA_REASONING_EFFORT_VALUES = ("low", "medium", "high")

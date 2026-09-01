@@ -67,6 +67,8 @@ def _impl_calculate_openai_token_costs(
         normalized_tier = str(tier or "").strip().lower()
         if normalized_tier in {"", "auto", "default", "standard"}:
             return "standard"
+        if normalized_tier == "fast":
+            return "priority"
         return normalized_tier
 
     def _cost_for_tokens(token_count: float, price_per_million: float) -> float:

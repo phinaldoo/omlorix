@@ -604,7 +604,7 @@
   "schema_xai_image_model_desc": "Scegli il modello xAI Imagine da utilizzare.",
   "schema_xai_image_settings_desc": "Configura la generazione e la modifica con xAI Imagine.",
   "schema_xai_image_aspect_ratio_desc": "Proporzioni di destinazione per le immagini generate.",
-  "schema_xai_image_edit_desc": "Consenti a xAI Imagine di modificare fino a tre immagini di riferimento.",
+  "schema_xai_image_edit_desc": "Consenti a xAI Imagine di modificare fino a cinque immagini di riferimento.",
   "schema_xai_video_reference_desc": "Consenti alla generazione video xAI di usare le immagini di riferimento della chat.",
   "schema_xai_audio_generation_title": "Generazione audio xAI",
   "schema_xai_audio_model_desc": "Scegli il modello di sintesi vocale xAI.",

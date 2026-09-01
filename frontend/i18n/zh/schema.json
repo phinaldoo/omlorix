@@ -604,7 +604,7 @@
   "schema_xai_image_model_desc": "选择要使用的 xAI Imagine 模型。",
   "schema_xai_image_settings_desc": "配置 xAI Imagine 的生成和编辑功能。",
   "schema_xai_image_aspect_ratio_desc": "生成图像的目标宽高比。",
-  "schema_xai_image_edit_desc": "允许 xAI Imagine 编辑最多三张参考图像。",
+  "schema_xai_image_edit_desc": "允许 xAI Imagine 编辑最多五张参考图像。",
   "schema_xai_video_reference_desc": "允许 xAI 视频生成使用聊天中的参考图像。",
   "schema_xai_audio_generation_title": "xAI 音频生成",
   "schema_xai_audio_model_desc": "选择 xAI 文本转语音模型。",

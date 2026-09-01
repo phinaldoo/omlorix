@@ -186,36 +186,43 @@ def get_openai_image_generation_models(provider: LLMProvider):
     return items
 
 # Pricing per million tokens in usd
-# For dalle models, its price per image depending on size and quality, no tokens
 IMAGE_GEN_MODELS = [
     {
         "name": "ChatGPT Image Latest",
         "ids": ["chatgpt-image-latest"],
+        "deprecated": True,
+        "shutdown_date": "2026-12-01",
         "quality": ["low", "medium", "high"],
         "size": ["1024x1024", "1536x1024", "1024x1536", "auto"],
         "pricing": {
             "text_tokens": {
                 "input": 5.00,
+                "cached_input": 1.25,
                 "output": 10.00,
             },
             "image_tokens": {
                 "input": 8.00,
+                "cached_input": 2.00,
                 "output": 32.00,
             }
         }
     },
     {
         "name": "GPT Image 1.5",
-        "ids": ["gpt-image-1.5"],
+        "ids": ["gpt-image-1.5", "gpt-image-1.5-2025-12-16"],
+        "deprecated": True,
+        "shutdown_date": "2026-12-01",
         "quality": ["low", "medium", "high"],
         "size": ["1024x1024", "1536x1024", "1024x1536", "auto"],       
         "pricing": {
             "text_tokens": {
                 "input": 5.00,
+                "cached_input": 1.25,
                 "output": 10.00,
             },
             "image_tokens": {
                 "input": 8.00,
+                "cached_input": 2.00,
                 "output": 32.00,
             }
         }
@@ -223,15 +230,19 @@ IMAGE_GEN_MODELS = [
     {
         "name": "GPT Image 1",
         "ids": ["gpt-image-1"],
+        "deprecated": True,
+        "shutdown_date": "2026-10-23",
         "quality": ["low", "medium", "high"],
         "size": ["1024x1024", "1536x1024", "1024x1536", "auto"],
         "pricing": {
             "text_tokens": {
                 "input": 5.00,
+                "cached_input": 1.25,
                 "output": 0.00,
             },
             "image_tokens": {
                 "input": 10.00,
+                "cached_input": 2.50,
                 "output": 40.00,
             }
         }
@@ -239,15 +250,19 @@ IMAGE_GEN_MODELS = [
     {
         "name": "GPT Image 1 mini",
         "ids": ["gpt-image-1-mini"],
+        "deprecated": True,
+        "shutdown_date": "2026-12-01",
         "quality": ["low", "medium", "high"],
         "size": ["1024x1024", "1536x1024", "1024x1536", "auto"],
         "pricing": {
             "text_tokens": {
                 "input": 2.00,
+                "cached_input": 0.20,
                 "output": 0.00,
             },
             "image_tokens": {
                 "input": 2.50,
+                "cached_input": 0.25,
                 "output": 8.00,
             }
         }
@@ -260,42 +275,13 @@ IMAGE_GEN_MODELS = [
         "pricing": {
             "text_tokens": {
                 "input": 5.00,
+                "cached_input": 1.25,
                 "output": 0.00,
             },
             "image_tokens": {
                 "input": 8.00,
+                "cached_input": 2.00,
                 "output": 30.00,
-            }
-        }
-    },
-    {
-        "name": "DALL-E 2",
-        "ids": ["dall-e-2"],
-        "quality": ["standard"],
-        "size": ["256x256", "512x512", "1024x1024"],
-        "pricing": {
-            "standard": {
-                "256x256": 0.016,
-                "512x512": 0.018,
-                "1024x1024": 0.020,
-            },
-        }
-    },
-    {
-        "name": "DALL-E 3",
-        "ids": ["dall-e-3"],
-        "quality": ["hd", "standard"],
-        "size": ["1024x1024", "1792x1024", "1024x1792"],
-        "pricing": {
-            "standard": {
-                "1024x1024": 0.04,
-                "1024x1792": 0.08,
-                "1792x1024": 0.08,
-            },
-            "hd": {
-                "1024x1024": 0.08,
-                "1024x1792": 0.12,
-                "1792x1024": 0.12,
             }
         }
     }
@@ -306,10 +292,10 @@ OPENAI_IMAGE_EDIT_SUPPORTED_MODEL_IDS = {
     "chatgpt-image-latest",
     "gpt-image-1",
     "gpt-image-1.5",
+    "gpt-image-1.5-2025-12-16",
     "gpt-image-1-mini",
     "gpt-image-2",
     "gpt-image-2-2026-04-21",
-    "dall-e-2",
 }
 
 

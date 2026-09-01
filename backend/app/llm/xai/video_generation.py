@@ -23,7 +23,7 @@ from app.llm.xai.common import (
 from app.utils.schemas import FieldSchema, Option, Section, Sections
 
 
-XAI_VIDEO_MODELS = ["grok-imagine-video", "grok-imagine-video-1.5"]
+XAI_VIDEO_MODELS = ["grok-imagine-video-1.5", "grok-imagine-video"]
 XAI_VIDEO_ASPECT_RATIOS = ["16:9", "9:16", "1:1", "4:3", "3:4", "3:2", "2:3"]
 XAI_VIDEO_RESOLUTIONS = ["480p", "720p"]
 XAI_VIDEO_15_RESOLUTIONS = [*XAI_VIDEO_RESOLUTIONS, "1080p"]

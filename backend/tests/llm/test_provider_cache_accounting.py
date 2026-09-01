@@ -89,6 +89,20 @@ def test_anthropic_unclassified_cache_writes_use_default_five_minute_rate():
     assert costs["total_costs"] >= 0
 
 
+def test_anthropic_fable_51_uses_reduced_cache_read_rate():
+    costs = calculate_anthropic_token_costs(
+        "claude-fable-5-1",
+        input_tokens=100_000,
+        cached_input_tokens=100_000,
+        cache_write_tokens=0,
+        output_tokens=0,
+        native_websearch_tool_calls_count=0,
+    )
+
+    assert costs["cached_input_tokens_cost"] == pytest.approx(0.025)
+    assert costs["total_costs"] == pytest.approx(0.025)
+
+
 def test_google_normalization_keeps_cache_as_modality_subsets_of_prompt_total():
     usage = SimpleNamespace(
         prompt_token_count=100_000,

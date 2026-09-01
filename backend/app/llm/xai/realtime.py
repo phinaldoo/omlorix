@@ -20,7 +20,6 @@ from app.llm.xai.text_to_speech import (
 XAI_REALTIME_MODELS = [
     "grok-voice-latest",
     "grok-voice-think-fast-2.0",
-    "grok-voice-think-fast-1.0",
 ]
 # xAI documents Speech-to-Speech as using the same catalog as Text to Speech.
 # Custom voice IDs are provider-owned opaque identifiers, so accept a bounded

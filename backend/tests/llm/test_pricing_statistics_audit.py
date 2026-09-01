@@ -22,6 +22,7 @@ from app.llm.openai.model_list import (
     OPENAI_SHUT_DOWN_MODEL_IDS,
     OPENAI_UNSUPPORTED_MODELS,
 )
+from app.llm.openai.image_generation import IMAGE_GEN_MODELS as OPENAI_IMAGE_GEN_MODELS
 from app.llm.openai.utils import (
     calculate_openai_token_costs,
     merge_openai_cost_breakdown,
@@ -314,15 +315,22 @@ def test_openai_long_context_pricing_is_merged_after_per_request_pricing() -> No
         native_websearch_tool_calls_count=0,
     )
 
-    assert merged["total_costs"] == pytest.approx(2.6)
+    assert merged["total_costs"] == pytest.approx(2.0)
     assert incorrectly_aggregated is not None
-    assert incorrectly_aggregated["total_costs"] == pytest.approx(4.9)
+    assert incorrectly_aggregated["total_costs"] == pytest.approx(3.8)
 
 
 def test_current_catalogs_include_new_models_and_exclude_shutdown_ids() -> None:
+    assert "gemini-3.7-flash" in AISTUDIO_MODEL_DICT
     assert "gemini-3.6-flash" in AISTUDIO_MODEL_DICT
     assert "gemini-3.5-flash-lite" in AISTUDIO_MODEL_DICT
     assert "claude-opus-5" in ANTHROPIC_MODEL_PRICING
+    assert get_anthropic_pricing("claude-fable-5-1") == {
+        "input": 10,
+        "output": 50,
+        "native_web_search_tool_call": 0.01,
+        "cache_read_input_multiplier": 0.025,
+    }
     assert "claude-haiku-3-5" not in ANTHROPIC_MODEL_PRICING
     assert get_anthropic_pricing("claude-haiku-4-5-20251001") == {
         "input": 1,
@@ -342,26 +350,38 @@ def test_current_catalogs_include_new_models_and_exclude_shutdown_ids() -> None:
     assert "chat-latest" not in openai_catalog_ids
     assert "chat-latest" not in OPENAI_COMPLETION_MODELS
     assert "chat-latest" in OPENAI_UNSUPPORTED_MODELS
-    assert "gpt-5.2-chat-latest" in openai_catalog_ids
-    assert "gpt-5.3-chat-latest" in openai_catalog_ids
-    assert "gpt-5.2-chat-latest" in OPENAI_COMPLETION_MODELS
-    assert "gpt-5.3-chat-latest" in OPENAI_COMPLETION_MODELS
+    assert "gpt-5.2-chat-latest" not in openai_catalog_ids
+    assert "gpt-5.3-chat-latest" not in openai_catalog_ids
+    assert "gpt-daybreak-blue-latest" in openai_catalog_ids
+    assert "gpt-daybreak-red-latest" in openai_catalog_ids
+    assert OPENAI_MODEL_DICT["gpt-5.6-cyber"]["pricing"]["standard"] == {
+        "input": 12.5,
+        "cached_input": 1.25,
+        "cache_write": 15.625,
+        "output": 75.0,
+    }
     assert "gemini-pro-latest" not in AISTUDIO_MODEL_DICT["gemini-3.1-pro"]["ids"]
     assert not (OPENAI_SHUT_DOWN_MODEL_IDS & set(OPENAI_COMPLETION_MODELS))
     assert OPENAI_ANNOUNCED_SHUTDOWN_DATES["gpt-4.1-nano"] == "2026-10-23"
-    assert AISTUDIO_MODEL_DICT["gemini-2.5-pro"]["shutdown_date"] == "2026-10-16"
+    assert "shutdown_date" not in AISTUDIO_MODEL_DICT["gemini-2.5-pro"]
+    assert AISTUDIO_MODEL_DICT["gemini-3.6-flash"]["pricing"]["output"] == 3.75
     assert next(
         model
         for model in IMAGE_GEN_MODELS
         if "gemini-2.5-flash-image" in model["ids"]
     )["shutdown_date"] == "2026-10-02"
+    image_15 = next(
+        model for model in OPENAI_IMAGE_GEN_MODELS if "gpt-image-1.5" in model["ids"]
+    )
+    assert "gpt-image-1.5-2025-12-16" in image_15["ids"]
+    assert image_15["pricing"]["image_tokens"]["cached_input"] == 2.0
 
 
 @pytest.mark.parametrize(
     ("catalog", "expected_groups", "expected_ids"),
     [
-        (OPENAI_MODEL_DICT, 36, 65),
-        (AISTUDIO_MODEL_DICT, 17, 18),
+        (OPENAI_MODEL_DICT, 35, 66),
+        (AISTUDIO_MODEL_DICT, 18, 19),
     ],
 )
 def test_priced_catalogs_have_unique_ids_and_valid_prices(

@@ -604,7 +604,7 @@
   "schema_xai_image_model_desc": "اختر نموذج xAI Imagine المراد استخدامه.",
   "schema_xai_image_settings_desc": "اضبط التوليد والتحرير باستخدام xAI Imagine.",
   "schema_xai_image_aspect_ratio_desc": "نسبة العرض إلى الارتفاع المستهدفة للصور المُولّدة.",
-  "schema_xai_image_edit_desc": "اسمح لـ xAI Imagine بتحرير ما يصل إلى ثلاث صور مرجعية.",
+  "schema_xai_image_edit_desc": "اسمح لـ xAI Imagine بتحرير ما يصل إلى خمس صور مرجعية.",
   "schema_xai_video_reference_desc": "اسمح لتوليد الفيديو عبر xAI باستخدام الصور المرجعية من المحادثة.",
   "schema_xai_audio_generation_title": "توليد الصوت عبر xAI",
   "schema_xai_audio_model_desc": "اختر نموذج تحويل النص إلى كلام من xAI.",

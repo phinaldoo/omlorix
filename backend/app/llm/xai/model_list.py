@@ -14,7 +14,7 @@ from typing import Any
 # Keep the verification date and source URLs next to the data.  xAI changes
 # aliases and rates independently of model identifiers, so reviewers can
 # quickly tell whether a future catalog refresh is needed.
-XAI_CATALOG_LAST_VERIFIED = "2026-08-12"
+XAI_CATALOG_LAST_VERIFIED = "2026-09-01"
 XAI_MODELS_DOCS_URL = "https://docs.x.ai/developers/models"
 XAI_PRICING_DOCS_URL = "https://docs.x.ai/developers/pricing"
 XAI_COST_TRACKING_DOCS_URL = "https://docs.x.ai/developers/cost-tracking"
@@ -321,6 +321,7 @@ XAI_MODEL_DICT: dict[str, dict[str, Any]] = {
 # account.  Keep those out of Omlorix's chat-model picker; their native adapters
 # expose them in the appropriate Image, Video, Voice, and transcription forms.
 XAI_NON_CHAT_MODELS = {
+    "grok-imagine-image-2.0",
     "grok-imagine-image",
     "grok-imagine-image-quality",
     "grok-imagine-image-pro",

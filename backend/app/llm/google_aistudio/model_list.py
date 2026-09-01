@@ -1,9 +1,10 @@
+from copy import deepcopy
 from datetime import datetime
 
 
 # Verified against Google's model, pricing, release-note, and deprecation
-# documentation on 2026-07-27.
-GOOGLE_AISTUDIO_CATALOG_LAST_VERIFIED = "2026-07-27"
+# documentation on 2026-09-01.
+GOOGLE_AISTUDIO_CATALOG_LAST_VERIFIED = "2026-09-01"
 GOOGLE_AISTUDIO_MODELS_DOCS_URL = "https://ai.google.dev/gemini-api/docs/models"
 GOOGLE_AISTUDIO_PRICING_DOCS_URL = "https://ai.google.dev/gemini-api/docs/pricing"
 
@@ -24,24 +25,24 @@ AISTUDIO_MODEL_DICT = {
         "knowledge_cutoff": datetime(2025, 1, 1),
         "support_media_resolution": True,
         "pricing": {
-            "input_text": 1.50,
-            "input_text_200k": 1.50,
-            "input_audio": 1.50,
-            "input_audio_200k": 1.50,
-            "input_image": 1.50,
-            "input_image_200k": 1.50,
-            "input_video": 1.50,
-            "input_video_200k": 1.50,
-            "cached_input_text": 0.15,
-            "cached_input_text_200k": 0.15,
-            "cached_input_audio": 0.15,
-            "cached_input_audio_200k": 0.15,
-            "cached_input_image": 0.15,
-            "cached_input_image_200k": 0.15,
-            "cached_input_video": 0.15,
-            "cached_input_video_200k": 0.15,
-            "output": 7.50,
-            "output_200k": 7.50,
+            "input_text": 0.75,
+            "input_text_200k": 0.75,
+            "input_audio": 0.75,
+            "input_audio_200k": 0.75,
+            "input_image": 0.75,
+            "input_image_200k": 0.75,
+            "input_video": 0.75,
+            "input_video_200k": 0.75,
+            "cached_input_text": 0.075,
+            "cached_input_text_200k": 0.075,
+            "cached_input_audio": 0.075,
+            "cached_input_audio_200k": 0.075,
+            "cached_input_image": 0.075,
+            "cached_input_image_200k": 0.075,
+            "cached_input_video": 0.075,
+            "cached_input_video_200k": 0.075,
+            "output": 3.75,
+            "output_200k": 3.75,
         },
     },
     "gemini-3.5-flash": {
@@ -231,8 +232,6 @@ AISTUDIO_MODEL_DICT = {
     },
     "gemini-2.5-pro": {
         "ids": ["gemini-2.5-pro"],
-        "deprecated": True,
-        "shutdown_date": "2026-10-16",
         "supports_native_websearch": True,
         "thinking": {
             "thinking": True,
@@ -268,8 +267,6 @@ AISTUDIO_MODEL_DICT = {
     },
     "gemini-2.5-flash": {
         "ids": ["gemini-2.5-flash"],
-        "deprecated": True,
-        "shutdown_date": "2026-10-16",
         "supports_native_websearch": True,
         "thinking": {
             "thinking": True,
@@ -305,8 +302,6 @@ AISTUDIO_MODEL_DICT = {
     },
     "gemini-2.5-flash-lite": {
         "ids": ["gemini-2.5-flash-lite"],
-        "deprecated": True,
-        "shutdown_date": "2026-10-16",
         "supports_native_websearch": True,
         "thinking": {
             "thinking": True,
@@ -561,6 +556,14 @@ AISTUDIO_MODEL_DICT = {
 }
 
 
+# Gemini 3.7 Flash currently shares Gemini 3.6 Flash's promotional standard
+# rates, but its documented thinking levels do not include ``minimal``.
+_gemini_37_flash = deepcopy(AISTUDIO_MODEL_DICT["gemini-3.6-flash"])
+_gemini_37_flash["ids"] = ["gemini-3.7-flash"]
+_gemini_37_flash["thinking"]["reasoning_effort"] = ["low", "medium", "high"]
+AISTUDIO_MODEL_DICT = {"gemini-3.7-flash": _gemini_37_flash, **AISTUDIO_MODEL_DICT}
+
+
 
 AISTUDIO_MODELS_NOT_SUPPORTED = [
     # Shut down endpoints are ignored if an API/account still returns stale
@@ -570,11 +573,23 @@ AISTUDIO_MODELS_NOT_SUPPORTED = [
     "gemini-2.0-flash-lite",
     "gemini-2.0-flash-lite-001",
     "gemini-3.1-flash-lite-preview",
-    "gemini-2.5-flash-preview-tts",
-    "gemini-2.5-pro-preview-tts",
     "gemini-2.5-computer-use-preview-10-2025",
     "gemini-robotics-er-1.5-preview",
+    "gemini-robotics-er-1.6-preview",
     "nano-banana-pro-preview",
+    "imagen-4.0-generate-001",
+    "imagen-4.0-fast-generate-001",
+    "imagen-4.0-ultra-generate-001",
+    # Current specialized endpoints use APIs that are not compatible with the
+    # normal Gemini chat surface.
+    "gemini-2.5-flash-preview-tts",
+    "gemini-2.5-pro-preview-tts",
+    "gemini-3.1-flash-tts-preview",
+    "gemini-3.5-transcribe",
+    "gemini-3.5-transcribe-live",
+    "gemini-omni-1.1-flash",
+    "gemini-robotics-er-2-preview",
+    "gemini-robotics-er-2-streaming-preview",
     # Rolling aliases can change their backing model and price without changing
     # their identifier, so they must not inherit a static catalog entry.
     "gemini-flash-latest",
@@ -597,8 +612,6 @@ AISTUDIO_MODELS_NOT_SUPPORTED = [
     "aqa",
     "gemini-3-pro-preview",
     "gemini-omni-flash-preview",
-    "gemini-3.1-flash-tts-preview",
-    "gemini-robotics-er-1.6-preview",
     "antigravity-preview-05-2026",
     "deep-research-max-preview-04-2026",
     "deep-research-preview-04-2026"
@@ -660,13 +673,13 @@ GOOGLE_AISTUDIO_VIDEO_GENERATION_MODELS = [
 ]
 
 GOOGLE_AISTUDIO_VIDEO_PRICING_DOCS_URL = "https://ai.google.dev/gemini-api/docs/pricing"
-GOOGLE_AISTUDIO_VIDEO_PRICING_DOCS_LAST_UPDATED = "2026-07-09"
+GOOGLE_AISTUDIO_VIDEO_PRICING_DOCS_LAST_UPDATED = "2026-09-01"
 
 
 
 
 GOOGLE_AISTUDIO_LYRIA_PRICING_DOCS_URL = "https://ai.google.dev/gemini-api/docs/pricing"
-GOOGLE_AISTUDIO_LYRIA_PRICING_DOCS_LAST_UPDATED = "2026-07-09"
+GOOGLE_AISTUDIO_LYRIA_PRICING_DOCS_LAST_UPDATED = "2026-09-01"
 
 GOOGLE_AISTUDIO_MUSIC_GENERATION_MODELS = [
     {
@@ -743,36 +756,6 @@ IMAGE_GEN_MODELS = [
         "resolution": ["1K"],
         "aspect_ratio": ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"],
         "category": "model",
-    },
-    {
-        "name": "Imagen 4",
-        "ids": ["imagen-4.0-generate-001"],
-        "deprecated": True,
-        "shutdown_date": "2026-08-17",
-        "category": "imagen",
-        "support_imageSize": True,
-        "supported_imageSize": ["1K", "2K"],
-        "aspectRatio": ["1:1", "3:4", "4:3", "9:16", "16:9"],
-    },
-    {
-        "name": "Imagen 4 Fast",
-        "ids": ["imagen-4.0-fast-generate-001"],
-        "deprecated": True,
-        "shutdown_date": "2026-08-17",
-        "category": "imagen",
-        "support_imageSize": False,
-        "supported_imageSize": [],
-        "aspectRatio": ["1:1", "3:4", "4:3", "9:16", "16:9"],
-    },
-    {
-        "name": "Imagen 4 Ultra",
-        "ids": ["imagen-4.0-ultra-generate-001"],
-        "deprecated": True,
-        "shutdown_date": "2026-08-17",
-        "category": "imagen",
-        "support_imageSize": True,
-        "supported_imageSize": ["1K", "2K"],
-        "aspectRatio": ["1:1", "3:4", "4:3", "9:16", "16:9"],
     },
 ]
 

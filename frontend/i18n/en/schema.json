@@ -604,7 +604,7 @@
   "schema_xai_image_model_desc": "Choose which xAI Imagine model to use.",
   "schema_xai_image_settings_desc": "Configure xAI Imagine generation and editing.",
   "schema_xai_image_aspect_ratio_desc": "Target aspect ratio for generated images.",
-  "schema_xai_image_edit_desc": "Allow xAI Imagine to edit up to three reference images.",
+  "schema_xai_image_edit_desc": "Allow xAI Imagine to edit up to five reference images.",
   "schema_xai_video_reference_desc": "Allow xAI video generation to use chat reference images.",
   "schema_xai_audio_generation_title": "xAI Audio Generation",
   "schema_xai_audio_model_desc": "Choose the xAI text-to-speech model.",

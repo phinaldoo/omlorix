@@ -1,9 +1,10 @@
+from copy import deepcopy
 from datetime import datetime
 
 # Verified against OpenAI's model, pricing, and deprecation documentation on
-# 2026-08-07. Shutdown IDs are filtered from both the catalog and discovery
+# 2026-09-01. Shutdown IDs are filtered from both the catalog and discovery
 # lists below, while deprecated models that remain callable stay represented.
-OPENAI_CATALOG_LAST_VERIFIED = "2026-08-07"
+OPENAI_CATALOG_LAST_VERIFIED = "2026-09-01"
 OPENAI_MODELS_DOCS_URL = "https://developers.openai.com/api/docs/models/all"
 OPENAI_PRICING_DOCS_URL = "https://developers.openai.com/api/docs/pricing"
 OPENAI_DEPRECATIONS_DOCS_URL = "https://developers.openai.com/api/docs/deprecations"
@@ -22,8 +23,12 @@ OPENAI_SHUT_DOWN_MODEL_IDS = {
     "gpt-5.1-codex-max",
     "gpt-5.1-codex-mini",
     "gpt-5.2-codex",
+    "gpt-5.2-chat-latest",
+    "gpt-5.3-chat-latest",
     "gpt-audio-mini-2025-10-06",
     "gpt-realtime-mini-2025-10-06",
+    "dall-e-2",
+    "dall-e-3",
     "o1-mini",
     "o1-mini-2024-09-12",
     "o1-preview",
@@ -34,23 +39,43 @@ OPENAI_SHUT_DOWN_MODEL_IDS = {
 # shutdown date. Store those dates separately from the already-shut-down set so
 # the catalog remains transparent without prematurely hiding usable endpoints.
 OPENAI_ANNOUNCED_SHUTDOWN_DATES = {
+    "babbage-002": "2026-09-28",
+    "davinci-002": "2026-09-28",
     "gpt-3.5-turbo-instruct": "2026-09-28",
+    "gpt-3.5-turbo-1106": "2026-09-28",
     "gpt-3.5-turbo-0125": "2026-10-23",
     "gpt-4-0613": "2026-10-23",
     "gpt-4-turbo": "2026-10-23",
     "gpt-4.1-nano": "2026-10-23",
     "gpt-4o-2024-05-13": "2026-10-23",
-    "gpt-5.2-chat-latest": "2026-08-10",
-    "gpt-5.3-chat-latest": "2026-08-10",
+    "gpt-5-2025-08-07": "2026-12-11",
+    "gpt-5-mini-2025-08-07": "2026-12-11",
+    "gpt-5-nano-2025-08-07": "2026-12-11",
+    "gpt-5-pro-2025-10-06": "2026-12-11",
+    "gpt-audio": "2027-01-20",
+    "gpt-audio-mini": "2027-01-20",
+    "gpt-image-1": "2026-10-23",
+    "gpt-image-1-mini": "2026-12-01",
+    "gpt-image-1.5": "2026-12-01",
+    "chatgpt-image-latest": "2026-12-01",
+    "gpt-realtime": "2027-01-20",
+    "gpt-realtime-mini": "2027-01-20",
+    "gpt-4o-mini-transcribe-2025-03-20": "2027-01-20",
+    "gpt-4o-transcribe": "2027-02-26",
+    "gpt-4o-mini-transcribe": "2027-02-26",
+    "gpt-4o-transcribe-diarize": "2027-02-26",
+    "whisper-1": "2027-02-26",
     "o1-2024-12-17": "2026-10-23",
     "o1-pro-2025-03-19": "2026-10-23",
     "o3-mini-2025-01-31": "2026-10-23",
+    "o3-2025-04-16": "2026-12-11",
+    "o3-pro-2025-06-10": "2026-12-11",
     "o4-mini-2025-04-16": "2026-10-23",
 }
 
 OPENAI_MODEL_DICT = {
     "gpt-5.6-sol": {
-        "ids": ["gpt-5.6-sol", "gpt-5.6"],
+        "ids": ["gpt-5.6-sol", "gpt-5.6", "gpt-daybreak-blue-latest"],
         "name": "GPT-5.6 Sol",
         "description": "Frontier model for complex professional work",
         "supports_tool_search": True,
@@ -85,36 +110,42 @@ OPENAI_MODEL_DICT = {
         "supported_service_tier": ["flex", "standard", "priority"],
         "pricing": {
             "flex": {
-                "input": 2.5,
-                "cached_input": 0.25,
-                "cache_write": 3.125,
-                "output": 15.0,
+                "input": 2.0,
+                "cached_input": 0.2,
+                "cache_write": 2.5,
+                "output": 10.0,
             },
             "standard": {
-                "input": 5.0,
-                "cached_input": 0.5,
-                "cache_write": 6.25,
-                "output": 30.0,
+                "input": 4.0,
+                "cached_input": 0.4,
+                "cache_write": 5.0,
+                "output": 20.0,
             },
             "priority": {
-                "input": 10.0,
-                "cached_input": 1.0,
-                "cache_write": 12.5,
-                "output": 60.0,
+                "input": 8.0,
+                "cached_input": 0.8,
+                "cache_write": 10.0,
+                "output": 40.0,
             },
             "high_context_pricing": {
                 "mark": 272000,
                 "flex": {
-                    "input": 5.0,
-                    "cached_input": 0.5,
-                    "cache_write": 6.25,
-                    "output": 22.5,
+                    "input": 4.0,
+                    "cached_input": 0.4,
+                    "cache_write": 5.0,
+                    "output": 15.0,
                 },
                 "standard": {
-                    "input": 10.0,
-                    "cached_input": 1.0,
-                    "cache_write": 12.5,
-                    "output": 45.0,
+                    "input": 8.0,
+                    "cached_input": 0.8,
+                    "cache_write": 10.0,
+                    "output": 30.0,
+                },
+                "priority": {
+                    "input": 16.0,
+                    "cached_input": 1.6,
+                    "cache_write": 20.0,
+                    "output": 60.0,
                 },
             },
             "native_web_search_tool_call": 0.01,
@@ -156,36 +187,42 @@ OPENAI_MODEL_DICT = {
         "supported_service_tier": ["flex", "standard", "priority"],
         "pricing": {
             "flex": {
-                "input": 1.25,
-                "cached_input": 0.125,
-                "cache_write": 1.5625,
-                "output": 7.5,
+                "input": 1.0,
+                "cached_input": 0.1,
+                "cache_write": 1.25,
+                "output": 6.0,
             },
             "standard": {
-                "input": 2.5,
-                "cached_input": 0.25,
-                "cache_write": 3.125,
-                "output": 15.0,
+                "input": 2.0,
+                "cached_input": 0.2,
+                "cache_write": 2.5,
+                "output": 12.0,
             },
             "priority": {
-                "input": 5.0,
-                "cached_input": 0.5,
-                "cache_write": 6.25,
-                "output": 30.0,
+                "input": 4.0,
+                "cached_input": 0.4,
+                "cache_write": 5.0,
+                "output": 24.0,
             },
             "high_context_pricing": {
                 "mark": 272000,
                 "flex": {
-                    "input": 2.5,
-                    "cached_input": 0.25,
-                    "cache_write": 3.125,
-                    "output": 11.25,
+                    "input": 2.0,
+                    "cached_input": 0.2,
+                    "cache_write": 2.5,
+                    "output": 9.0,
                 },
                 "standard": {
-                    "input": 5.0,
-                    "cached_input": 0.5,
-                    "cache_write": 6.25,
-                    "output": 22.5,
+                    "input": 4.0,
+                    "cached_input": 0.4,
+                    "cache_write": 5.0,
+                    "output": 18.0,
+                },
+                "priority": {
+                    "input": 8.0,
+                    "cached_input": 0.8,
+                    "cache_write": 10.0,
+                    "output": 36.0,
                 },
             },
             "native_web_search_tool_call": 0.01,
@@ -2017,6 +2054,40 @@ OPENAI_MODEL_DICT = {
 }
 
 
+# Daybreak Red currently resolves to GPT-5.6 Cyber. It shares the GPT-5.6
+# request surface but requires approved access and has its own context limit
+# and token rates.
+_gpt56_cyber = deepcopy(OPENAI_MODEL_DICT["gpt-5.6-sol"])
+_gpt56_cyber.update(
+    {
+        "ids": ["gpt-5.6-cyber", "gpt-daybreak-red-latest"],
+        "name": "GPT-5.6 Cyber",
+        "description": "Purpose-trained cybersecurity model for approved defenders",
+        "input_token_limit": 400000,
+        "supported_service_tier": ["standard"],
+        "pricing": {
+            "standard": {
+                "input": 12.5,
+                "cached_input": 1.25,
+                "cache_write": 15.625,
+                "output": 75.0,
+            },
+            "high_context_pricing": {
+                "mark": 272000,
+                "standard": {
+                    "input": 25.0,
+                    "cached_input": 2.5,
+                    "cache_write": 31.25,
+                    "output": 112.5,
+                },
+            },
+            "native_web_search_tool_call": 0.01,
+        },
+    }
+)
+OPENAI_MODEL_DICT = {"gpt-5.6-cyber": _gpt56_cyber, **OPENAI_MODEL_DICT}
+
+
 
 
 # Remove endpoints that have passed their shutdown date without deleting their
@@ -2097,17 +2168,13 @@ OPENAI_IMAGE_GENERATION_MODELS = [
     "chatgpt-image-latest",
     "gpt-image-1",
     "gpt-image-1-mini",
-    "dall-e-3",
-    "dall-e-2",
 ]
 
 
 
 OPENAI_SEARCH_CHAT_COMPLETIONS_MODELS = [
     "gpt-4o-mini-search-preview",
-    "gpt-4o-mini-search-preview-2025-03-11",
     "gpt-4o-search-preview",
-    "gpt-4o-search-preview-2025-03-11",
 ]
 
 
@@ -2120,7 +2187,6 @@ OPENAI_VIDEO_ONLY_MODELS = ["sora-2", "sora-2-2025-12-08", "sora-2-2025-10-06", 
 OPENAI_TTS_MODELS = [
     "gpt-4o-mini-tts",
     "gpt-4o-mini-tts-2025-12-15",
-    "gpt-4o-mini-tts-2025-03-20",
     "tts-1",
     "tts-1-hd",
     "tts-1-1106",
@@ -2163,9 +2229,6 @@ OPENAI_REALTIME_MODELS = [
     "gpt-realtime-2025-08-28",
     "gpt-realtime-mini",
     "gpt-realtime-mini-2025-12-15",
-    "gpt-realtime-mini-2025-10-06",
-    "gpt-4o-realtime-preview-2024-10-01",
-    "gpt-4o-mini-realtime-preview-2024-12-17",
     "gpt-realtime-2.1",
     "gpt-realtime-2.1-mini",
     "gpt-realtime-2",
@@ -2179,11 +2242,6 @@ OPENAI_AUDIO_MODELS = [
     "gpt-audio-2025-08-28",
     "gpt-audio-mini",
     "gpt-audio-mini-2025-12-15",
-    "gpt-audio-mini-2025-10-06",
-    "gpt-4o-audio-preview-2025-06-03",
-    "gpt-4o-audio-preview-2024-12-17",
-    "gpt-4o-audio-preview-2024-10-01",
-    "gpt-4o-mini-audio-preview-2024-12-17",
 ]
 
 

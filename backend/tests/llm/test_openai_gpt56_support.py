@@ -279,12 +279,28 @@ def test_gpt56_pricing_separates_cache_reads_writes_and_ordinary_input():
     )
 
     # Long-context rates apply to the entire request: 700K ordinary input at
-    # $10/M, 100K cache reads at $1/M, 200K writes at $12.50/M, and 100K
-    # output at $45/M. reasoning_tokens is already included in output_tokens.
-    assert costs["input_tokens_cost"] == pytest.approx(9.6)
-    assert costs["cache_write_tokens_cost"] == pytest.approx(2.5)
-    assert costs["output_tokens_cost"] == pytest.approx(4.5)
-    assert costs["total_costs"] == pytest.approx(14.1)
+    # $8/M, 100K cache reads at $0.80/M, 200K writes at $10/M, and 100K
+    # output at $30/M. reasoning_tokens is already included in output_tokens.
+    assert costs["input_tokens_cost"] == pytest.approx(7.68)
+    assert costs["cache_write_tokens_cost"] == pytest.approx(2.0)
+    assert costs["output_tokens_cost"] == pytest.approx(3.0)
+    assert costs["total_costs"] == pytest.approx(10.68)
+
+
+def test_gpt56_fast_api_tier_uses_priority_pricing():
+    costs = calculate_openai_token_costs(
+        model_name="gpt-5.6-sol",
+        service_tier="fast",
+        input_tokens=100_000,
+        cached_input_tokens=0,
+        cache_write_tokens=0,
+        output_tokens=0,
+        reasoning_tokens=0,
+        native_websearch_tool_calls_count=0,
+    )
+
+    assert costs["input_tokens_cost"] == pytest.approx(0.8)
+    assert costs["total_costs"] == pytest.approx(0.8)
 
 
 @pytest.mark.parametrize("service_tier", ["standard", "default", "auto", None])

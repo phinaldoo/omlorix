@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import binascii
 from typing import Any
+
 import requests
 
 from app.llm.models import LLMProvider
@@ -19,8 +20,32 @@ from app.llm.xai.common import (
 from app.utils.schemas import FieldSchema, Option, Section, Sections
 
 
-XAI_IMAGE_MODELS = ["grok-imagine-image", "grok-imagine-image-quality"]
+XAI_IMAGE_MODELS = [
+    "grok-imagine-image-2.0",
+    "grok-imagine-image",
+    "grok-imagine-image-quality",
+]
 XAI_IMAGE_RESOLUTIONS = ["1k", "2k"]
+XAI_IMAGE_QUALITIES = ["auto", "low", "medium"]
+XAI_IMAGE_PRICING = {
+    "grok-imagine-image-2.0": {
+        "input_image": 0.01,
+        "output": {
+            ("1k", "low"): 0.04,
+            ("2k", "low"): 0.06,
+            ("1k", "medium"): 0.06,
+            ("2k", "medium"): 0.08,
+        },
+    },
+    "grok-imagine-image": {
+        "input_image": 0.002,
+        "output": {("1k", None): 0.02, ("2k", None): 0.02},
+    },
+    "grok-imagine-image-quality": {
+        "input_image": 0.01,
+        "output": {("1k", None): 0.05, ("2k", None): 0.07},
+    },
+}
 XAI_IMAGE_RESULT_MAX_BYTES = 50 * 1024 * 1024
 XAI_IMAGE_ASPECT_RATIOS = [
     "auto",
@@ -37,6 +62,8 @@ XAI_IMAGE_ASPECT_RATIOS = [
     "9:19.5",
     "20:9",
     "9:20",
+    "21:9",
+    "5:2",
 ]
 XAI_IMAGE_FORMATS = {
     "image/png": (".png", b"\x89PNG\r\n\x1a\n"),
@@ -151,6 +178,27 @@ def _request_image(
         timeout=xai_timeout(),
     )
     cost, cost_details = xai_cost_from_usage(result)
+    if not cost:
+        pricing = XAI_IMAGE_PRICING.get(str(payload.get("model") or ""), {})
+        resolution = str(payload.get("resolution") or "1k").lower()
+        is_edit = endpoint.rstrip("/").endswith("edits")
+        quality = payload.get("quality")
+        if quality == "auto":
+            quality = "medium" if is_edit else "low"
+        output_price = pricing.get("output", {}).get((resolution, quality))
+        if output_price is not None:
+            image_input_count = len(payload.get("images") or [])
+            if payload.get("image"):
+                image_input_count = 1
+            cost = float(output_price) + image_input_count * float(
+                pricing.get("input_image", 0) or 0
+            )
+            cost_details = {
+                "currency": "USD",
+                "pricing_source": "static_catalog",
+                "image_input_count": image_input_count,
+                "output_images": 1,
+            }
     return {
         "image_bytes": image_bytes,
         "file_type": file_type,
@@ -160,6 +208,7 @@ def _request_image(
             "model": str(payload.get("model") or ""),
             "aspect_ratio": str(payload.get("aspect_ratio") or "auto"),
             "resolution": str(payload.get("resolution") or "1k"),
+            "quality": str(payload.get("quality") or "auto"),
             **cost_details,
         },
     }
@@ -184,6 +233,9 @@ def generate_image(
     resolution = str(settings.get("resolution") or "1k").strip().lower()
     if resolution in XAI_IMAGE_RESOLUTIONS:
         payload["resolution"] = resolution
+    quality = str(settings.get("quality") or "auto").strip().lower()
+    if model == "grok-imagine-image-2.0" and quality in XAI_IMAGE_QUALITIES:
+        payload["quality"] = quality
     return _request_image(provider, endpoint="images/generations", payload=payload)
 
 
@@ -195,9 +247,10 @@ def edit_image(
     reference_images: list[dict | bytes],
 ) -> dict[str, Any]:
     """Edit one or more images with xAI Imagine."""
+    max_reference_images = 5 if model == "grok-imagine-image-2.0" else 3
     encoded_images = [
         {"type": "image_url", "url": data_url}
-        for reference in reference_images[:3]
+        for reference in reference_images[:max_reference_images]
         if (data_url := _image_data_url(reference))
     ]
     if not encoded_images:
@@ -212,9 +265,15 @@ def edit_image(
         payload["image"] = {"url": encoded_images[0]["url"]}
     else:
         payload["images"] = encoded_images
-        aspect_ratio = str(settings.get("aspect_ratio") or settings.get("size") or "auto").strip()
-        if aspect_ratio in XAI_IMAGE_ASPECT_RATIOS:
-            payload["aspect_ratio"] = aspect_ratio
+    aspect_ratio = str(settings.get("aspect_ratio") or settings.get("size") or "auto").strip()
+    if aspect_ratio in XAI_IMAGE_ASPECT_RATIOS:
+        payload["aspect_ratio"] = aspect_ratio
+    resolution = str(settings.get("resolution") or "1k").strip().lower()
+    if resolution in XAI_IMAGE_RESOLUTIONS:
+        payload["resolution"] = resolution
+    quality = str(settings.get("quality") or "auto").strip().lower()
+    if model == "grok-imagine-image-2.0" and quality in XAI_IMAGE_QUALITIES:
+        payload["quality"] = quality
     return _request_image(provider, endpoint="images/edits", payload=payload)
 
 
@@ -317,10 +376,36 @@ def get_image_generation_schema_part_2() -> Sections:
                         default="1k",
                     ),
                     FieldSchema(
+                        key="settings.quality",
+                        label="Quality",
+                        i18n_label="llm.shared.settings.quality.label",
+                        description="Choose the output quality.",
+                        i18n_description="llm.shared.settings.quality.description",
+                        type="select",
+                        options=[
+                            Option(
+                                value="auto",
+                                label="Auto",
+                                i18n_label="llm.shared.settings.quality.option.auto",
+                            ),
+                            Option(
+                                value="low",
+                                label="Low",
+                                i18n_label="llm.shared.settings.quality.option.low",
+                            ),
+                            Option(
+                                value="medium",
+                                label="Medium",
+                                i18n_label="llm.shared.settings.quality.option.medium",
+                            ),
+                        ],
+                        default="auto",
+                    ),
+                    FieldSchema(
                         key="settings.enable_image_edit",
                         label="Enable Image Edit",
                         i18n_label="llm.shared.settings.enable_image_edit.label",
-                        description="Allow xAI Imagine to edit up to three reference images.",
+                        description="Allow xAI Imagine to edit up to five reference images.",
                         i18n_description="schema_xai_image_edit_desc",
                         type="boolean",
                         default=True,

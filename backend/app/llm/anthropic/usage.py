@@ -128,6 +128,12 @@ def calculate_anthropic_token_costs(
 
     input_price = float(pricing.get("input", 0) or 0)
     output_price = float(pricing.get("output", 0) or 0)
+    cache_read_input_multiplier = float(
+        pricing.get(
+            "cache_read_input_multiplier",
+            ANTHROPIC_CACHE_READ_INPUT_MULTIPLIER,
+        )
+    )
     ordinary_input_tokens = max(
         input_tokens - cached_input_tokens - cache_write_tokens,
         0,
@@ -137,7 +143,7 @@ def calculate_anthropic_token_costs(
     cached_input_tokens_cost = (
         (cached_input_tokens / 1_000_000)
         * input_price
-        * ANTHROPIC_CACHE_READ_INPUT_MULTIPLIER
+        * cache_read_input_multiplier
     )
     cache_write_tokens_cost = (
         ephemeral_5m_input_tokens / 1_000_000

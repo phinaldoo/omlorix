@@ -26,6 +26,8 @@ GOOGLE_AISTUDIO_LIVE_WS_BASE_URL = "wss://generativelanguage.googleapis.com"
 GOOGLE_AISTUDIO_SPECIALIZED_LIVE_MODELS = frozenset(
     {
         "gemini-3.5-live-translate-preview",
+        "gemini-3.5-transcribe-live",
+        "gemini-robotics-er-2-streaming-preview",
     }
 )
 
