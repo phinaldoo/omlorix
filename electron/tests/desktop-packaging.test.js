@@ -383,10 +383,8 @@ test('server release permissions and publication order preserve the staging boun
   );
   assert.doesNotMatch(manifestJob, /IMAGE_CHANNEL/);
   assert.match(finalizeJob, /IMAGE_CHANNEL/);
-  assert.match(
-    verifyDraftStep.run,
-    /gh release view "\$\{\{ needs\.publish\.outputs\.tag \}\}" \\\n\s+--repo "\$\{\{ github\.repository \}\}" \\\n\s+--json isDraft/,
-  );
+  assert.match(verifyDraftStep.run, /download-github-draft-assets\.sh/);
+  assert.doesNotMatch(verifyDraftStep.run, /^\s*gh release download/m);
   assert.match(releaseWorkflow, /already public and immutable/);
   assert.match(releaseWorkflow, /would move the \{channel\} channel backward/);
 });
@@ -404,6 +402,20 @@ test('stable launcher releases refresh only placeholder beta feeds', async () =>
   assert.match(releaseWorkflow, /missing required launcher feed fields/);
 });
 
+test('draft release assets use the authenticated paginated API before publication', async () => {
+  const draftDownloadScript = await fs.readFile(
+    path.join(projectRoot, 'dev_scripts', 'download-github-draft-assets.sh'),
+    'utf8',
+  );
+
+  assert.doesNotMatch(draftDownloadScript, /^\s*gh release download/m);
+  assert.match(draftDownloadScript, /--json apiUrl,isDraft/);
+  assert.match(draftDownloadScript, /gh api --paginate/);
+  assert.match(draftDownloadScript, /Accept: application\/octet-stream/);
+  assert.match(draftDownloadScript, /Refusing unsafe draft release asset name/);
+  assert.match(draftDownloadScript, /missing required asset/);
+});
+
 test('launcher releases stage a complete asset set before becoming public', async () => {
   const releaseWorkflow = await fs.readFile(
     path.join(projectRoot, '.github', 'workflows', 'server-launcher-release.yml'),
@@ -417,7 +429,7 @@ test('launcher releases stage a complete asset set before becoming public', asyn
   assert.deepEqual(jobs.desktop.permissions, { contents: 'read' });
   assert.deepEqual(jobs.cli.permissions, { contents: 'read' });
   assert.equal(jobs.upload.permissions.contents, 'write');
-  assert.deepEqual(jobs.verify_release_assets.permissions, { contents: 'read' });
+  assert.deepEqual(jobs.verify_release_assets.permissions, { contents: 'write' });
   assert.equal(jobs.finalize.permissions.contents, 'write');
 
   for (const jobName of [
@@ -446,13 +458,13 @@ test('launcher releases stage a complete asset set before becoming public', asyn
   assert.match(JSON.stringify(jobs.cli), /launcher-release-cli-/);
 
   const uploadAssets = releaseWorkflow.indexOf('- name: Verify and upload the complete launcher asset set to the draft');
-  const verifyConsumerDownload = releaseWorkflow.indexOf('- name: Download and verify the draft release as a consumer');
+  const verifyDraftDownload = releaseWorkflow.indexOf('- name: Download and verify draft release assets');
   const publishRelease = releaseWorkflow.indexOf('- name: Publish launcher release');
   const verifyAssetsStep = jobs.upload.steps.find(
     (step) => step.name === 'Verify and upload the complete launcher asset set to the draft',
   );
-  assert.ok(uploadAssets !== -1 && uploadAssets < verifyConsumerDownload);
-  assert.ok(verifyConsumerDownload < publishRelease);
+  assert.ok(uploadAssets !== -1 && uploadAssets < verifyDraftDownload);
+  assert.ok(verifyDraftDownload < publishRelease);
   assert.match(
     verifyAssetsStep.run,
     /gh release view "\$\{\{ needs\.publish\.outputs\.tag \}\}" \\\n\s+--repo "\$\{\{ github\.repository \}\}" \\\n\s+--json isDraft/,
@@ -461,10 +473,10 @@ test('launcher releases stage a complete asset set before becoming public', asyn
     { runner: 'ubuntu-latest', verifier: 'sha256sum' },
     { runner: 'macos-latest', verifier: 'shasum' },
   ]);
-  assert.match(
-    jobs.verify_release_assets.steps.at(-1).run,
-    /gh release download[\s\S]*verify-release-checksums\.sh/,
-  );
+  const verifyDraftStep = jobs.verify_release_assets.steps.at(-1);
+  assert.doesNotMatch(verifyDraftStep.run, /^\s*gh release download/m);
+  assert.match(verifyDraftStep.run, /download-github-draft-assets\.sh/);
+  assert.match(verifyDraftStep.run, /verify-release-checksums\.sh/);
   assert.match(jobs.finalize.if, /needs\.verify_release_assets\.result == 'success'/);
   assert.match(releaseWorkflow, /already public and immutable/);
   assert.match(releaseWorkflow, /release-feed changed during launcher attempt/);

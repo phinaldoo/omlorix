@@ -831,8 +831,10 @@ jobs:
       - publish
       - upload
     runs-on: ${{ matrix.runner }}
+    # GitHub exposes drafts only to identities with push access. Keep every
+    # other permission absent and never persist this token in the checkout.
     permissions:
-      contents: read
+      contents: write
     strategy:
       fail-fast: false
       matrix:
@@ -847,20 +849,22 @@ jobs:
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
-          sparse-checkout: dev_scripts/server-launcher/verify-release-checksums.sh
+          sparse-checkout: |
+            dev_scripts/download-github-draft-assets.sh
+            dev_scripts/server-launcher/verify-release-checksums.sh
           sparse-checkout-cone-mode: false
 
-      - name: Download and verify the draft release as a consumer
+      - name: Download and verify draft release assets
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           download_dir="$RUNNER_TEMP/launcher-release-download"
-          mkdir -p "$download_dir"
-          gh release download "${{ needs.publish.outputs.tag }}" \
-            --repo "${{ github.repository }}" \
-            --dir "$download_dir"
+          bash dev_scripts/download-github-draft-assets.sh \
+            "${{ github.repository }}" \
+            "${{ needs.publish.outputs.tag }}" \
+            "$download_dir"
           bash dev_scripts/server-launcher/verify-release-checksums.sh \
             "$download_dir" "${{ matrix.verifier }}"
 

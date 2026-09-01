@@ -839,27 +839,30 @@ jobs:
       contents: write
       packages: write
     steps:
+      - name: Check out draft release verification policy
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          sparse-checkout: dev_scripts/download-github-draft-assets.sh
+          sparse-checkout-cone-mode: false
+
       - name: Verify the complete draft release payload
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_VERSION: ${{ needs.publish.outputs.version }}
         run: |
           set -euo pipefail
-          if [ "$(gh release view "${{ needs.publish.outputs.tag }}" \
-            --repo "${{ github.repository }}" \
-            --json isDraft --jq '.isDraft')" != "true" ]; then
-            echo "Release ${{ needs.publish.outputs.tag }} became public before final validation." >&2
-            exit 1
-          fi
           verification_dir="$(mktemp -d)"
           trap 'rm -rf "$verification_dir"' EXIT
           bundle_name="omlorix-server-${RELEASE_VERSION}.tar.gz"
-          gh release download "${{ needs.publish.outputs.tag }}" \
-            --repo "${{ github.repository }}" \
-            --pattern "$bundle_name" \
-            --pattern "$bundle_name.sha256" \
-            --pattern "omlorix-release-manifest.json" \
-            --dir "$verification_dir"
+          bash dev_scripts/download-github-draft-assets.sh \
+            "${{ github.repository }}" \
+            "${{ needs.publish.outputs.tag }}" \
+            "$verification_dir" \
+            "$bundle_name" \
+            "$bundle_name.sha256" \
+            "omlorix-release-manifest.json"
           (
             cd "$verification_dir"
             sha256sum --check "$bundle_name.sha256"
