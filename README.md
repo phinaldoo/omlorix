@@ -54,6 +54,13 @@ The **Omlorix Server Launcher** is the recommended path for most installations. 
 
 Follow the installation guide in our documentation to choose the right path and complete setup.
 
+> [!NOTE]
+> macOS Server Launcher releases are currently not signed. The release workflow
+> still publishes an unsigned macOS build. macOS may report that this build is
+> damaged or from an unidentified developer, and automatic Launcher updates may
+> not work; users must approve the app manually and install later versions
+> themselves.
+
 ## License
 
 Omlorix is source-available under the [PolyForm Free Trial License 1.0.0](LICENSE).

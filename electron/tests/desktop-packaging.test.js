@@ -157,7 +157,7 @@ test('Windows rereleases override legacy artifact templates before packaging', a
   );
 });
 
-test('macOS releases sign independently of optional Apple notarization', async () => {
+test('macOS releases make signing optional and require it for notarization', async () => {
   const releaseWorkflow = await fs.readFile(
     path.join(projectRoot, '.github', 'workflows', 'server-launcher-release.yml'),
     'utf8',
@@ -170,9 +170,24 @@ test('macOS releases sign independently of optional Apple notarization', async (
     path.join(projectRoot, 'electron', 'scripts', 'staple-desktop-artifacts.mjs'),
     'utf8',
   );
+  const verificationScript = await fs.readFile(
+    path.join(projectRoot, 'electron', 'scripts', 'verify-macos-artifacts.mjs'),
+    'utf8',
+  );
 
-  // A missing GitHub secret resolves to an empty string. The workflow maps that
-  // and an explicit false value to zero, while only true enables notarization.
+  // Signing is enabled only for a complete certificate pair. A missing GitHub
+  // secret resolves to an empty string, so an entirely absent pair produces an
+  // unsigned build while a partial pair fails before packaging.
+  assert.match(releaseWorkflow, /CSC_LINK: \$\{\{ secrets\.CSC_LINK \}\}/);
+  assert.match(releaseWorkflow, /CSC_KEY_PASSWORD: \$\{\{ secrets\.CSC_KEY_PASSWORD \}\}/);
+  assert.match(
+    releaseWorkflow,
+    /\[ -n "\$CSC_LINK" \] && \[ -n "\$CSC_KEY_PASSWORD" \][\s\S]*should_sign=1/,
+  );
+  assert.match(
+    releaseWorkflow,
+    /CSC_LINK and CSC_KEY_PASSWORD must either both be configured or both be unset/,
+  );
   assert.match(
     releaseWorkflow,
     /MACOS_NOTARIZATION_ENABLED: \$\{\{ secrets\.MACOS_NOTARIZATION_ENABLED \}\}/,
@@ -181,8 +196,9 @@ test('macOS releases sign independently of optional Apple notarization', async (
   assert.match(releaseWorkflow, /true\)\s*should_notarize=1/);
   assert.match(
     releaseWorkflow,
-    /OMLORIX_REQUIRE_DESKTOP_SIGNING: "1"[\s\S]*OMLORIX_REQUIRE_MACOS_NOTARIZATION: \$\{\{ steps\.macos_security\.outputs\.should_notarize \|\| '0' \}\}/,
+    /OMLORIX_REQUIRE_DESKTOP_SIGNING: \$\{\{ steps\.macos_security\.outputs\.should_sign \|\| '0' \}\}[\s\S]*OMLORIX_REQUIRE_MACOS_NOTARIZATION: \$\{\{ steps\.macos_security\.outputs\.should_notarize \|\| '0' \}\}/,
   );
+  assert.match(releaseWorkflow, /macOS notarization requires CSC_LINK and CSC_KEY_PASSWORD/);
   assert.match(
     releaseWorkflow,
     /Check out current macOS release security policy[\s\S]*ref: \$\{\{ github\.sha \}\}[\s\S]*validate-desktop-signing\.mjs/,
@@ -201,11 +217,23 @@ test('macOS releases sign independently of optional Apple notarization', async (
   );
   assert.match(
     releaseWorkflow,
-    /Verify desktop code signing and optional notarization[\s\S]*OMLORIX_REQUIRE_MACOS_NOTARIZATION:/,
+    /Verify macOS desktop artifacts[\s\S]*OMLORIX_REQUIRE_DESKTOP_SIGNING:[\s\S]*OMLORIX_REQUIRE_MACOS_NOTARIZATION:/,
   );
   assert.match(appNotarizationHook, /OMLORIX_REQUIRE_MACOS_NOTARIZATION !== '1'/);
   assert.doesNotMatch(appNotarizationHook, /OMLORIX_REQUIRE_DESKTOP_SIGNING !== '1'/);
   assert.match(dmgNotarizationScript, /OMLORIX_REQUIRE_MACOS_NOTARIZATION !== '1'/);
+  assert.match(verificationScript, /if \(signingRequired\)[\s\S]*codesign/);
+  assert.match(verificationScript, /Code-signature verification is disabled for unsigned build/);
+});
+
+test('unsigned macOS validation does not require certificate credentials', () => {
+  const result = runDesktopSigningValidation({
+    OMLORIX_REQUIRE_DESKTOP_SIGNING: '0',
+    OMLORIX_REQUIRE_MACOS_NOTARIZATION: '0',
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Production signing is not required for this build/);
 });
 
 test('signed-only macOS validation needs certificate credentials but not Apple credentials', () => {

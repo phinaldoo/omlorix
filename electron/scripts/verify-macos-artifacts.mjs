@@ -14,6 +14,7 @@ function run(command, args) {
 
 const distDir = path.resolve(process.cwd(), 'dist');
 const productName = 'Omlorix Server Launcher.app';
+const signingRequired = process.env.OMLORIX_REQUIRE_DESKTOP_SIGNING === '1';
 const notarizationRequired = process.env.OMLORIX_REQUIRE_MACOS_NOTARIZATION === '1';
 const appCandidates = [
   path.join(distDir, 'mac', productName),
@@ -27,8 +28,18 @@ if (!appPath) {
   process.exit(1);
 }
 
-console.log(`[desktop] Verifying code signature for ${appPath}`);
-run('codesign', ['--verify', '--deep', '--strict', '--verbose=2', appPath]);
+if (!signingRequired && notarizationRequired) {
+  console.error('[desktop] macOS notarization cannot be verified for an unsigned build.');
+  process.exit(1);
+}
+
+if (signingRequired) {
+  console.log(`[desktop] Verifying code signature for ${appPath}`);
+  run('codesign', ['--verify', '--deep', '--strict', '--verbose=2', appPath]);
+} else {
+  console.log(`[desktop] Code-signature verification is disabled for unsigned build ${appPath}.`);
+}
+
 if (notarizationRequired) {
   // Gatekeeper assessment and stapler validation require a completed Apple
   // notarization. A signed-only release still verifies the local code signature
