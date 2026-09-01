@@ -6,6 +6,7 @@ const path = require('node:path');
 
 const {
   createElectronSpawnEnvironment,
+  createElectronTestArguments,
   ensureElectronPathFile,
   resolveElectronExecutable,
 } = require('../scripts/dev-electron-runtime.cjs');
@@ -33,6 +34,33 @@ test('Electron GUI environment removes an inherited Node-only runtime flag', () 
   assert.equal(childEnvironment.ELECTRON_RUN_AS_NODE, undefined);
   assert.equal(childEnvironment.PATH, sourceEnvironment.PATH);
   assert.equal(sourceEnvironment.ELECTRON_RUN_AS_NODE, '1');
+});
+
+test('Electron tests disable the Chromium sandbox only on Linux CI', () => {
+  const sourceArguments = ['--headless', 'fixture.js'];
+
+  assert.deepEqual(
+    createElectronTestArguments(sourceArguments, {
+      platform: 'linux',
+      environment: { CI: 'true' },
+    }),
+    ['--no-sandbox', '--headless', 'fixture.js'],
+  );
+  assert.deepEqual(
+    createElectronTestArguments(sourceArguments, {
+      platform: 'linux',
+      environment: {},
+    }),
+    sourceArguments,
+  );
+  assert.deepEqual(
+    createElectronTestArguments(sourceArguments, {
+      platform: 'darwin',
+      environment: { CI: 'true' },
+    }),
+    sourceArguments,
+  );
+  assert.deepEqual(sourceArguments, ['--headless', 'fixture.js']);
 });
 
 test('ensureElectronPathFile recreates path.txt when the Windows binary exists', () => {

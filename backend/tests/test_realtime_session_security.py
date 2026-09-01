@@ -336,7 +336,7 @@ def test_webrtc_offer_resolves_provider_credentials_on_demand():
         "Authorization": "Bearer fresh-provider-secret",
         "OpenAI-Organization": "org-123",
         "OpenAI-Project": "proj-123",
-        "OpenAI-Safety-Identifier": "omlorix_ef2f384848517affa0d198421ae88ecd4ddaa60af66e732ad791e7f0e",
+        "OpenAI-Safety-Identifier": "omlorix_ef2f384848517affa0d198421ae88ecd4ddaa60af66e732ad791e7f0",
     }
     assert mock_post.call_args.kwargs["files"]["sdp"][1] == "browser-offer"
     assert len(headers["OpenAI-Safety-Identifier"]) == 64

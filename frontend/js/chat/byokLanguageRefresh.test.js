@@ -6,6 +6,11 @@ const test = require('node:test');
 const { promisify } = require('node:util');
 const vm = require('node:vm');
 
+const {
+    createElectronSpawnEnvironment,
+    createElectronTestArguments,
+} = require('../../../electron/scripts/dev-electron-runtime.cjs');
+
 const BYOK_PATH = path.join(__dirname, 'byok.js');
 const LANGUAGE_PATH = path.join(__dirname, '..', 'common', 'language.js');
 const execFileAsync = promisify(execFile);
@@ -157,16 +162,16 @@ test('BYOK pane and open dialogs switch through every locale without a reload', 
         'fixtures',
         'byok-language-refresh-runner.js',
     );
-    const { stdout } = await execFileAsync(electronPath, [
+    const { stdout } = await execFileAsync(electronPath, createElectronTestArguments([
         '--headless',
         '--disable-gpu',
         runnerPath,
-    ], {
+    ]), {
         cwd: path.resolve(__dirname, '..', '..', '..'),
-        env: {
+        env: createElectronSpawnEnvironment({
             ...process.env,
             ELECTRON_DISABLE_SECURITY_WARNINGS: 'true',
-        },
+        }),
         timeout: 50_000,
     });
 

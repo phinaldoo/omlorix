@@ -69,6 +69,32 @@ function createElectronSpawnEnvironment(environment = process.env) {
 }
 
 /**
+ * Adds the Chromium flag required by headless Electron tests on Linux CI.
+ *
+ * GitHub's Ubuntu runners cannot use Electron's downloaded setuid sandbox
+ * helper because npm does not install it as root. Keep this exception scoped
+ * to disposable test runners; desktop development and packaged applications
+ * continue to use Chromium's sandbox.
+ *
+ * @param {string[]} args
+ * @param {object} [options]
+ * @param {string} [options.platform]
+ * @param {NodeJS.ProcessEnv} [options.environment]
+ * @returns {string[]}
+ */
+function createElectronTestArguments(
+  args,
+  { platform = process.platform, environment = process.env } = {},
+) {
+  const testArguments = [...args];
+  const isCi = environment.CI === 'true' || environment.GITHUB_ACTIONS === 'true';
+  if (platform === 'linux' && isCi) {
+    testArguments.unshift('--no-sandbox');
+  }
+  return testArguments;
+}
+
+/**
  * Builds the absolute path to the Electron binary inside the unpacked
  * `dist` folder.
  *
@@ -187,6 +213,7 @@ function resolveElectronExecutable({
 
 module.exports = {
   createElectronSpawnEnvironment,
+  createElectronTestArguments,
   defaultProjectRoot,
   ensureElectronPathFile,
   getElectronDistExecutable,

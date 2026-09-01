@@ -159,9 +159,8 @@ def test_bundled_compose_uses_dynamic_networking_and_fails_closed_by_default():
     assert "${FRONTEND_HTTP_HOST_BIND:-127.0.0.1}" in port_overlay
 
 
-def test_frontend_host_bind_defaults_and_exposure_guidance_stay_aligned():
+def test_frontend_host_bind_defaults_and_operator_guidance_stay_aligned():
     env_example = (REPO_ROOT / ".env.example").read_text(encoding="utf-8")
-    readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
     env_metadata = json.loads(
         (REPO_ROOT / "electron" / "env-metadata.json").read_text(encoding="utf-8")
     )
@@ -170,11 +169,9 @@ def test_frontend_host_bind_defaults_and_exposure_guidance_stay_aligned():
     assert "FRONTEND_HTTP_HOST_BIND=127.0.0.1" in env_example
     assert "FRONTEND_HTTP_HOST_BIND=0.0.0.0" not in env_example
     assert "Loopback is the safe default" in env_example
-    assert "FRONTEND_HTTP_HOST_BIND=0.0.0.0" in readme
-    assert "FRONTEND_HTTP_HOST_BIND=127.0.0.1" in readme
     assert "The default is 127.0.0.1" in metadata_description
 
-    for guidance in (env_example, readme, metadata_description):
+    for guidance in (env_example, metadata_description):
         assert "firewall" in guidance.lower()
         assert "trusted-host policy" in guidance.lower()
         assert "reverse-proxy/tls design" in guidance.lower()

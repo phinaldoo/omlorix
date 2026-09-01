@@ -4,6 +4,11 @@ const path = require('node:path');
 const test = require('node:test');
 const { promisify } = require('node:util');
 
+const {
+    createElectronSpawnEnvironment,
+    createElectronTestArguments,
+} = require('../../../../electron/scripts/dev-electron-runtime.cjs');
+
 const execFileAsync = promisify(execFile);
 
 test('personality presets keep Chrome accessibility value synchronized through persistence', {
@@ -21,16 +26,16 @@ test('personality presets keep Chrome accessibility value synchronized through p
         'fixtures',
         'personality-combobox-ax-runner.js',
     );
-    const { stdout } = await execFileAsync(electronPath, [
+    const { stdout } = await execFileAsync(electronPath, createElectronTestArguments([
         '--headless',
         '--disable-gpu',
         runnerPath,
-    ], {
+    ]), {
         cwd: path.resolve(__dirname, '..', '..', '..', '..'),
-        env: {
+        env: createElectronSpawnEnvironment({
             ...process.env,
             ELECTRON_DISABLE_SECURITY_WARNINGS: 'true',
-        },
+        }),
         timeout: 50_000,
     });
 

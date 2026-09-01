@@ -35,6 +35,18 @@ class _RequestBodyTooLarge(Exception):
     pass
 
 
+def _contains_only_body_limit_errors(error: BaseException) -> bool:
+    """Return whether an exception group contains only body-limit signals."""
+
+    if isinstance(error, _RequestBodyTooLarge):
+        return True
+    if isinstance(error, BaseExceptionGroup):
+        return bool(error.exceptions) and all(
+            _contains_only_body_limit_errors(nested) for nested in error.exceptions
+        )
+    return False
+
+
 def _normalize_path(path: object) -> str:
     normalized = str(path or "/")
     if normalized != "/":
@@ -143,6 +155,14 @@ class RequestBodyLimitMiddleware:
             # custom streaming handler ever starts first, terminate it instead
             # of attempting to emit a second response status.
             if response_started:
+                raise
+            await self._send_too_large(scope, receive, send)
+        except BaseExceptionGroup as error:
+            # Starlette's BaseHTTPMiddleware runs its downstream application
+            # in a task group, which wraps receive errors in an exception
+            # group. Preserve unrelated grouped failures while translating the
+            # body-limit signal into the same 413 response as direct handlers.
+            if not _contains_only_body_limit_errors(error) or response_started:
                 raise
             await self._send_too_large(scope, receive, send)
 
