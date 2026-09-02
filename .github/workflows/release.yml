@@ -421,7 +421,7 @@ jobs:
 
       - name: Run frontend tests
         run: |
-          npm run test:frontend
+          xvfb-run --auto-servernum npm run test:frontend
 
       - name: Run desktop tests
         run: |
