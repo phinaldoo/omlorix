@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "channel": "beta",
+  "version": "0.9.4",
+  "tag": "server-launcher-v0.9.4",
+  "releaseUrl": "https://github.com/phinaldoo/omlorix/releases/tag/server-launcher-v0.9.4",
+  "electronUpdaterProvider": "generic",
+  "electronUpdaterChannel": "latest",
+  "electronUpdaterUrl": "https://github.com/phinaldoo/omlorix/releases/download/server-launcher-v0.9.4/",
+  "launcherVersion": "0.9.4",
+  "launcherReleaseTag": "server-launcher-v0.9.4",
+  "launcherReleaseUrl": "https://github.com/phinaldoo/omlorix/releases/tag/server-launcher-v0.9.4",
+  "fallbackChannel": "stable"
+}
