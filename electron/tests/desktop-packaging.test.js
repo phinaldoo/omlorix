@@ -414,6 +414,64 @@ test('draft release assets use the authenticated paginated API before publicatio
   assert.match(draftDownloadScript, /Accept: application\/octet-stream/);
   assert.match(draftDownloadScript, /Refusing unsafe draft release asset name/);
   assert.match(draftDownloadScript, /missing required asset/);
+  assert.match(draftDownloadScript, /requested_asset_count="\$#"/);
+});
+
+test('draft release downloader supports an empty asset filter with nounset enabled', async () => {
+  const scriptPath = path.join(
+    projectRoot,
+    'dev_scripts',
+    'download-github-draft-assets.sh',
+  );
+  const fixtureRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'omlorix-draft-assets-test-'));
+  const fakeBin = path.join(fixtureRoot, 'bin');
+  const downloadDirectory = path.join(fixtureRoot, 'downloads');
+  const fakeGh = path.join(fakeBin, 'gh');
+
+  try {
+    await fs.mkdir(fakeBin);
+    await fs.writeFile(
+      fakeGh,
+      `#!/usr/bin/env bash
+case "$1:$2" in
+  release:view)
+    printf 'true\\thttps://api.github.test/releases/1\\n'
+    ;;
+  api:--paginate)
+    printf 'fixture.txt\\thttps://api.github.test/assets/1\\n'
+    ;;
+  api:--header)
+    printf 'verified draft payload\\n'
+    ;;
+  *)
+    exit 64
+    ;;
+esac
+`,
+      'utf8',
+    );
+    await fs.chmod(fakeGh, 0o755);
+
+    const result = spawnSync(
+      '/bin/bash',
+      [scriptPath, 'owner/repository', 'v1.0.0', downloadDirectory],
+      {
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          PATH: `${fakeBin}${path.delimiter}${process.env.PATH}`,
+        },
+      },
+    );
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(
+      await fs.readFile(path.join(downloadDirectory, 'fixture.txt'), 'utf8'),
+      'verified draft payload\n',
+    );
+  } finally {
+    await fs.rm(fixtureRoot, { recursive: true, force: true });
+  }
 });
 
 test('launcher releases stage a complete asset set before becoming public', async () => {

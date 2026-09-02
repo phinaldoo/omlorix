@@ -11,6 +11,7 @@ repository="$1"
 release_tag="$2"
 download_dir="$3"
 shift 3
+requested_asset_count="$#"
 requested_assets=("$@")
 
 if [ -z "$repository" ] || [ -z "$release_tag" ] || [ -z "$download_dir" ]; then
@@ -18,14 +19,16 @@ if [ -z "$repository" ] || [ -z "$release_tag" ] || [ -z "$download_dir" ]; then
   exit 2
 fi
 
-for requested_asset in "${requested_assets[@]}"; do
-  case "$requested_asset" in
-    ''|.|..|*/*|*\\*)
-      echo "Invalid requested draft release asset name: $requested_asset" >&2
-      exit 2
-      ;;
-  esac
-done
+if [ "$requested_asset_count" -gt 0 ]; then
+  for requested_asset in "${requested_assets[@]}"; do
+    case "$requested_asset" in
+      ''|.|..|*/*|*\\*)
+        echo "Invalid requested draft release asset name: $requested_asset" >&2
+        exit 2
+        ;;
+    esac
+  done
+fi
 
 mkdir -p "$download_dir"
 asset_metadata="$(mktemp)"
@@ -47,7 +50,7 @@ gh api --paginate "$release_api_url/assets?per_page=100" \
   --jq '.[] | [.name, .url] | @tsv' > "$asset_metadata"
 
 asset_requested() {
-  if [ "${#requested_assets[@]}" -eq 0 ]; then
+  if [ "$requested_asset_count" -eq 0 ]; then
     return 0
   fi
   for requested_asset in "${requested_assets[@]}"; do
@@ -88,9 +91,11 @@ if [ "$asset_count" -eq 0 ]; then
   exit 1
 fi
 
-for requested_asset in "${requested_assets[@]}"; do
-  if [ ! -f "$download_dir/$requested_asset" ]; then
-    echo "Draft release $release_tag is missing required asset: $requested_asset" >&2
-    exit 1
-  fi
-done
+if [ "$requested_asset_count" -gt 0 ]; then
+  for requested_asset in "${requested_assets[@]}"; do
+    if [ ! -f "$download_dir/$requested_asset" ]; then
+      echo "Draft release $release_tag is missing required asset: $requested_asset" >&2
+      exit 1
+    fi
+  done
+fi
