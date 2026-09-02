@@ -40,7 +40,7 @@ google-genai==2.12.1
 ollama==0.6.2
 anthropic==1.0.0
 elevenlabs==2.64.0
-mcp==2.1.0
+mcp==2.1.1
 httpx2==2.12.0
 google-api-python-client==2.199.0
 google-auth==2.55.2
