@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "channel": "stable",
+  "version": "0.9.1",
+  "tag": "v0.9.1",
+  "prerelease": false,
+  "releaseUrl": "https://github.com/phinaldoo/omlorix/releases/tag/v0.9.1",
+  "manifestUrl": "https://github.com/phinaldoo/omlorix/releases/download/v0.9.1/omlorix-release-manifest.json",
+  "serverBundleUrl": "https://github.com/phinaldoo/omlorix/releases/download/v0.9.1/omlorix-server-0.9.1.tar.gz",
+  "serverBundleSha256Url": "https://github.com/phinaldoo/omlorix/releases/download/v0.9.1/omlorix-server-0.9.1.tar.gz.sha256",
+  "backendImage": "ghcr.io/phinaldoo/omlorix-backend:0.9.1",
+  "frontendImage": "ghcr.io/phinaldoo/omlorix-frontend:0.9.1",
+  "launcherVersion": "0.9.4",
+  "launcherReleaseTag": "server-launcher-v0.9.4",
+  "launcherReleaseUrl": "https://github.com/phinaldoo/omlorix/releases/tag/server-launcher-v0.9.4",
+  "minimumLauncherVersion": "0.0.0",
+  "launcherUpdateReason": ""
+}
