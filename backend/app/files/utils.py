@@ -8,7 +8,6 @@ from datetime import timezone
 from typing import Optional, Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import OperationalError, ProgrammingError
-from markitdown import MarkItDown
 from sqlalchemy import cast, func, text
 from pathlib import Path
 from xml.etree.ElementTree import ParseError
@@ -2870,6 +2869,10 @@ def _extract_text_from_path_inline(file_info: dict | None) -> str | None:
     file_content = None
     if file_type in MARKITDOWN_MIME_TYPES:
         try:
+            # MarkItDown imports Magika, NumPy, and ONNX Runtime. Keep that
+            # process-wide cost out of API and non-file worker startup.
+            from markitdown import MarkItDown
+
             converter = MarkItDown(enable_plugins=True)
             result = converter.convert(str(file_path))
             file_content = getattr(result, "text_content", None) or getattr(result, "markdown", None)

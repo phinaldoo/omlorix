@@ -12,7 +12,6 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import Response
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
-from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.telemetry.bootstrap import bootstrap_telemetry
 
@@ -103,11 +102,11 @@ from app.middleware.cors import DynamicCORSMiddleware, _load_cors_allowed_origin
 from app.middleware.ip_restriction import IPRestrictionMiddleware
 from app.middleware.rate_limiter import RedisRateLimiterMiddleware
 from app.middleware.request_body_limit import RequestBodyLimitMiddleware
+from app.middleware.security_headers import SecurityHeadersMiddleware
 from app.middleware.trusted_host import LocalOrPrivateTrustedHostMiddleware
+from app.middleware.trusted_host_config import load_application_trusted_hosts
 from app.middleware.write_freeze import WriteFreezeMiddleware
-from app.utils.cache_headers import apply_no_store_headers
 from app.utils.origin import allow_local_or_private_origins_from_env
-from app.utils.trusted_hosts import load_trusted_hosts
 from app.logging.models import (
     create_audit_log,
     scrub_share_capability_references_in_audit_logs,
@@ -173,40 +172,7 @@ from app.workers.operations import (
 def _load_trusted_hosts() -> list[str]:
     """Load trusted Host header values from env and configured public URL."""
 
-    configured_candidates = []
-    public_url_settings_loaded = False
-    db = None
-    try:
-        db = SessionLocal()
-        from app.settings.public_urls import normalize_public_urls
-
-        configured_candidates.extend(
-            normalize_public_urls(
-                get_value_by_page_and_key("general", "public_url", db),
-                allow_empty=True,
-            )
-        )
-        public_url_settings_loaded = True
-    except HTTPException as exc:
-        if exc.status_code == 404:
-            # A missing settings page is a valid fresh-install state.
-            public_url_settings_loaded = True
-        else:
-            logger.warning("Unable to load public_url from settings for host validation", exc_info=True)
-    except Exception:
-        logger.warning("Unable to load public_url from settings for host validation", exc_info=True)
-    finally:
-        if db:
-            db.close()
-
-    trusted_hosts = load_trusted_hosts(
-        public_url_candidates=configured_candidates,
-        mode=os.getenv("MODE", "production"),
-        allow_any_if_unconfigured=public_url_settings_loaded,
-    )
-    if trusted_hosts:
-        logger.info("Trusted host validation enabled for: %s", ", ".join(trusted_hosts))
-    return trusted_hosts
+    return load_application_trusted_hosts()
 
 
 from app.utils.router import utils_router
@@ -489,50 +455,6 @@ app.add_exception_handler(ScimException, scim_exception_handler)
 if _telemetry_initialized and _telemetry_config.instrument_fastapi:
     instrument_app(app, excluded_urls="/health,/healthz,/ready,/metrics,/favicon.ico")
     logger.info("OpenTelemetry FastAPI instrumentation enabled")
-
-CONTENT_SECURITY_POLICY = (
-    "default-src 'self'; "
-    "base-uri 'self'; "
-    "object-src 'none'; "
-    "frame-ancestors 'self'; "
-    "form-action 'self'; "
-    "img-src 'self' data: blob: https:; "
-    "media-src 'self' data: blob: https:; "
-    "font-src 'self' data:; "
-    "frame-src 'self' blob: data: https://www.youtube-nocookie.com https://docs.google.com https://drive.google.com https://accounts.google.com; "
-    "child-src 'self' blob:; "
-    "style-src 'self' 'unsafe-inline'; "
-    "script-src 'self' https://apis.google.com; "
-    "connect-src 'self' https://api.openai.com https://generativelanguage.googleapis.com wss://generativelanguage.googleapis.com; "
-    "worker-src 'self' blob:; "
-    "manifest-src 'self'"
-)
-
-PERMISSIONS_POLICY = (
-    "camera=(), microphone=(), geolocation=(), payment=(), usb=(), "
-    "serial=(), bluetooth=(), browsing-topics=()"
-)
-
-
-class SecurityHeadersMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        response = await call_next(request)
-        request_path = request.url.path
-        if (
-            request_path.startswith("/api/v1/chats/shared")
-            or request_path.startswith("/api/v1/files/canvas/shared")
-        ):
-            apply_no_store_headers(response)
-        response.headers.setdefault("X-Content-Type-Options", "nosniff")
-        response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
-        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
-        response.headers.setdefault("Content-Security-Policy", CONTENT_SECURITY_POLICY)
-        response.headers.setdefault("Permissions-Policy", PERMISSIONS_POLICY)
-        response.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
-        response.headers.setdefault("Cross-Origin-Resource-Policy", "same-origin")
-        if MODE != "dev":
-            response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
-        return response
 
 # Write-freeze middleware blocks mutating requests while backup/restore jobs run.
 app.add_middleware(WriteFreezeMiddleware)

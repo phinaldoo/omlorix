@@ -4,7 +4,7 @@ import re
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 PRODUCTION_CSP_FILES = (
-    REPO_ROOT / "backend" / "app" / "main.py",
+    REPO_ROOT / "backend" / "app" / "middleware" / "security_headers.py",
     REPO_ROOT / "nginx" / "default.http.conf.template" / "default.conf",
 )
 PRODUCTION_NGINX_FILES = (

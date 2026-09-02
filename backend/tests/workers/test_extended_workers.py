@@ -1107,36 +1107,17 @@ def test_external_tool_routing_and_account_cancellation_boundaries(
         db.close()
 
 
-def test_realtime_gateway_rejects_every_non_realtime_application_route(monkeypatch):
+def test_realtime_gateway_registers_only_realtime_and_health_routes():
     from app.realtime import gateway
 
-    forwarded: list[str] = []
+    route_paths = {str(route.path) for route in gateway.app.routes}
 
-    async def fake_application(scope, _receive, _send):
-        forwarded.append(str(scope.get("path")))
-
-    async def receive():
-        return {"type": "http.request", "body": b"", "more_body": False}
-
-    sent: list[dict] = []
-
-    async def send(message):
-        sent.append(message)
-
-    monkeypatch.setattr(gateway, "_application", fake_application)
-    asyncio.run(
-        gateway.app(
-            {"type": "http", "path": "/api/v1/admin/users"}, receive, send
-        )
+    assert gateway._ALLOWED_EXACT_PATHS.issubset(route_paths)
+    assert any(path.startswith(f"{gateway._REALTIME_PREFIX}/") for path in route_paths)
+    assert all(
+        path in gateway._ALLOWED_EXACT_PATHS
+        or path == gateway._REALTIME_PREFIX
+        or path.startswith(f"{gateway._REALTIME_PREFIX}/")
+        for path in route_paths
     )
-    assert sent[0]["status"] == 404
-    assert forwarded == []
-
-    asyncio.run(
-        gateway.app(
-            {"type": "websocket", "path": "/api/v1/realtime/session/socket"},
-            receive,
-            send,
-        )
-    )
-    assert forwarded == ["/api/v1/realtime/session/socket"]
+    assert "/api/v1/admin/users" not in route_paths

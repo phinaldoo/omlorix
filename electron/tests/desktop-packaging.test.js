@@ -453,7 +453,7 @@ esac
     await fs.chmod(fakeGh, 0o755);
 
     const result = spawnSync(
-      '/bin/bash',
+      'bash',
       [scriptPath, 'owner/repository', 'v1.0.0', downloadDirectory],
       {
         encoding: 'utf8',

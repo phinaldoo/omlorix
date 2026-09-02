@@ -15,7 +15,12 @@ def test_email_worker_is_always_on_and_operational_in_every_server_topology():
             f"\n  {next_service}:\n", 1
         )[0]
         assert "python -m app.email.worker run" in worker
-        assert "python\", \"-m\", \"app.email.worker\", \"healthcheck" in worker
+        assert (
+            'test: ["CMD", "python", "-m", "app.worker_heartbeat", '
+            '"email", "email", "90"]'
+        ) in worker
+        assert "interval: 31s" in worker
+        assert "timeout: 3s" in worker
         assert "restart: unless-stopped" in worker
         assert "DB_MIGRATIONS_MODE: off" in worker
         assert "profiles:" not in worker

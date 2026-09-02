@@ -279,9 +279,9 @@ services:
     command: >
       sh -c "mkdir -p /app/app/logs /app/app/data /app/backups && chown appuser:appuser /app/app/logs /app/app/data /app/backups && exec gosu appuser python -m app.email.worker run"
     healthcheck:
-      test: ["CMD", "python", "-m", "app.email.worker", "healthcheck"]
-      interval: 15s
-      timeout: 5s
+      test: ["CMD", "python", "-m", "app.worker_heartbeat", "email", "email", "90"]
+      interval: 31s
+      timeout: 3s
       retries: 6
       start_period: 20s
     networks:
@@ -301,9 +301,9 @@ services:
     command: >
       sh -c "mkdir -p /app/app/logs /app/app/data /app/backups && chown appuser:appuser /app/app/logs /app/app/data /app/backups && exec gosu appuser python -m app.workers.operations run"
     healthcheck:
-      test: ["CMD", "python", "-m", "app.workers.operations", "healthcheck"]
-      interval: 15s
-      timeout: 5s
+      test: ["CMD", "python", "-m", "app.worker_heartbeat", "operations", "operations"]
+      interval: 33s
+      timeout: 3s
       retries: 6
       start_period: 20s
     networks:
@@ -320,9 +320,9 @@ services:
     command: >
       sh -c "mkdir -p /app/app/logs /app/app/data /app/backups && chown appuser:appuser /app/app/logs /app/app/data /app/backups && exec gosu appuser python -m app.workers.generation run"
     healthcheck:
-      test: ["CMD", "python", "-m", "app.workers.generation", "healthcheck"]
-      interval: 15s
-      timeout: 5s
+      test: ["CMD", "python", "-m", "app.worker_heartbeat", "generation", "generation"]
+      interval: 35s
+      timeout: 3s
       retries: 6
       start_period: 20s
     networks:
@@ -339,9 +339,9 @@ services:
     command: >
       sh -c "mkdir -p /app/app/logs /app/app/data /app/backups && chown appuser:appuser /app/app/logs /app/app/data /app/backups && exec gosu appuser python -m app.workers.research run"
     healthcheck:
-      test: ["CMD", "python", "-m", "app.workers.research", "healthcheck"]
-      interval: 15s
-      timeout: 5s
+      test: ["CMD", "python", "-m", "app.worker_heartbeat", "research", "research"]
+      interval: 37s
+      timeout: 3s
       retries: 6
       start_period: 20s
     networks:
@@ -358,9 +358,9 @@ services:
     command: >
       sh -c "mkdir -p /app/app/logs /app/app/data /app/backups && chown appuser:appuser /app/app/logs /app/app/data /app/backups && exec gosu appuser python -m app.workers.files run"
     healthcheck:
-      test: ["CMD", "python", "-m", "app.workers.files", "healthcheck"]
-      interval: 15s
-      timeout: 5s
+      test: ["CMD", "python", "-m", "app.worker_heartbeat", "files", "files"]
+      interval: 39s
+      timeout: 3s
       retries: 6
       start_period: 20s
     networks:
@@ -377,9 +377,9 @@ services:
     command: >
       sh -c "mkdir -p /app/app/logs /app/app/data /app/backups && chown appuser:appuser /app/app/logs /app/app/data /app/backups && exec gosu appuser python -m app.workers.lifecycle run"
     healthcheck:
-      test: ["CMD", "python", "-m", "app.workers.lifecycle", "healthcheck"]
-      interval: 15s
-      timeout: 5s
+      test: ["CMD", "python", "-m", "app.worker_heartbeat", "lifecycle", "lifecycle"]
+      interval: 41s
+      timeout: 3s
       retries: 6
       start_period: 20s
     networks:
@@ -397,9 +397,9 @@ services:
     command: >
       sh -c "mkdir -p /app/app/logs /app/app/data /app/backups && chown appuser:appuser /app/app/logs /app/app/data /app/backups && exec gosu appuser python -m app.workers.maintenance run"
     healthcheck:
-      test: ["CMD", "python", "-m", "app.workers.maintenance", "healthcheck"]
-      interval: 15s
-      timeout: 5s
+      test: ["CMD", "python", "-m", "app.worker_heartbeat", "maintenance", "maintenance"]
+      interval: 43s
+      timeout: 3s
       retries: 6
       start_period: 20s
     networks:
@@ -416,9 +416,9 @@ services:
     command: >
       sh -c "mkdir -p /app/app/logs /app/app/data /app/backups && chown appuser:appuser /app/app/logs /app/app/data /app/backups && exec gosu appuser python -m app.workers.rendering run"
     healthcheck:
-      test: ["CMD", "python", "-m", "app.workers.rendering", "healthcheck"]
-      interval: 15s
-      timeout: 5s
+      test: ["CMD", "python", "-m", "app.worker_heartbeat", "rendering", "rendering"]
+      interval: 47s
+      timeout: 3s
       retries: 6
       start_period: 20s
     networks:
@@ -435,9 +435,9 @@ services:
     command: >
       sh -c "mkdir -p /app/app/logs /app/app/data /app/backups && chown appuser:appuser /app/app/logs /app/app/data /app/backups && exec gosu appuser python -m app.workers.media run"
     healthcheck:
-      test: ["CMD", "python", "-m", "app.workers.media", "healthcheck"]
-      interval: 15s
-      timeout: 5s
+      test: ["CMD", "python", "-m", "app.worker_heartbeat", "media", "media"]
+      interval: 51s
+      timeout: 3s
       retries: 6
       start_period: 20s
     networks:
@@ -454,9 +454,9 @@ services:
     command: >
       sh -c "mkdir -p /app/app/logs /app/app/data /app/backups && chown appuser:appuser /app/app/logs /app/app/data /app/backups && exec gosu appuser python -m app.workers.ingestion run"
     healthcheck:
-      test: ["CMD", "python", "-m", "app.workers.ingestion", "healthcheck"]
-      interval: 15s
-      timeout: 5s
+      test: ["CMD", "python", "-m", "app.worker_heartbeat", "connector", "ingestion"]
+      interval: 53s
+      timeout: 3s
       retries: 6
       start_period: 20s
     networks:
@@ -473,9 +473,9 @@ services:
     command: >
       sh -c "mkdir -p /app/app/logs /app/app/data /app/backups && chown appuser:appuser /app/app/logs /app/app/data /app/backups && exec gosu appuser python -m app.workers.events run"
     healthcheck:
-      test: ["CMD", "python", "-m", "app.workers.events", "healthcheck"]
-      interval: 15s
-      timeout: 5s
+      test: ["CMD", "python", "-m", "app.worker_heartbeat", "audit_event", "events"]
+      interval: 59s
+      timeout: 3s
       retries: 6
       start_period: 20s
     networks:

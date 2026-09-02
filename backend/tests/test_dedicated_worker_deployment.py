@@ -1,5 +1,8 @@
+import os
 from pathlib import Path
 import re
+import subprocess
+import sys
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -14,6 +17,19 @@ WORKERS = {
     "media_worker": "app.workers.media",
     "connector_worker": "app.workers.ingestion",
     "audit_event_worker": "app.workers.events",
+}
+WORKER_HEARTBEATS = {
+    "email_worker": ("email", "email", "90"),
+    "operations_worker": ("operations", "operations"),
+    "generation_worker": ("generation", "generation"),
+    "research_worker": ("research", "research"),
+    "file_processing_worker": ("files", "files"),
+    "account_lifecycle_worker": ("lifecycle", "lifecycle"),
+    "maintenance_worker": ("maintenance", "maintenance"),
+    "rendering_worker": ("rendering", "rendering"),
+    "media_worker": ("media", "media"),
+    "connector_worker": ("connector", "ingestion"),
+    "audit_event_worker": ("audit_event", "events"),
 }
 
 
@@ -61,9 +77,25 @@ def test_all_dedicated_workers_are_always_on_in_server_topologies():
         for service_name, module in WORKERS.items():
             worker = _service(source, service_name)
             assert f"python -m {module} run" in worker
-            assert f'python", "-m", "{module}", "healthcheck' in worker
             assert "restart: unless-stopped" in worker
             assert "profiles:" not in worker
+
+        probe_intervals = []
+        for service_name, arguments in WORKER_HEARTBEATS.items():
+            worker = _service(source, service_name)
+            quoted_arguments = ", ".join(f'"{argument}"' for argument in arguments)
+            assert (
+                'test: ["CMD", "python", "-m", "app.worker_heartbeat", '
+                f"{quoted_arguments}]"
+            ) in worker
+            assert '"healthcheck"' not in worker
+            interval_match = re.search(r"\n      interval: (\d+)s\n", worker)
+            assert interval_match is not None
+            probe_intervals.append(int(interval_match.group(1)))
+            assert "timeout: 3s" in worker
+
+        assert all(30 <= interval <= 60 for interval in probe_intervals)
+        assert len(set(probe_intervals)) == len(probe_intervals)
 
         automation_worker = _service(source, "automation_worker")
         for mode in (
@@ -182,9 +214,41 @@ def test_extended_worker_migration_and_realtime_proxy_boundary_exist():
     assert "location ^~ /api/v1/realtime/" in nginx
     assert "realtime_gateway:8001" in nginx
     assert "_REALTIME_PREFIX" in gateway
+    assert "from app.main" not in gateway
+    assert "app.include_router(realtime_router)" in gateway
     assert "down --remove-orphans" in makefile
     migrate_target = makefile.split("\nmigrate:\n", 1)[1].split(
         "\nsource-probe:\n", 1
     )[0]
     assert "down --remove-orphans" in migrate_target
     assert "run --rm $(COMPOSE_BUILD_FLAG) migrate" in migrate_target
+
+
+def test_realtime_gateway_import_excludes_monolith_and_document_inference(tmp_path):
+    environment = os.environ.copy()
+    environment.update(
+        {
+            "DATABASE_URL": f"sqlite:///{tmp_path / 'gateway.db'}",
+            "ENCRYPTION_KEY": "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=",
+            "MODE": "test",
+            "OMLORIX_AUTO_CREATE_DATABASES": "false",
+            "REDIS_ENABLED": "false",
+        }
+    )
+    code = """
+import sys
+from app.realtime import gateway
+
+excluded = ("app.main", "markitdown", "magika", "onnxruntime")
+assert all(module not in sys.modules for module in excluded)
+assert gateway.app.title == "Omlorix Realtime Gateway"
+"""
+
+    subprocess.run(
+        [sys.executable, "-c", code],
+        cwd=REPO_ROOT / "backend",
+        env=environment,
+        check=True,
+        capture_output=True,
+        text=True,
+    )

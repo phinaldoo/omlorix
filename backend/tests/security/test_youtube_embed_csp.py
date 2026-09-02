@@ -9,7 +9,9 @@ YOUTUBE_NOCOOKIE_FRAME_SRC = re.compile(
 
 
 def test_youtube_nocookie_is_allowed_in_backend_csp():
-    source = (REPO_ROOT / "backend" / "app" / "main.py").read_text()
+    source = (
+        REPO_ROOT / "backend" / "app" / "middleware" / "security_headers.py"
+    ).read_text()
 
     assert YOUTUBE_NOCOOKIE_FRAME_SRC.search(source)
 
