@@ -108,5 +108,5 @@
         panel.insertBefore(header, previewTrack || panel.firstChild);
     }
 
-    modules.header = Object.freeze({ ensureCanvasPreviewHeader });
+    modules.header = Object.freeze({ ensureCanvasPreviewHeader, getPreviewHeaderIcon });
 })(globalThis);

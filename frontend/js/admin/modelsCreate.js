@@ -421,6 +421,16 @@
         }));
     };
 
+    const applyProvidersEmptyState = (title, description = '') => {
+        if (!dom.providerGrid) return;
+        dom.providerGrid.innerHTML = '';
+        dom.providerGrid.appendChild(window.createAdminEmptyPlaceholder({
+            title,
+            description,
+            className: 'provider-empty-state',
+        }));
+    };
+
     const renderProviderCards = (providers, providerGroups = []) => {
         if (!dom.providerGrid) {
             return;
@@ -447,7 +457,7 @@
         });
 
         if (!providerEntries.length) {
-            applyProvidersLoadingState(t('provider_group_no_providers_available', 'No providers available. Create a provider first.'));
+            applyProvidersEmptyState(t('provider_group_no_providers_available', 'No providers available. Create a provider first.'));
             return;
         }
 
@@ -470,7 +480,7 @@
             : providerEntries;
 
         if (!filteredEntries.length) {
-            applyProvidersLoadingState(t('providers_search_no_results', 'No providers match your search.'));
+            applyProvidersEmptyState(t('providers_search_no_results', 'No providers match your search.'));
             return;
         }
 
@@ -575,7 +585,10 @@
             renderProviderCards(state.providers, state.providerGroups);
         } catch (error) {
             notifyErr(error?.message || t('providers_fetch_failed', 'Failed to load providers'));
-            applyProvidersLoadingState(t('provider_groups_load_failed_text', 'Please try refreshing the page.'));
+            applyProvidersEmptyState(
+                t('providers_fetch_failed', 'Failed to load providers'),
+                t('provider_groups_load_failed_text', 'Please try refreshing the page.')
+            );
         } finally {
             state.loadingProviders = false;
         }

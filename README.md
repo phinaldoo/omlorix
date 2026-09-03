@@ -4,6 +4,8 @@
 
 [Operator documentation](documentation/v1.0.0/en/admin/1_start/1_features.md) · [User documentation](documentation/v1.0.0/en/user/1_quick_start/1_start.md) · [Feature catalog](features.md) · [Releases](https://github.com/phinaldoo/omlorix/releases)
 
+![Omlorix workspace showing a business strategy chat with demonstration data](frontend/assets/readme/omlorix-readme-splash.png)
+
 Omlorix brings AI chat, files, projects, reusable agents and skills, automations, and administrative controls into one web application. Run it on infrastructure you control and choose which model providers and external services it can use.
 
 > [!CAUTION]
@@ -24,6 +26,8 @@ Third-party product names, logos, brands, and trademarks are the property of the
 - Create images, audio, music, video, slide presentations, visualizations, quizzes, and flashcards.
 - Work with realtime voice calls, dictation, read-aloud, meeting transcripts, and split-screen conversations.
 
+![Omlorix chat showing an executive email being edited in Canvas](frontend/assets/readme/omlorix-canvas-workspace.png)
+
 ### Reusable workspaces
 
 - Organize chats and context in projects alongside files, folders, notes, prompts, todos, bookmarks, and memories.
@@ -37,6 +41,8 @@ Third-party product names, logos, brands, and trademarks are the property of the
 - Integrate social login, OAuth/OIDC, SAML, LDAP, passkeys, two-factor authentication, and SCIM provisioning.
 - Control provider, model, tool, and feature access with rate limits and group policies.
 - Browse and export sanitized audit events, and use statistics, retention controls, and data import/export for day-to-day administration.
+
+![Omlorix Users administration page populated with fictional demonstration accounts](frontend/assets/readme/omlorix-admin-users.png)
 
 ### Flexible self-hosting
 

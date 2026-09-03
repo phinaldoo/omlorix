@@ -8,7 +8,7 @@
 
     const canvasWidgetModules = globalThis.__omlorixCanvasWidgetModules;
     if (!canvasWidgetModules) throw new Error('Canvas widget modules must load before canvas-widget.js');
-    const { ensureCanvasPreviewHeader } = canvasWidgetModules.header;
+    const { ensureCanvasPreviewHeader, getPreviewHeaderIcon } = canvasWidgetModules.header;
 
     const previewPanel = document.getElementById('canvas-markdown-PreviewPanel');
     ensureCanvasPreviewHeader(previewPanel);
@@ -799,7 +799,7 @@
         AUTO_SAVE_DELAY_MS, SPREADSHEET_CONTENT_TYPES, autoSaveTimers, canvasFileIds,
         clearHtmlExternalResourcePromptTimer: (...args) => clearHtmlExternalResourcePromptTimer(...args),
         draftEditStateMap, draftMap, draftSavePromises,
-        draftScrollStates, formatT, getTypeLabel, htmlPreviewPermissionMap,
+        draftScrollStates, formatT, getTypeLabel, hideReferenceToolbar, htmlPreviewPermissionMap,
         latexRenderRequestTokens, normalizeContentType, openPreviewForFile, previewRenderTimers,
         previewRevertBtn, previewSaveBtn, previewStatus, previewTitle,
         previewTrack,
@@ -1221,22 +1221,29 @@
         renderDraft, clearHtmlRenderTimer, scheduleHtmlStreamingRender, resetSelectablePdfPreviewRendering,
         renderSelectablePdfPreviewInto, HTML_PREVIEW_SRCDOC_URL,
     } = canvasWidgetModules.rendering.create({
-        MARKDOWN_STREAM_RENDER_INTERVAL_MS, RENDER_DEBOUNCE_MS, SPREADSHEET_CONTENT_TYPES, applyScrollState,
+        MARKDOWN_STREAM_RENDER_INTERVAL_MS, RENDER_DEBOUNCE_MS, SPREADSHEET_CONTENT_TYPES,
+        addMarkedSelectionAsReference, applyScrollState,
         attachScrollListeners, buildCopyContextLabel, buildFileDownloadUrl, canvasWidgetModules,
         captureScrollState, clearPreviewRenderTimer, destroyActiveMarkdownEditor, destroyActiveSpreadsheetEditor,
-        draftEditStateMap, draftMap, formatT, getDraftEditState,
+        draftEditStateMap, draftMap, formatT, getDraftEditState, getPreviewHeaderIcon,
         getPreviewStatusKind, getPreviewStatusText, getRenderableContentForDraft, getScrollState,
-        getStoredMarkdownScrollTop, getTypeLabel, hasCurrentLatexPdf, htmlExternalContentBtn,
+        getStoredMarkdownScrollTop, getTypeLabel, hasAdjacentChatComposer, hasCurrentLatexPdf,
+        hideReferenceToolbar, htmlExternalContentBtn,
         htmlExternalResourceDenyBtn, htmlExternalResourceList, htmlExternalResourceOverlay, htmlExternalResourcePromptTimers,
         htmlPreviewPermissionMap, htmlScriptsBtn, htmlSettings, htmlSettingsBtn,
         htmlSettingsMenu, isDraftEditorInteractive, normalizeContentType, previewDownload,
+        openHtmlFullscreen: () => document.getElementById('canvas-html-FullscreenBtn')?.click(),
+        prepareInteractiveHtmlPreviewSource: (...args) => prepareInteractiveHtmlPreviewSource(...args),
         previewPanel, previewStatus, previewTitle, previewTrack,
         queueAutoSaveForDraft, renderCSVInto, renderSavedLatexDraft, resolveDisplayCanvasFileName,
+        replaceOmlorixFileUrls: (...args) => replaceOmlorixFileUrls(...args),
+        refreshReferenceSelectionState,
         restoreScrollAfterMarkdownStream, runWithProgrammaticScroll, saveActiveDraftEdits, schedulePreviewRender,
         setActiveFileContext, setHtmlPreviewAvailability, setHtmlViewMode, setPreviewDownloadEnabled,
         setPreviewDownloadFormatOptions, syncDraftEditStateFromServer, syncMarkdownCompactMainLayout, t,
         updateCopyButtonState, updateDraftEditStateFromInput, updateEditorActionButtons, updateHtmlViewMode,
-        updateMarkdownEditorHeaderControls, updateStatusClass,
+        updateMarkdownEditorHeaderControls, updateShareButtonState, updateStatusClass,
+        withIframeSecurityGuard: (...args) => withIframeSecurityGuard(...args),
     }, {
         get previewVisible() { return previewVisible; },
         set previewVisible(value) { previewVisible = value; },

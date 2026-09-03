@@ -5,22 +5,25 @@
 
     function createRenderingModule(deps, state) {
         const {
-            MARKDOWN_STREAM_RENDER_INTERVAL_MS, RENDER_DEBOUNCE_MS, SPREADSHEET_CONTENT_TYPES, applyScrollState,
+            MARKDOWN_STREAM_RENDER_INTERVAL_MS, RENDER_DEBOUNCE_MS, SPREADSHEET_CONTENT_TYPES,
+            addMarkedSelectionAsReference, applyScrollState,
             attachScrollListeners, buildCopyContextLabel, buildFileDownloadUrl, canvasWidgetModules,
             captureScrollState, clearPreviewRenderTimer, destroyActiveMarkdownEditor, destroyActiveSpreadsheetEditor,
-            draftEditStateMap, draftMap, formatT, getDraftEditState,
+            draftEditStateMap, draftMap, formatT, getDraftEditState, getPreviewHeaderIcon,
             getPreviewStatusKind, getPreviewStatusText, getRenderableContentForDraft, getScrollState,
-            getStoredMarkdownScrollTop, getTypeLabel, hasCurrentLatexPdf, htmlExternalContentBtn,
+            getStoredMarkdownScrollTop, getTypeLabel, hasAdjacentChatComposer, hasCurrentLatexPdf,
+            hideReferenceToolbar, htmlExternalContentBtn,
             htmlExternalResourceDenyBtn, htmlExternalResourceList, htmlExternalResourceOverlay, htmlExternalResourcePromptTimers,
             htmlPreviewPermissionMap, htmlScriptsBtn, htmlSettings, htmlSettingsBtn,
             htmlSettingsMenu, isDraftEditorInteractive, normalizeContentType, previewDownload,
-            previewPanel, previewStatus, previewTitle, previewTrack,
+            openHtmlFullscreen, prepareInteractiveHtmlPreviewSource, previewPanel, previewStatus, previewTitle, previewTrack,
             queueAutoSaveForDraft, renderCSVInto, renderSavedLatexDraft, resolveDisplayCanvasFileName,
+            replaceOmlorixFileUrls, refreshReferenceSelectionState,
             restoreScrollAfterMarkdownStream, runWithProgrammaticScroll, saveActiveDraftEdits, schedulePreviewRender,
             setActiveFileContext, setHtmlPreviewAvailability, setHtmlViewMode, setPreviewDownloadEnabled,
             setPreviewDownloadFormatOptions, syncDraftEditStateFromServer, syncMarkdownCompactMainLayout, t,
             updateCopyButtonState, updateDraftEditStateFromInput, updateEditorActionButtons, updateHtmlViewMode,
-            updateMarkdownEditorHeaderControls, updateStatusClass,
+            updateMarkdownEditorHeaderControls, updateShareButtonState, updateStatusClass, withIframeSecurityGuard,
         } = deps;
         /* ── Markdown Rendering ── */
         function renderMarkdownInto(target, content) {

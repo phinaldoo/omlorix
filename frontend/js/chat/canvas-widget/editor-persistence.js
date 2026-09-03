@@ -7,7 +7,7 @@
         const {
             AUTO_SAVE_DELAY_MS, SPREADSHEET_CONTENT_TYPES, autoSaveTimers, canvasFileIds,
             clearHtmlExternalResourcePromptTimer, draftEditStateMap, draftMap, draftSavePromises,
-            draftScrollStates, formatT, getTypeLabel, htmlPreviewPermissionMap,
+            draftScrollStates, formatT, getTypeLabel, hideReferenceToolbar, htmlPreviewPermissionMap,
             latexRenderRequestTokens, normalizeContentType, openPreviewForFile, previewRenderTimers,
             previewRevertBtn, previewSaveBtn, previewStatus, previewTitle,
             previewTrack, refreshActiveHtmlDraftAfterSave, refreshActiveMarkdownDraftAfterSave, registerCanvasFile,

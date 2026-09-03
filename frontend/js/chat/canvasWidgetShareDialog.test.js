@@ -7,6 +7,7 @@ const { readStreamMessagesSource } = require('./messages/source.cjs');
 const { readSendMessageSource } = require('./sending/source.cjs');
 
 const CANVAS_WIDGET_PATH = path.join(__dirname, 'canvas-widget.js');
+const CANVAS_RENDERING_PATH = path.join(__dirname, 'canvas-widget', 'rendering.js');
 const CHAT_BOX_PATH = path.join(__dirname, 'chatBox.js');
 const CHAT_TRANSCRIPT_RENDERER_PATH = path.join(__dirname, 'chatTranscriptRenderer.js');
 const DELETE_WARNING_MODALS_PATH = path.join(__dirname, 'deleteWarningModals.js');
@@ -101,13 +102,35 @@ test('canvas share uses the chat share modal primitives and delete confirmation 
 
 test('single-format canvas types use a direct button while LaTeX exposes its format picker', () => {
     const source = readFrontendSource(CANVAS_WIDGET_PATH, 'utf8');
+    const canvasWidgetEntrySource = fs.readFileSync(CANVAS_WIDGET_PATH, 'utf8');
+    const renderingSource = fs.readFileSync(CANVAS_RENDERING_PATH, 'utf8');
     const css = readFrontendSource(CANVAS_WIDGET_CSS_PATH, 'utf8');
+    const renderingFactoryCall = canvasWidgetEntrySource.match(
+        /canvasWidgetModules\.rendering\.create\(\{([\s\S]*?)\}, \{/,
+    );
+    const renderingDependencies = [
+        'addMarkedSelectionAsReference',
+        'getPreviewHeaderIcon',
+        'hasAdjacentChatComposer',
+        'hideReferenceToolbar',
+        'openHtmlFullscreen',
+        'prepareInteractiveHtmlPreviewSource',
+        'refreshReferenceSelectionState',
+        'replaceOmlorixFileUrls',
+        'updateShareButtonState',
+        'withIframeSecurityGuard',
+    ];
 
     assert.match(source, /const usesDirectDownload = normalizedType === 'mermaid'[\s\S]*\|\| normalizedType === 'pdf';/);
     assert.doesNotMatch(source, /usesDirectDownload[\s\S]{0,160}normalizedType === 'latex'/);
     assert.match(source, /previewDownloadControls\?\.classList\.toggle\('is-direct-download', usesDirectDownload\)/);
     assert.match(source, /state\.previewVisible\s*&&\s*\(state\.sharingAllowedByGroup \|\| hasExistingShareLinks\)/);
     assert.match(source, /previewPanel\.setAttribute\('data-content-type', contentType\);[\s\S]*updateShareButtonState\(\)/);
+    assert.ok(renderingFactoryCall);
+    renderingDependencies.forEach((dependency) => {
+        assert.match(renderingSource, new RegExp(`\\b${dependency}\\b`));
+        assert.match(renderingFactoryCall[1], new RegExp(`\\b${dependency}\\b`));
+    });
     assert.match(css, /\.canvas-markdown-preview-header-right \.is-direct-download > \.custom-download-format-trigger/);
     assert.doesNotMatch(css, /\[data-content-type="pdf"\] \.canvas-markdown-share-btn/);
 });
