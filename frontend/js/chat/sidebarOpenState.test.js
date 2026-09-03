@@ -84,8 +84,12 @@ test('main header sidebar button becomes visible in overlay mode', () => {
     const structureStyles = readFrontendSource(STRUCTURE_STYLES_PATH, 'utf8');
     const sidebarStyles = readFrontendSource(SIDEBAR_STYLES_PATH, 'utf8');
     const buttonMarkup = indexSource.match(/<button[^>]+id="mainContainerSidebarCloseButton"[^>]*>/)?.[0];
+    const buttonContent = indexSource.match(
+        /<button[^>]+id="mainContainerSidebarCloseButton"[^>]*>([\s\S]*?)<\/button>/,
+    )?.[1];
 
     assert.ok(buttonMarkup);
+    assert.match(buttonContent, /data-omlorix-icon="sidebarPanel"/);
     assert.doesNotMatch(buttonMarkup, /style=/);
     assert.match(
         structureStyles,
