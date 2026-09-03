@@ -1005,7 +1005,7 @@ test('tool calls after empty reasoning stay inside the collapsible thinking cont
     assert.equal(malformedContainer.children.includes(malformedBody), false);
 });
 
-test('assistant thinking starts collapsed and finalization preserves expansion state', () => {
+test('assistant pending state keeps its loading heading without skeleton bars', () => {
     const source = streamMessagesSource;
     const defaultThinkingBlocks = source.match(
         /thinkingContainer\.className = 'assistant-thinking collapsed';/g,
@@ -1016,6 +1016,8 @@ test('assistant thinking starts collapsed and finalization preserves expansion s
 
     assert.equal(defaultThinkingBlocks.length, 2);
     assert.match(source, /thinkingContainer\.className = 'assistant-thinking collapsed assistant-thinking-loading';/);
+    assert.match(source, /getStreamText\('assistant_loading', 'Loading\.\.\.'\)/);
+    assert.doesNotMatch(source, /assistant-thinking-loading-skeleton/);
     assert.doesNotMatch(finalizeSource, /classList.*collapsed|aria-expanded/);
     assert.doesNotMatch(source, /classList\??\.add\(['"]collapsed['"]\)/);
 });

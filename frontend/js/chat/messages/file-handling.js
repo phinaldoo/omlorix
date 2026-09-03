@@ -594,10 +594,6 @@ function appendLoading(messageId, assistantReasoningCount) {
     headerBtn.appendChild(headerTitleDiv);
     thinkingContainer.appendChild(headerBtn);
 
-    const skeleton = document.createElement('div');
-    skeleton.className = 'assistant-thinking-loading-skeleton';
-    skeleton.innerHTML = '<span></span><span></span><span></span>';
-    thinkingContainer.appendChild(skeleton);
     appendBeforeAssistantList(assistantMessageContainer, thinkingContainer);
     return assistantReasoningCount;
 }
@@ -782,4 +778,3 @@ function setAssistantThinkingContent(element, content) {
         element.textContent = raw;
     }
 }
-

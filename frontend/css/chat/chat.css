@@ -1623,28 +1623,10 @@ body.project-chat-placeholder-mode .chat-box-area {
     border-radius: 10px;
 }
 
-/* Loading skeleton */
+/* Pending assistant state */
 .assistant-thinking-loading .assistant-thinking-header {
     pointer-events: none;
 }
-
-.assistant-thinking-loading-skeleton {
-    display: flex;
-    gap: 8px;
-    padding: 4px 8px 10px;
-}
-
-.assistant-thinking-loading-skeleton span {
-    display: block;
-    height: 6px;
-    border-radius: 3px;
-    background: var(--hover, rgba(0, 0, 0, 0.05));
-    animation: thinking-skeleton-pulse 1.5s ease-in-out infinite;
-}
-
-.assistant-thinking-loading-skeleton span:nth-child(1) { width: 40px; }
-.assistant-thinking-loading-skeleton span:nth-child(2) { width: 60px; animation-delay: 0.15s; }
-.assistant-thinking-loading-skeleton span:nth-child(3) { width: 30px; animation-delay: 0.3s; }
 
 /* Step entry animation */
 .thinking-step {
