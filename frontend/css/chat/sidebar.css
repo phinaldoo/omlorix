@@ -464,10 +464,6 @@
     border-radius: 50%;
 }
 
-.chats-container {
-    padding-right: 8px;
-}
-
 .sidebar-footer {
     display: flex;
     flex: 0 0 auto;
