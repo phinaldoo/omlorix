@@ -47,3 +47,12 @@ test('server setup completes after default role without a legal configuration pa
         assert.doesNotMatch(setupSources, new RegExp(removedTerm));
     }
 });
+
+test('server setup keeps its next action at the navigation end when back is hidden', () => {
+    const setupStyles = readWorkspaceFile('frontend/css/serverSetup/style.css');
+
+    assert.match(
+        setupStyles,
+        /\.navigation \.submit\s*\{[\s\S]*?margin-inline-start:\s*auto;/
+    );
+});

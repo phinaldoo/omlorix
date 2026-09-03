@@ -450,6 +450,10 @@ body {
     align-items: center;
 }
 
+.navigation .submit {
+    margin-inline-start: auto;
+}
+
 .navigation.hidden {
     visibility: hidden;
     opacity: 0;
