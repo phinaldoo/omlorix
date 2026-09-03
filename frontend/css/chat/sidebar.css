@@ -862,13 +862,26 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
+    /* The unread marker replaces the hover-only menu in the same action slot.
+       Touch layouts keep the inline marker so it can sit beside the visible menu. */
+    .chat-unread-indicator {
+        position: absolute;
+        top: 50%;
+        inset-inline-end: 4px;
+        width: 28px;
+        height: 28px;
+        transform: translateY(-50%);
+    }
+
     .sidebar-element:focus-within .sidebar-element-menu-trigger,
     .sidebar-element:hover .sidebar-element-menu-trigger {
         opacity: 1;
         pointer-events: auto;
     }
     .sidebar-element:focus-within .chat-unread-indicator,
-    .sidebar-element:hover .chat-unread-indicator {display: none;}
+    .sidebar-element:hover .chat-unread-indicator {
+        display: none;
+    }
     .sidebar-section:hover .sidebar-section-header-right {display: flex;
         pointer-events: auto;}
     .sidebar-section-header-right:hover {cursor: pointer;

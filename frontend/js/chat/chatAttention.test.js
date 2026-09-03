@@ -4,6 +4,8 @@ const path = require('node:path');
 const test = require('node:test');
 const vm = require('node:vm');
 
+const SIDEBAR_STYLES_PATH = path.join(__dirname, '../../css/chat/sidebar.css');
+
 class FakeElement {
     constructor(tagName, className = '') {
         this.tagName = String(tagName).toUpperCase();
@@ -158,4 +160,25 @@ test('attention state is server-backed rather than stored in localStorage', () =
     assert.doesNotMatch(source, /localStorage|sessionStorage/);
     assert.match(source, /\/api\/v1\/chats\/attention\/query/);
     assert.match(source, /\/read/);
+});
+
+test('fine-pointer unread marker replaces the menu in the same action slot', () => {
+    const styles = fs.readFileSync(SIDEBAR_STYLES_PATH, 'utf8');
+    const baseUnreadRule = styles.match(/\.chat-unread-indicator\s*\{([^}]*)\}/)?.[1];
+    const menuRule = styles.match(/\.sidebar-element-menu-trigger\s*\{([^}]*)\}/)?.[1];
+    const finePointerStyles = styles.slice(styles.lastIndexOf('@media (hover: hover) and (pointer: fine)'));
+    const unreadRule = finePointerStyles.match(/\.chat-unread-indicator\s*\{([^}]*)\}/)?.[1];
+    const declarationValue = (rule, property) => rule
+        ?.match(new RegExp(`(?:^|;)\\s*${property}\\s*:\\s*([^;]+)`))?.[1]
+        ?.trim();
+
+    assert.ok(baseUnreadRule);
+    assert.ok(menuRule);
+    assert.ok(unreadRule);
+    assert.equal(declarationValue(baseUnreadRule, 'position'), undefined);
+    assert.equal(declarationValue(baseUnreadRule, 'width'), '12px');
+    assert.equal(declarationValue(unreadRule, 'position'), 'absolute');
+    ['top', 'inset-inline-end', 'width', 'height', 'transform'].forEach((property) => {
+        assert.equal(declarationValue(unreadRule, property), declarationValue(menuRule, property));
+    });
 });
