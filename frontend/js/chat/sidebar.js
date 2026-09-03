@@ -699,9 +699,9 @@ function openSidebar(options = {}) {
         saveSidebarOpenState(true);
     }
 
-    const sidebarContainer = document.querySelector('.sidebar-container');
-    if (sidebarContainer) {
-        sidebarContainer.scrollTop = 0;
+    const sidebarMain = document.querySelector('.sidebar-main');
+    if (sidebarMain) {
+        sidebarMain.scrollTop = 0;
     }
 
     if (isOverlayMode()) {
@@ -722,7 +722,7 @@ function openSidebar(options = {}) {
         const sidebarMain = document.querySelector(".sidebar-main");
         if (sidebarMain) sidebarMain.style.display = "block";
         const sidebar = document.querySelector(".sidebar-container");
-        if (sidebar) sidebar.style.overflowY = "auto";
+        if (sidebar) sidebar.style.overflow = "hidden";
     } else {
         // Desktop open logic
         setDesktopSidebarCollapsedState(false);
@@ -739,7 +739,7 @@ function openSidebar(options = {}) {
             sidebar.style.minWidth = "250px";
             sidebar.style.maxWidth = "250px";
             sidebar.style.width = "250px";
-            sidebar.style.overflowY = "auto";
+            sidebar.style.overflow = "hidden";
         }
         const sidebarHeaderLeftButton = document.getElementById("sidebarHeaderLogoButton");
         if (sidebarHeaderLeftButton) sidebarHeaderLeftButton.style.cursor = "pointer";

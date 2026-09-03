@@ -262,6 +262,7 @@ function setupInfiniteScroll() {
     }
 
     const sentinel = createLoadingSentinel();
+    const scrollHost = document.querySelector('.sidebar-main');
 
     infiniteScrollObserver = new IntersectionObserver((entries) => {
         const entry = entries[0];
@@ -269,7 +270,7 @@ function setupInfiniteScroll() {
             loadMoreChats();
         }
     }, {
-        root: null,
+        root: scrollHost || null,
         rootMargin: '100px', // Start loading before sentinel is visible
         threshold: 0
     });
@@ -563,11 +564,11 @@ function positionChatDropdown(dropdown, anchorEl) {
 
     // In overlay mode the sidebar is transformed, so this fixed-position dropdown is
     // positioned relative to the sidebar container instead of the viewport. Compensate
-    // for the sidebar's internal scroll so the menu stays aligned with the row trigger.
+    // for the chat history's internal scroll so the menu stays aligned with the row trigger.
     if (vw <= 1024 && document.body.classList.contains('sidebar-overlay-mode')) {
-        const sidebar = anchorEl.closest('.sidebar-container');
-        if (sidebar) {
-            top += sidebar.scrollTop;
+        const scrollHost = anchorEl.closest('.sidebar-main');
+        if (scrollHost) {
+            top += scrollHost.scrollTop;
         }
     }
 

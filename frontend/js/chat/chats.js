@@ -493,15 +493,15 @@ function closeAllChatDropdowns() {
 }
 
 function initChatSidebarDropdownScrollClose() {
-    const sidebar = document.querySelector('.sidebar-container');
-    if (!sidebar || sidebar.dataset.chatDropdownScrollBound === 'true') {
+    const scrollHost = document.querySelector('.sidebar-main');
+    if (!scrollHost || scrollHost.dataset.chatDropdownScrollBound === 'true') {
         return;
     }
 
-    sidebar.addEventListener('scroll', () => {
+    scrollHost.addEventListener('scroll', () => {
         closeAllChatDropdowns();
     }, { passive: true });
-    sidebar.dataset.chatDropdownScrollBound = 'true';
+    scrollHost.dataset.chatDropdownScrollBound = 'true';
 }
 
 if (typeof window !== 'undefined' && window.registerEscapeHandler) {

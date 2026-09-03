@@ -5,6 +5,8 @@ const path = require('node:path');
 const test = require('node:test');
 
 const SIDEBAR_PATH = path.join(__dirname, 'sidebar.js');
+const CHATS_PATH = path.join(__dirname, 'chats.js');
+const CHATS_HELPER_PATH = path.join(__dirname, 'chatsHelper.js');
 const SIDEBAR_STYLES_PATH = path.join(__dirname, '../../css/chat/sidebar.css');
 const STRUCTURE_STYLES_PATH = path.join(__dirname, '../../css/common/structure.css');
 const INDEX_PATH = path.join(__dirname, '../../index.html');
@@ -95,7 +97,7 @@ test('main header sidebar button becomes visible in overlay mode', () => {
     );
 });
 
-test('sticky sidebar surfaces stay above chat row menu controls while scrolling', () => {
+test('non-scrolling sidebar surfaces stay above chat row menu controls', () => {
     const sidebarStyles = readFrontendSource(SIDEBAR_STYLES_PATH, 'utf8');
     const menuLayerMatch = sidebarStyles.match(
         /\.sidebar-element-menu-trigger\s*\{[^}]*z-index:\s*(\d+);/,
@@ -113,6 +115,44 @@ test('sticky sidebar surfaces stay above chat row menu controls while scrolling'
             `${className} must paint above chat row menu controls`,
         );
     });
+});
+
+test('chat history owns the sidebar scrollport across layout and behavior', () => {
+    const sidebarStyles = readFrontendSource(SIDEBAR_STYLES_PATH, 'utf8');
+    const sidebarSource = readFrontendSource(SIDEBAR_PATH, 'utf8');
+    const chatsSource = readFrontendSource(CHATS_PATH, 'utf8');
+    const chatsHelperSource = readFrontendSource(CHATS_HELPER_PATH, 'utf8');
+
+    assert.match(
+        sidebarStyles,
+        /\.sidebar-container\s*\{[^}]*overflow:\s*hidden;/,
+    );
+    assert.match(
+        sidebarStyles,
+        /\.sidebar-main\s*\{[^}]*min-height:\s*0;[^}]*overflow-y:\s*auto;/,
+    );
+    assert.match(
+        sidebarStyles,
+        /body\.sidebar-overlay-mode \.sidebar-container\s*\{[^}]*overflow:\s*hidden\s*!important;/,
+    );
+
+    assert.match(
+        sidebarSource,
+        /document\.querySelector\('\.sidebar-main'\);\s*if \(sidebarMain\) \{\s*sidebarMain\.scrollTop = 0;/,
+    );
+    assert.doesNotMatch(sidebarSource, /sidebar\.style\.overflowY\s*=\s*["']auto["']/);
+    assert.match(
+        chatsSource,
+        /function initChatSidebarDropdownScrollClose\(\)[\s\S]*?document\.querySelector\('\.sidebar-main'\)[\s\S]*?scrollHost\.addEventListener\('scroll'/,
+    );
+    assert.match(
+        chatsHelperSource,
+        /const scrollHost = document\.querySelector\('\.sidebar-main'\);[\s\S]*?root:\s*scrollHost \|\| null,/,
+    );
+    assert.match(
+        chatsHelperSource,
+        /anchorEl\.closest\('\.sidebar-main'\)[\s\S]*?top \+= scrollHost\.scrollTop;/,
+    );
 });
 
 test('artifact preview auto-collapse preserves and restores the saved sidebar preference', () => {
