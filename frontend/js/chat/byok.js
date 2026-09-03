@@ -1018,6 +1018,26 @@
         return Icons?.[trimmed] || fallback;
     }
 
+    function renderStoredModelIconMarkup(iconValue, { fallback, imageAlt } = {}) {
+        const modelFallback = fallback === undefined
+            ? (Icons?.omlorixModel || Icons?.omlorix || '')
+            : fallback;
+        if (window.IconPicker?.renderModelIconMarkup) {
+            return window.IconPicker.renderModelIconMarkup(iconValue, {
+                fallback: modelFallback,
+                imageAlt,
+            });
+        }
+        const trimmed = trimString(iconValue);
+        if (!trimmed) {
+            return modelFallback;
+        }
+        if (trimmed.startsWith('<')) {
+            return trimmed;
+        }
+        return Icons?.[trimmed] ? (Icons?.omlorixModel || Icons?.omlorix || modelFallback) : modelFallback;
+    }
+
     async function fetchModelSchemaPayload({ provider, modelName = null, modelInfo = null, tools = [], modelProvider = null }) {
         return fetchJson('/api/v1/llm/byok/model-schema', {
             method: 'POST',
@@ -2373,9 +2393,9 @@
             const toolCount = Array.isArray(model.tools) ? model.tools.length : 0;
             const providerIconAlt = byokT('byok_provider_icon_alt', 'Provider icon');
             const modelIconAlt = byokT('byok_model_icon_alt', 'Model icon');
-            const modelIcon = renderStoredIconMarkup(model.model_icon, {
-                fallback: renderStoredIconMarkup(model.provider_icon, {
-                    fallback: renderStoredIconMarkup(getDefaultProviderIcon(model.provider), { imageAlt: providerIconAlt }),
+            const modelIcon = renderStoredModelIconMarkup(model.model_icon, {
+                fallback: renderStoredModelIconMarkup(model.provider_icon, {
+                    fallback: renderStoredModelIconMarkup(getDefaultProviderIcon(model.provider), { imageAlt: providerIconAlt }),
                     imageAlt: providerIconAlt,
                 }),
                 imageAlt: modelIconAlt,

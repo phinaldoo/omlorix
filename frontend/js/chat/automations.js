@@ -1330,7 +1330,7 @@ function renderAutomationModelSelect(mode) {
         kind: 'model',
         triggerId: `automationModelSelectTrigger${mode}`,
         dropdownId: `automationModelSelectDropdown${mode}`,
-        iconHtml: selectedModel ? resolveAutomationModelIcon(selectedModel.model_icon) : Icons?.omlorix || '',
+        iconHtml: resolveAutomationModelIcon(selectedModel?.model_icon || ''),
         label: selectedModel?.name || automationT('automations_model_select_placeholder', 'Select a model...'),
         placeholder: !selectedModel,
         caretHtml: Icons.chevron,
@@ -1378,19 +1378,19 @@ function renderAutomationModelSelect(mode) {
 }
 
 function resolveAutomationModelIcon(iconValue) {
-    const fallback = (typeof Icons === 'object' && Icons?.omlorix) ? Icons.omlorix : '';
+    const fallback = typeof Icons === 'object'
+        ? (Icons?.omlorixModel || Icons?.omlorix || '')
+        : '';
     if (typeof iconValue !== 'string') return fallback;
     const trimmed = iconValue.trim();
     if (!trimmed) return fallback;
     if (trimmed.startsWith('<')) return fallback;
-    if (window.IconPicker?.renderIconMarkup) {
-        return window.IconPicker.renderIconMarkup(trimmed, {
+    if (window.IconPicker?.renderModelIconMarkup) {
+        return window.IconPicker.renderModelIconMarkup(trimmed, {
             fallback,
             imageAlt: 'Automation model icon',
         });
     }
-    const mapped = Icons?.[trimmed];
-    if (typeof mapped === 'string' && mapped.trim()) return mapped;
     return fallback;
 }
 

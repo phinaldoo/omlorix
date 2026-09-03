@@ -539,9 +539,11 @@ function filterModels(query) {
 
 function getMentionModelIcon(model) {
   const iconValue = model?.model_icon;
-  const fallback = (typeof Icons === 'object' && Icons?.omlorix) ? Icons.omlorix : '';
-  if (window.IconPicker?.renderIconMarkup) {
-    return window.IconPicker.renderIconMarkup(iconValue, {
+  const fallback = typeof Icons === 'object'
+    ? (Icons?.omlorixModel || Icons?.omlorix || '')
+    : '';
+  if (window.IconPicker?.renderModelIconMarkup) {
+    return window.IconPicker.renderModelIconMarkup(iconValue, {
       fallback,
       imageAlt: 'Model icon',
     });
@@ -558,7 +560,7 @@ function getMentionModelIcon(model) {
   }
   const mapped = typeof Icons === 'object' ? Icons?.[trimmed] : null;
   if (typeof mapped === 'string' && mapped.trim()) {
-    return mapped;
+    return fallback;
   }
   return fallback;
 }
@@ -2017,4 +2019,3 @@ document.addEventListener('click', (event) => {
     }
   }
 });
-

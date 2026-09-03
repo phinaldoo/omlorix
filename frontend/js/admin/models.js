@@ -972,10 +972,13 @@
         });
 
     const resolveModelIconMarkup = (model = {}) => {
-        const fallback = Icons?.omlorix || '';
+        const fallback = Icons?.omlorixModel || Icons?.omlorix || '';
         const pickIconMarkup = (value, imageAlt) => {
-            if (window.IconPicker?.renderIconMarkup) {
-                return window.IconPicker.renderIconMarkup(value, { imageAlt });
+            if (window.IconPicker?.renderModelIconMarkup) {
+                return window.IconPicker.renderModelIconMarkup(value, {
+                    fallback: '',
+                    imageAlt,
+                });
             }
             if (typeof value !== 'string') {
                 return '';
@@ -989,7 +992,7 @@
             }
             const mapped = Icons?.[trimmed];
             if (typeof mapped === 'string' && mapped.trim()) {
-                return mapped;
+                return fallback;
             }
             return '';
         };

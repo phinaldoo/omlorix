@@ -118,6 +118,12 @@
         return {};
     };
 
+    const getPresetIconMarkup = (key, presetType = 'provider', iconsMap = getIconsMap()) => {
+        const iconKey = presetType === 'model' ? 'omlorixModel' : key;
+        const markup = iconsMap[iconKey];
+        return typeof markup === 'string' ? markup : '';
+    };
+
     /**
      * Get available icons from the global Icons object
      * @returns {Array<{key: string, svg: string, label: string}>}
@@ -132,7 +138,10 @@
             .filter(key => iconsMap[key] && typeof iconsMap[key] === 'string')
             .map(key => ({
                 key,
-                svg: ensureUniqueSvgIds(iconsMap[key], `preset-${key}`),
+                svg: ensureUniqueSvgIds(
+                    getPresetIconMarkup(key, presetKey, iconsMap),
+                    `preset-${key}`,
+                ),
                 label: formatIconLabel(key),
             }));
     };
@@ -320,12 +329,16 @@
         const {
             fallback = '',
             imageAlt = t('icon_picker_uploaded_image', 'Uploaded icon image'),
+            presetType = 'provider',
         } = options;
         const resolved = resolveIconValue(value);
         const iconsMap = getIconsMap();
 
         if (resolved.type === 'preset' && iconsMap[resolved.key]) {
-            return ensureUniqueSvgIds(iconsMap[resolved.key], `markup-${resolved.key}`);
+            return ensureUniqueSvgIds(
+                getPresetIconMarkup(resolved.key, presetType, iconsMap),
+                `markup-${resolved.key}`,
+            );
         }
         if (resolved.type === 'custom' && resolved.svg) {
             return ensureUniqueSvgIds(sanitizeSvgMarkup(resolved.svg), 'markup-custom');
@@ -336,6 +349,18 @@
         // A fallback can itself be a complex SVG preset. Keep it collision-safe
         // just like the primary value instead of returning its raw fixed IDs.
         return fallback ? ensureUniqueSvgIds(fallback, 'markup-fallback') : '';
+    };
+
+    const renderModelIconMarkup = (value, options = {}) => {
+        const iconsMap = getIconsMap();
+        const fallback = Object.prototype.hasOwnProperty.call(options, 'fallback')
+            ? options.fallback
+            : (iconsMap.omlorixModel || iconsMap.omlorix || '');
+        return renderIconMarkup(value, {
+            ...options,
+            fallback,
+            presetType: 'model',
+        });
     };
 
     const loadImageElement = (url) => new Promise((resolve, reject) => {
@@ -897,7 +922,7 @@
                 selectionPreview.innerHTML = `<span class="icon-picker-no-selection">${t('icon_picker_none_selected', 'None selected')}</span>`;
             } else if (resolved.type === 'preset' && iconsMap[resolved.key]) {
                 selectionPreview.innerHTML = `
-                    <span class="icon-picker-selection-icon">${ensureUniqueSvgIds(iconsMap[resolved.key], `selection-${resolved.key}`)}</span>
+                    <span class="icon-picker-selection-icon">${ensureUniqueSvgIds(getPresetIconMarkup(resolved.key, presetType, iconsMap), `selection-${resolved.key}`)}</span>
                     <span class="icon-picker-selection-name">${formatIconLabel(resolved.key)}</span>
                 `;
             } else if (resolved.type === 'custom' && isValidSvg(resolved.svg)) {
@@ -1075,6 +1100,7 @@
         isValidSvg,
         formatIconLabel,
         renderIconMarkup,
+        renderModelIconMarkup,
         sanitizeIconValue,
         calculateSquareCrop,
     };

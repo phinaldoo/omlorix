@@ -72,9 +72,11 @@ const msMobile = {
 };
 
 function resolveModelIcon(iconValue) {
-    const fallback = (typeof Icons === 'object' && Icons?.omlorix) ? Icons.omlorix : '';
-    if (window.IconPicker?.renderIconMarkup) {
-        return window.IconPicker.renderIconMarkup(iconValue, {
+    const fallback = typeof Icons === 'object'
+        ? (Icons?.omlorixModel || Icons?.omlorix || '')
+        : '';
+    if (window.IconPicker?.renderModelIconMarkup) {
+        return window.IconPicker.renderModelIconMarkup(iconValue, {
             fallback,
             imageAlt: translate('model_select_icon_alt', 'Model icon'),
         });
@@ -101,7 +103,7 @@ function resolveModelIcon(iconValue) {
     }
     const mapped = Icons?.[trimmed];
     if (typeof mapped === 'string' && mapped.trim()) {
-        return mapped;
+        return fallback;
     }
     return fallback;
 }

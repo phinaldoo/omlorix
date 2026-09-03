@@ -5,9 +5,18 @@ const test = require('node:test');
 const vm = require('node:vm');
 
 const iconPickerSource = fs.readFileSync(path.join(__dirname, 'iconPicker.js'), 'utf8');
+const modelsSource = fs.readFileSync(path.join(__dirname, 'models.js'), 'utf8');
 const modelsCreateSource = fs.readFileSync(path.join(__dirname, 'modelsCreate.js'), 'utf8');
 const providersCreateSource = fs.readFileSync(path.join(__dirname, 'providersCreate.js'), 'utf8');
 const providerGroupsSource = fs.readFileSync(path.join(__dirname, 'providerGroups.js'), 'utf8');
+const modelRenderingSources = [
+    ['admin models', modelsSource],
+    ['agent model selectors', fs.readFileSync(path.join(__dirname, '..', 'chat', 'agents.js'), 'utf8')],
+    ['automation model selectors', fs.readFileSync(path.join(__dirname, '..', 'chat', 'automations.js'), 'utf8')],
+    ['BYOK models', fs.readFileSync(path.join(__dirname, '..', 'chat', 'byok.js'), 'utf8')],
+    ['model mentions', fs.readFileSync(path.join(__dirname, '..', 'chat', 'chatBox', 'mentions.js'), 'utf8')],
+    ['main model select', fs.readFileSync(path.join(__dirname, '..', 'chat', 'modelSelect.js'), 'utf8')],
+];
 
 test('icon rendering gives every SVG instance unique IDs and matching references', () => {
     const icons = {
@@ -76,6 +85,43 @@ test('image icons render as square circular cover crops', () => {
     assert.match(markup, /object-fit:cover/);
     assert.match(markup, /border-radius:50%/);
     assert.doesNotMatch(markup, /object-fit:contain/);
+});
+
+test('model presets render as Omlorix while provider presets remain Connections icons', () => {
+    const connections = '<svg data-glyph="connections"></svg>';
+    const omlorixModel = '<svg data-glyph="omlorix-model"></svg>';
+    const icons = {
+        anthropic: connections,
+        connections,
+        omlorix: '<svg data-glyph="omlorix-brand"></svg>',
+        omlorixModel,
+        openai: connections,
+    };
+    const context = {
+        Icons: icons,
+        window: {
+            DEFAULT_PROVIDER_ICON_KEYS: ['openai', 'anthropic'],
+            Icons: icons,
+        },
+    };
+
+    vm.runInNewContext(iconPickerSource, context);
+
+    assert.equal(context.window.IconPicker.renderIconMarkup('openai'), connections);
+    assert.equal(context.window.IconPicker.renderModelIconMarkup('openai'), omlorixModel);
+    assert.equal(context.window.IconPicker.renderModelIconMarkup('connections'), omlorixModel);
+    assert.ok(
+        context.window.IconPicker.getAvailableIcons('model').every(({ svg }) => svg === omlorixModel),
+    );
+    assert.ok(
+        context.window.IconPicker.getAvailableIcons('provider').every(({ svg }) => svg === connections),
+    );
+});
+
+test('every LLM model rendering surface uses the model-specific icon renderer', () => {
+    for (const [surface, source] of modelRenderingSources) {
+        assert.match(source, /IconPicker\?\.renderModelIconMarkup/, `${surface} bypasses the model icon renderer`);
+    }
 });
 
 test('uploaded icon crop is centered and square for every source shape', () => {

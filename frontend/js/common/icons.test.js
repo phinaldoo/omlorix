@@ -190,6 +190,10 @@ test('provider entries use the Connections icon and distribute no provider logo 
     ];
     const formerOmlorixProviderDirectories = ['exa', 'github', 'mistral', 'openai'];
 
+    assert.match(icons.omlorixModel, /^<svg\b/i);
+    assert.match(icons.omlorixModel, /omlorix-model-icon/);
+    assert.match(icons.omlorixModel, /currentColor/);
+    assert.notEqual(icons.omlorixModel, icons.connections);
     assert.deepEqual(manifest.official_assets, []);
     assert.equal(manifest.provider_icon.registry_key, 'connections');
     for (const iconKey of providerIconKeys) {

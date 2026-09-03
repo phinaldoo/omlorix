@@ -376,17 +376,17 @@
     }
 
     function resolveAgentModelIcon(iconValue) {
-        const fallback = (typeof Icons === 'object' && Icons?.omlorix) ? Icons.omlorix : '';
-        if (window.IconPicker?.renderIconMarkup) {
-            return window.IconPicker.renderIconMarkup(iconValue, {
+        const fallback = typeof Icons === 'object'
+            ? (Icons?.omlorixModel || Icons?.omlorix || '')
+            : '';
+        if (window.IconPicker?.renderModelIconMarkup) {
+            return window.IconPicker.renderModelIconMarkup(iconValue, {
                 fallback,
                 imageAlt: t('workspace_agents_base_model', 'Base model'),
             });
         }
         if (typeof resolveModelIcon === 'function') return resolveModelIcon(iconValue);
-        if (typeof iconValue !== 'string') return fallback;
-        const mapped = Icons?.[iconValue.trim()];
-        return typeof mapped === 'string' ? mapped : fallback;
+        return fallback;
     }
 
     function formatFileSize(bytes) {
