@@ -1108,9 +1108,16 @@ def test_external_tool_routing_and_account_cancellation_boundaries(
 
 
 def test_realtime_gateway_registers_only_realtime_and_health_routes():
+    from fastapi.routing import iter_route_contexts
+
     from app.realtime import gateway
 
-    route_paths = {str(route.path) for route in gateway.app.routes}
+    # WebSocket route contexts may expose their path only on the original route.
+    route_paths = {
+        path
+        for route in iter_route_contexts(gateway.app.routes)
+        if (path := route.path or getattr(route.original_route, "path", None))
+    }
 
     assert gateway._ALLOWED_EXACT_PATHS.issubset(route_paths)
     assert any(path.startswith(f"{gateway._REALTIME_PREFIX}/") for path in route_paths)
