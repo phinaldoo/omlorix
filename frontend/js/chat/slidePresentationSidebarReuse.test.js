@@ -230,6 +230,24 @@ test('native full-site editor uses revisioned save and render APIs', () => {
     assert.match(index, /id="slide-presentation-EditorHost"/);
     assert.doesNotMatch(index, /id="slide-presentation-EditorFrame"/);
     assert.doesNotMatch(index, /slide-presentation-editor-frame/);
+    assert.deepEqual(
+        Array.from(
+            index.matchAll(/<link rel="stylesheet" href="([^"]+)" data-slide-presentation-editor-stylesheet>/g),
+            match => match[1],
+        ),
+        [
+            '/css/common/animations.css',
+            '/css/common/elementsNew.css',
+            '/css/common/searchModal.css',
+        ],
+    );
+    assert.match(editor, /querySelectorAll\('link\[data-slide-presentation-editor-stylesheet\]'\)/);
+    assert.match(editor, /sourceStylesheet\.cloneNode\(false\)/);
+    assert.match(editor, /root\.prepend\(\.\.\.sharedStylesheets\)/);
+    assert.doesNotMatch(
+        editor,
+        /href="\/css\/common\/(?:animations|elementsNew|searchModal)\.css"/,
+    );
     assert.match(widget, /slidePresentationNativeEditor/);
     assert.match(widget, /method: 'PUT'/);
     assert.match(widget, /\/editor\/render/);

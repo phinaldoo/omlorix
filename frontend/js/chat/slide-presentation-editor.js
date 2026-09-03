@@ -10,9 +10,6 @@ if (!host) return;
 
 const root = host.shadowRoot || host.attachShadow({ mode: 'open' });
 root.innerHTML = `
-<link rel="stylesheet" href="/css/common/animations.css">
-<link rel="stylesheet" href="/css/common/elementsNew.css">
-<link rel="stylesheet" href="/css/common/searchModal.css">
 <style>
   :host, :host([data-theme="dark"]) {
     --bg: var(--background, #0c0d10);
@@ -638,6 +635,17 @@ root.innerHTML = `
 <div id="toast"></div>
 <input type="file" id="fileInput" accept=".html,.htm,text/html" class="hidden">
 `;
+// The production build hashes these URLs in index.html. Clone the rewritten
+// links so the Shadow DOM never falls back to unhashed asset names.
+const sharedStylesheets = Array.from(
+  document.querySelectorAll('link[data-slide-presentation-editor-stylesheet]'),
+  sourceStylesheet => {
+    const stylesheet = sourceStylesheet.cloneNode(false);
+    stylesheet.removeAttribute('data-slide-presentation-editor-stylesheet');
+    return stylesheet;
+  }
+);
+root.prepend(...sharedStylesheets);
 host.dataset.embedded = 'true';
 host.dataset.theme = 'dark';
 
