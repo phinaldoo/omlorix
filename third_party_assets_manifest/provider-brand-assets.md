@@ -1,3 +1,3 @@
 # Provider Icon Policy
 
-Omlorix distributes no third-party provider logo or brand artwork. Provider names remain text-only compatibility identifiers.
+Omlorix distributes no third-party provider logo or brand artwork. Provider names remain text-only compatibility identifiers, and every provider entry uses the neutral Connections icon.

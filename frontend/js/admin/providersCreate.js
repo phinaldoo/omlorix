@@ -1047,7 +1047,7 @@
             } else if (key === "anthropic_base") {
                 key = 'anthropic';
             }
-            const fallbackIcon = Icons?.omlorix || '';
+            const fallbackIcon = Icons?.connections || '';
             // Always uniquify IDs inside preset SVGs. Hidden admin pages remain
             // mounted, and duplicate gradient/clip/image IDs otherwise corrupt
             // later copies of complex icons such as Google AI Studio.

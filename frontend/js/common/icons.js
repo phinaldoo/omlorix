@@ -1,7 +1,6 @@
-// Provider entries use project-owned Omlorix artwork or a neutral service icon.
+// Provider and connection entries all use the same neutral Connections icon.
 // No third-party provider logo artwork is distributed by this registry.
 const OMLORIX_NEUTRAL_EXTERNAL_SERVICE_ICON = "<svg width=\"20\" height=\"20\" viewBox=\"0 0 20 20\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\" class=\"icon\" aria-hidden=\"true\" focusable=\"false\"><path d=\"m6.3 9.1 7.4-3.7m-7.4 5.5 7.4 3.7\" stroke=\"currentColor\" stroke-width=\"1.33\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><circle cx=\"4.5\" cy=\"10\" r=\"2\" stroke=\"currentColor\" stroke-width=\"1.33\"/><circle cx=\"15.5\" cy=\"4.5\" r=\"2\" stroke=\"currentColor\" stroke-width=\"1.33\"/><circle cx=\"15.5\" cy=\"15.5\" r=\"2\" stroke=\"currentColor\" stroke-width=\"1.33\"/></svg>";
-const OMLORIX_PROVIDER_SERVICE_ICON = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 512 512" class="icon omlorix-provider-icon" aria-hidden="true" focusable="false"><path d="M104.45 343.5A175 175 0 0 1 301.29 86.96m123.75 123.75A175 175 0 0 1 168.5 407.55" fill="none" stroke="currentColor" stroke-width="32" stroke-linecap="round"/><circle cx="379.74" cy="132.26" r="50" fill="currentColor"/></svg>';
 let Icons = {
     omlorix: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" aria-label="Brand icon"><path d="M104.45 343.5A175 175 0 0 1 301.29 86.96m123.75 123.75A175 175 0 0 1 168.5 407.55" fill="none" stroke="#000" stroke-width="32" stroke-linecap="round"/><circle cx="379.74" cy="132.26" r="50"/></svg>',
     user: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" width="20" height="20"><path fill="currentColor" d="M10 1.66A4.17 4.17 0 1 1 10 10a4.17 4.17 0 1 1 0-8.34M10 3a2.83 2.83 0 1 0 0 5.66A2.83 2.83 0 1 0 10 3M2.33 17.5V16A4.67 4.67 0 0 1 7 11.33h6A4.67 4.67 0 0 1 17.67 16v1.5a.67.67 0 0 1-1.34 0V16A3.33 3.33 0 0 0 13 12.67H7A3.33 3.33 0 0 0 3.67 16v1.5a.67.67 0 0 1-1.34 0"/></svg>',
@@ -18,7 +17,7 @@ let Icons = {
     thumbUp: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"><path d="M6.33 8.67v8m0 0H4a1.33 1.33 0 0 1-1.33-1.33V10A1.33 1.33 0 0 1 4 8.67h2.33l2.84-5.34a1.55 1.55 0 0 1 2.8 1.28L11.12 8h4.55a1.67 1.67 0 0 1 1.63 2l-1.07 5.33a2 2 0 0 1-1.96 1.34z"/></svg>',
     thumbDown: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"><path d="M13.67 11.33v-8m0 0H16a1.33 1.33 0 0 1 1.33 1.33V10A1.33 1.33 0 0 1 16 11.33h-2.33l-2.84 5.34a1.55 1.55 0 0 1-2.8-1.28L8.88 12H4.33a1.67 1.67 0 0 1-1.63-2l1.07-5.33a2 2 0 0 1 1.96-1.34z"/></svg>',
     speaker: '<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" class="icon"><path fill-rule="evenodd" clip-rule="evenodd" d="M11.151 8.349a2.335 2.335 0 0 1 0 3.302.665.665 0 0 0 .94.94 3.665 3.665 0 0 0 0-5.182.665.665 0 0 0-.94.94m2.121-2.121a5.335 5.335 0 0 1 0 7.544.665.665 0 0 0 .941.941 6.665 6.665 0 0 0 0-9.426.665.665 0 0 0-.941.941M4.5 7.335h1.725L9.03 4.53a.665.665 0 0 1 1.135.47v10a.665.665 0 0 1-1.135.47l-2.805-2.805H4.5A.665.665 0 0 1 3.835 12V8a.665.665 0 0 1 .665-.665m.665 1.33v2.67H6.5a.67.67 0 0 1 .47.195l1.865 1.865v-6.79L6.97 8.47a.67.67 0 0 1-.47.195Z"/></svg>',
-    connections: '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" class="icon"><path d="m6.3 9.1 7.4-3.7m-7.4 5.5 7.4 3.7" stroke="currentColor" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"/><circle cx="4.5" cy="10" r="2" stroke="currentColor" stroke-width="1.33"/><circle cx="15.5" cy="4.5" r="2" stroke="currentColor" stroke-width="1.33"/><circle cx="15.5" cy="15.5" r="2" stroke="currentColor" stroke-width="1.33"/></svg>',
+    connections: OMLORIX_NEUTRAL_EXTERNAL_SERVICE_ICON,
     share: '<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" class="icon"><path d="M4.667 11a.667.667 0 0 0-1.334 0v3A2.667 2.667 0 0 0 6 16.667h8A2.667 2.667 0 0 0 16.667 14v-3a.667.667 0 0 0-1.334 0v3A1.333 1.333 0 0 1 14 15.333H6A1.333 1.333 0 0 1 4.667 14zm4.668 1.5V4.939L7.137 7.137a.664.664 0 1 1-.94-.94L9.53 2.863l.101-.083a.66.66 0 0 1 .839.083l3.334 3.334a.666.666 0 0 1-.941.94L10.665 4.94v7.56a.665.665 0 0 1-1.33 0"/></svg>',
     download: '<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" class="icon"><path d="M4.667 11a.667.667 0 0 0-1.334 0v3A2.667 2.667 0 0 0 6 16.667h8A2.667 2.667 0 0 0 16.667 14v-3a.667.667 0 0 0-1.334 0v3A1.333 1.333 0 0 1 14 15.333H6A1.333 1.333 0 0 1 4.667 14zm4.668-7.667v7.561L7.137 8.696a.664.664 0 1 0-.94.94L9.53 12.97l.101.083a.66.66 0 0 0 .839-.083l3.334-3.334a.666.666 0 0 0-.941-.94l-2.198 2.197v-7.56a.665.665 0 0 0-1.33 0"/></svg>',
     undo: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"><path d="M4.95 15.05a7.15 7.15 0 1 0 0-10.1m0-2.3v2.3h2.3"/></svg>',
@@ -200,21 +199,21 @@ let Icons = {
     perplexity: OMLORIX_NEUTRAL_EXTERNAL_SERVICE_ICON,
     nebius: OMLORIX_NEUTRAL_EXTERNAL_SERVICE_ICON,
     nvidia: OMLORIX_NEUTRAL_EXTERNAL_SERVICE_ICON,
-    openai: OMLORIX_PROVIDER_SERVICE_ICON,
+    openai: OMLORIX_NEUTRAL_EXTERNAL_SERVICE_ICON,
     anthropic: OMLORIX_NEUTRAL_EXTERNAL_SERVICE_ICON,
     google_aistudio: OMLORIX_NEUTRAL_EXTERNAL_SERVICE_ICON,
     ollama: OMLORIX_NEUTRAL_EXTERNAL_SERVICE_ICON,
     openrouter: OMLORIX_NEUTRAL_EXTERNAL_SERVICE_ICON,
     alibaba: OMLORIX_NEUTRAL_EXTERNAL_SERVICE_ICON,
     baidu: OMLORIX_NEUTRAL_EXTERNAL_SERVICE_ICON,
-    exa: OMLORIX_PROVIDER_SERVICE_ICON,
+    exa: OMLORIX_NEUTRAL_EXTERNAL_SERVICE_ICON,
     lmstudio: OMLORIX_NEUTRAL_EXTERNAL_SERVICE_ICON,
     meta: OMLORIX_NEUTRAL_EXTERNAL_SERVICE_ICON,
     google: OMLORIX_NEUTRAL_EXTERNAL_SERVICE_ICON,
     apple: OMLORIX_NEUTRAL_EXTERNAL_SERVICE_ICON,
     microsoft: OMLORIX_NEUTRAL_EXTERNAL_SERVICE_ICON,
     minimax: OMLORIX_NEUTRAL_EXTERNAL_SERVICE_ICON,
-    mistral: OMLORIX_PROVIDER_SERVICE_ICON,
+    mistral: OMLORIX_NEUTRAL_EXTERNAL_SERVICE_ICON,
     qwen: OMLORIX_NEUTRAL_EXTERNAL_SERVICE_ICON,
     xai: OMLORIX_NEUTRAL_EXTERNAL_SERVICE_ICON,
     tavily: OMLORIX_NEUTRAL_EXTERNAL_SERVICE_ICON,
@@ -232,7 +231,7 @@ let Icons = {
     gemini: OMLORIX_NEUTRAL_EXTERNAL_SERVICE_ICON,
     grok: OMLORIX_NEUTRAL_EXTERNAL_SERVICE_ICON,
     kimi: OMLORIX_NEUTRAL_EXTERNAL_SERVICE_ICON,
-    github: OMLORIX_PROVIDER_SERVICE_ICON,
+    github: OMLORIX_NEUTRAL_EXTERNAL_SERVICE_ICON,
     gmail: OMLORIX_NEUTRAL_EXTERNAL_SERVICE_ICON,
     google_calendar: OMLORIX_NEUTRAL_EXTERNAL_SERVICE_ICON,
     google_drive: OMLORIX_NEUTRAL_EXTERNAL_SERVICE_ICON,

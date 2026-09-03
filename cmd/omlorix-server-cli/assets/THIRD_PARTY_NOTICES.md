@@ -18,7 +18,7 @@ Tecnativa has not endorsed, sponsored, certified, or approved Omlorix. The use o
 
 ## Third-party provider names
 
-Omlorix distributes no third-party provider logo or brand artwork. Compatible services are identified by text; the interface uses either Omlorix's own icon or its neutral external-service icon. The provider icon policy is recorded in:
+Omlorix distributes no third-party provider logo or brand artwork. Compatible services are identified by text; provider entries use the neutral Connections icon. The provider icon policy is recorded in:
 
 - `third_party_assets_manifest/provider-brand-assets.md`
 - `third_party_assets_manifest/provider-brand-assets.manifest.json`

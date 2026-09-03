@@ -132,33 +132,77 @@ test('theme selector icons use the same outline rendering system', () => {
     }
 });
 
-test('provider entries use Omlorix artwork and distribute no third-party logo files', () => {
+test('provider entries use the Connections icon and distribute no provider logo files', () => {
     const icons = loadIconRegistry();
     const manifest = JSON.parse(fs.readFileSync(providerBrandManifestPath, 'utf8'));
-    const omlorixProviderKeys = ['exa', 'github', 'mistral', 'openai'];
+    const providerIconKeys = [
+        'aiohttp',
+        'alibaba',
+        'amazon',
+        'anthropic',
+        'apple',
+        'baidu',
+        'claude',
+        'cloudflare',
+        'crawl4ai',
+        'deepseek',
+        'duckduckgo',
+        'elevenlabs',
+        'exa',
+        'firecrawl',
+        'gemini',
+        'gemma',
+        'github',
+        'gmail',
+        'google',
+        'google_aistudio',
+        'google_calendar',
+        'google_drive',
+        'grok',
+        'kimi',
+        'lmstudio',
+        'meta',
+        'microsoft',
+        'minimax',
+        'mistral',
+        'nebius',
+        'notion',
+        'nvidia',
+        'ollama',
+        'openai',
+        'openrouter',
+        'perplexity',
+        'qwen',
+        'searxng',
+        'serper',
+        'slack',
+        'tavily',
+        'xai',
+        'you',
+        'youtube',
+    ];
+    const formerOmlorixProviderDirectories = ['exa', 'github', 'mistral', 'openai'];
 
     assert.deepEqual(manifest.official_assets, []);
-    assert.deepEqual(manifest.omlorix_provider_icon.registry_keys, omlorixProviderKeys);
-    for (const iconKey of omlorixProviderKeys) {
-        assert.equal(icons[iconKey], icons.exa, `${iconKey} does not use the shared Omlorix provider icon`);
+    assert.equal(manifest.provider_icon.registry_key, 'connections');
+    for (const iconKey of providerIconKeys) {
+        assert.equal(icons[iconKey], icons.connections, `${iconKey} does not use the Connections icon`);
         assert.match(icons[iconKey], /^<svg\b/i);
-        assert.match(icons[iconKey], /M104\.45 343\.5A175 175/);
         assert.match(icons[iconKey], /stroke="currentColor"/);
-        assert.match(icons[iconKey], /fill="currentColor"/);
+        assert.doesNotMatch(icons[iconKey], /M104\.45 343\.5A175 175|omlorix-provider-icon/);
         assert.doesNotMatch(icons[iconKey], /<(?:img|span)\b|assets\/brands/i);
     }
 
     const registrySource = fs.readFileSync(iconsPath, 'utf8');
-    assert.doesNotMatch(registrySource, /assets\/brands|third-party-brand-icon|github-brand-icon/i);
-    for (const providerDirectory of omlorixProviderKeys) {
+    assert.doesNotMatch(registrySource, /OMLORIX_PROVIDER_SERVICE_ICON|omlorix-provider-icon|assets\/brands|third-party-brand-icon|github-brand-icon/i);
+    for (const providerDirectory of formerOmlorixProviderDirectories) {
         const directory = path.join(repositoryRoot, 'frontend/assets/brands', providerDirectory);
         if (fs.existsSync(directory)) {
             assert.deepEqual(fs.readdirSync(directory), [], `${providerDirectory} still contains provider artwork`);
         }
     }
 
-    assert.equal(icons.elevenlabs, icons.slack);
-    assert.equal(icons.google_drive, icons.slack);
+    assert.equal(icons.artificialAnalysis, icons.connections);
     assert.equal(icons.chatFilesGoogleDrive, icons.google_drive);
     assert.equal(icons.resolveIcon('artificialAnalysisWordmark'), '');
 
