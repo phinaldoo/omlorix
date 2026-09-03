@@ -1955,6 +1955,13 @@ def _resolve_adapter_for_destination(
     return adapter
 
 
+def _destination_uses_remote_storage(destination: BackupDestination | None) -> bool:
+    """Return whether a destination stores its durable artifact off-host."""
+    if destination is None:
+        return False
+    return str(destination.provider or "").strip().lower() != "local"
+
+
 def apply_backup_schedule_retention(db: Session, schedule: BackupSchedule) -> None:
     """Prune successful backup artifacts created by one backup schedule."""
     retention_count = schedule.retention_count if isinstance(schedule.retention_count, int) and schedule.retention_count > 0 else None
@@ -2050,7 +2057,8 @@ def _run_backup_job_with_session(db: Session, backup_job_id: str) -> BackupJob:
     if job.status == "running":
         return job
 
-    staging_dir = BACKUP_STAGING_DIR / backup_job_id
+    work_dir = BACKUP_STAGING_DIR / backup_job_id
+    staging_dir = work_dir / "contents"
     try:
         # Every operation after a durable job reservation belongs inside this
         # boundary. Policy validation, passphrase lookup, filesystem setup, and
@@ -2058,9 +2066,11 @@ def _run_backup_job_with_session(db: Session, backup_job_id: str) -> BackupJob:
         # those failures still need a terminal catalog status.
         update_backup_job_status(db, job_id=backup_job_id, status="running", error=None)
 
-        if staging_dir.exists():
-            shutil.rmtree(staging_dir, ignore_errors=True)
-        staging_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+        if work_dir.exists():
+            shutil.rmtree(work_dir)
+        work_dir.mkdir(parents=True, exist_ok=False, mode=0o700)
+        staging_dir.mkdir(exist_ok=False, mode=0o700)
+        os.chmod(work_dir, 0o700)
         os.chmod(staging_dir, 0o700)
 
         now = datetime.now(timezone.utc)
@@ -2071,14 +2081,21 @@ def _run_backup_job_with_session(db: Session, backup_job_id: str) -> BackupJob:
             BACKUP_ENCRYPTED_ARCHIVE_SUFFIX if encryption_enabled else BACKUP_ARCHIVE_SUFFIX
         )
         archive_relative = _build_storage_relative_path(backup_job_id, now, extension=archive_extension)
-        final_archive_local = BACKUP_ARCHIVE_DIR / (
+        destination, destination_config = _resolve_destination(db, job.destination_id)
+        adapter = _resolve_adapter_for_destination(destination, destination_config)
+        # A remote artifact is durable only at its configured destination. Keep
+        # its upload source in the job work tree so normal completion and stale
+        # work cleanup cannot leave a second retained copy in backups_data.
+        archive_work_dir = (
+            work_dir
+            if _destination_uses_remote_storage(destination)
+            else BACKUP_ARCHIVE_DIR
+        )
+        final_archive_local = archive_work_dir / (
             f"{backup_job_id}{BACKUP_ENCRYPTED_ARCHIVE_SUFFIX}"
             if encryption_enabled
             else f"{backup_job_id}{BACKUP_ARCHIVE_SUFFIX}"
         )
-
-        destination, destination_config = _resolve_destination(db, job.destination_id)
-        adapter = _resolve_adapter_for_destination(destination, destination_config)
 
         with distributed_lock(BACKUP_JOB_LOCK_NAME, BACKUP_WRITE_FREEZE_MAX_SECONDS + 600):
             activate_write_freeze(reason="backup", ttl_seconds=BACKUP_WRITE_FREEZE_MAX_SECONDS)
@@ -2164,7 +2181,7 @@ def _run_backup_job_with_session(db: Session, backup_job_id: str) -> BackupJob:
             raise RuntimeError("Backup job missing after failure")
         return job
     finally:
-        shutil.rmtree(staging_dir, ignore_errors=True)
+        shutil.rmtree(work_dir, ignore_errors=True)
 
 
 def _resolve_local_artifact_path(source_uri: str) -> Path | None:

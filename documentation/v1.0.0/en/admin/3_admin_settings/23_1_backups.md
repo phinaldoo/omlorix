@@ -22,6 +22,8 @@ Losing the original field-encryption key can make protected restored values unre
 
 Supported providers are **Local**, **S3**, **GCS**, **Azure**, and **WebDAV**.
 
+Local destinations keep their backup artifacts in Omlorix's durable backup volume. S3, GCS, Azure, and WebDAV destinations are remote-only: Omlorix uses the local backup volume as temporary workspace while it builds and uploads an archive, then removes that job's local archive on both success and failure. Size the local volume for the peak workspace needed to create one backup, but not for the cumulative retention of remote backups. If the process is interrupted abruptly, scheduled maintenance removes abandoned staging work after the configured staging-retention period.
+
 1. Select **Add destination**.
 2. Enter **Destination name** and choose **Provider**.
 3. Complete **Provider details**.
