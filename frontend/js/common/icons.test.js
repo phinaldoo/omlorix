@@ -111,6 +111,27 @@ test('new semantic UI icons share the 20px filled currentColor system', () => {
     }
 });
 
+test('theme selector icons use the same outline rendering system', () => {
+    const icons = loadIconRegistry();
+
+    for (const iconName of ['desktop', 'sun', 'moon']) {
+        const rootTag = icons.resolveIcon(iconName).match(/^<svg\b[^>]*>/i)?.[0] || '';
+
+        assert.match(rootTag, /\bfill="none"/i, `${iconName} is not an outline icon`);
+        assert.match(rootTag, /\bstroke="currentColor"/i, `${iconName} does not inherit the stroke color`);
+        assert.match(rootTag, /\bstroke-width="1\.33"/i, `${iconName} has a mismatched optical weight`);
+        assert.match(rootTag, /\bstroke-linecap="round"/i, `${iconName} does not use rounded line caps`);
+        assert.match(rootTag, /\bstroke-linejoin="round"/i, `${iconName} does not use rounded line joins`);
+    }
+
+    for (const relativeFile of ['frontend/login.html', 'frontend/admin.html']) {
+        const source = fs.readFileSync(path.join(repositoryRoot, relativeFile), 'utf8');
+        const darkThemeButton = source.match(/<button\b[^>]*\bdata-theme="dark"[^>]*>[\s\S]*?<\/button>/i)?.[0] || '';
+
+        assert.match(darkThemeButton, /data-omlorix-icon="moon"/, `${relativeFile} does not use the outline moon`);
+    }
+});
+
 test('provider entries use Omlorix artwork and distribute no third-party logo files', () => {
     const icons = loadIconRegistry();
     const manifest = JSON.parse(fs.readFileSync(providerBrandManifestPath, 'utf8'));
