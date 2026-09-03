@@ -95,6 +95,26 @@ test('main header sidebar button becomes visible in overlay mode', () => {
     );
 });
 
+test('sticky sidebar surfaces stay above chat row menu controls while scrolling', () => {
+    const sidebarStyles = readFrontendSource(SIDEBAR_STYLES_PATH, 'utf8');
+    const menuLayerMatch = sidebarStyles.match(
+        /\.sidebar-element-menu-trigger\s*\{[^}]*z-index:\s*(\d+);/,
+    );
+    assert.ok(menuLayerMatch, 'missing chat row menu layer');
+    const menuLayer = Number(menuLayerMatch[1]);
+
+    ['sidebar-header', 'sidebar-mid', 'sidebar-footer'].forEach((className) => {
+        const stickyLayerMatch = sidebarStyles.match(
+            new RegExp(`\\.${className}\\s*\\{[^}]*z-index:\\s*(\\d+);`),
+        );
+        assert.ok(stickyLayerMatch, `missing ${className} layer`);
+        assert.ok(
+            Number(stickyLayerMatch[1]) > menuLayer,
+            `${className} must paint above chat row menu controls`,
+        );
+    });
+});
+
 test('artifact preview auto-collapse preserves and restores the saved sidebar preference', () => {
     const runtime = loadSidebarPreferenceController({ savedState: 'open' });
 
