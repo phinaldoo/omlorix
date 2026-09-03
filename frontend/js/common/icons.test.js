@@ -88,7 +88,7 @@ test('new semantic icons and dynamic SVG helpers are registered', () => {
     assert.match(icons.createSlidePlaceholder('<Slide & 1>'), /&lt;Slide &amp; 1&gt;/);
 });
 
-test('new semantic UI icons share the 20px filled currentColor system', () => {
+test('new semantic UI icons share the 20px currentColor system', () => {
     const icons = loadIconRegistry();
 
     for (const iconName of normalizedSemanticIconNames) {
@@ -99,14 +99,21 @@ test('new semantic UI icons share the 20px filled currentColor system', () => {
         assert.match(rootTag, /\bwidth="20"/i, `${iconName} does not have a 20px width`);
         assert.match(rootTag, /\bheight="20"/i, `${iconName} does not have a 20px height`);
         assert.match(rootTag, /\bviewBox="0 0 20 20"/i, `${iconName} does not use the 20px viewBox`);
-        assert.match(rootTag, /\bfill="currentColor"/i, `${iconName} does not inherit the foreground color`);
         assert.match(rootTag, /\bstroke-width="1\.33"/i, `${iconName} does not declare the regular optical weight`);
         assert.match(rootTag, /\bstroke-linecap="round"/i, `${iconName} does not declare rounded line caps`);
         assert.match(rootTag, /\bstroke-linejoin="round"/i, `${iconName} does not declare rounded line joins`);
         assert.match(rootTag, /\bfocusable="false"/i, `${iconName} is not hidden from legacy SVG focus handling`);
-        assert.match(markup, /<path\b/i, `${iconName} has no filled path`);
-        assert.doesNotMatch(markup, /\bstroke\s*=/i, `${iconName} still depends on stroke rendering`);
-        assert.doesNotMatch(markup, /\bfill="(?!currentColor)[^"]+"/i, `${iconName} contains a non-currentColor fill`);
+        assert.match(markup, /<path\b/i, `${iconName} has no path geometry`);
+
+        if (iconName === 'temporaryChat') {
+            assert.match(rootTag, /\bfill="none"/i, `${iconName} is not an outline icon`);
+            assert.match(rootTag, /\bstroke="currentColor"/i, `${iconName} does not inherit the stroke color`);
+            assert.match(markup, /\bstroke-dasharray="5\.5 3\.3"/i, `${iconName} is missing its temporary-state dash pattern`);
+        } else {
+            assert.match(rootTag, /\bfill="currentColor"/i, `${iconName} does not inherit the foreground color`);
+            assert.doesNotMatch(markup, /\bstroke\s*=/i, `${iconName} still depends on stroke rendering`);
+            assert.doesNotMatch(markup, /\bfill="(?!currentColor)[^"]+"/i, `${iconName} contains a non-currentColor fill`);
+        }
         assert.doesNotMatch(markup, /<(?!\/?(?:svg|path)\b)[a-z][^>]*>/i, `${iconName} contains non-path SVG geometry`);
     }
 });
