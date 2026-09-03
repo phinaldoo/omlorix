@@ -1215,6 +1215,8 @@ test('stream completion finalizes answer and thinking Markdown enhancements', ()
         getAttribute: () => '$x^2$',
     };
     const rendered = [];
+    const flushed = [];
+    const cleared = [];
     let selector = '';
     const container = {
         querySelectorAll(value) {
@@ -1230,6 +1232,12 @@ test('stream completion finalizes answer and thinking Markdown enhancements', ()
         {
             cancelScheduledStreamingRender() {},
             flushPendingRenders() {},
+            flushAssistantStreamingContentInContainer(value) {
+                flushed.push(value);
+            },
+            clearAssistantStreamingPresentation(value) {
+                cleared.push(value);
+            },
             renderAssistantMessageContent(element, raw) {
                 rendered.push([element, raw]);
             },
@@ -1241,10 +1249,282 @@ test('stream completion finalizes answer and thinking Markdown enhancements', ()
 
     assert.match(selector, /\.assistant-message-content/);
     assert.match(selector, /\.thinking-step-content/);
+    assert.deepEqual(flushed, [container]);
+    assert.deepEqual(cleared, [container]);
     assert.deepEqual(rendered, [
         [answer, '# Answer'],
         [thinking, '$x^2$'],
     ]);
+});
+
+test('assistant stream pacing drains bursts gradually and flushes the exact received text', () => {
+    const source = readFrontendSource(
+        path.join(__dirname, 'messages', 'assistant-content.js'),
+        'utf8',
+    );
+    const pacerEnd = source.indexOf('\nfunction assistantStreamingStateBelongsToContainer');
+    assert.notEqual(pacerEnd, -1, 'assistant streaming pacer boundary not found');
+
+    const scheduledRenders = [];
+    const finalRenders = [];
+    const animationFrames = [];
+    const cancelledFrames = [];
+    const pendingRenderQueue = new Map();
+    let reduceMotion = false;
+    const helpers = vm.runInNewContext(
+        `${source.slice(0, pacerEnd)}
+({
+    assistantStreamingContentStates,
+    enqueueAssistantStreamingContent,
+    flushAssistantStreamingContentElement,
+    takeAssistantStreamingTextPrefix,
+});`,
+        {
+            window: {
+                matchMedia: () => ({ matches: reduceMotion }),
+            },
+            performance: { now: () => 0 },
+            pendingRenderQueue,
+            requestAnimationFrame(callback) {
+                animationFrames.push(callback);
+                return animationFrames.length;
+            },
+            cancelAnimationFrame(frameId) {
+                cancelledFrames.push(frameId);
+            },
+            scheduleDebouncedRender(elementId, raw) {
+                scheduledRenders.push([elementId, raw]);
+            },
+            renderAssistantMessageContent(element, raw) {
+                finalRenders.push([element, raw]);
+            },
+        },
+        { filename: 'streamMessages.assistantPacer.js' },
+    );
+
+    const streamingContainer = {
+        dataset: {
+            isStreaming: 'true',
+            smoothStreaming: 'true',
+        },
+    };
+    const createContentElement = (id) => ({
+        id,
+        isConnected: true,
+        attributes: {},
+        closest(selector) {
+            return selector === '.assistant-message-container' ? streamingContainer : null;
+        },
+        getAttribute(name) {
+            return Object.prototype.hasOwnProperty.call(this.attributes, name)
+                ? this.attributes[name]
+                : null;
+        },
+        setAttribute(name, value) {
+            this.attributes[name] = String(value);
+        },
+        removeAttribute(name) {
+            delete this.attributes[name];
+        },
+        querySelectorAll() {
+            return [];
+        },
+    });
+
+    const content = createContentElement('paced-answer');
+    const burst = `${'A steady stream keeps long network bursts readable. '.repeat(16)}Done 👨‍👩‍👧‍👦`;
+    helpers.enqueueAssistantStreamingContent(content, burst);
+
+    assert.equal(content.getAttribute('data-raw-content'), null);
+    assert.equal(helpers.assistantStreamingContentStates.size, 1);
+    assert.equal(animationFrames.length, 1);
+
+    animationFrames.shift()(16);
+    const partiallyDisplayed = content.getAttribute('data-raw-content');
+    assert.ok(partiallyDisplayed.length > 0);
+    assert.ok(partiallyDisplayed.length < burst.length);
+    assert.equal(burst.startsWith(partiallyDisplayed), true);
+    assert.equal(scheduledRenders.at(-1)[1], partiallyDisplayed);
+
+    helpers.flushAssistantStreamingContentElement(content);
+    assert.equal(helpers.assistantStreamingContentStates.size, 0);
+    assert.equal(finalRenders.length, 1);
+    assert.equal(finalRenders[0][1], burst);
+    assert.equal(content.getAttribute('data-raw-content'), burst);
+    assert.ok(cancelledFrames.length > 0);
+
+    animationFrames.length = 0;
+    const largeBurstContent = createContentElement('large-burst-answer');
+    const largeBurst = 'bounded network burst '.repeat(900);
+    helpers.enqueueAssistantStreamingContent(largeBurstContent, largeBurst);
+    animationFrames.shift()(32);
+    const partiallyDisplayedLargeBurst = largeBurstContent.getAttribute('data-raw-content');
+    assert.ok(partiallyDisplayedLargeBurst.length > 0);
+    assert.ok(partiallyDisplayedLargeBurst.length < largeBurst.length);
+    helpers.flushAssistantStreamingContentElement(largeBurstContent);
+
+    assert.equal(
+        helpers.takeAssistantStreamingTextPrefix('A👨‍👩‍👧‍👦B', 2, 0),
+        'A👨‍👩‍👧‍👦',
+        'the visual frontier must not split a joined emoji',
+    );
+    assert.equal(
+        helpers.takeAssistantStreamingTextPrefix('e\u0301x', 1, 0),
+        'e\u0301',
+        'the visual frontier must not split a combining sequence',
+    );
+
+    reduceMotion = true;
+    const reducedMotionContent = createContentElement('instant-answer');
+    helpers.enqueueAssistantStreamingContent(reducedMotionContent, 'Reveal this without pacing.');
+    assert.equal(helpers.assistantStreamingContentStates.size, 0);
+    assert.equal(reducedMotionContent.getAttribute('data-raw-content'), 'Reveal this without pacing.');
+    assert.equal(scheduledRenders.at(-1)[1], 'Reveal this without pacing.');
+
+    const caughtUpContent = createContentElement('caught-up-answer');
+    caughtUpContent.setAttribute('data-streaming-reveal', 'true');
+    pendingRenderQueue.set(caughtUpContent.id, 'Render this before the next transcript block.');
+    assert.equal(helpers.flushAssistantStreamingContentElement(caughtUpContent), true);
+    assert.equal(pendingRenderQueue.has(caughtUpContent.id), false);
+    assert.equal(finalRenders.at(-1)[1], 'Render this before the next transcript block.');
+    assert.equal(caughtUpContent.getAttribute('data-streaming-reveal'), null);
+
+    const staleContent = createContentElement('stale-answer');
+    staleContent.setAttribute('data-streaming-reveal', 'true');
+    pendingRenderQueue.set(staleContent.id, 'Do not render this stale update.');
+    assert.equal(
+        helpers.flushAssistantStreamingContentElement(staleContent, { discard: true }),
+        false,
+    );
+    assert.equal(pendingRenderQueue.has(staleContent.id), false);
+    assert.equal(staleContent.getAttribute('data-streaming-reveal'), null);
+});
+
+test('assistant stream pacing flushes only at transcript event boundaries', () => {
+    const source = readFrontendSource(
+        path.join(__dirname, 'messages', 'assistant-content.js'),
+        'utf8',
+    );
+    const nonBoundaryDeclaration = source.match(
+        /const ASSISTANT_STREAM_NON_BOUNDARY_EVENT_TYPES = new Set\(\[[\s\S]*?\]\);/,
+    )?.[0];
+    assert.ok(nonBoundaryDeclaration);
+
+    const calls = [];
+    const { flushAssistantStreamingContentBeforeEvent } = vm.runInNewContext(
+        `${nonBoundaryDeclaration}
+${extractFunction(source, 'flushAssistantStreamingContentBeforeEvent')}
+({ flushAssistantStreamingContentBeforeEvent });`,
+        {
+            flushAssistantStreamingContentForMessage(...args) {
+                calls.push(args);
+                return true;
+            },
+        },
+        { filename: 'streamMessages.assistantPacerBoundaries.js' },
+    );
+    const transcriptRoot = {};
+
+    assert.equal(flushAssistantStreamingContentBeforeEvent('message-1', 'c', 'c', transcriptRoot), false);
+    assert.equal(flushAssistantStreamingContentBeforeEvent('message-1', 'c', 'm_id', transcriptRoot), false);
+    assert.equal(flushAssistantStreamingContentBeforeEvent('message-1', 'c', 'w', transcriptRoot), false);
+    assert.equal(flushAssistantStreamingContentBeforeEvent('message-1', 'r', 'd', transcriptRoot), false);
+    assert.equal(flushAssistantStreamingContentBeforeEvent('message-1', 'c', 'r', transcriptRoot), true);
+    assert.equal(flushAssistantStreamingContentBeforeEvent('message-1', 'c', 'd', transcriptRoot), true);
+    assert.deepEqual(calls, [
+        ['message-1', transcriptRoot],
+        ['message-1', transcriptRoot],
+    ]);
+});
+
+test('smooth Markdown streaming commits only parser-complete top-level blocks', () => {
+    const MarkdownIt = require('../vendor/markdown/markdown-it.min.js');
+    const markdownSource = readFrontendSource(
+        path.join(__dirname, 'rendering', 'markdown-ui.js'),
+        'utf8',
+    );
+    const { getAssistantStreamingStableMarkdownAdvance } = vm.runInNewContext(
+        [
+            extractFunction(markdownSource, 'getAssistantStreamingMarkdownLineOffset'),
+            extractFunction(markdownSource, 'getAssistantStreamingStableMarkdownAdvance'),
+            '({ getAssistantStreamingStableMarkdownAdvance });',
+        ].join('\n'),
+        {},
+        { filename: 'streamMessages.stableMarkdownTail.js' },
+    );
+    const md = new MarkdownIt({ breaks: true });
+    const offset = (text) => getAssistantStreamingStableMarkdownAdvance(md, text);
+
+    assert.equal(offset('One unfinished paragraph'), 0);
+    assert.equal(
+        offset('First paragraph.\n\nSecond paragraph'),
+        'First paragraph.\n\n'.length,
+    );
+    assert.equal(offset('- first item\n\n- second item'), 0, 'one loose list remains one live block');
+    assert.equal(
+        offset('- list item\n\nFollowing paragraph'),
+        '- list item\n\n'.length,
+    );
+    assert.equal(offset('```js\nconst value = 1;\n\nstill code'), 0, 'an open fence is never committed');
+    assert.equal(
+        offset('```js\nconst value = 1;\n```\n\nFollowing paragraph'),
+        '```js\nconst value = 1;\n```\n\n'.length,
+    );
+});
+
+test('smooth assistant streaming is enabled across live surfaces with accessible motion fallbacks', () => {
+    const assistantSource = readFrontendSource(
+        path.join(__dirname, 'messages', 'assistant-content.js'),
+        'utf8',
+    );
+    const markdownSource = readFrontendSource(
+        path.join(__dirname, 'rendering', 'markdown-ui.js'),
+        'utf8',
+    );
+    const actionsSource = readFrontendSource(
+        path.join(__dirname, 'messages', 'actions.js'),
+        'utf8',
+    );
+    const regenerationSource = readFrontendSource(
+        path.join(__dirname, 'sending', 'regeneration.js'),
+        'utf8',
+    );
+    const sendSource = readFrontendSource(
+        path.join(__dirname, 'sending', 'send.js'),
+        'utf8',
+    );
+    const splitStreamingSource = readFrontendSource(
+        path.join(__dirname, 'splitScreen', 'streaming.js'),
+        'utf8',
+    );
+    const chatCss = readFrontendSource(
+        path.join(__dirname, '..', '..', 'css', 'chat', 'chat.css'),
+        'utf8',
+    );
+    const animationsCss = readFrontendSource(
+        path.join(__dirname, '..', '..', 'css', 'common', 'animations.css'),
+        'utf8',
+    );
+
+    assert.match(extractFunction(assistantSource, 'appendAssistantContainer'), /dataset\.smoothStreaming = 'true'/);
+    assert.match(extractFunction(assistantSource, 'appendAssistantContent'), /enqueueAssistantStreamingContent\(/);
+    assert.match(extractFunction(markdownSource, 'renderMarkdownContent'), /renderAssistantStreamingMarkdownTail\(/);
+    assert.match(extractFunction(actionsSource, 'resetAssistantContainerForRetry'), /dataset\.smoothStreaming = 'true'/);
+    assert.match(extractFunction(regenerationSource, 'prepareAssistantRegenerationTarget'), /dataset\.smoothStreaming = 'true'/);
+    assert.match(extractFunction(sendSource, 'sendMessage'), /flushAssistantStreamingContentBeforeEvent\(/);
+    assert.match(extractFunction(regenerationSource, 'processRegenerationStream'), /flushAssistantStreamingContentBeforeEvent\(/);
+    assert.match(extractFunction(splitStreamingSource, 'splitScreenInternalProcessStream'), /flushAssistantStreamingContentBeforeEvent\(/);
+
+    assert.match(animationsCss, /@keyframes assistant-stream-block-in/);
+    assert.match(animationsCss, /@keyframes assistant-stream-text-in/);
+    assert.match(animationsCss, /@keyframes assistant-stream-caret-pulse/);
+    assert.match(chatCss, /\.assistant-stream-text-arrival\s*\{[^}]*animation:\s*assistant-stream-text-in/s);
+    assert.match(chatCss, /\.assistant-stream-caret\s*\{[^}]*animation:\s*assistant-stream-caret-pulse/s);
+    assert.match(
+        chatCss,
+        /@media \(prefers-reduced-motion: reduce\)\s*\{[\s\S]*?\.assistant-message-stream-enter,\s*\.assistant-stream-text-arrival\s*\{[^}]*animation:\s*none/,
+    );
+    assert.match(chatCss, /\.assistant-stream-caret\s*\{[^}]*display:\s*none;[^}]*animation:\s*none/s);
 });
 
 test('every locale translates presentation index persistence failures', () => {

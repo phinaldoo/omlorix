@@ -329,6 +329,7 @@
         if (!menu || !trigger || wrapper?.hidden) return;
         state.open = true;
         menu.hidden = false;
+        window.prepareDropdownOpeningAnimation?.(trigger, menu);
         menu.classList.add('open');
         menu.setAttribute('aria-hidden', 'false');
         trigger.setAttribute('aria-expanded', 'true');

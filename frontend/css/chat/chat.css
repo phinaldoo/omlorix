@@ -378,6 +378,40 @@ body.project-chat-placeholder-mode .chat-box-area {
     color: var(--text-color);
 }
 
+.assistant-message-stream-enter {
+    animation: assistant-stream-block-in 180ms ease-out both;
+}
+
+.assistant-stream-text-arrival {
+    animation: assistant-stream-text-in 65ms ease-out both;
+}
+
+.assistant-stream-caret {
+    display: inline-block;
+    width: 2px;
+    height: 1em;
+    margin-inline-start: 3px;
+    border-radius: 999px;
+    background: currentColor;
+    vertical-align: -0.12em;
+    pointer-events: none;
+    animation: assistant-stream-caret-pulse 1.1s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .assistant-message-stream-enter,
+    .assistant-stream-text-arrival {
+        animation: none;
+        opacity: 1;
+        transform: none;
+    }
+
+    .assistant-stream-caret {
+        display: none;
+        animation: none;
+    }
+}
+
 .assistant-message-error {
     margin-top: 8px;
     padding: 10px 12px;

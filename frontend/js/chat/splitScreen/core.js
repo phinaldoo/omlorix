@@ -1048,11 +1048,14 @@ function splitScreenInternalSetPanelActionsMenuOpen(side, open, { restoreFocus =
     const menu = splitScreenInternalGetPanelActionsMenu(side);
     if (!button || !menu) return;
     const shouldOpen = Boolean(open);
+    if (shouldOpen) {
+        splitScreenInternalUpdatePanelActionsMenu(side);
+        window.prepareDropdownOpeningAnimation?.(button, menu);
+    }
     menu.classList.toggle('open', shouldOpen);
     menu.setAttribute('aria-hidden', shouldOpen ? 'false' : 'true');
     button.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
     if (shouldOpen) {
-        splitScreenInternalUpdatePanelActionsMenu(side);
         splitScreenInternalGetPanelActionMenuItems(side)[0]?.focus();
     } else if (restoreFocus) {
         button.focus();
@@ -1358,6 +1361,9 @@ function splitScreenInternalSetPanelThinkingDropdownOpen(side, open) {
     const button = splitScreenInternalGetPanelThinkingButton(side);
     if (!dropdown || !button) {
         return;
+    }
+    if (open) {
+        window.prepareDropdownOpeningAnimation?.(button, dropdown);
     }
     dropdown.classList.toggle('open', Boolean(open));
     dropdown.setAttribute('aria-hidden', open ? 'false' : 'true');

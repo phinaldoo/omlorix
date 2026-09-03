@@ -232,6 +232,27 @@
     }
 }
 
+@keyframes assistant-stream-block-in {
+    from {
+        opacity: 0.45;
+        transform: translateY(3px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes assistant-stream-text-in {
+    from { opacity: 0.72; }
+    to { opacity: 1; }
+}
+
+@keyframes assistant-stream-caret-pulse {
+    0%, 100% { opacity: 0.35; }
+    50% { opacity: 0.85; }
+}
+
 @keyframes message-highlight {
     0%, 100% { background: inherit; }
     25% { background: rgba(var(--primary-color-rgb, 99, 102, 241), 0.15); }

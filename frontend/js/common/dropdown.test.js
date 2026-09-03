@@ -193,10 +193,11 @@ function loadDropdown() {
         window: {
             addEventListener() {},
             removeEventListener() {},
-            setTimeout(callback) {
-                callback();
+            setTimeout(callback, delay = 0) {
+                if (delay === 0) callback();
                 return 0;
             },
+            clearTimeout() {},
         },
         Icons: { check: '<svg data-icon="check"></svg>' },
     };
@@ -367,6 +368,86 @@ test('dropdown panel navigator swaps panels, sizes the shell, and handles Escape
     assert.equal(context.window.getDropdownPanelNavigator(dropdown), null);
 });
 
+test('dropdown panel height animates only for panel navigation while already open', () => {
+    const { context } = loadDropdown();
+    const dropdown = new FakeElement();
+    const mainPanel = new FakeElement();
+    const detailsPanel = new FakeElement();
+    dropdown.className = 'select-dropdown';
+    mainPanel.dataset.dropdownPanel = 'main';
+    detailsPanel.dataset.dropdownPanel = 'details';
+    dropdown.appendChild(mainPanel);
+    dropdown.appendChild(detailsPanel);
+
+    let mainHeight = 90;
+    const heightChanges = [];
+    const navigator = context.window.createDropdownPanelNavigator({
+        dropdown,
+        panels: [mainPanel, detailsPanel],
+        getPanelHeight: (panelName) => panelName === 'details' ? 180 : mainHeight,
+        onHeightChange: ({ panelName, animated }) => heightChanges.push({ panelName, animated }),
+    });
+
+    assert.equal(dropdown.style.height, '90px');
+    assert.equal(dropdown.classList.contains('is-panel-height-animating'), false);
+    assert.deepEqual(heightChanges, [{ panelName: 'main', animated: false }]);
+
+    mainHeight = 110;
+    navigator.syncHeight();
+
+    assert.equal(dropdown.style.height, '110px');
+    assert.equal(dropdown.classList.contains('is-panel-height-animating'), false);
+
+    dropdown.classList.add('open');
+    mainHeight = 120;
+    navigator.syncHeight();
+
+    assert.equal(dropdown.style.height, '120px');
+    assert.equal(dropdown.classList.contains('is-panel-height-animating'), false);
+
+    navigator.open('details', { focus: false });
+
+    assert.equal(dropdown.style.height, '180px');
+    assert.equal(dropdown.classList.contains('is-panel-height-animating'), true);
+    assert.deepEqual(heightChanges.at(-1), { panelName: 'details', animated: true });
+
+    dropdown.dispatchEvent({
+        type: 'transitionend',
+        propertyName: 'height',
+    });
+    assert.equal(dropdown.classList.contains('is-panel-height-animating'), false);
+
+    dropdown.classList.remove('open');
+    navigator.reset({ focus: false });
+
+    assert.equal(dropdown.style.height, '120px');
+    assert.equal(dropdown.classList.contains('is-panel-height-animating'), false);
+    assert.deepEqual(heightChanges.at(-1), { panelName: 'main', animated: false });
+});
+
+test('dropdown panel navigation respects reduced motion', () => {
+    const { context } = loadDropdown();
+    const dropdown = new FakeElement();
+    const mainPanel = new FakeElement();
+    const detailsPanel = new FakeElement();
+    dropdown.className = 'select-dropdown open';
+    mainPanel.dataset.dropdownPanel = 'main';
+    detailsPanel.dataset.dropdownPanel = 'details';
+    dropdown.appendChild(mainPanel);
+    dropdown.appendChild(detailsPanel);
+    context.window.matchMedia = () => ({ matches: true });
+
+    const navigator = context.window.createDropdownPanelNavigator({
+        dropdown,
+        panels: [mainPanel, detailsPanel],
+        getPanelHeight: (panelName) => panelName === 'details' ? 180 : 90,
+    });
+    navigator.open('details', { focus: false });
+
+    assert.equal(dropdown.style.height, '180px');
+    assert.equal(dropdown.classList.contains('is-panel-height-animating'), false);
+});
+
 test('shared dropdown positioning keeps a menu above its trigger when needed', () => {
     const { context } = loadDropdown();
     context.window.innerWidth = 800;
@@ -375,6 +456,7 @@ test('shared dropdown positioning keeps a menu above its trigger when needed', (
     const trigger = new FakeElement('button');
     trigger.rect = { top: 520, right: 760, bottom: 556, left: 724 };
     const dropdown = new FakeElement();
+    dropdown.className = 'select-dropdown';
     dropdown.offsetWidth = 200;
     dropdown.offsetHeight = 180;
 
@@ -385,6 +467,49 @@ test('shared dropdown positioning keeps a menu above its trigger when needed', (
     assert.equal(dropdown.style.left, '560px');
     assert.equal(dropdown.style.top, '332px');
     assert.equal(dropdown.classList.contains('upward'), true);
+    assert.equal(dropdown.dataset.dropdownAnimationOrigin, 'bottom-right');
+    assert.equal(dropdown.style.transformOrigin, 'bottom right');
+});
+
+test('shared dropdown animation derives all four origins from final geometry', () => {
+    const { context } = loadDropdown();
+    const trigger = new FakeElement('button');
+    trigger.rect = { top: 100, right: 140, bottom: 140, left: 100 };
+
+    const cases = [
+        [{ top: 148, right: 300, bottom: 248, left: 100 }, 'top-left', '-8px'],
+        [{ top: 148, right: 140, bottom: 248, left: -60 }, 'top-right', '-8px'],
+        [{ top: -8, right: 300, bottom: 92, left: 100 }, 'bottom-left', '8px'],
+        [{ top: -8, right: 140, bottom: 92, left: -60 }, 'bottom-right', '8px'],
+    ];
+
+    cases.forEach(([rect, expectedOrigin, expectedOffset]) => {
+        const dropdown = new FakeElement();
+        dropdown.className = 'select-dropdown';
+        dropdown.rect = rect;
+
+        const origin = context.window.prepareDropdownOpeningAnimation(trigger, dropdown);
+
+        assert.equal(origin, expectedOrigin);
+        assert.equal(dropdown.dataset.dropdownAnimationOrigin, expectedOrigin);
+        assert.equal(dropdown.style.transformOrigin, expectedOrigin.replace('-', ' '));
+        assert.equal(dropdown.style['--select-dropdown-animation-offset-y'], expectedOffset);
+    });
+});
+
+test('dropdown controller prepares shared animation direction before opening', () => {
+    const { context } = loadDropdown();
+    const trigger = new FakeElement('button');
+    trigger.rect = { top: 200, right: 240, bottom: 240, left: 200 };
+    const dropdown = new FakeElement();
+    dropdown.className = 'select-dropdown';
+    dropdown.rect = { top: 248, right: 240, bottom: 348, left: 40 };
+
+    const controller = context.window.createDropdownController({ trigger, dropdown });
+    controller.open();
+
+    assert.equal(dropdown.classList.contains('open'), true);
+    assert.equal(dropdown.dataset.dropdownAnimationOrigin, 'top-right');
 });
 
 test('shared transient menu owns item markup, selection, and cleanup', async () => {

@@ -1488,7 +1488,7 @@ function resetUserMessageEditUploadDropdownPosition(session) {
 function positionUserMessageEditUploadDropdown(session) {
     const dropdown = session?.uploadDropdown;
     const uploadButton = session?.uploadButton;
-    if (!dropdown?.classList.contains('open') || !uploadButton) {
+    if (!dropdown || !uploadButton) {
         return;
     }
 
@@ -1515,6 +1515,9 @@ function positionUserMessageEditUploadDropdown(session) {
     dropdown.dataset.verticalPlacement = shouldOpenDownward ? 'down' : 'up';
     dropdown.style.maxHeight = nextMaxHeight > 0 ? `${Math.round(nextMaxHeight)}px` : '';
     dropdown.style.overflowY = '';
+    window.prepareDropdownOpeningAnimation?.(uploadButton, dropdown, {
+        placement: shouldOpenDownward ? 'bottom' : 'top',
+    });
 }
 
 function bindUserMessageEditUploadDropdownViewportListeners(session) {
@@ -1836,6 +1839,7 @@ function createUserMessageEditComposer(session) {
             if (saveMenuButton.disabled) {
                 return;
             }
+            window.prepareDropdownOpeningAnimation?.(saveMenuButton, saveDropdown);
             saveDropdown.classList.add('open');
             saveDropdown.setAttribute('aria-hidden', 'false');
             // CSS rotates the chevron based on aria-expanded; keep a single icon.
@@ -1971,13 +1975,13 @@ function createUserMessageEditComposer(session) {
             closeUploadDropdown();
             return;
         }
+        window.getDropdownPanelNavigator?.(uploadDropdown)?.reset({ focus: false });
+        window.ChatFilesMenu?.updateMenuVisibility?.(uploadDropdown);
+        positionUserMessageEditUploadDropdown(session);
         uploadDropdown.classList.add('open');
         uploadDropdown.setAttribute('aria-hidden', 'false');
         uploadButton.setAttribute('aria-expanded', 'true');
-        window.getDropdownPanelNavigator?.(uploadDropdown)?.reset({ focus: false });
-        window.ChatFilesMenu?.updateMenuVisibility?.(uploadDropdown);
         void window.ChatFilesMenu?.refreshConnectionsAvailability?.();
-        positionUserMessageEditUploadDropdown(session);
         bindUserMessageEditUploadDropdownViewportListeners(session);
     });
     const handleDocumentClick = (event) => {

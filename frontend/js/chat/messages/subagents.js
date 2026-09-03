@@ -392,6 +392,7 @@ function resetSubagentModalRenderState(state) {
         state.modalChat.innerHTML = '';
         state.modalChat.dataset.isStreaming = String(state.status).toLowerCase() === 'running' ? 'true' : 'false';
         state.modalChat.dataset.announceStreaming = 'false';
+        delete state.modalChat.dataset.smoothStreaming;
     }
 }
 
@@ -401,6 +402,17 @@ function renderSubagentEventAsChat(state, event, isLive = false) {
     const data = event.data || {};
     const raw = data.raw && typeof data.raw === 'object' ? data.raw : {};
     const syntheticMessageId = state.syntheticMessageId;
+
+    if (isLive && state.modalChat.dataset.isStreaming === 'true') {
+        state.modalChat.dataset.smoothStreaming = 'true';
+    }
+    if (
+        eventName !== 'message_delta'
+        && state.lastAppendedMessageType === 'c'
+        && typeof flushAssistantStreamingContentForMessage === 'function'
+    ) {
+        flushAssistantStreamingContentForMessage(syntheticMessageId, state.modalChat);
+    }
 
     if (eventName === 'message_delta') {
         const content = data.content == null ? '' : String(data.content);

@@ -1,4 +1,503 @@
+const ASSISTANT_STREAM_REVEAL_RATE_PER_SECOND = 180;
+const ASSISTANT_STREAM_REVEAL_CATCH_UP_RATIO = 0.12;
+const ASSISTANT_STREAM_REVEAL_MAX_PER_FRAME = 80;
+const ASSISTANT_STREAM_REVEAL_ABSOLUTE_MAX_PER_FRAME = 2000;
+const ASSISTANT_STREAM_REVEAL_WORD_LOOKAHEAD = 8;
+const ASSISTANT_STREAM_CARET_CYCLE_MS = 1100;
+// Protocol metadata and notifications do not change transcript order, so they
+// must not force a still-smoothing answer to jump to the end of its backlog.
+const ASSISTANT_STREAM_NON_BOUNDARY_EVENT_TYPES = new Set([
+    'c', 's', 'm_id', 'a_id', 'n_c', 'n_t', 't_g', 'regen', 'w', 'uf', 'r_f',
+]);
+const assistantStreamingContentStates = new Map();
+let assistantStreamingRevealFrame = 0;
+let assistantStreamingGraphemeSegmenter = null;
+let assistantStreamingGraphemeSegmenterResolved = false;
+
+function shouldReduceAssistantStreamingMotion() {
+    try {
+        return typeof window !== 'undefined'
+            && typeof window.matchMedia === 'function'
+            && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    } catch (_) {
+        return false;
+    }
+}
+
+function getAssistantStreamingGraphemeSegmenter() {
+    if (assistantStreamingGraphemeSegmenterResolved) {
+        return assistantStreamingGraphemeSegmenter;
+    }
+    assistantStreamingGraphemeSegmenterResolved = true;
+    try {
+        if (typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function') {
+            assistantStreamingGraphemeSegmenter = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
+        }
+    } catch (_) {
+        assistantStreamingGraphemeSegmenter = null;
+    }
+    return assistantStreamingGraphemeSegmenter;
+}
+
+function isAssistantStreamingWordBoundary(segment) {
+    return /\s|[.,!?;:\u2026\u3002\uff0c\uff01\uff1f\uff1b\uff1a]/.test(segment);
+}
+
+/**
+ * Return a Unicode-grapheme-safe prefix close to the requested visual budget.
+ * A small look-ahead keeps ordinary words together without delaying long words
+ * or languages that do not use spaces.
+ */
+function takeAssistantStreamingTextPrefix(text, desiredSegments, lookahead = ASSISTANT_STREAM_REVEAL_WORD_LOOKAHEAD) {
+    const source = String(text || '');
+    if (!source) return '';
+
+    const desired = Math.max(1, Math.trunc(Number(desiredSegments) || 1));
+    const extraLimit = Math.max(0, Math.trunc(Number(lookahead) || 0));
+    let segmentCount = 0;
+    let extraCount = 0;
+    let cutoff = 0;
+    let shouldStop = false;
+
+    const visit = (segment, index) => {
+        segmentCount += 1;
+        cutoff = index + segment.length;
+        if (segmentCount < desired) return;
+        if (isAssistantStreamingWordBoundary(segment)) {
+            shouldStop = true;
+            return;
+        }
+        if (segmentCount > desired) {
+            extraCount += 1;
+            if (extraCount >= extraLimit) {
+                shouldStop = true;
+            }
+        } else if (extraLimit === 0) {
+            shouldStop = true;
+        }
+    };
+
+    const segmenter = getAssistantStreamingGraphemeSegmenter();
+    if (!segmenter) {
+        // Avoid showing a partially composed emoji or combining sequence in
+        // older engines. They get an instant reveal instead of unsafe pacing.
+        return source;
+    }
+    for (const part of segmenter.segment(source)) {
+        visit(part.segment, part.index);
+        if (shouldStop) break;
+    }
+
+    return source.slice(0, cutoff || source.length);
+}
+
+function isAssistantSmoothStreamingElement(element) {
+    if (!element || typeof element.closest !== 'function') return false;
+    const container = element.closest('.assistant-message-container');
+    return container?.dataset?.isStreaming === 'true'
+        && container.dataset.smoothStreaming === 'true';
+}
+
+function getAssistantStreamingReceivedContent(element) {
+    const state = assistantStreamingContentStates.get(element);
+    if (state) {
+        return state.displayedContent + state.pendingText;
+    }
+    return String(element?.getAttribute?.('data-raw-content') || '');
+}
+
+function removeAssistantStreamingCaret(element) {
+    if (!element) return;
+    element.querySelectorAll?.('.assistant-stream-caret').forEach((caret) => caret.remove());
+    if (element._assistantStreamingCaret) {
+        element._assistantStreamingCaret.remove?.();
+        delete element._assistantStreamingCaret;
+    }
+}
+
+function clearAssistantStreamingElementDecoration(element) {
+    if (!element) return;
+    element.removeAttribute?.('data-streaming-reveal');
+    removeAssistantStreamingCaret(element);
+    if (typeof resetAssistantStreamingMarkdownState === 'function') {
+        resetAssistantStreamingMarkdownState(element);
+    }
+}
+
+function queueAssistantStreamingDisplayedContent(state, content) {
+    if (!state?.element) return;
+    const nextContent = String(content || '');
+    state.displayedContent = nextContent;
+    state.element.setAttribute('data-raw-content', nextContent);
+    scheduleDebouncedRender(state.element.id, nextContent);
+}
+
+function revealAllPendingAssistantStreamingContent(state) {
+    if (!state?.pendingText) return false;
+    const nextContent = state.displayedContent + state.pendingText;
+    state.pendingText = '';
+    state.revealCredit = 0;
+    queueAssistantStreamingDisplayedContent(state, nextContent);
+    return true;
+}
+
+function drainAssistantStreamingContentState(state, now) {
+    if (!state?.pendingText) return false;
+    if (shouldReduceAssistantStreamingMotion()) {
+        revealAllPendingAssistantStreamingContent(state);
+        return false;
+    }
+
+    const elapsed = state.lastFrameAt
+        ? Math.min(Math.max(now - state.lastFrameAt, 8), 50)
+        : (1000 / 60);
+    state.lastFrameAt = now;
+    state.revealCredit += ASSISTANT_STREAM_REVEAL_RATE_PER_SECOND * (elapsed / 1000);
+    const pacedBudget = Math.max(1, Math.floor(state.revealCredit));
+    state.revealCredit = Math.max(0, state.revealCredit - pacedBudget);
+
+    const backlog = state.pendingText.length;
+    const catchUpBudget = Math.ceil(Math.max(0, backlog - 24) * ASSISTANT_STREAM_REVEAL_CATCH_UP_RATIO);
+    // Bound every paint even for a huge buffered response. The adaptive cap
+    // catches up quickly without turning one network burst into one long task.
+    const maxFrameBudget = Math.min(
+        ASSISTANT_STREAM_REVEAL_ABSOLUTE_MAX_PER_FRAME,
+        ASSISTANT_STREAM_REVEAL_MAX_PER_FRAME + Math.ceil(backlog / 8),
+    );
+    const budget = Math.min(
+        backlog,
+        Math.max(pacedBudget, catchUpBudget),
+        maxFrameBudget,
+    );
+    const revealed = takeAssistantStreamingTextPrefix(state.pendingText, budget);
+    state.pendingText = state.pendingText.slice(revealed.length);
+    queueAssistantStreamingDisplayedContent(state, state.displayedContent + revealed);
+    return Boolean(state.pendingText);
+}
+
+function scheduleAssistantStreamingRevealFrame() {
+    if (assistantStreamingRevealFrame) return;
+    const run = (timestamp) => {
+        assistantStreamingRevealFrame = 0;
+        const now = Number.isFinite(timestamp)
+            ? timestamp
+            : (typeof performance !== 'undefined' && typeof performance.now === 'function'
+                ? performance.now()
+                : Date.now());
+        let hasPendingContent = false;
+        Array.from(assistantStreamingContentStates.values()).forEach((state) => {
+            if (!state?.element || state.element.isConnected === false) {
+                if (state?.element?.id) pendingRenderQueue.delete(state.element.id);
+                assistantStreamingContentStates.delete(state?.element);
+                return;
+            }
+            const stateHasPendingContent = drainAssistantStreamingContentState(state, now);
+            if (!stateHasPendingContent) {
+                // Once caught up, the DOM attribute is the source of truth.
+                // Releasing the strong Map reference prevents a stalled stream
+                // from retaining a transcript that was later navigated away.
+                assistantStreamingContentStates.delete(state.element);
+            }
+            hasPendingContent = stateHasPendingContent || hasPendingContent;
+        });
+        if (hasPendingContent) scheduleAssistantStreamingRevealFrame();
+    };
+
+    if (typeof requestAnimationFrame === 'function') {
+        assistantStreamingRevealFrame = requestAnimationFrame(run);
+    } else {
+        run();
+    }
+}
+
+function enqueueAssistantStreamingContent(element, delta) {
+    if (!element) return;
+    const addition = String(delta ?? '');
+    if (!addition) return;
+
+    const smoothStreaming = isAssistantSmoothStreamingElement(element);
+    const reduceMotion = shouldReduceAssistantStreamingMotion();
+    let state = assistantStreamingContentStates.get(element);
+
+    if (!smoothStreaming || reduceMotion) {
+        const receivedContent = state
+            ? state.displayedContent + state.pendingText + addition
+            : getAssistantStreamingReceivedContent(element) + addition;
+        if (state) {
+            assistantStreamingContentStates.delete(element);
+        }
+        clearAssistantStreamingElementDecoration(element);
+        element.setAttribute('data-raw-content', receivedContent);
+        scheduleDebouncedRender(element.id, receivedContent);
+        return;
+    }
+
+    if (!state) {
+        state = {
+            element,
+            displayedContent: String(element.getAttribute('data-raw-content') || ''),
+            pendingText: '',
+            lastFrameAt: 0,
+            revealCredit: 0,
+        };
+        assistantStreamingContentStates.set(element, state);
+    }
+    state.pendingText += addition;
+    element.setAttribute('data-streaming-reveal', 'true');
+    scheduleAssistantStreamingRevealFrame();
+}
+
+function flushAssistantStreamingContentElement(element, { discard = false } = {}) {
+    const state = assistantStreamingContentStates.get(element);
+    if (!state) {
+        const hasQueuedRender = Boolean(element?.id && pendingRenderQueue.has(element.id));
+        if (discard) {
+            if (hasQueuedRender) pendingRenderQueue.delete(element.id);
+        } else if (hasQueuedRender) {
+            const queuedContent = pendingRenderQueue.get(element.id);
+            pendingRenderQueue.delete(element.id);
+            clearAssistantStreamingElementDecoration(element);
+            element.setAttribute('data-raw-content', queuedContent);
+            renderAssistantMessageContent(element, queuedContent);
+        }
+        clearAssistantStreamingElementDecoration(element);
+        return hasQueuedRender && !discard;
+    }
+
+    assistantStreamingContentStates.delete(element);
+    if (element.id) pendingRenderQueue.delete(element.id);
+    if (!discard) {
+        const receivedContent = state.displayedContent + state.pendingText;
+        state.pendingText = '';
+        clearAssistantStreamingElementDecoration(element);
+        element.setAttribute('data-raw-content', receivedContent);
+        renderAssistantMessageContent(element, receivedContent);
+    }
+    clearAssistantStreamingElementDecoration(element);
+
+    if (assistantStreamingContentStates.size === 0 && assistantStreamingRevealFrame) {
+        if (typeof cancelAnimationFrame === 'function') {
+            cancelAnimationFrame(assistantStreamingRevealFrame);
+        }
+        assistantStreamingRevealFrame = 0;
+    }
+    return true;
+}
+
+function assistantStreamingStateBelongsToContainer(state, container) {
+    if (!state?.element || !container) return false;
+    if (state.element === container) return true;
+    if (typeof container.contains === 'function' && container.contains(state.element)) return true;
+    return state.element.closest?.('.assistant-message-container') === container;
+}
+
+function flushAssistantStreamingContentInContainer(container, options = {}) {
+    if (!container) return false;
+    const selector = options.discard
+        ? '.assistant-message-content'
+        : '.assistant-message-content[data-streaming-reveal="true"]';
+    const contentElements = new Set(
+        Array.from(container.querySelectorAll?.(selector) || []),
+    );
+    Array.from(assistantStreamingContentStates.values()).forEach((state) => {
+        if (assistantStreamingStateBelongsToContainer(state, container)) {
+            contentElements.add(state.element);
+        }
+    });
+    let flushed = false;
+    contentElements.forEach((element) => {
+        flushed = flushAssistantStreamingContentElement(element, options) || flushed;
+    });
+    return flushed;
+}
+
+function flushAssistantStreamingContentForMessage(messageId, transcriptRoot = null, options = {}) {
+    const container = findStreamAssistantContainer(messageId, transcriptRoot);
+    return flushAssistantStreamingContentInContainer(container, options);
+}
+
+function flushAssistantStreamingContentBeforeEvent(messageId, previousType, eventType, transcriptRoot = null) {
+    if (
+        !messageId
+        || previousType !== 'c'
+        || ASSISTANT_STREAM_NON_BOUNDARY_EVENT_TYPES.has(String(eventType || ''))
+    ) {
+        return false;
+    }
+    return flushAssistantStreamingContentForMessage(messageId, transcriptRoot);
+}
+
+function clearAssistantStreamingPresentation(container) {
+    if (!container) return;
+    delete container.dataset.smoothStreaming;
+    container.querySelectorAll?.('.assistant-message-content[data-streaming-reveal="true"]').forEach((element) => {
+        clearAssistantStreamingElementDecoration(element);
+    });
+    container.querySelectorAll?.('.assistant-stream-caret').forEach((caret) => caret.remove());
+}
+
+function getAssistantStreamingCommonTextPrefixLength(previousText, nextText) {
+    const before = String(previousText || '');
+    const after = String(nextText || '');
+    const limit = Math.min(before.length, after.length);
+    let offset = 0;
+    while (offset < limit && before.charCodeAt(offset) === after.charCodeAt(offset)) {
+        offset += 1;
+    }
+    if (offset > 0 && /[\uD800-\uDBFF]/.test(after.charAt(offset - 1))) {
+        offset -= 1;
+    }
+    return offset;
+}
+
+function getAssistantStreamingTextNodes(roots) {
+    if (typeof document === 'undefined' || typeof document.createTreeWalker !== 'function') return [];
+    const normalizedRoots = Array.isArray(roots) ? roots : [roots];
+    const showText = typeof NodeFilter !== 'undefined' ? NodeFilter.SHOW_TEXT : 4;
+    const nodes = [];
+    normalizedRoots.forEach((root) => {
+        if (!root) return;
+        if (root.nodeType === 3) {
+            nodes.push(root);
+            return;
+        }
+        const walker = document.createTreeWalker(root, showText);
+        let node = walker.nextNode();
+        while (node) {
+            nodes.push(node);
+            node = walker.nextNode();
+        }
+    });
+    return nodes;
+}
+
+function getAssistantStreamingRootsText(roots) {
+    const normalizedRoots = Array.isArray(roots) ? roots : [roots];
+    return normalizedRoots.map((root) => String(root?.textContent || '')).join('');
+}
+
+function wrapAssistantStreamingTextSuffix(roots, fromOffset) {
+    const nodes = getAssistantStreamingTextNodes(roots);
+    if (!nodes.length) return;
+
+    let position = 0;
+    nodes.forEach((textNode) => {
+        const value = String(textNode.textContent || '');
+        const start = position;
+        const end = start + value.length;
+        position = end;
+        if (end <= fromOffset || !textNode.parentNode) return;
+
+        let target = textNode;
+        if (fromOffset > start) {
+            target = textNode.splitText(fromOffset - start);
+        }
+        if (!String(target.textContent || '').trim()) return;
+        const parentElement = target.parentElement;
+        if (parentElement?.closest?.('button, [aria-hidden="true"], .assistant-stream-caret')) return;
+
+        const wrapper = document.createElement('span');
+        wrapper.className = 'assistant-stream-text-arrival';
+        target.parentNode.insertBefore(wrapper, target);
+        wrapper.appendChild(target);
+        wrapper.addEventListener('animationend', (event) => {
+            if (event.target === wrapper && wrapper.parentNode) {
+                wrapper.replaceWith(...wrapper.childNodes);
+            }
+        }, { once: true });
+    });
+}
+
+function appendAssistantStreamingCaret(element, preferredRoots = null) {
+    if (!element || typeof document === 'undefined') return;
+    let caret = element._assistantStreamingCaret;
+    if (!caret) {
+        caret = element.querySelector?.('.assistant-stream-caret') || document.createElement('span');
+        caret.className = 'assistant-stream-caret';
+        caret.setAttribute('aria-hidden', 'true');
+        element._assistantStreamingCaret = caret;
+    }
+    if (caret.style) {
+        const now = typeof performance !== 'undefined' && typeof performance.now === 'function'
+            ? performance.now()
+            : Date.now();
+        // Tail nodes are replaced as Markdown grows. Align every reattachment
+        // to a shared clock so the pulse does not visibly restart each time.
+        caret.style.animationDelay = `-${Math.round(now % ASSISTANT_STREAM_CARET_CYCLE_MS)}ms`;
+    }
+
+    const preferredNodes = getAssistantStreamingTextNodes(preferredRoots || element);
+    const fallbackNodes = preferredNodes.length || !preferredRoots
+        ? preferredNodes
+        : getAssistantStreamingTextNodes(element);
+    let lastTextNode = null;
+    for (let index = fallbackNodes.length - 1; index >= 0; index -= 1) {
+        const node = fallbackNodes[index];
+        const parentElement = node.parentElement;
+        if (
+            String(node.textContent || '').trim().length
+            && !parentElement?.closest?.('button, [aria-hidden="true"], .assistant-stream-caret')
+        ) {
+            lastTextNode = node;
+            break;
+        }
+    }
+
+    if (!lastTextNode?.parentNode) {
+        element.appendChild(caret);
+        return;
+    }
+    const link = lastTextNode.parentElement?.closest?.('a');
+    if (link?.parentNode && element.contains(link)) {
+        link.parentNode.insertBefore(caret, link.nextSibling);
+        return;
+    }
+    const arrivalWrapper = lastTextNode.parentElement?.closest?.('.assistant-stream-text-arrival');
+    if (arrivalWrapper?.parentNode) {
+        arrivalWrapper.parentNode.insertBefore(caret, arrivalWrapper.nextSibling);
+        return;
+    }
+    lastTextNode.parentNode.insertBefore(caret, lastTextNode.nextSibling);
+}
+
+/** Decorate only the newly visible suffix; existing text never re-animates. */
+function decorateAssistantStreamingRender(
+    element,
+    previousRenderedText,
+    { animateSuffix = true, roots = null, previousScopeText = null } = {},
+) {
+    if (!element) return;
+    if (
+        element.getAttribute('data-streaming-reveal') !== 'true'
+        || !isAssistantSmoothStreamingElement(element)
+        || shouldReduceAssistantStreamingMotion()
+    ) {
+        removeAssistantStreamingCaret(element);
+        return;
+    }
+
+    const hasScopedRoots = Array.isArray(roots);
+    const animationRoots = hasScopedRoots ? roots : element;
+    const nextRenderedText = hasScopedRoots
+        ? getAssistantStreamingRootsText(roots)
+        : String(element.textContent || '');
+    const previousText = String(previousScopeText ?? previousRenderedText ?? '');
+    const commonPrefix = getAssistantStreamingCommonTextPrefixLength(previousText, nextRenderedText);
+    const isAppendLike = !previousText
+        || commonPrefix === previousText.length
+        || commonPrefix >= Math.floor(previousText.length * 0.9);
+    if (animateSuffix && nextRenderedText.length > commonPrefix && isAppendLike) {
+        wrapAssistantStreamingTextSuffix(animationRoots, commonPrefix);
+    }
+    appendAssistantStreamingCaret(element, hasScopedRoots ? roots : null);
+    if (typeof window !== 'undefined') {
+        window.ChatScrollManager?.scheduleFollow?.(element);
+    }
+}
+
 function appendAssistantContainer(messageId, options = {}) {
+    const smoothStreaming = options.smoothStreaming === true
+        || (options.smoothStreaming !== false && options.announce === true);
     // Check if an assistant container with this ID already exists
     const existingContainer = document.getElementById('a-' + messageId);
     if (existingContainer) {
@@ -6,6 +505,9 @@ function appendAssistantContainer(messageId, options = {}) {
         assistantMessageContainer = existingContainer;
         if (options.announce) {
             existingContainer.dataset.announceStreaming = 'true';
+        }
+        if (smoothStreaming) {
+            existingContainer.dataset.smoothStreaming = 'true';
         }
         applyAssistantMessageAccessibility(existingContainer, { messageId, streaming: existingContainer.dataset.isStreaming === 'true' });
         return;
@@ -23,6 +525,9 @@ function appendAssistantContainer(messageId, options = {}) {
     assistantMessageContainer.dataset.hidden = 'false';
     assistantMessageContainer.dataset.isStreaming = 'true';
     assistantMessageContainer.dataset.announceStreaming = options.announce ? 'true' : 'false';
+    if (smoothStreaming) {
+        assistantMessageContainer.dataset.smoothStreaming = 'true';
+    }
 
     const chatAreaContainer = document.getElementById('chatAreaContainer');
     const existingSpacer = chatAreaContainer?.querySelector('.dynamic-scroll-spacer');
@@ -151,10 +656,15 @@ function renderAssistantMessageContent(element, content) {
     if (shouldRenderAssistantMarkdown()) {
         renderMarkdownContent(element, raw);
     } else {
+        const previousRenderedText = String(element.textContent || '');
+        if (typeof resetAssistantStreamingMarkdownState === 'function') {
+            resetAssistantStreamingMarkdownState(element);
+        }
         element.innerHTML = '';
         element.textContent = raw;
         element.classList.remove('markdown-body');
         element.setAttribute('data-rendered-raw-content', raw);
+        decorateAssistantStreamingRender(element, previousRenderedText);
     }
 }
 
@@ -219,6 +729,9 @@ function cancelScheduledStreamingRender() {
 /** Run deferred Markdown enhancements once a response container is stable. */
 function finalizeStreamingMarkdownInContainer(container) {
     if (!container) return;
+    if (typeof flushAssistantStreamingContentInContainer === 'function') {
+        flushAssistantStreamingContentInContainer(container);
+    }
     cancelScheduledStreamingRender();
     flushPendingRenders();
     container.querySelectorAll([
@@ -228,6 +741,9 @@ function finalizeStreamingMarkdownInContainer(container) {
         const raw = element.getAttribute('data-raw-content') || '';
         renderAssistantMessageContent(element, raw);
     });
+    if (typeof clearAssistantStreamingPresentation === 'function') {
+        clearAssistantStreamingPresentation(container);
+    }
 }
 
 /**
@@ -477,6 +993,9 @@ function ensureAssistantContentNode(messageId, assistantContentCount) {
 
     const assistantMessage = document.createElement('div');
     assistantMessage.className = 'assistant-message';
+    if (assistantContainer.dataset.smoothStreaming === 'true') {
+        assistantMessage.classList.add('assistant-message-stream-enter');
+    }
     appendBeforeAssistantList(assistantContainer, assistantMessage);
 
     contentNode = document.createElement('div');
@@ -503,19 +1022,22 @@ function appendAssistantContent(messageId, content, last_appended_message_type, 
             return assistantContentCount;
         }
 
-        const currentContent = assistantMessageContent.getAttribute('data-raw-content') || '';
+        const currentContent = getAssistantStreamingReceivedContent(assistantMessageContent);
         const newContent = currentContent + content;
         if (isSlidePresentationStructureDump(newContent, messageMetadata)) {
+            flushAssistantStreamingContentElement(assistantMessageContent, { discard: true });
             assistantMessageContent.parentElement?.remove();
             return Math.max(assistantContentCount - 1, 0);
         }
-        assistantMessageContent.setAttribute('data-raw-content', newContent);
-        scheduleDebouncedRender(assistantMessageContent.id, newContent);
+        enqueueAssistantStreamingContent(assistantMessageContent, content);
     } else {
         assistantContentCount++;
-        let assistantMessageContainer = document.getElementById('a-' + messageId);
+        const assistantMessageContainer = document.getElementById('a-' + messageId);
         const assistantMessage = document.createElement('div');
         assistantMessage.className = 'assistant-message';
+        if (assistantMessageContainer?.dataset.smoothStreaming === 'true') {
+            assistantMessage.classList.add('assistant-message-stream-enter');
+        }
         appendBeforeAssistantList(assistantMessageContainer, assistantMessage);
 
         const assistantMessageContent = document.createElement('div');
@@ -524,7 +1046,11 @@ function appendAssistantContent(messageId, content, last_appended_message_type, 
         assistantMessageContent.setAttribute('aria-live', 'off');
         assistantMessage.appendChild(assistantMessageContent);
 
-        renderAssistantMessageContent(assistantMessageContent, content);
+        if (isAssistantSmoothStreamingElement(assistantMessageContent) && !shouldReduceAssistantStreamingMotion()) {
+            enqueueAssistantStreamingContent(assistantMessageContent, content);
+        } else {
+            renderAssistantMessageContent(assistantMessageContent, content);
+        }
     }
     applyAssistantMessageAccessibility(document.getElementById('a-' + messageId), { messageId, streaming: true });
     return assistantContentCount;

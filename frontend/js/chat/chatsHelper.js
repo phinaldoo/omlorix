@@ -539,9 +539,9 @@ function positionChatDropdown(dropdown, anchorEl) {
     const triggerEl = anchorEl.querySelector('.sidebar-element-menu-trigger') || anchorEl;
     const prevVis = dropdown.style.visibility;
 
-    // Measure without flashing
+    // Measure without flashing. Shared dropdowns remain in layout while
+    // hidden, so they do not need to enter the open state for sizing.
     dropdown.style.visibility = 'hidden';
-    dropdown.classList.add('open');
 
     const trigger = triggerEl.getBoundingClientRect();
     const { offsetWidth: w, offsetHeight: h } = dropdown;
@@ -583,6 +583,10 @@ function positionChatDropdown(dropdown, anchorEl) {
     });
 
     dropdown.classList.toggle('upward', openUp);
+    window.prepareDropdownOpeningAnimation?.(triggerEl, dropdown, {
+        placement: openUp ? 'top' : 'bottom',
+        align: alignRight ? 'right' : 'left',
+    });
 }
 
 
@@ -1295,8 +1299,8 @@ function createChatRow(chat) {
                 window.closeModelSelect();
             }
             window.getDropdownPanelNavigator?.(dropdown)?.reset({ focus: false });
-            dropdown.classList.add('open');
             positionChatDropdown(dropdown, row);
+            dropdown.classList.add('open');
         }
     };
 

@@ -674,26 +674,52 @@ async function sendMessage(message="", attaching=false, attachGenerationId=null,
         }
         const { done, value } = readResult;
         if (generationTransport.cancelled) break;
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
+        const chunk = done
+            ? decoder.decode()
+            : decoder.decode(value, { stream: true });
         buffer += chunk;
         // Normalize line endings and split into lines
         const parts = buffer.replace(/\r\n/g, '\n').split('\n');
-        // Keep the last part in the buffer (it may be incomplete)
-        buffer = parts.pop() || '';
+        // At EOF the final record may not have a trailing newline.
+        if (done) {
+            buffer = '';
+        } else {
+            buffer = parts.pop() || '';
+        }
         for (const line of parts) {
-            const chatContainer = document.getElementById('chatContainer');
-            const RawUuid = chatContainer.getAttribute('data-active-generation');
             const trimmed = line.trim();
             if (!trimmed) {
                 continue;
             }
-            obj = JSON.parse(trimmed);
+            const chatContainer = document.getElementById('chatContainer');
+            const RawUuid = chatContainer?.getAttribute('data-active-generation');
+            let obj;
+            try {
+                obj = JSON.parse(trimmed);
+            } catch (parseError) {
+                console.warn('Failed to parse chat stream line:', parseError);
+                continue;
+            }
             const isLateTitleEvent = (obj?.t === 't_g' || obj?.t === 'n_t')
                 && Boolean(chatId)
                 && chatContainer?.getAttribute('data-chat-id') === String(chatId);
             if (RawUuid !== generationRequestId && !isLateTitleEvent) {
+                if (typeof flushAssistantStreamingContentForMessage === 'function') {
+                    flushAssistantStreamingContentForMessage(
+                        messageId,
+                        document.getElementById('chatAreaContainer'),
+                        { discard: true },
+                    );
+                }
                 return;
+            }
+            if (RawUuid === generationRequestId && typeof flushAssistantStreamingContentBeforeEvent === 'function') {
+                flushAssistantStreamingContentBeforeEvent(
+                    messageId,
+                    last_appended_message_type,
+                    obj?.t,
+                    document.getElementById('chatAreaContainer'),
+                );
             }
             const hasMaterializedPayload = obj?.t === 'm_id'
                 || obj?.t === 'regen'
@@ -1186,6 +1212,7 @@ async function sendMessage(message="", attaching=false, attachGenerationId=null,
                 }
             }
         }
+        if (done) break;
     }
     } finally {
         const activeChatContainer = document.getElementById('chatContainer');

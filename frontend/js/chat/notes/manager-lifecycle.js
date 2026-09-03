@@ -152,6 +152,8 @@ Object.assign(NotesManager, {
         this.closeAllDropdowns();
 
         if (!isOpen) {
+            const trigger = dropdown.parentElement?.querySelector('.notes-list-item-menu-btn');
+            window.prepareDropdownOpeningAnimation?.(trigger, dropdown);
             dropdown.classList.add('open');
             NotesState.openDropdownNoteId = noteId;
         }

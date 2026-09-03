@@ -432,8 +432,13 @@ input[type="search"]::-webkit-search-cancel-button {
 
 /* Select Dropdown */
 .select-dropdown {
-    --select-dropdown-closed-transform: translateY(-8px) scale(0.96);
-    --select-dropdown-open-transform: translateY(0) scale(1);
+    /* dropdown.js updates these two animation inputs from the menu's final
+       position before it opens. Keeping the transition here gives every
+       shared dropdown the same motion while still allowing four physical
+       origins: top-left, top-right, bottom-left, and bottom-right. */
+    --select-dropdown-animation-offset-y: -8px;
+    --select-dropdown-closed-transform: translate3d(0, var(--select-dropdown-animation-offset-y), 0) scale(0.96);
+    --select-dropdown-open-transform: translate3d(0, 0, 0) scale(1);
     --select-dropdown-transform-origin: top right;
     /* Most menus size immediately. Rich dropdowns can opt into an animated
        height without reimplementing the shared open/close transition. */
@@ -485,7 +490,7 @@ input[type="search"]::-webkit-search-cancel-button {
 }
 
 .select-dropdown.upward {
-    --select-dropdown-closed-transform: translateY(8px) scale(0.96);
+    --select-dropdown-animation-offset-y: 8px;
     --select-dropdown-transform-origin: bottom right;
 }
 
@@ -556,13 +561,21 @@ input[type="search"]::-webkit-search-cancel-button {
    the state, height, focus, and ARIA behavior. */
 .select-dropdown-panel-menu {
     --select-dropdown-panel-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-    --select-dropdown-height-duration: 360ms;
+    --select-dropdown-panel-height-duration: 360ms;
     --select-dropdown-height-timing-function: var(--select-dropdown-panel-ease-out);
     width: 260px;
     min-width: 260px;
     padding: 0;
     overflow: hidden;
     color: var(--text-color);
+}
+
+/* Height belongs to in-menu panel navigation, not to opening the menu.
+   dropdown.js adds this state only after an already-open menu changes panels;
+   initialization, closed synchronization, and first open therefore size
+   immediately. */
+.select-dropdown-panel-menu.open.is-panel-height-animating {
+    --select-dropdown-height-duration: var(--select-dropdown-panel-height-duration);
 }
 
 .select-dropdown-panel {
@@ -1929,42 +1942,6 @@ img.icon-picker-image {
     align-items: center;
     justify-content: space-between;
     width: 100%;
-}
-
-.projects-content-main-element > .projects-content-main-element-top > .select-dropdown {
-    --card-dropdown-closed-transform: translateY(-8px) scale(0.96);
-    --card-dropdown-open-transform: translateY(0) scale(1);
-    --card-dropdown-transform-origin: top right;
-    display: flex;
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-    transform: var(--card-dropdown-closed-transform);
-    transform-origin: var(--card-dropdown-transform-origin);
-    transition:
-        opacity 0.16s ease,
-        transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1),
-        visibility 0s linear 0.18s;
-    will-change: opacity, transform;
-}
-
-.projects-content-main-element > .projects-content-main-element-top > .select-dropdown.open {
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
-    transform: var(--card-dropdown-open-transform);
-    transition:
-        opacity 0.16s ease,
-        transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1),
-        visibility 0s linear 0s;
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .projects-content-main-element > .projects-content-main-element-top > .select-dropdown,
-    .projects-content-main-element > .projects-content-main-element-top > .select-dropdown.open {
-        transition: none;
-        transform: none;
-    }
 }
 
 .projects-content-main-element-top svg {

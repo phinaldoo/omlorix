@@ -43,6 +43,7 @@ function captureAssistantRetryContainerSnapshot(container) {
         'hidden',
         'isStreaming',
         'announceStreaming',
+        'smoothStreaming',
         'hasError',
         'assistantMetadata',
         'citations',
@@ -180,6 +181,11 @@ function prepareAssistantRegenerationTarget(referenceId, retryCount, { announce 
                 visibleContainer.dataset.hidden = 'false';
                 visibleContainer.dataset.isStreaming = 'true';
                 visibleContainer.dataset.announceStreaming = announce ? 'true' : 'false';
+                if (announce) {
+                    visibleContainer.dataset.smoothStreaming = 'true';
+                } else {
+                    delete visibleContainer.dataset.smoothStreaming;
+                }
                 delete visibleContainer.dataset.hasError;
                 delete visibleContainer.dataset.assistantMetadata;
                 delete visibleContainer.dataset.citations;
@@ -223,6 +229,11 @@ function prepareAssistantRegenerationTarget(referenceId, retryCount, { announce 
         targetContainer.dataset.hidden = 'false';
         targetContainer.dataset.isStreaming = 'true';
         targetContainer.dataset.announceStreaming = announce ? 'true' : 'false';
+        if (announce) {
+            targetContainer.dataset.smoothStreaming = 'true';
+        } else {
+            delete targetContainer.dataset.smoothStreaming;
+        }
         targetContainer.dataset.optimisticMessage = 'true';
         targetContainer.style.display = '';
     }
@@ -734,11 +745,16 @@ async function processRegenerationStream(
             ) {
                 break;
             }
-            if (done) break;
-            
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split('\n');
-            buffer = lines.pop() || '';
+            const chunk = done
+                ? decoder.decode()
+                : decoder.decode(value, { stream: true });
+            buffer += chunk;
+            const lines = buffer.replace(/\r\n/g, '\n').split('\n');
+            if (done) {
+                buffer = '';
+            } else {
+                buffer = lines.pop() || '';
+            }
             
             for (const line of lines) {
                 if (!line.trim()) continue;
@@ -793,6 +809,14 @@ async function processRegenerationStream(
                     
                     // Handle content events - use the new message ID if available
                     const targetMessageId = newMessageId || originalMessageId;
+                    if (typeof flushAssistantStreamingContentBeforeEvent === 'function') {
+                        flushAssistantStreamingContentBeforeEvent(
+                            targetMessageId,
+                            last_appended_message_type,
+                            obj?.t,
+                            document.getElementById('chatAreaContainer'),
+                        );
+                    }
                     
                     if (obj.t === 'a_id') {
                         if (obj.d && typeof bindAssistantContainerToServerMessage === 'function') {
@@ -1164,6 +1188,7 @@ async function processRegenerationStream(
                     console.warn('Failed to parse stream line:', line, parseError);
                 }
             }
+            if (done) break;
         }
     } finally {
         const finalMessageId = newMessageId || originalMessageId;

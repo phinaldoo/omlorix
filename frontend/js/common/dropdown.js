@@ -8,6 +8,8 @@
     const controllers = new Set();
     const panelNavigators = new WeakMap();
     let controllerCounter = 0;
+    const PANEL_HEIGHT_ANIMATION_CLASS = 'is-panel-height-animating';
+    const PANEL_HEIGHT_ANIMATION_FALLBACK_MS = 500;
 
     const DEFAULT_FOCUSABLE_SELECTOR = [
         'a[href]',
@@ -149,6 +151,149 @@
         });
     }
 
+    function getElementRect(element) {
+        if (!element || typeof element.getBoundingClientRect !== 'function') {
+            return null;
+        }
+
+        const rect = element.getBoundingClientRect();
+        const top = Number(rect?.top);
+        const right = Number(rect?.right);
+        const bottom = Number(rect?.bottom);
+        const left = Number(rect?.left);
+        if (![top, right, bottom, left].every(Number.isFinite)) {
+            return null;
+        }
+
+        return {
+            top,
+            right,
+            bottom,
+            left,
+            width: Number.isFinite(Number(rect.width)) ? Number(rect.width) : Math.max(0, right - left),
+            height: Number.isFinite(Number(rect.height)) ? Number(rect.height) : Math.max(0, bottom - top),
+        };
+    }
+
+    function readConfiguredHorizontalOrigin(dropdown) {
+        const inlineOrigin = String(dropdown?.style?.transformOrigin || '').toLowerCase();
+        if (inlineOrigin.includes('left')) return 'left';
+        if (inlineOrigin.includes('right')) return 'right';
+
+        const getStyle = window.getComputedStyle || globalThis.getComputedStyle;
+        if (typeof getStyle !== 'function' || !dropdown) {
+            return null;
+        }
+
+        const computedStyle = getStyle(dropdown);
+        const customOrigin = String(
+            computedStyle?.getPropertyValue?.('--select-dropdown-transform-origin') || '',
+        ).toLowerCase();
+        if (customOrigin.includes('left')) return 'left';
+        if (customOrigin.includes('right')) return 'right';
+        return null;
+    }
+
+    function normalizeMenuPlacement(value) {
+        const placement = String(value || '').toLowerCase();
+        if (['top', 'up', 'above'].includes(placement)) return 'top';
+        if (['bottom', 'down', 'below'].includes(placement)) return 'bottom';
+        return null;
+    }
+
+    function normalizeHorizontalOrigin(value) {
+        const alignment = String(value || '').toLowerCase();
+        if (['left', 'start'].includes(alignment)) return 'left';
+        if (['right', 'end'].includes(alignment)) return 'right';
+        return null;
+    }
+
+    /**
+     * Resolve the physical corner nearest the trigger from which a shared
+     * dropdown should grow. Geometry wins over declared alignment so menus
+     * that are flipped or clamped to a viewport edge still animate correctly.
+     */
+    function prepareDropdownOpeningAnimation(trigger, dropdown, options = {}) {
+        if (!trigger || !dropdown?.classList?.contains('select-dropdown')) {
+            return null;
+        }
+
+        const requestedOrigin = String(options.origin || '').toLowerCase();
+        const validRequestedOrigin = /^(top|bottom)-(left|right)$/.test(requestedOrigin)
+            ? requestedOrigin
+            : null;
+        const triggerRect = getElementRect(trigger);
+        const dropdownRect = getElementRect(dropdown);
+        const hasMeasurableGeometry = Boolean(
+            triggerRect
+            && dropdownRect
+            && (triggerRect.width > 0 || triggerRect.height > 0)
+            && (dropdownRect.width > 0 || dropdownRect.height > 0),
+        );
+
+        let menuPlacement = normalizeMenuPlacement(options.placement);
+        if (!menuPlacement && hasMeasurableGeometry) {
+            const triggerCenterY = (triggerRect.top + triggerRect.bottom) / 2;
+            const dropdownCenterY = (dropdownRect.top + dropdownRect.bottom) / 2;
+            menuPlacement = dropdownCenterY < triggerCenterY ? 'top' : 'bottom';
+        }
+        menuPlacement ||= normalizeMenuPlacement(dropdown.dataset?.verticalPlacement);
+        if (!menuPlacement && dropdown.classList.contains('upward')) {
+            menuPlacement = 'top';
+        }
+        menuPlacement ||= 'bottom';
+
+        let horizontalOrigin = null;
+        if (hasMeasurableGeometry) {
+            const triggerCenterX = (triggerRect.left + triggerRect.right) / 2;
+            const anchorX = Math.min(
+                Math.max(triggerCenterX, dropdownRect.left),
+                dropdownRect.right,
+            );
+            horizontalOrigin = Math.abs(anchorX - dropdownRect.left)
+                <= Math.abs(dropdownRect.right - anchorX)
+                ? 'left'
+                : 'right';
+        }
+        horizontalOrigin ||= normalizeHorizontalOrigin(options.align || options.alignment);
+        horizontalOrigin ||= readConfiguredHorizontalOrigin(dropdown);
+        horizontalOrigin ||= 'right';
+
+        const origin = validRequestedOrigin
+            || `${menuPlacement === 'top' ? 'bottom' : 'top'}-${horizontalOrigin}`;
+        const [verticalOrigin] = origin.split('-');
+        const originCss = origin.replace('-', ' ');
+        const closedOffsetY = verticalOrigin === 'bottom' ? '8px' : '-8px';
+
+        dropdown.dataset.dropdownAnimationOrigin = origin;
+        dropdown.style.transformOrigin = originCss;
+        if (typeof dropdown.style.setProperty === 'function') {
+            dropdown.style.setProperty('--select-dropdown-transform-origin', originCss);
+            dropdown.style.setProperty('--select-dropdown-animation-offset-y', closedOffsetY);
+        } else {
+            dropdown.style['--select-dropdown-transform-origin'] = originCss;
+            dropdown.style['--select-dropdown-animation-offset-y'] = closedOffsetY;
+        }
+        return origin;
+    }
+
+    function resolveOpeningTrigger(triggerElements, detail = {}) {
+        const eventTarget = detail.event?.currentTarget || detail.event?.target;
+        if (eventTarget) {
+            const matchingTrigger = triggerElements.find((trigger) => (
+                trigger === eventTarget || trigger.contains?.(eventTarget)
+            ));
+            if (matchingTrigger) {
+                return matchingTrigger;
+            }
+        }
+
+        return triggerElements.find((trigger) => {
+            const rect = getElementRect(trigger);
+            return rect && (rect.width > 0 || rect.height > 0);
+        }) || triggerElements[0] || null;
+    }
+
     /**
      * Position a shared dropdown beside a trigger while keeping the complete
      * menu above or below the trigger and inside the viewport.
@@ -204,6 +349,10 @@
             bottom: 'auto',
         });
         dropdown.classList.toggle('upward', openUpward);
+        prepareDropdownOpeningAnimation(trigger, dropdown, {
+            placement: openUpward ? 'top' : 'bottom',
+            align,
+        });
 
         return openUpward ? 'top' : 'bottom';
     }
@@ -348,6 +497,20 @@
             }
             if (!shouldOpen && typeof options.onBeforeClose === 'function' && options.onBeforeClose(lifecycleDetail) === false) {
                 return isOpen;
+            }
+
+            if (shouldOpen && options.prepareAnimation !== false) {
+                const openingTrigger = resolveOpeningTrigger(triggerElements, detail);
+                dropdownElements.forEach((dropdown) => {
+                    prepareDropdownOpeningAnimation(openingTrigger, dropdown, {
+                        placement: typeof options.animationPlacement === 'function'
+                            ? options.animationPlacement(dropdown, openingTrigger, controller)
+                            : options.animationPlacement,
+                        align: typeof options.animationAlign === 'function'
+                            ? options.animationAlign(dropdown, openingTrigger, controller)
+                            : options.animationAlign,
+                    });
+                });
             }
 
             isOpen = shouldOpen;
@@ -501,6 +664,8 @@
             ? mainPanel
             : panelByName.keys().next().value;
         const navigatorId = options.id || dropdown.id || `dropdown-panel-navigator-${++controllerCounter}`;
+        let heightAnimationEndHandler = null;
+        let heightAnimationTimer = null;
 
         function addTriggerChevron(trigger) {
             if (options.addChevrons === false
@@ -538,7 +703,95 @@
             return measuredHeight || panel.scrollHeight || panel.offsetHeight || 0;
         }
 
-        function syncHeight(panelName = activePanel) {
+        function cancelRenderedHeightTransition() {
+            if (typeof dropdown.getAnimations !== 'function') {
+                return;
+            }
+            dropdown.getAnimations().forEach((animation) => {
+                if (animation.transitionProperty === 'height') {
+                    animation.cancel();
+                }
+            });
+        }
+
+        function clearHeightAnimation({ cancelTransition = false } = {}) {
+            if (heightAnimationEndHandler) {
+                dropdown.removeEventListener('transitionend', heightAnimationEndHandler);
+                dropdown.removeEventListener('transitioncancel', heightAnimationEndHandler);
+                heightAnimationEndHandler = null;
+            }
+            if (heightAnimationTimer !== null) {
+                window.clearTimeout?.(heightAnimationTimer);
+                heightAnimationTimer = null;
+            }
+            if (cancelTransition) {
+                cancelRenderedHeightTransition();
+            }
+            dropdown.classList.remove(PANEL_HEIGHT_ANIMATION_CLASS);
+        }
+
+        function scheduleHeightAnimationCleanup() {
+            heightAnimationEndHandler = (event) => {
+                if (event.target !== dropdown || event.propertyName !== 'height') {
+                    return;
+                }
+                clearHeightAnimation();
+            };
+            dropdown.addEventListener('transitionend', heightAnimationEndHandler);
+            dropdown.addEventListener('transitioncancel', heightAnimationEndHandler);
+            heightAnimationTimer = window.setTimeout?.(
+                () => clearHeightAnimation(),
+                PANEL_HEIGHT_ANIMATION_FALLBACK_MS,
+            ) ?? null;
+        }
+
+        function readRenderedHeight() {
+            const getStyle = window.getComputedStyle || globalThis.getComputedStyle;
+            const renderedHeight = typeof getStyle === 'function'
+                ? Number.parseFloat(getStyle(dropdown)?.height)
+                : Number.NaN;
+            if (Number.isFinite(renderedHeight) && renderedHeight > 0) {
+                return renderedHeight;
+            }
+            const inlineHeight = Number.parseFloat(dropdown.style.height);
+            return Number.isFinite(inlineHeight) ? inlineHeight : 0;
+        }
+
+        function applyHeight(height, { animate = false } = {}) {
+            if (!(height > 0)) {
+                clearHeightAnimation({ cancelTransition: true });
+                return false;
+            }
+
+            const nextHeight = Math.ceil(height);
+            const renderedHeight = readRenderedHeight();
+            const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches === true;
+            const shouldAnimate = Boolean(
+                animate
+                && dropdown.classList.contains('open')
+                && !reducedMotion
+                && renderedHeight > 0
+                && Math.abs(renderedHeight - nextHeight) >= 1,
+            );
+
+            clearHeightAnimation({ cancelTransition: true });
+            if (!shouldAnimate) {
+                dropdown.style.height = `${nextHeight}px`;
+                return false;
+            }
+
+            // Commit the currently rendered height with transitions disabled,
+            // then opt into height motion only for this panel-to-panel change.
+            dropdown.style.height = `${renderedHeight}px`;
+            void dropdown.offsetHeight;
+            dropdown.classList.add(PANEL_HEIGHT_ANIMATION_CLASS);
+            void dropdown.offsetHeight;
+            scheduleHeightAnimationCleanup();
+            dropdown.style.height = `${nextHeight}px`;
+            return true;
+        }
+
+        function syncHeight(panelName = activePanel, detail = {}) {
             const panel = panelByName.get(panelName);
             if (!panel) {
                 return 0;
@@ -556,10 +809,8 @@
             const height = Number.isFinite(maximumHeight)
                 ? Math.min(naturalHeight, maximumHeight)
                 : naturalHeight;
-            if (height > 0) {
-                dropdown.style.height = `${Math.ceil(height)}px`;
-            }
-            options.onHeightChange?.({ panelName, panel, height, navigator });
+            const animated = applyHeight(height, { animate: detail.animate === true });
+            options.onHeightChange?.({ panelName, panel, height, animated, navigator });
             return height;
         }
 
@@ -601,7 +852,11 @@
                     String(trigger.dataset.dropdownOpenPanel) === activePanel ? 'true' : 'false',
                 );
             });
-            syncHeight(activePanel);
+            syncHeight(activePanel, {
+                animate: detail.animateHeight !== false
+                    && previousPanelName !== activePanel
+                    && dropdown.classList.contains('open'),
+            });
 
             if (detail.notify !== false) {
                 options.onNavigate?.({
@@ -648,6 +903,7 @@
         }
 
         function destroy() {
+            clearHeightAnimation({ cancelTransition: true });
             dropdown.removeEventListener('click', handleClick);
             dropdown.removeEventListener('keydown', handleKeydown);
             if (panelNavigators.get(dropdown) === navigator) {
@@ -792,6 +1048,7 @@
     window.createDropdownPanelNavigator = createDropdownPanelNavigator;
     window.getDropdownPanelNavigator = (dropdown) => panelNavigators.get(dropdown) || null;
     window.closeDropdownControllers = closeDropdownControllers;
+    window.prepareDropdownOpeningAnimation = prepareDropdownOpeningAnimation;
     window.positionDropdownAtTrigger = positionDropdownAtTrigger;
     window.openDropdownMenu = openDropdownMenu;
 })();

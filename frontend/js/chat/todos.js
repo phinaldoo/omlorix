@@ -3650,6 +3650,8 @@ const TodosManager = {
             TodosState.openDropdownListId = listId;
             const dropdown = document.querySelector(`[data-todo-dropdown][data-list-id="${listId}"]`);
             if (dropdown) {
+                const trigger = dropdown.parentElement?.querySelector('.todos-list-item-menu-btn');
+                window.prepareDropdownOpeningAnimation?.(trigger, dropdown);
                 dropdown.classList.add('open');
             }
         }

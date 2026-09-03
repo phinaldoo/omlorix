@@ -447,6 +447,9 @@
         };
 
         const setOpen = (open, { optionFocus, restoreFocus = false } = {}) => {
+            if (open) {
+                global.prepareDropdownOpeningAnimation?.(trigger, dropdown);
+            }
             trigger?.classList.toggle('open', open);
             dropdown?.classList.toggle('open', open);
             trigger?.setAttribute('aria-expanded', open ? 'true' : 'false');

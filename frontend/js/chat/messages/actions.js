@@ -242,6 +242,11 @@ function resetAssistantContainerForRetry(container, { messageId = null, referenc
     container.dataset.hidden = 'false';
     container.dataset.isStreaming = 'true';
     container.dataset.announceStreaming = announce ? 'true' : 'false';
+    if (announce) {
+        container.dataset.smoothStreaming = 'true';
+    } else {
+        delete container.dataset.smoothStreaming;
+    }
     delete container.dataset.hasError;
     delete container.dataset.assistantMetadata;
     delete container.dataset.citations;
@@ -1228,6 +1233,9 @@ function positionMoreMenuDropdown(dropdown) {
 
     dropdown.style.left = `${Math.round(left)}px`;
     dropdown.style.top = `${Math.round(top)}px`;
+    window.prepareDropdownOpeningAnimation?.(trigger, dropdown, {
+        placement: shouldOpenBelow ? 'bottom' : 'top',
+    });
 }
 
 function scheduleMoreMenuDropdownPosition(dropdown) {
@@ -1253,8 +1261,8 @@ function openMoreMenuDropdown(dropdown, trigger) {
     if (typeof closeAllAssistantRegeneratePopovers === 'function') {
         closeAllAssistantRegeneratePopovers();
     }
-    dropdown.classList.add('open');
     positionMoreMenuDropdown(dropdown);
+    dropdown.classList.add('open');
     trigger.setAttribute('aria-expanded', 'true');
 
     if (!dropdown.__moreMenuRepositionHandler) {

@@ -25,7 +25,10 @@ function cleanupChatBoxFilesDropdown() {
 
 /** Re-measure after asynchronous capability checks change visible actions. */
 function scheduleChatBoxAttachmentPanelHeightSync() {
-  if (!chatBoxFilesDropdownController?.isOpen()) return;
+  if (!chatBoxFilesDropdownController?.isOpen()) {
+    chatBoxAttachmentPanelNavigator?.syncHeight();
+    return;
+  }
   requestAnimationFrame(() => chatBoxAttachmentPanelNavigator?.syncHeight());
 }
 

@@ -257,6 +257,9 @@ async function splitScreenInternalProcessStream(res, side, message, container, a
             return false;
         }
         streamBecameStale = true;
+        if (messageId && typeof flushAssistantStreamingContentForMessage === 'function') {
+            flushAssistantStreamingContentForMessage(messageId, container, { discard: true });
+        }
         try {
             reader.cancel();
         } catch (_) {}
@@ -413,6 +416,15 @@ async function splitScreenInternalProcessStream(res, side, message, container, a
                 obj = JSON.parse(trimmed);
             } catch (e) {
                 continue;
+            }
+
+            if (typeof flushAssistantStreamingContentBeforeEvent === 'function') {
+                flushAssistantStreamingContentBeforeEvent(
+                    messageId,
+                    last_appended_message_type,
+                    obj?.t,
+                    container,
+                );
             }
 
             if (obj.t === 'n_c') {

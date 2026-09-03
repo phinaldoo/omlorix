@@ -85,7 +85,8 @@ test('composer attachment and mention designs use dedicated stylesheets and in-c
     assert.doesNotMatch(index, /id="chatBoxChatReferencesQuickpick"/);
     assert.match(attachmentStyles, /\.select-dropdown\.chatbox-attachment-menu/);
     const attachmentShellRule = attachmentStyles.match(/\.select-dropdown\.chatbox-attachment-menu\s*\{([^}]*)\}/s)?.[1] || '';
-    assert.match(commonStyles, /--select-dropdown-height-duration:\s*360ms/);
+    assert.match(commonStyles, /--select-dropdown-panel-height-duration:\s*360ms/);
+    assert.match(commonStyles, /\.select-dropdown-panel-menu\.open\.is-panel-height-animating\s*\{[^}]*--select-dropdown-height-duration:\s*var\(--select-dropdown-panel-height-duration\);/s);
     assert.doesNotMatch(attachmentShellRule, /\bheight\s*:/);
     assert.doesNotMatch(attachmentShellRule, /\b(?:background|border|box-shadow|opacity|pointer-events|visibility)\s*:/);
     assert.doesNotMatch(attachmentStyles, /\.chatbox-attachment-menu\.open\s*\{/);

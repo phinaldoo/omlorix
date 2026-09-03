@@ -72,6 +72,9 @@
 
         /** Keep the popup state and focus behavior consistent for every close path. */
         const setMenuOpen = (open, { focus = 'first', restoreFocus = false } = {}) => {
+            if (open) {
+                global.prepareDropdownOpeningAnimation?.(trigger, dropdown);
+            }
             dropdown?.classList.toggle('open', open);
             trigger?.setAttribute('aria-expanded', open ? 'true' : 'false');
             if (open) {

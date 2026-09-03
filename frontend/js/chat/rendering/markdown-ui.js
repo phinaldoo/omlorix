@@ -120,17 +120,170 @@ function scheduleSelectionRestore(element, savedSelection, token, attempts = 2) 
     enqueue(attemptRestore);
 }
 
+function resetAssistantStreamingMarkdownState(element) {
+    if (!element) return;
+    delete element._assistantStreamingMarkdownState;
+}
+
+function isAssistantStreamingMarkdownTailEnabled(element) {
+    return element?.getAttribute?.('data-streaming-reveal') === 'true'
+        && typeof isAssistantSmoothStreamingElement === 'function'
+        && isAssistantSmoothStreamingElement(element);
+}
+
+function getAssistantStreamingMarkdownLineOffset(source, lineNumber) {
+    const text = String(source || '');
+    const targetLine = Math.max(0, Math.trunc(Number(lineNumber) || 0));
+    if (targetLine === 0) return 0;
+
+    let currentLine = 0;
+    for (let offset = 0; offset < text.length; offset += 1) {
+        if (text.charCodeAt(offset) !== 10) continue;
+        currentLine += 1;
+        if (currentLine === targetLine) return offset + 1;
+    }
+    return text.length;
+}
+
+/**
+ * Keep the parser's final top-level block live and commit everything before it.
+ * Lists, quotes, tables and fenced code therefore remain a single tail until
+ * Markdown-it can prove that a following block has started.
+ */
+function getAssistantStreamingStableMarkdownAdvance(md, source) {
+    const text = String(source || '');
+    if (!text || !md || typeof md.parse !== 'function') return 0;
+
+    const tokens = md.parse(text, {});
+    let lastTopLevelBlockLine = 0;
+    tokens.forEach((token) => {
+        if (
+            token?.level === 0
+            && token.nesting !== -1
+            && Array.isArray(token.map)
+            && Number.isFinite(token.map[0])
+        ) {
+            lastTopLevelBlockLine = Math.max(lastTopLevelBlockLine, token.map[0]);
+        }
+    });
+    return getAssistantStreamingMarkdownLineOffset(text, lastTopLevelBlockLine);
+}
+
+function renderAssistantStreamingMarkdownNodes(md, source) {
+    if (
+        typeof document === 'undefined'
+        || !md
+        || typeof md.render !== 'function'
+        || !window.ChatSanitizer
+        || typeof window.ChatSanitizer.sanitizeHtml !== 'function'
+    ) {
+        return null;
+    }
+
+    const renderedHtml = md.render(String(source || ''));
+    const preparedHtml = window.ChatMarkdownFileRefs
+        && typeof window.ChatMarkdownFileRefs.prepareRenderedHtml === 'function'
+        ? window.ChatMarkdownFileRefs.prepareRenderedHtml(renderedHtml)
+        : renderedHtml;
+    const staging = document.createElement('div');
+    staging.innerHTML = window.ChatSanitizer.sanitizeHtml(preparedHtml);
+    window.ChatMarkdownAlerts?.enhanceIcons?.(staging);
+    return Array.from(staging.childNodes);
+}
+
+function getAssistantStreamingMarkdownNodesText(nodes) {
+    return (nodes || []).map((node) => String(node?.textContent || '')).join('');
+}
+
+function hasAttachedAssistantStreamingTail(state, element) {
+    return !state?.tailNodes?.length
+        || state.tailNodes.every((node) => node?.parentNode === element);
+}
+
+/** Render only the unfinished Markdown block while leaving committed blocks untouched. */
+function renderAssistantStreamingMarkdownTail(element, source, md) {
+    if (!isAssistantStreamingMarkdownTailEnabled(element)) return null;
+
+    const markdownSource = String(source || '');
+    let state = element._assistantStreamingMarkdownState;
+    if (
+        !state
+        || !markdownSource.startsWith(state.stableSource || '')
+        || !hasAttachedAssistantStreamingTail(state, element)
+    ) {
+        element.innerHTML = '';
+        state = {
+            stableOffset: 0,
+            stableSource: '',
+            tailNodes: [],
+            tailText: '',
+        };
+        element._assistantStreamingMarkdownState = state;
+    }
+
+    const remainingSource = markdownSource.slice(state.stableOffset);
+    const stableAdvance = getAssistantStreamingStableMarkdownAdvance(md, remainingSource);
+    const stableDelta = remainingSource.slice(0, stableAdvance);
+    const tailSource = remainingSource.slice(stableAdvance);
+    const stableNodes = stableAdvance > 0
+        ? renderAssistantStreamingMarkdownNodes(md, stableDelta)
+        : [];
+    const tailNodes = renderAssistantStreamingMarkdownNodes(md, tailSource);
+    if (stableNodes === null || tailNodes === null) return null;
+
+    const previousTailText = state.tailText;
+    const promotedStableBlock = stableAdvance > 0;
+    // Keep the existing caret connected while replacing the tail so its CSS
+    // animation does not restart on every streamed paint.
+    const activeCaret = element._assistantStreamingCaret
+        || element.querySelector?.('.assistant-stream-caret');
+    if (activeCaret?.parentNode && activeCaret.parentNode !== element) {
+        element.appendChild(activeCaret);
+    }
+    state.tailNodes.forEach((node) => node?.remove?.());
+    stableNodes.forEach((node) => element.appendChild(node));
+    tailNodes.forEach((node) => element.appendChild(node));
+
+    state.stableOffset += stableAdvance;
+    state.stableSource = markdownSource.slice(0, state.stableOffset);
+    state.tailNodes = tailNodes;
+    state.tailText = getAssistantStreamingMarkdownNodesText(tailNodes);
+    element.classList.add('markdown-body');
+    element.dataset.streamingMarkdownNeedsFinalize = 'true';
+
+    return {
+        tailNodes,
+        previousTailText,
+        promotedStableBlock,
+    };
+}
+
 function renderMarkdownContent(element, content) {
     if (!element) {
         return;
     }
     const nextMarkdownSource = String(content ?? '');
     const previousRenderedRawContent = String(element.getAttribute('data-rendered-raw-content') || '');
+    const streamingMarkdownState = element._assistantStreamingMarkdownState;
+    const previousCodeTailText = streamingMarkdownState?.tailText || '';
     if (tryUpdateStreamingCodeBlockContent({ element, previousRaw: previousRenderedRawContent, nextRaw: nextMarkdownSource })) {
         element.setAttribute('data-rendered-raw-content', nextMarkdownSource);
+        const roots = streamingMarkdownState?.tailNodes || null;
+        if (streamingMarkdownState && roots) {
+            streamingMarkdownState.tailText = getAssistantStreamingMarkdownNodesText(roots);
+        }
+        if (typeof decorateAssistantStreamingRender === 'function') {
+            decorateAssistantStreamingRender(element, '', {
+                animateSuffix: false,
+                roots,
+                previousScopeText: previousCodeTailText,
+            });
+        }
         return;
     }
 
+    const markdownSource = nextMarkdownSource;
+    const md = getMarkdownRenderer();
     const savedSelection = captureSelectionWithin(element);
     const selectionRestoreToken = savedSelection
         ? ((element._selectionRestoreToken || 0) + 1)
@@ -138,13 +291,44 @@ function renderMarkdownContent(element, content) {
     if (selectionRestoreToken !== null) {
         element._selectionRestoreToken = selectionRestoreToken;
     }
-    const markdownSource = nextMarkdownSource;
-    const md = getMarkdownRenderer();
+
+    if (md && isAssistantStreamingMarkdownTailEnabled(element)) {
+        let streamingRender = null;
+        try {
+            preserveChatScrollViewportDuringMutation(element, () => {
+                streamingRender = renderAssistantStreamingMarkdownTail(element, markdownSource, md);
+            });
+        } catch (error) {
+            console.error('Markdown streaming render error:', error);
+            resetAssistantStreamingMarkdownState(element);
+        }
+        if (streamingRender) {
+            if (typeof decorateAssistantStreamingRender === 'function') {
+                decorateAssistantStreamingRender(element, '', {
+                    animateSuffix: !streamingRender.promotedStableBlock,
+                    roots: streamingRender.tailNodes,
+                    previousScopeText: streamingRender.previousTailText,
+                });
+            }
+            if (savedSelection) {
+                restoreSelectionWithin(element, savedSelection);
+                scheduleSelectionRestore(element, savedSelection, selectionRestoreToken, 2);
+            }
+            element.setAttribute('data-rendered-raw-content', markdownSource);
+            return;
+        }
+    }
+
+    const previousRenderedText = String(element.textContent || '');
+    resetAssistantStreamingMarkdownState(element);
 
     if (!md) {
         element.textContent = markdownSource;
         element.classList.remove('markdown-body');
         element.setAttribute('data-rendered-raw-content', markdownSource);
+        if (typeof decorateAssistantStreamingRender === 'function') {
+            decorateAssistantStreamingRender(element, previousRenderedText);
+        }
         if (savedSelection) {
             restoreSelectionWithin(element, savedSelection);
         }
@@ -224,6 +408,10 @@ function renderMarkdownContent(element, content) {
             }, 'YouTubeEmbed');
         }
     });
+
+    if (typeof decorateAssistantStreamingRender === 'function') {
+        decorateAssistantStreamingRender(element, previousRenderedText);
+    }
 
     if (savedSelection) {
         restoreSelectionWithin(element, savedSelection);
@@ -1346,9 +1534,3 @@ function updateVisibleCodeBlockHeights(root) {
         el.style.maxHeight = 'none';
     });
 }
-
-
-
-
-
-

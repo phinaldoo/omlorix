@@ -424,10 +424,10 @@
                 group: 'svg-select-dropdown',
                 onBeforeOpen: () => {
                     openStateSnapshot = captureState();
+                    updateDropdownPlacement();
                 },
                 onOpen: () => {
                     pickerState.isOpen = true;
-                    updateDropdownPlacement();
                 },
                 onBeforeClose: ({ reason }) => {
                     if (reason !== 'save' && reason !== 'reset') restoreOpenState();

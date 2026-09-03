@@ -572,10 +572,10 @@ function createProjectChatRowElement(chat, isActive) {
                 window.closeModelSelect();
             }
             window.getDropdownPanelNavigator?.(dropdown)?.reset({ focus: false });
-            dropdown.classList.add('open');
             if (typeof positionChatDropdown === 'function') {
                 positionChatDropdown(dropdown, row);
             }
+            dropdown.classList.add('open');
         }
     };
 
