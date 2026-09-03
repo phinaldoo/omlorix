@@ -92,6 +92,7 @@ test('composer attachment and mention designs use dedicated stylesheets and in-c
     assert.doesNotMatch(attachmentStyles, /\.chatbox-attachment-row(?:\W|$)/);
     assert.doesNotMatch(attachmentStyles, /\.select-dropdown-panel(?:\W|$)/);
     assert.match(commonStyles, /\.select-dropdown-panel\[data-dropdown-panel="main"\] > \.select-dropdown-panel-scroll\s*\{[^}]*overflow-y:\s*hidden;/s);
+    assert.match(commonStyles, /\.select-dropdown-panel-menu\.open > \.select-dropdown-panel\s*\{[^}]*will-change:\s*opacity,\s*transform;/s);
     assert.doesNotMatch(attachmentStyles, /\.chatbox-attachment-footer/);
     assert.match(mentionStyles, /\.mention-menu__intro/);
     assert.match(mentionStyles, /\.mention-menu\s*\{[^}]*width:\s*100%;/s);

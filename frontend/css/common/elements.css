@@ -577,6 +577,13 @@ input[type="search"]::-webkit-search-cancel-button {
     transition: opacity 150ms ease, transform 280ms var(--select-dropdown-panel-ease-out);
 }
 
+/* Prepare only the visible menu's pages for compositor-driven transitions.
+   This avoids a first-navigation paint hitch without retaining layers for
+   every closed row menu on long chat/file lists. */
+.select-dropdown-panel-menu.open > .select-dropdown-panel {
+    will-change: opacity, transform;
+}
+
 .select-dropdown-panel.is-active {
     opacity: 1;
     pointer-events: auto;
