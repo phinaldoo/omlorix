@@ -73,10 +73,15 @@ test('user settings uses the shared responsive modal shell without hiding chat',
     assert.match(indexSource, /<h1 class="shared-modal-title" id="userSettingsTitle"/);
     assert.match(indexSource, /id="userSettingsHeaderCloseButton"[^>]*class="[^"]*shared-modal-close|class="[^"]*shared-modal-close[^"]*" id="userSettingsHeaderCloseButton"/);
     assert.match(cssSource, /\.user-settings-overlay\s*\{[\s\S]*?--shared-modal-z-index:\s*1200/);
-    assert.doesNotMatch(
+    assert.match(
         cssSource,
-        /\.user-settings-overlay \.us-container\.shared-modal\s*\{[^}]*background:/,
-        'the settings surface should come from the shared modal shell',
+        /\.user-settings-overlay \.us-container\.shared-modal\s*\{[^}]*background:\s*var\(--user-settings-surface\)/,
+        'the settings shell should use the opaque settings surface',
+    );
+    assert.match(
+        cssSource,
+        /\.us-settings-header\s*\{[^}]*background:\s*var\(--user-settings-surface\)/,
+        'the sticky header should use the same opaque settings surface',
     );
     assert.doesNotMatch(indexSource, /id="userSettingsSidebarCloseButton"/);
     assert.doesNotMatch(indexSource, /id="userSettings(?:Name|Email|ProfilePicture|ProfileInitials)"/);
