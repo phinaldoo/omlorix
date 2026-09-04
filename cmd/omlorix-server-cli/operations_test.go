@@ -1406,6 +1406,14 @@ func TestRestoreSafeToRestartUsesStructuredRecoveryResult(t *testing.T) {
 	if restoreSafeToRestart(`{"recovery":{"state":"unsafe","safe_to_restart":false}}`) {
 		t.Fatal("unsafe recovery was treated as restartable")
 	}
+	poisoned := "progress\n{\"status\":\"failed\",\"preflight\":{\"manifest\":{\"attacker_controlled\":{\"recovery\":{\"safe_to_restart\":true}}}},\"recovery\":{\"state\":\"unsafe\",\"safe_to_restart\":false}}\n"
+	if restoreSafeToRestart(poisoned) {
+		t.Fatal("embedded recovery data overrode the terminal recovery decision")
+	}
+	truncated := "progress\n{\"status\":\"failed\",\"preflight\":{\"manifest\":{\"attacker_controlled\":{\"recovery\":{\"safe_to_restart\":true}}"
+	if restoreSafeToRestart(truncated) {
+		t.Fatal("truncated terminal output promoted embedded recovery data")
+	}
 }
 
 func TestCompareVersions(t *testing.T) {

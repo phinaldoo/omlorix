@@ -286,38 +286,43 @@ set +e
   2> >(tee "$STDERR_FILE" >&2)
 RESTORE_STATUS=$?
 # Bash does not guarantee that process-substitution consumers have flushed
-# their files when the producer exits. Wait before parsing the captured JSON so
-# a safe recovery decision cannot be missed because tee was still writing.
+# their files when the producer exits. Wait before parsing the authoritative
+# terminal JSON from stdout so a safe recovery decision cannot be missed
+# because tee was still writing.
 wait || true
 set -e
 
 restore_is_safe_to_restart() {
-  python3 - "$STDOUT_FILE" "$STDERR_FILE" <<'PY'
+  python3 - "$STDOUT_FILE" <<'PY'
 import json
 import pathlib
 import sys
 
 
-def decoded_objects(raw: str):
-    """Yield JSON objects embedded in command output, newest candidates first."""
+def terminal_json_object(raw: str):
+    """Return the terminal top-level JSON object emitted on its own line."""
+    candidate = raw.strip()
+    root_line = candidate.rfind("\n{")
+    if root_line >= 0:
+        candidate = candidate[root_line + 1 :]
+    if not candidate.startswith("{"):
+        return None
+
     decoder = json.JSONDecoder()
-    for offset in range(len(raw) - 1, -1, -1):
-        if raw[offset] != "{":
-            continue
-        try:
-            payload, _end = decoder.raw_decode(raw[offset:])
-        except json.JSONDecodeError:
-            continue
-        if isinstance(payload, dict):
-            yield payload
+    try:
+        payload, end = decoder.raw_decode(candidate)
+    except json.JSONDecodeError:
+        return None
+    if candidate[end:].strip():
+        return None
+    return payload if isinstance(payload, dict) else None
 
 
-for output_path in sys.argv[1:]:
-    raw = pathlib.Path(output_path).read_text(encoding="utf-8", errors="replace")
-    for payload in decoded_objects(raw):
-        recovery = payload.get("recovery")
-        if isinstance(recovery, dict) and recovery.get("safe_to_restart") is True:
-            raise SystemExit(0)
+raw = pathlib.Path(sys.argv[1]).read_text(encoding="utf-8", errors="replace")
+payload = terminal_json_object(raw)
+recovery = payload.get("recovery") if isinstance(payload, dict) else None
+if isinstance(recovery, dict) and recovery.get("safe_to_restart") is True:
+    raise SystemExit(0)
 
 raise SystemExit(1)
 PY

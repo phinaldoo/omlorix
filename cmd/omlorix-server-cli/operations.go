@@ -2237,7 +2237,7 @@ func runCoordinatedRestore(opts options) error {
 	result := runCommandCaptured(dockerExecutable(), composeArgs(opts, restoreArgs...), opts.home, opts.verbose)
 	if result.Err != nil {
 		reason := restoreFailureReason(result.Stdout, result.Stderr)
-		if restoreSafeToRestartOutputs(result.Stdout, result.Stderr) {
+		if restoreSafeToRestart(result.Stdout) {
 			fmt.Fprintln(os.Stderr, "Restore stopped safely; restarting Omlorix with the existing or recovered data.")
 			if restartErr := restartRestoreApplicationServices(opts, servicesToStart); restartErr != nil {
 				return fmt.Errorf("restore failed: %s; Omlorix recovery restart did not become healthy: %w", reason, restartErr)
@@ -2346,11 +2346,7 @@ func runCommandCaptured(name string, args []string, cwd string, verbose bool) ca
 }
 
 func restoreSafeToRestart(raw string) bool {
-	return restoreSafeToRestartOutputs(raw)
-}
-
-func restoreSafeToRestartOutputs(outputs ...string) bool {
-	payload, ok := restoreCommandPayload(outputs...)
+	payload, ok := restoreCommandPayload(raw)
 	if !ok {
 		return false
 	}
@@ -2404,26 +2400,22 @@ func restoreFailureReason(outputs ...string) string {
 func restoreCommandPayload(outputs ...string) (map[string]any, bool) {
 	for _, output := range outputs {
 		var payload map[string]any
-		if parseTrailingJSONObject(output, &payload) {
+		if parseTerminalJSONObject(output, &payload) {
 			return payload, true
 		}
 	}
 	return nil, false
 }
 
-func parseTrailingJSONObject(raw string, target any) bool {
-	for index := strings.Index(raw, "{"); index >= 0; {
-		candidate := strings.TrimSpace(raw[index:])
-		if json.Unmarshal([]byte(candidate), target) == nil {
-			return true
-		}
-		next := strings.Index(raw[index+1:], "{")
-		if next < 0 {
-			break
-		}
-		index += next + 1
+func parseTerminalJSONObject(raw string, target any) bool {
+	candidate := strings.TrimSpace(raw)
+	if rootLine := strings.LastIndex(candidate, "\n{"); rootLine >= 0 {
+		candidate = candidate[rootLine+1:]
 	}
-	return false
+	if !strings.HasPrefix(candidate, "{") {
+		return false
+	}
+	return json.Unmarshal([]byte(candidate), target) == nil
 }
 
 func ensureDockerReady(opts options) error {

@@ -53,11 +53,23 @@ printf '%s\n' \
   'fi' \
   'if [[ "$command_line" == *" app.backups.cli restore "* ]]; then' \
   '  printf "restore progress\n"' \
-  '  printf "{\"status\":\"%s\",\"error\":%s,\"recovery\":{\"state\":\"%s\",\"safe_to_restart\":%s}}\n" \' \
+  '  preflight="{}"' \
+  '  if [[ "${TEST_RESTORE_EMBEDDED_SAFE:-false}" == "true" ]]; then' \
+  '    preflight="{\"manifest\":{\"attacker_controlled\":{\"recovery\":{\"safe_to_restart\":true}}}}"' \
+  '  fi' \
+  '  if [[ "${TEST_RESTORE_TRUNCATED_SAFE:-false}" == "true" ]]; then' \
+  '    printf "{\"status\":\"failed\",\"preflight\":{\"manifest\":{\"attacker_controlled\":{\"recovery\":{\"safe_to_restart\":true}}\n"' \
+  '    exit "${TEST_RESTORE_STATUS:-9}"' \
+  '  fi' \
+  '  printf "{\"status\":\"%s\",\"error\":%s,\"preflight\":%s,\"recovery\":{\"state\":\"%s\",\"safe_to_restart\":%s}}\n" \' \
   '    "$([[ "${TEST_RESTORE_STATUS:-0}" == "0" ]] && printf success || printf failed)" \' \
   '    "$([[ "${TEST_RESTORE_STATUS:-0}" == "0" ]] && printf null || printf \"restore_failed\")" \' \
+  '    "$preflight" \' \
   '    "$([[ "${TEST_RESTORE_SAFE:-true}" == "true" ]] && printf not_started || printf unsafe)" \' \
   '    "${TEST_RESTORE_SAFE:-true}"' \
+  '  if [[ "${TEST_RESTORE_STDERR_SAFE:-false}" == "true" ]]; then' \
+  '    printf "{\"recovery\":{\"state\":\"not_started\",\"safe_to_restart\":true}}\n" >&2' \
+  '  fi' \
   '  exit "${TEST_RESTORE_STATUS:-0}"' \
   'fi' \
   'if [[ "$command_line" == *" up -d "* ]]; then' \
@@ -95,6 +107,9 @@ run_restore() {
     TEST_STOP_STATUS="${TEST_STOP_STATUS:-0}" \
     TEST_RESTORE_STATUS="${TEST_RESTORE_STATUS:-0}" \
     TEST_RESTORE_SAFE="${TEST_RESTORE_SAFE:-true}" \
+    TEST_RESTORE_EMBEDDED_SAFE="${TEST_RESTORE_EMBEDDED_SAFE:-false}" \
+    TEST_RESTORE_STDERR_SAFE="${TEST_RESTORE_STDERR_SAFE:-false}" \
+    TEST_RESTORE_TRUNCATED_SAFE="${TEST_RESTORE_TRUNCATED_SAFE:-false}" \
     TEST_REDIS_ENABLED="${TEST_REDIS_ENABLED:-true}" \
     TEST_START_STATUS="${TEST_START_STATUS:-0}" \
     TEST_FENCE_STOP_STATUS="${TEST_FENCE_STOP_STATUS:-0}" \
@@ -163,6 +178,25 @@ TEST_RESTORE_STATUS=9 TEST_RESTORE_SAFE=false TEST_REDIS_ENABLED=true \
 [[ "$RESTORE_STATUS" -eq 9 ]] || fail "unsafe restore failure returned the wrong status"
 if grep -Fq ' up -d ' "$COMPOSE_LOG"; then
   fail "unsafe restore failure restarted application services"
+fi
+
+# Nested manifest data and stderr are untrusted for the restart decision. Only
+# the final top-level recovery object on stdout may authorize a restart.
+TEST_RESTORE_STATUS=9 TEST_RESTORE_SAFE=false \
+  TEST_RESTORE_EMBEDDED_SAFE=true TEST_RESTORE_STDERR_SAFE=true \
+  run_restore --source file:///app/backups/crafted.tar.zst
+[[ "$RESTORE_STATUS" -eq 9 ]] || fail "poisoned unsafe restore returned the wrong status"
+if grep -Fq ' up -d ' "$COMPOSE_LOG"; then
+  fail "embedded or stderr recovery JSON authorized an unsafe restart"
+fi
+
+# If the CLI output is truncated before its authoritative outer object closes,
+# a complete nested recovery object at EOF must not become authoritative.
+TEST_RESTORE_STATUS=9 TEST_RESTORE_TRUNCATED_SAFE=true \
+  run_restore --source file:///app/backups/truncated.tar.zst
+[[ "$RESTORE_STATUS" -eq 9 ]] || fail "truncated restore returned the wrong status"
+if grep -Fq ' up -d ' "$COMPOSE_LOG"; then
+  fail "truncated outer JSON authorized a restart from nested recovery data"
 fi
 
 # Successful job-ID restore starts the complete Redis-enabled application set.

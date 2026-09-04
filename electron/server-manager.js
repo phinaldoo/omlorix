@@ -1317,6 +1317,21 @@ function parseTrailingJsonObject(output) {
   return null;
 }
 
+/** Parse the terminal top-level JSON object without falling back to nested data. */
+function parseTerminalJsonObject(output) {
+  const text = String(output || '').trim();
+  if (!text) return null;
+  const rootLine = text.lastIndexOf('\n{');
+  const candidate = rootLine >= 0 ? text.slice(rootLine + 1) : text;
+  if (!candidate.startsWith('{')) return null;
+  try {
+    const parsed = JSON.parse(candidate);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 // Stable backend reason codes are preserved for renderer-side localization.
 // These English messages remain useful for logs, thrown errors, and older
 // renderers that do not yet understand the structured code.
@@ -1426,9 +1441,8 @@ function normalizeStorageMigrationOptions(payload = {}) {
 /** Read the backend's sanitized failure and explicit recovery decision. */
 function restoreFailureFromError(error) {
   const result = error?.dockerResult;
-  const payload = parseTrailingJsonObject(result?.stdout)
-    || parseTrailingJsonObject(result?.stderr);
-  const recovery = payload?.recovery || payload?.preflight?.recovery;
+  const payload = parseTerminalJsonObject(result?.stdout);
+  const recovery = payload?.recovery;
   const failureReason = restoreFailureReason(payload, error?.message || String(error || ''));
   return {
     reason: failureReason.message,

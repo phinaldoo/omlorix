@@ -941,6 +941,13 @@ test('restore leaves Omlorix stopped when backend recovery is unsafe', async () 
         ok: false,
         stdout: JSON.stringify({
           status: 'failed',
+          preflight: {
+            manifest: {
+              attacker_controlled: {
+                recovery: { state: 'not_started', safe_to_restart: true },
+              },
+            },
+          },
           recovery: { state: 'unsafe', safe_to_restart: false },
         }),
         stderr: '',
@@ -962,6 +969,45 @@ test('restore leaves Omlorix stopped when backend recovery is unsafe', async () 
 
   assert.deepEqual(restartCommands, []);
   assert.equal(operationEnds.at(-1).messageKey, 'launcher_restore_recovery_unconfirmed');
+  assert.equal(manager.activeOperation, null);
+});
+
+test('restore ignores truncated nested recovery JSON and stderr without a terminal result', async () => {
+  const manager = await createManager();
+  const archivePath = path.join(manager.serverHome, 'backup.tar.zst');
+  await fs.mkdir(manager.serverHome, { recursive: true });
+  await fs.writeFile(archivePath, 'backup');
+  const restartCommands = [];
+  let step = 0;
+
+  manager.readEnv = async () => ({ OMLORIX_VERSION: '1.2.3' });
+  manager.stopRemainingRestoreApplicationContainers = async () => {};
+  manager.runDockerStep = async () => {
+    step += 1;
+    if (step === 2) {
+      const error = new Error('restore failed before reporting terminal state');
+      error.dockerResult = {
+        ok: false,
+        stdout: 'progress\n{"status":"failed","preflight":{"manifest":{"attacker_controlled":{"recovery":{"safe_to_restart":true}}',
+        stderr: JSON.stringify({
+          recovery: { state: 'not_started', safe_to_restart: true },
+        }),
+      };
+      throw error;
+    }
+    return { ok: true, stdout: '', stderr: '' };
+  };
+  manager.execDocker = async (args) => {
+    restartCommands.push(args);
+    return { ok: true, stdout: '', stderr: '' };
+  };
+
+  await assert.rejects(
+    () => manager.restore(archivePath),
+    /safe recovery could not be confirmed/,
+  );
+
+  assert.deepEqual(restartCommands, []);
   assert.equal(manager.activeOperation, null);
 });
 
