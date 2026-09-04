@@ -130,6 +130,13 @@ test('audit log row hover behavior is limited to precise pointers', () => {
     );
 });
 
+test('audit log filter actions span the filter grid and align to its end', () => {
+    assert.match(
+        auditLogsCss,
+        /\.audit-logs-filter-actions\s*\{[^}]*grid-column:\s*1\s*\/\s*-1[^}]*justify-content:\s*flex-end/,
+    );
+});
+
 test('audit log translations exist in every supported locale', () => {
     const localeRoot = path.join(__dirname, '../../i18n');
     const english = JSON.parse(fs.readFileSync(path.join(localeRoot, 'en/admin.json'), 'utf8'));

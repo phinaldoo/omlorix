@@ -72,7 +72,8 @@
 
 .audit-logs-filter-actions {
     display: flex;
-    align-items: flex-end;
+    grid-column: 1 / -1;
+    align-items: center;
     justify-content: flex-end;
     gap: 8px;
 }
