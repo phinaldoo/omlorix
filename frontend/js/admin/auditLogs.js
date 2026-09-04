@@ -145,8 +145,10 @@
 
     const appendTextCell = (row, value, className = '') => {
         const cell = document.createElement('td');
-        if (className) cell.className = className;
-        cell.textContent = value || '—';
+        const text = document.createElement('span');
+        if (className) text.className = className;
+        text.textContent = value || '—';
+        cell.appendChild(text);
         row.appendChild(cell);
         return cell;
     };

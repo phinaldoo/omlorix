@@ -116,6 +116,13 @@ test('audit log UI avoids unsafe HTML and native browser dialogs', () => {
     assert.match(source, /replaceChildren\(/);
 });
 
+test('audit log text clamping preserves native table-cell layout', () => {
+    assert.match(source, /text\.className = className/);
+    assert.doesNotMatch(source, /cell\.className = className/);
+    assert.match(source, /appendTextCell\(row, item\.reason, 'audit-log-reason'\)/);
+    assert.match(auditLogsCss, /\.audit-log-reason\s*\{[^}]*display:\s*-webkit-box/);
+});
+
 test('audit log row hover behavior is limited to precise pointers', () => {
     assert.match(
         auditLogsCss,
