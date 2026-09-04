@@ -55,6 +55,9 @@ DEFAULT_GROUP_SETTINGS = {
     },
     "memories": {
         "enabled_memories": True,
+        # Empty means the model used for the current chat turn. Administrators
+        # can choose a dedicated inexpensive completion model per group.
+        "memory_model_id": "",
     },
     "skills": {
         "enabled_skills": True,

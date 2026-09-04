@@ -360,7 +360,6 @@
     <script src="/js/chat/userSettings/llmAccess.js" defer></script>
     <script src="/js/chat/userSettings/personality.js" defer></script>
     <script src="/js/chat/userSettings/rateLimits.js" defer></script>
-    <script src="/js/chat/userSettings/memories.js" defer></script>
     <script src="/js/chat/userSettings/signinMethods.js" defer></script>
     <script src="/js/chat/userSettings/init.js" defer></script>
     <script src="/js/chat/userSettings/personalInfo.js" defer></script>
@@ -1369,6 +1368,31 @@
                                     </div>
                                 </div>
 
+                                <section class="memories-profile-card" id="memoriesProfilePanel" aria-labelledby="memoriesProfileTitle">
+                                    <div class="memories-profile-header">
+                                        <div>
+                                            <h2 id="memoriesProfileTitle" data-i18n="workspace_memories_profile_title">Memory profile</h2>
+                                            <p data-i18n="workspace_memories_profile_description">This complete profile is added to every chat. Atomic facts below remain the editable source of truth.</p>
+                                        </div>
+                                        <span class="memories-profile-status" id="memoriesProfileStatus" role="status" aria-live="polite"></span>
+                                    </div>
+                                    <dl class="memories-profile-metrics">
+                                        <div>
+                                            <dt data-i18n="workspace_memories_profile_facts">Active facts</dt>
+                                            <dd id="memoriesProfileFactCount">0 / 100</dd>
+                                        </div>
+                                        <div>
+                                            <dt data-i18n="workspace_memories_profile_review">Need review</dt>
+                                            <dd id="memoriesProfileReviewCount">0</dd>
+                                        </div>
+                                        <div>
+                                            <dt data-i18n="workspace_memories_profile_version">Profile version</dt>
+                                            <dd id="memoriesProfileVersion">0</dd>
+                                        </div>
+                                    </dl>
+                                    <div class="memories-profile-content" id="memoriesProfileContent" data-i18n="workspace_memories_profile_empty">Your profile will appear after a message contains reusable information about you.</div>
+                                </section>
+
                                 <div class="workspace-control-panel">
                                     <div class="workspace-control-field">
                                         <div class="workspace-control-search">
@@ -1398,7 +1422,7 @@
                                         <span data-omlorix-icon="model_tool_memories" width="40" height="40" role="img" aria-hidden="true"></span>
                                     </div>
                                     <p class="workspace-notifications-empty-title" id="memoriesEmptyTitle" data-i18n="workspace_memories_empty_title">Bring your saved context here</p>
-                                    <p class="workspace-notifications-empty-text" id="memoriesEmptyText" data-i18n="workspace_memories_empty_text">Import what another AI already remembers about you, or create memory entries by hand.</p>
+                                    <p class="workspace-notifications-empty-text" id="memoriesEmptyText" data-i18n="workspace_memories_empty_text">Reusable facts will appear here automatically after you mention them in chat. You can also add one by hand.</p>
                                 </div>
                                 <div class="memories-list" id="memoriesList"></div>
                             </section>
@@ -2100,10 +2124,6 @@
                             <span data-omlorix-icon="admin_sidebar_chat" class="us-nav-icon"></span>
                             <span class="us-nav-text" data-i18n="us_nav_chat">Chat</span>
                         </div>
-                        <div class="us-nav-item" data-section="memory" id="memoryNavItem" style="display:none;">
-                            <span data-omlorix-icon="memory_management" class="us-nav-icon" aria-hidden="true"></span>
-                            <span class="us-nav-text" data-i18n="us_nav_memory">Memory</span>
-                        </div>
                         <div class="us-nav-item" data-section="byok" id="byokNavItem" style="display:none;">
                             <span data-omlorix-icon="lock" class="us-nav-icon" aria-hidden="true"></span>
                             <span class="us-nav-text" data-i18n="us_nav_byok">Bring Your Own Key</span>
@@ -2414,6 +2434,13 @@
                                                     </span>
                                                 </label>
                                             </div>
+                                            <label class="managed-groups-input-field managed-groups-memory-model-field" for="managedGroupMemoryModel">
+                                                <span class="managed-groups-input-label" data-i18n="us_managed_groups_memory_model_label">Memory model</span>
+                                                <select id="managedGroupMemoryModel" class="input-field" aria-describedby="managedGroupMemoryModelHelp">
+                                                    <option value="" data-i18n="us_managed_groups_memory_model_current">Use current chat model</option>
+                                                </select>
+                                                <small class="managed-groups-input-help" id="managedGroupMemoryModelHelp" data-i18n="us_managed_groups_memory_model_help">Choose the model that updates user memory after every message.</small>
+                                            </label>
                                         </div>
 
                                         <div class="managed-groups-section" role="group" aria-labelledby="managedGroupsFeatureSharingHead">
@@ -2548,42 +2575,6 @@
                                     </section>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="us-page" data-us-page="memory" id="memorySettingsPage" style="display:none;">
-                    <div class="us-settings-section">
-                        <h2 class="us-section-title" data-i18n="us_memory_settings_section_title">Memory behavior</h2>
-                        <div class="us-setting-item">
-                            <div class="us-setting-info">
-                                <h3 id="memoryEnabledTitle" data-i18n="workspace_memories_enabled_title">Enable memory</h3>
-                                <p id="memoryEnabledDescription" data-i18n="workspace_memories_enabled_desc">Turn the feature on for this account.</p>
-                            </div>
-                            <label class="toggle-switch">
-                                <input id="userSettingsMemoryEnabledToggle" type="checkbox" class="toggle-input" aria-labelledby="memoryEnabledTitle" aria-describedby="memoryEnabledDescription">
-                                <span class="toggle-slider" aria-hidden="true"></span>
-                            </label>
-                        </div>
-                        <div class="us-setting-item">
-                            <div class="us-setting-info">
-                                <h3 id="memoryIncludeContextTitle" data-i18n="workspace_memories_include_context_title">Include memories in chats</h3>
-                                <p id="memoryIncludeContextDescription" data-i18n="workspace_memories_include_context_desc">Let saved memories be included as model context when you chat.</p>
-                            </div>
-                            <label class="toggle-switch">
-                                <input id="userSettingsMemoryIncludeContextToggle" type="checkbox" class="toggle-input" aria-labelledby="memoryIncludeContextTitle" aria-describedby="memoryIncludeContextDescription">
-                                <span class="toggle-slider" aria-hidden="true"></span>
-                            </label>
-                        </div>
-                        <div class="us-setting-item">
-                            <div class="us-setting-info">
-                                <h3 id="memoryAutoCreateTitle" data-i18n="workspace_memories_auto_create_title">Auto-create memories</h3>
-                                <p id="memoryAutoCreateDescription" data-i18n="workspace_memories_auto_create_desc">Let the model store durable user facts on its own.</p>
-                            </div>
-                            <label class="toggle-switch">
-                                <input id="userSettingsMemoryAutoCreateToggle" type="checkbox" class="toggle-input" aria-labelledby="memoryAutoCreateTitle" aria-describedby="memoryAutoCreateDescription">
-                                <span class="toggle-slider" aria-hidden="true"></span>
-                            </label>
                         </div>
                     </div>
                 </div>

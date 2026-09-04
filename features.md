@@ -148,7 +148,7 @@ Sections and feature names are sorted alphabetically.
 | Notes history and restore | Browse individual note revisions, preview historic content, and restore a selected version. |
 | Notes sharing | Share notes from the Notes menu by link or invitation, choose clone, live-share, or collaboration access, accept or clone received notes, revoke links, and unsubscribe. |
 | Notes workspace | Create, edit, search, download, and delete Markdown notes. Add file references or audio from the editor's More actions menu; Notes-only import/export and workspace-assignment actions are not available in the web UI. |
-| Personal and project memories | Create, edit, and delete memories through one scope-aware workflow, import or export shared project memories, preserve personal memories in account archives, and control context inclusion or automatic creation. |
+| Personal and project memories | Maintain up to 100 atomic facts per scope, materialize one complete personal profile, edit/confirm/delete facts through one scope-aware workflow, import or export shared project memories, and preserve personal memories in account archives. Group policy controls availability and the dedicated memory model. |
 | Project membership | Invite users, join through a link, list or remove members, leave a project, and revoke project sharing. |
 | Project workspaces | Organize chats and persistent context files inside named/iconized projects with project system instructions, optional isolated memories, detail views, and cleanup on deletion. |
 | Prompt library | Create, edit, delete, improve, share, invite, accept, clone, and unsubscribe from reusable prompt templates. |
@@ -176,7 +176,7 @@ Sections and feature names are sorted alphabetically.
 | Flashcards | Generate interactive study-card widgets from chat context. |
 | Image generation | Generate images with provider/model-specific sizes, options, and reference inputs where supported. |
 | LaTeX documents and PDFs | Edit LaTeX canvas source, compile through a configured rendering service, preview results, and download PDFs. |
-| Memory context and tool | Supply recent memories from the effective personal or project scope as model context, and let models save a new memory when automatic memory creation is enabled. The tool does not list existing memories. |
+| Automatic memory pipeline | After every non-empty user message, run a separate tool-free model request that compares the message with the complete current personal fact set and atomically creates, updates, confirms, or forgets facts. Attach the entire active personal profile—and enabled shared project memory—to later chats without embeddings or retrieval. |
 | Music generation | Generate music with configured provider/model, output format, and optional reference images. |
 | Notes tool | Let models list, view, create, and edit notes while enforcing shared-item permissions and stale-edit checks. Users delete Notes themselves in Workspace. |
 | Quiz | Generate interactive quiz widgets from chat context. |

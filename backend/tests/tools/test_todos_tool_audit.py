@@ -74,7 +74,7 @@ def test_create_todo_tool_writes_audit_log(monkeypatch):
 def test_todo_tool_schema_excludes_destructive_actions_and_keeps_completion():
     properties = tool_schemas["todos"]["parameters"]["properties"]
 
-    assert properties["type"]["enum"] == ["list", "create", "edit", "bulk"]
+    assert properties["type"]["enum"] == ["list", "view", "create", "edit", "bulk"]
     assert properties["action"]["enum"] == ["complete", "incomplete", "move", "tag"]
     assert properties["is_done"]["type"] == "boolean"
 
@@ -88,7 +88,10 @@ def test_retired_todo_delete_tool_names_are_not_enabled():
 
 @pytest.mark.parametrize("entity", ["todo", "list"])
 def test_todos_tool_rejects_delete_operations(entity):
-    with pytest.raises(ValueError, match="Allowed values are: list, create, edit, bulk"):
+    with pytest.raises(
+        ValueError,
+        match="Allowed values are: list, view, create, edit, bulk",
+    ):
         todo_utils.todos_tool(
             db=MagicMock(),
             user_id="user-1",
@@ -115,7 +118,10 @@ def test_tool_call_dispatch_rejects_model_delete_requests(monkeypatch):
         project_id=None,
     )
 
-    with pytest.raises(ValueError, match="type must be one of: list, create, edit, bulk"):
+    with pytest.raises(
+        ValueError,
+        match="type must be one of: list, view, create, edit, bulk",
+    ):
         next(resolver)
 
     todo_dispatch.assert_not_called()

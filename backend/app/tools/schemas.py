@@ -21,6 +21,7 @@ _AUTOMATION_FIELD_SCHEMAS = {
     },
     "schedule_rules": {
         "type": "array",
+        "maxItems": 100,
         "description": "Optional scheduling rules.",
         "items": {
             "type": "object",
@@ -41,11 +42,13 @@ _AUTOMATION_FIELD_SCHEMAS = {
     "skill_id": {"type": "string", "description": "Optional linked skill ID."},
     "note_ids": {
         "type": "array",
+        "maxItems": 20,
         "items": {"type": "string"},
         "description": "Optional linked note IDs.",
     },
     "file_ids": {
         "type": "array",
+        "maxItems": 20,
         "items": {"type": "string"},
         "description": "Optional linked file IDs.",
     },
@@ -56,6 +59,45 @@ _AUTOMATION_FIELD_SCHEMAS = {
         "description": "Optional MCP server IDs explicitly allowed for each automation run. Use only IDs returned for the selected model by the information operation.",
     },
     "is_active": {"type": "boolean", "description": "Optional active state."},
+    "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100,
+        "description": "Page size. Defaults to 20.",
+    },
+    "cursor": {"type": "string", "maxLength": 4096, "description": "Use next_cursor from the previous page. Omit offset when continuing."},
+    "offset": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 10000,
+        "description": "Page offset.",
+    },
+    "query": {
+        "type": "string",
+        "maxLength": 200,
+        "description": "For view, return bounded prompt context around a match.",
+    },
+    "heading": {
+        "type": "string",
+        "maxLength": 500,
+        "description": "For view, return one Markdown heading section from the prompt.",
+    },
+    "start_line": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "For view, first prompt line of a bounded range.",
+    },
+    "end_line": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "For view, final prompt line of a bounded range.",
+    },
+    "max_chars": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100000,
+        "description": "Maximum prompt characters returned by view. Defaults to 20000.",
+    },
 }
 
 
@@ -102,8 +144,20 @@ _AUTOMATION_MUTATION_FIELDS = (
 _AUTOMATION_PARAMETERS = {
     "type": "object",
     "anyOf": [
-        _automation_operation_schema("information"),
-        _automation_operation_schema("list"),
+        _automation_operation_schema("information", ("model_id",)),
+        _automation_operation_schema("list", ("limit", "offset", "cursor")),
+        _automation_operation_schema(
+            "view",
+            (
+                "automation_id",
+                "query",
+                "heading",
+                "start_line",
+                "end_line",
+                "max_chars",
+            ),
+            required=("automation_id",),
+        ),
         _automation_operation_schema(
             "create",
             _AUTOMATION_MUTATION_FIELDS,
@@ -298,13 +352,13 @@ tool_schemas: dict[str, dict] = {
   "todos": {
     "name": "todos",
     "type": "function",
-    "description": "Manage todos and todo lists with one tool. Use type to choose list/create/edit/bulk and entity to choose todo or list. Todos and lists cannot be deleted with this tool. Supports filtered views, due dates, all-day tasks, notes, links, attachments, subtasks, tags, priorities, status, ordering, completion, and bulk updates.",
+    "description": "Manage todos and todo lists with paginated summary lists and a detail view. Use type to choose list/view/create/edit/bulk and entity to choose todo or list. Todos and lists cannot be deleted with this tool. Supports filtered views, due dates, all-day tasks, notes, links, attachments, subtasks, tags, priorities, status, ordering, completion, and bulk updates.",
     "parameters": {
         "type": "object",
         "properties": {
             "type": {
                 "type": "string",
-                "enum": ["list", "create", "edit", "bulk"],
+                "enum": ["list", "view", "create", "edit", "bulk"],
                 "description": "Operation to run.",
             },
             "entity": {
@@ -343,13 +397,16 @@ tool_schemas: dict[str, dict] = {
             "order": {"type": "integer", "description": "Ordering index for todo or list."},
             "is_done": {"type": "boolean", "description": "Completion state (edit todo)."},
             "is_marked": {"type": "boolean", "description": "Marked/starred state (edit todo)."},
-            "query": {"type": "string", "description": "Search text for listing todos across accessible lists."},
+            "query": {"type": "string", "maxLength": 200, "description": "Search text for listing todos across accessible lists."},
             "view": {"type": "string", "enum": ["today", "upcoming", "overdue", "due_this_week", "high_priority", "no_due_date"], "description": "Filtered todo view to list."},
             "priority_min": {"type": "integer", "description": "Minimum priority filter for listing todos."},
             "no_due_date": {"type": "boolean", "description": "Filter todos with no due date."},
-            "todo_ids": {"type": "array", "items": {"type": "string"}, "description": "Todo IDs for bulk actions."},
+            "todo_ids": {"type": "array", "items": {"type": "string"}, "maxItems": 100, "description": "Todo IDs for bulk actions."},
             "action": {"type": "string", "enum": ["complete", "incomplete", "move", "tag"], "description": "Non-destructive bulk action to apply."},
             "target_list_id": {"type": "string", "description": "Destination list for bulk move."},
+            "limit": {"type": "integer", "minimum": 1, "maximum": 100, "description": "Page size for list. Defaults to 20."},
+            "cursor": {"type": "string", "maxLength": 4096, "description": "Use next_cursor from the previous page. Omit offset when continuing."},
+            "offset": {"type": "integer", "minimum": 0, "maximum": 10000, "description": "Page offset for list."},
         },
         "required": ["type"],
     },
@@ -357,16 +414,23 @@ tool_schemas: dict[str, dict] = {
   "notes": {
     "name": "notes",
     "type": "function",
-    "description": "Manage notes with one tool. Use type to choose list/view/create/edit. Before edit, call type='view' and copy its updated_at into expected_updated_at. For revision, copyediting, or proofreading of existing content, use start_snippet plus end_snippet with content as the replacement for that exact inclusive range; do not send the complete note again unless the user explicitly requests a wholesale rewrite. Notes are Markdown and may reference files as [label](omlorix-file://FILE_ID) or embed images as ![alt text](omlorix-file://FILE_ID).",
+    "description": "Manage notes with bounded, revision-aware operations. Lists contain summaries only. Use view or view_many for bounded content reads. For multiple changes, send one atomic edits array and expected_updated_at instead of making several edit calls. A current attached-note snapshot or save receipt provides a valid expected_updated_at.",
     "parameters": {
         "type": "object",
         "properties": {
             "type": {
                 "type": "string",
-                "enum": ["list", "view", "create", "edit"],
+                "enum": ["list", "view", "view_many", "create", "edit"],
                 "description": "Operation to run.",
             },
             "note_id": {"type": "string", "description": "Note ID for view/edit."},
+            "note_ids": {
+                "type": "array",
+                "items": {"type": "string"},
+                "minItems": 1,
+                "maxItems": 20,
+                "description": "Note IDs for one bounded view_many call.",
+            },
             "expected_updated_at": {
                 "type": "string",
                 "description": "Required for edit. Copy the exact updated_at value from the latest view result so stale mutations are rejected.",
@@ -379,6 +443,39 @@ tool_schemas: dict[str, dict] = {
                 "type": "string",
                 "description": "For partial edits only. Exact snippet where the replacement range ends, searched after start_snippet. Requires note_id, start_snippet, and content. The matched end snippet is replaced too.",
             },
+            "edits": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 50,
+                "description": "Atomic non-overlapping replacements resolved against one note snapshot.",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "start_snippet": {"type": "string", "minLength": 1},
+                        "end_snippet": {"type": "string", "minLength": 1},
+                        "content": {"type": "string"},
+                    },
+                    "required": ["start_snippet", "end_snippet", "content"],
+                    "additionalProperties": False,
+                },
+            },
+            "query": {
+                "type": "string",
+                "maxLength": 200,
+                "description": "Search note summaries for list, or return context around a match for view/view_many.",
+            },
+            "heading": {"type": "string", "maxLength": 500, "description": "Return one Markdown heading section for view/view_many."},
+            "start_line": {"type": "integer", "minimum": 1, "description": "First line for a bounded read."},
+            "end_line": {"type": "integer", "minimum": 1, "description": "Final line for a bounded read."},
+            "max_chars": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100000,
+                "description": "Maximum characters returned per note read. Defaults to 20000.",
+            },
+            "limit": {"type": "integer", "minimum": 1, "maximum": 100, "description": "Summary page size for list. Defaults to 20."},
+            "cursor": {"type": "string", "maxLength": 4096, "description": "Use next_cursor from the previous page. Omit offset when continuing."},
+            "offset": {"type": "integer", "minimum": 0, "maximum": 10000, "description": "Summary page offset for list."},
             "content": {"type": "string", "description": "Note content for create/full edit, or replacement content when start_snippet and end_snippet are provided. Use an empty string to delete the matched snippet range."},
         },
         "required": ["type"],
@@ -387,13 +484,13 @@ tool_schemas: dict[str, dict] = {
   "automations": {
     "name": "automations",
     "type": "function",
-    "description": "Manage scheduled automations; always call type='information' first. Webhook triggers are user-managed and this tool cannot create, change, rotate, or delete them. If asked, tell the user to manage the webhook themselves in the Automations interface.",
+    "description": "Manage scheduled automations with paginated summaries and a detail view. Call information only when create/edit needs valid model, Skill, icon, color, schedule, or model-specific MCP options; list, view, and delete do not need it first. Webhook triggers are user-managed and this tool cannot create, change, rotate, or delete them.",
     "parameters": _AUTOMATION_PARAMETERS,
   },
   "skills": {
     "name": "skills",
     "type": "function",
-    "description": "Manage user skills and propose new skill drafts. Use type=list or read for existing skills, and type=draft to prepare a new skill suggestion for manual user review and save confirmation.",
+    "description": "Manage user skills with paginated summary lists and bounded targeted reads, or propose a new skill draft for manual user review and save confirmation.",
     "parameters": {
         "type": "object",
         "properties": {
@@ -405,6 +502,45 @@ tool_schemas: dict[str, dict] = {
             "skill_id": {
                 "type": "string",
                 "description": "Skill ID. Required for read.",
+            },
+            "query": {
+                "type": "string",
+                "maxLength": 200,
+                "description": "Search names/descriptions for list, or return context around a match for read.",
+            },
+            "heading": {
+                "type": "string",
+                "maxLength": 500,
+                "description": "For read, return one Markdown heading section.",
+            },
+            "start_line": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "For read, first line of a bounded range.",
+            },
+            "end_line": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "For read, final line of a bounded range.",
+            },
+            "max_chars": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100000,
+                "description": "Maximum characters returned by read. Defaults to 20000.",
+            },
+            "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100,
+                "description": "Summary page size for list. Defaults to 20.",
+            },
+            "cursor": {"type": "string", "maxLength": 4096, "description": "Use next_cursor from the previous page. Omit offset when continuing."},
+            "offset": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 10000,
+                "description": "Summary page offset for list.",
             },
             "name": {
                 "type": "string",
@@ -439,6 +575,7 @@ tool_schemas: dict[str, dict] = {
             },
             "files": {
                 "type": "array",
+                "maxItems": 20,
                 "description": "Optional starter files for draft mode. Inline text files can set content. Existing generated chat files can be attached with source_file_id.",
                 "items": {
                     "type": "object",
@@ -478,22 +615,6 @@ tool_schemas: dict[str, dict] = {
             },
         },
         "required": ["type"],
-        "additionalProperties": False,
-    },
-  },
-  "memories": {
-    "name": "memories",
-    "type": "function",
-    "description": "Save a concise, durable user preference or fact for future conversations.",
-    "parameters": {
-        "type": "object",
-        "properties": {
-            "content": {
-                "type": "string",
-                "description": "Short, durable memory to save.",
-            },
-        },
-        "required": ["content"],
         "additionalProperties": False,
     },
   },
@@ -764,7 +885,7 @@ tool_schemas: dict[str, dict] = {
     "canvas": {
         "name": "canvas",
         "type": "function",
-        "description": "Create, view, or update an editable Canvas source file. Supports markdown, Mermaid diagrams, CSV tables, HTML pages, and complete LaTeX documents with a generated PDF preview. To view the latest stored content and render status, use type='view' with file_id or id. For revision, copyediting, or proofreading, use file_id with exact start_snippet and end_snippet anchors plus replacement content; do not send the complete article again unless the user explicitly requests a wholesale rewrite.",
+        "description": "Create, view, or update an editable Canvas source file. Supports markdown, Mermaid diagrams, CSV tables, HTML pages, and complete LaTeX documents with a generated PDF preview. Reads are bounded and can target a heading, query, or line range. For multiple revisions, send one atomic edits array with file_id and expected_revision instead of making one tool call per change.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -792,6 +913,53 @@ tool_schemas: dict[str, dict] = {
                 "end_snippet": {
                     "type": "string",
                     "description": "For partial edits only. Exact snippet where the replacement range ends, searched after start_snippet. Requires file_id, start_snippet, and content. The matched end snippet is replaced too.",
+                },
+                "expected_revision": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Required for safe updates of an existing Canvas. Copy canvas_revision from the latest view or save receipt.",
+                },
+                "edits": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 50,
+                    "description": "Atomic non-overlapping replacements resolved against one stored snapshot. Use this instead of several Canvas calls.",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "start_snippet": {"type": "string", "minLength": 1},
+                            "end_snippet": {"type": "string", "minLength": 1},
+                            "content": {"type": "string"},
+                        },
+                        "required": ["start_snippet", "end_snippet", "content"],
+                        "additionalProperties": False,
+                    },
+                },
+                "heading": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "description": "For type='view', return the matching Markdown heading section.",
+                },
+                "query": {
+                    "type": "string",
+                    "maxLength": 200,
+                    "description": "For type='view', return bounded context around the first case-insensitive match.",
+                },
+                "start_line": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "For type='view', first line of a bounded line range.",
+                },
+                "end_line": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "For type='view', final line of a bounded line range.",
+                },
+                "max_chars": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100000,
+                    "description": "Maximum text returned by a Canvas view. Defaults to 20000 characters.",
                 },
                 "content": {
                     "type": "string",

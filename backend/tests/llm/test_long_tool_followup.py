@@ -11,7 +11,7 @@ def _tool_execution_window(relative_path: str) -> str:
     """Return the provider source around its streamed tool invocation."""
 
     source = (LLM_ROOT / relative_path).read_text(encoding="utf-8")
-    start = source.index("helper_gen = resolve_tool_call(")
+    start = source.index("helper_gen = stream_tool_call(resolve_tool_call,")
     end = source.index("if tool_error_message:", start)
     return source[start:end]
 

@@ -66,6 +66,7 @@ class FakeElement {
     get innerHTML() { return this._innerHTML || ''; }
     set textContent(value) { this._textContent = String(value ?? ''); }
     get textContent() { return this._textContent || ''; }
+    get options() { return this.tagName === 'SELECT' ? this.children : undefined; }
 
     closest(selector) {
         let cursor = this;
@@ -112,7 +113,7 @@ function createHarness(detail, options = {}) {
         'managedGroupTempEnabled', 'managedGroupTempMaxActive',
         'managedGroupTempCredentialLength',
         'managedGroupEnableProjects', 'managedGroupEnableTodo', 'managedGroupEnableNotes',
-        'managedGroupEnableMemories', 'managedGroupEnableSkills', 'managedGroupEnablePrompts',
+        'managedGroupEnableMemories', 'managedGroupMemoryModel', 'managedGroupEnableSkills', 'managedGroupEnablePrompts',
         'managedGroupEnableBookmarks', 'managedGroupEnableAgents', 'managedGroupEnableAutomations',
         'managedGroupAllowProjectShare', 'managedGroupAllowTodoShare', 'managedGroupAllowNotesShare',
         'managedGroupAllowSkillShare', 'managedGroupAllowPromptShare', 'managedGroupAllowBookmarkShare',
@@ -129,7 +130,7 @@ function createHarness(detail, options = {}) {
     for (const buttonId of ['managedGroupsSaveSettings', 'managedGroupsPromoteMember', 'managedGroupsCreateTemp']) {
         elements.get(buttonId).tagName = 'BUTTON';
     }
-    for (const selectId of ['managedGroupsPromotionUser', 'managedGroupsPromotionRole']) {
+    for (const selectId of ['managedGroupMemoryModel', 'managedGroupsPromotionUser', 'managedGroupsPromotionRole']) {
         elements.get(selectId).tagName = 'SELECT';
     }
     const checkboxIds = [
@@ -179,6 +180,7 @@ function createHarness(detail, options = {}) {
         return panel;
     });
     for (const checkboxId of checkboxIds) panels[0].appendChild(elements.get(checkboxId));
+    panels[0].appendChild(elements.get('managedGroupMemoryModel'));
     panels[0].appendChild(elements.get('managedGroupsSaveSettings'));
     panels[1].appendChild(managerForm);
     panels[2].appendChild(elements.get('managedGroupsMembersList'));
@@ -262,7 +264,7 @@ function managerDetail() {
         projects: { enable_projects: true, allow_project_share: true },
         todo: { enabled_todo: true, allow_todo_list_share: true },
         notes: { enabled_notes: true, allow_notes_share: true },
-        memories: { enabled_memories: true },
+        memories: { enabled_memories: true, memory_model_id: 'memory-model' },
         skills: { enabled_skills: true, allow_skill_share: true },
         prompts: { enabled_prompts: true, allow_prompt_share: true },
         bookmarks: { enabled_bookmarks: true, allow_bookmark_share: true },
@@ -276,6 +278,10 @@ function managerDetail() {
         managers: [{ role: 'owner', user: { id: 'owner-1', email: 'owner@example.com', first_name: 'Owner', last_name: '' } }],
         members: [{ id: 'member-1', email: 'member@example.com', first_name: 'Group', last_name: 'Member', status: 'active' }],
         temporary_accounts: [],
+        memory_model_options: [
+            { value: 'memory-model', label: 'Memory Mini' },
+            { value: 'other-model', label: 'Other Model' },
+        ],
         pagination: {
             managers: { has_more: false },
             members: { has_more: false },
@@ -295,6 +301,8 @@ test('managers can save every feature access and sharing control without broader
 
     assert.equal(harness.elements.get('managedGroupEnableProjects').checked, true);
     assert.equal(harness.elements.get('managedGroupAllowProjectShare').checked, true);
+    assert.equal(harness.elements.get('managedGroupMemoryModel').value, 'memory-model');
+    assert.equal(harness.elements.get('managedGroupMemoryModel').disabled, false);
     assert.equal(harness.elements.get('managedGroupEnableAutomations').disabled, false,
         'managers can edit the selected group without a parent-policy ceiling');
 
@@ -325,9 +333,31 @@ test('managers can save every feature access and sharing control without broader
         enable_artifact_sharing: true,
     });
     assert.equal(payload.settings.automations.enabled_automations, false);
+    assert.deepEqual(payload.settings.memories, {
+        enabled_memories: true,
+        memory_model_id: 'memory-model',
+    });
     assert.equal(payload.settings.data_controls, undefined);
     assert.equal(payload.settings.tools_mcp, undefined);
     assert.equal(payload.description, undefined);
+});
+
+
+test('disabling group memories also disables its memory-model selector', async () => {
+    const harness = createHarness(managerDetail());
+    harness.window.ManagedGroupsSettings.setVisibility(true);
+    await harness.window.ManagedGroupsSettings.load();
+    await selectFirstGroup(harness);
+
+    const enabled = harness.elements.get('managedGroupEnableMemories');
+    enabled.checked = false;
+    await enabled.dispatch('change');
+
+    assert.equal(harness.elements.get('managedGroupMemoryModel').disabled, true);
+    assert.equal(
+        harness.elements.get('managedGroupMemoryModel').getAttribute('aria-disabled'),
+        'true',
+    );
 });
 
 

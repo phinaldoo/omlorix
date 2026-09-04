@@ -33,6 +33,7 @@ class ShareType(str, Enum):
 class Notes(Base):
     __tablename__ = "notes"
     __table_args__ = (
+        Index('ix_notes_catalog_page', 'user_id', 'updated_at', 'id'),
         Index("ix_notes_user_updated", "user_id", "updated_at"),
     )
 
@@ -55,6 +56,9 @@ class Notes(Base):
 class SharedNoteSubscription(Base):
     """Tracks which users have subscribed to (accepted) shared notes."""
     __tablename__ = "shared_note_subscriptions"
+    __table_args__ = (
+        Index('ix_note_subscriber_access', 'subscriber_id', 'note_id', 'share_type'),
+    )
 
     id = Column(String, primary_key=True, index=True)
     note_id = Column(String, nullable=False, index=True)

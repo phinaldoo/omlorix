@@ -4,6 +4,7 @@ from fastapi import HTTPException
 
 from app.automations.models import (
     create_automation as db_create_automation,
+    get_automation as db_get_automation,
     get_webhook_trigger_for_automation,
     list_automations as db_list_automations,
     update_automation as db_update_automation,
@@ -11,13 +12,12 @@ from app.automations.models import (
 )
 from app.groups.init import get_user_group_setting_value
 from app.skills.models import (
-    ADMIN_SKILLS_USER_ID,
     get_subscribed_skills,
     list_admin_skills_by_ids,
     list_skills,
 )
-from app.skills.utils import load_skill_markdown_fields
 from app.tools.audit import stage_tool_audit_action
+from app.tools.text_edits import DEFAULT_TOOL_TEXT_READ_CHARS, select_text_content
 from app.users.init import get_user_setting_value
 from app.utils.helpers import datetime_to_iso
 
@@ -64,31 +64,80 @@ WEBHOOK_MANAGEMENT_USER_MESSAGE = (
     "automations tool. Inform the user that they must manage the webhook "
     "themselves in the Automations interface."
 )
+DEFAULT_AUTOMATIONS_TOOL_PAGE_LIMIT = 20
+MAX_AUTOMATIONS_TOOL_PAGE_LIMIT = 100
+MAX_AUTOMATIONS_TOOL_OFFSET = 10_000
+MAX_AUTOMATIONS_INFORMATION_OPTIONS = 100
 
 
-def _serialize_automation(automation) -> Dict[str, Any]:
-    db = getattr(getattr(automation, "_sa_instance_state", None), "session", None)
-    webhook_trigger = get_webhook_trigger_for_automation(db, automation.user_id, automation.id) if db is not None else None
-    return {
+def _serialize_automation(
+    automation,
+    *,
+    include_detail: bool = True,
+) -> Dict[str, Any]:
+    payload: Dict[str, Any] = {
         "id": automation.id,
-        "user_id": automation.user_id,
         "title": automation.title,
         "icon": automation.icon,
         "icon_color": automation.icon_color,
-        "prompt": automation.prompt,
         "model_id": automation.model_id,
-        "schedule_rules": automation.schedule_rules,
         "schedule_timezone": automation.schedule_timezone,
         "skill_id": automation.skill_id,
-        "note_ids": automation.note_ids or [],
-        "file_ids": automation.file_ids or [],
-        "mcp_server_ids": getattr(automation, "mcp_server_ids", None) or [],
-        "webhook_trigger": _serialize_webhook_trigger(webhook_trigger),
         "is_active": bool(automation.is_active),
         "last_triggered_at": datetime_to_iso(getattr(automation, "last_triggered_at", None)),
         "created_at": datetime_to_iso(getattr(automation, "created_at", None)),
         "last_updated_at": datetime_to_iso(getattr(automation, "last_updated_at", None)),
     }
+    note_ids = automation.note_ids or []
+    file_ids = automation.file_ids or []
+    mcp_server_ids = getattr(automation, "mcp_server_ids", None) or []
+    if include_detail:
+        db = getattr(getattr(automation, "_sa_instance_state", None), "session", None)
+        webhook_trigger = (
+            get_webhook_trigger_for_automation(db, automation.user_id, automation.id)
+            if db is not None
+            else None
+        )
+        payload.update(
+            {
+                "prompt": automation.prompt,
+                "schedule_rules": automation.schedule_rules,
+                "note_ids": note_ids,
+                "file_ids": file_ids,
+                "mcp_server_ids": mcp_server_ids,
+                "webhook_trigger": _serialize_webhook_trigger(webhook_trigger),
+            }
+        )
+    else:
+        payload.update(
+            {
+                "prompt_length": len(str(automation.prompt or "")),
+                "schedule_rule_count": len(automation.schedule_rules or []),
+                "note_count": len(note_ids),
+                "file_count": len(file_ids),
+                "mcp_server_count": len(mcp_server_ids),
+            }
+        )
+    return payload
+
+
+def _normalize_page(limit: int | None, offset: int | None) -> tuple[int, int]:
+    try:
+        normalized_limit = int(
+            DEFAULT_AUTOMATIONS_TOOL_PAGE_LIMIT if limit is None else limit
+        )
+        normalized_offset = int(0 if offset is None else offset)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("limit and offset must be integers.") from exc
+    if normalized_limit < 1 or normalized_limit > MAX_AUTOMATIONS_TOOL_PAGE_LIMIT:
+        raise ValueError(
+            f"limit must be between 1 and {MAX_AUTOMATIONS_TOOL_PAGE_LIMIT}."
+        )
+    if normalized_offset < 0 or normalized_offset > MAX_AUTOMATIONS_TOOL_OFFSET:
+        raise ValueError(
+            f"offset must be between 0 and {MAX_AUTOMATIONS_TOOL_OFFSET}."
+        )
+    return normalized_limit, normalized_offset
 
 
 def _serialize_webhook_trigger(trigger) -> Dict[str, Any] | None:
@@ -178,6 +227,8 @@ def _list_accessible_model_options(db, user_id: str) -> list[dict[str, Any]]:
         option = _serialize_model_option(model_payload)
         if option:
             model_options.append(option)
+        if len(model_options) >= MAX_AUTOMATIONS_INFORMATION_OPTIONS:
+            break
     return model_options
 
 
@@ -216,30 +267,33 @@ def _list_model_eligible_mcp_options(
         )
         connectors = []
         if tool_resolution.get("mcp_requested"):
-            connectors = [
-                {
-                    "id": str(connector.get("id") or ""),
-                    "name": str(connector.get("name") or "MCP Server"),
-                    "description": str(connector.get("description") or ""),
-                }
-                for connector in list_mcp_mention_connectors(
-                    db,
-                    user_id,
-                    model_settings=model_settings,
+            for connector in list_mcp_mention_connectors(
+                db,
+                user_id,
+                model_settings=model_settings,
+            ):
+                connector_id = str(connector.get("id") or "").strip()
+                if not connector_id:
+                    continue
+                connectors.append(
+                    {
+                        "id": connector_id,
+                        "name": str(connector.get("name") or "MCP Server")[:255],
+                        "description": str(connector.get("description") or "")[:500],
+                    }
                 )
-                if str(connector.get("id") or "").strip()
-            ]
+                if len(connectors) >= MAX_AUTOMATIONS_INFORMATION_OPTIONS:
+                    break
         options_by_model[model_id] = connectors
     return options_by_model
 
 
-def _serialize_skill_option(skill, owner_user_id: str, *, is_admin_skill: bool = False) -> dict[str, Any]:
-    """Return the id/name/description triple for a skill visible to the user."""
-    markdown_fields = load_skill_markdown_fields(owner_user_id, skill.id)
+def _serialize_skill_option(skill, *, is_admin_skill: bool = False) -> dict[str, Any]:
+    """Return a bounded picker summary without loading every Skill file."""
     return {
         "id": skill.id,
         "name": skill.name,
-        "description": markdown_fields.get("description") or skill.description,
+        "description": str(skill.description or "")[:500],
         "is_admin_skill": is_admin_skill,
     }
 
@@ -249,28 +303,50 @@ def _list_accessible_skill_options(db, user_id: str) -> list[dict[str, Any]]:
     skills: list[dict[str, Any]] = []
     seen: set[str] = set()
 
-    for skill in list_skills(db, user_id):
-        skills.append(_serialize_skill_option(skill, user_id))
+    for skill in list_skills(
+        db,
+        user_id,
+        limit=MAX_AUTOMATIONS_INFORMATION_OPTIONS,
+    ):
+        skills.append(_serialize_skill_option(skill))
         seen.add(skill.id)
+        if len(skills) >= MAX_AUTOMATIONS_INFORMATION_OPTIONS:
+            return skills
 
-    for skill, _subscription in get_subscribed_skills(db, user_id):
+    for skill, _subscription in get_subscribed_skills(
+        db,
+        user_id,
+        limit=max(1, MAX_AUTOMATIONS_INFORMATION_OPTIONS - len(skills)),
+    ):
         if skill.id in seen:
             continue
-        skills.append(_serialize_skill_option(skill, skill.user_id))
+        skills.append(_serialize_skill_option(skill))
         seen.add(skill.id)
+        if len(skills) >= MAX_AUTOMATIONS_INFORMATION_OPTIONS:
+            return skills
 
     admin_skill_ids = get_user_group_setting_value(user_id, "skills", "admin_skill_ids", db)
     if isinstance(admin_skill_ids, list):
-        for skill in list_admin_skills_by_ids(db, admin_skill_ids):
+        for skill in list_admin_skills_by_ids(
+            db,
+            admin_skill_ids[:MAX_AUTOMATIONS_INFORMATION_OPTIONS],
+        ):
             if skill.id in seen:
                 continue
-            skills.append(_serialize_skill_option(skill, ADMIN_SKILLS_USER_ID, is_admin_skill=True))
+            skills.append(_serialize_skill_option(skill, is_admin_skill=True))
             seen.add(skill.id)
+            if len(skills) >= MAX_AUTOMATIONS_INFORMATION_OPTIONS:
+                return skills
 
     return skills
 
 
-def _build_information_response(db, user_id: str) -> dict[str, Any]:
+def _build_information_response(
+    db,
+    user_id: str,
+    *,
+    model_id: str | None = None,
+) -> dict[str, Any]:
     """Build detailed model-facing usage instructions for the automations tool."""
     available_models = _list_accessible_model_options(db, user_id)
     icon_options = [
@@ -280,9 +356,9 @@ def _build_information_response(db, user_id: str) -> dict[str, Any]:
     return {
         "tool": "automations",
         "instruction": (
-            "Always call type='information' first before list, create, edit, or delete so you can use "
-            "valid model IDs, model-eligible MCP server IDs, skill IDs, icon numbers, color numbers, "
-            "and schedule settings. Webhook triggers are user-managed: never attempt to create, change, "
+            "Use information only when you need valid model, Skill, icon, color, or scheduling options for "
+            "a create/edit call. Pass model_id when you specifically need that model's eligible MCP server IDs. "
+            "List, view, and delete do not require information first. Webhook triggers are user-managed: never attempt to create, change, "
             "rotate, or delete one. If asked, tell the user to manage it themselves in the Automations interface."
         ),
         "webhook_policy": WEBHOOK_MANAGEMENT_USER_MESSAGE,
@@ -292,8 +368,12 @@ def _build_information_response(db, user_id: str) -> dict[str, Any]:
                 "required_inputs": ["type"],
             },
             "list": {
-                "description": "Lists the user's automations and existing webhook trigger summaries.",
+                "description": "Returns paginated automation summaries without prompts.",
                 "required_inputs": ["type"],
+            },
+            "view": {
+                "description": "Returns one automation with its prompt and webhook summary.",
+                "required_inputs": ["type", "automation_id"],
             },
             "create": {
                 "description": (
@@ -364,8 +444,12 @@ def _build_information_response(db, user_id: str) -> dict[str, Any]:
         "available_mcp_servers_by_model": _list_model_eligible_mcp_options(
             db,
             user_id,
-            available_models,
-        ),
+            [
+                option
+                for option in available_models
+                if str(option.get("id") or "") == str(model_id or "").strip()
+            ],
+        ) if str(model_id or "").strip() else {},
         "available_skills": _list_accessible_skill_options(db, user_id),
     }
 
@@ -391,8 +475,27 @@ def automations_tool(
     # is rejected before an automation can be mutated.
     webhook_trigger: Optional[Dict[str, Any]] = None,
     is_active: Optional[bool] = None,
+    limit: Optional[int] = DEFAULT_AUTOMATIONS_TOOL_PAGE_LIMIT,
+    offset: Optional[int] = 0,
+    cursor: str | None = None,
+    query: Optional[str] = None,
+    heading: Optional[str] = None,
+    start_line: Optional[int] = None,
+    end_line: Optional[int] = None,
+    max_chars: Optional[int] = DEFAULT_TOOL_TEXT_READ_CHARS,
 ) -> Dict[str, Any]:
     operation = str(type or "").strip().lower()
+
+    for field_name, value, maximum in (
+        ("schedule_rules", schedule_rules, 100),
+        ("note_ids", note_ids, 20),
+        ("file_ids", file_ids, 20),
+        ("mcp_server_ids", mcp_server_ids, 100),
+    ):
+        if value is not None and not isinstance(value, list):
+            raise ValueError(f"{field_name} must be an array")
+        if isinstance(value, list) and len(value) > maximum:
+            raise ValueError(f"{field_name} may contain at most {maximum} entries")
 
     if webhook_trigger is not None:
         raise ValueError(WEBHOOK_MANAGEMENT_USER_MESSAGE)
@@ -416,11 +519,38 @@ def automations_tool(
         return str(user_timezone or "").strip() or "UTC"
 
     if operation == "information":
-        return _build_information_response(db, user_id)
+        result = _build_information_response(db, user_id, model_id=model_id)
+        result["operation"] = "information"
+        return result
 
     if operation == "list":
-        automations = db_list_automations(db, user_id)
-        return {"automations": [_serialize_automation(automation) for automation in automations]}
+        page_limit, page_offset = _normalize_page(limit, offset)
+        from app.automations.queries import list_automation_summaries
+        return list_automation_summaries(db, user_id, limit=page_limit, offset=page_offset, cursor=cursor)
+
+    if operation == "view":
+        automation_id_value = str(automation_id or "").strip()
+        if not automation_id_value:
+            raise ValueError("automation_id is required for view")
+        automation = db_get_automation(db, automation_id_value, user_id)
+        if not automation:
+            raise ValueError("Automation not found")
+        payload = _serialize_automation(automation)
+        prompt, selection = select_text_content(
+            str(payload.get("prompt") or ""),
+            heading=heading,
+            query=query,
+            start_line=start_line,
+            end_line=end_line,
+            max_chars=max_chars,
+        )
+        payload["prompt"] = prompt
+        payload["prompt_selection"] = selection
+        payload["prompt_truncated"] = bool(selection.get("truncated"))
+        return {
+            "operation": "view",
+            "automation": payload,
+        }
 
     if operation == "create":
         normalized_icon = _normalize_numbered_icon(icon)
@@ -481,6 +611,7 @@ def automations_tool(
             db.rollback()
             raise
         return {
+            "operation": "create",
             "status": "success",
             "message": "Automation created successfully",
             "automation": _serialize_automation(automation),
@@ -548,6 +679,7 @@ def automations_tool(
             db.rollback()
             raise
         return {
+            "operation": "edit",
             "status": "success",
             "message": "Automation updated successfully",
             "automation": _serialize_automation(automation),
@@ -583,9 +715,12 @@ def automations_tool(
             db.rollback()
             raise
         return {
+            "operation": "delete",
             "status": "success",
             "message": "Automation deleted successfully",
             "automation_id": automation_id_value,
         }
 
-    raise ValueError("Invalid type. Allowed values are: information, list, create, edit, delete.")
+    raise ValueError(
+        "Invalid type. Allowed values are: information, list, view, create, edit, delete."
+    )

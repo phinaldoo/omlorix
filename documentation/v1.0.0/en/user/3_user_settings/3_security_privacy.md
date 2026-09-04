@@ -7,7 +7,7 @@ Open **Settings > Security** to manage the controls available to your account.
 - **Profile Visibility:** choose whether your profile is **Public** or **Private**. Public visibility can make you available in supported invitation pickers; it does not publish your chats or files.
 - **Allow LLM to Access Personal Information:** choose **None**, **All**, or **Custom**. Custom access can include your first name, language, country, time zone, and location.
 
-Use the smallest amount of personal context you need. These choices do not hide information you type in a message, remove earlier chats, or control [Memories](11_memory_settings.md).
+Use the smallest amount of personal context you need. These choices do not hide information you type in a message, remove earlier chats, or control [Workspace Memories](../10_workspace/12_memories.md), which are managed by group policy.
 
 ## Sign-in security
 

@@ -987,7 +987,8 @@ def execute_realtime_tool_call(
             try:
                 event_line = next(helper_gen)
             except StopIteration as stop:
-                result_payload = stop.value if isinstance(stop.value, dict) else {"result": stop.value}
+                from app.tools.results import ToolResult
+                result_payload = ToolResult.from_payload(tool_name, stop.value or {})
                 break
             except Exception as exc:
                 # Roll back any incomplete tool transaction before committing
@@ -1077,6 +1078,11 @@ class RealtimeSessionRuntime:
     realtime_model: str
     voice: str
     settings: dict[str, Any]
+    # Snapshot the same complete, group-gated context used by ordinary chat
+    # requests. It is intentionally not serialized into the operational
+    # realtime-session row; restores rebuild it from the canonical memory
+    # tables so long-lived session metadata does not duplicate user facts.
+    memory_context: str | None = None
     # This remains true for the lifetime of a session created from the empty
     # composer. It lets reconnect responses and first-turn persistence retain
     # the same semantics after a process restart.
@@ -1253,6 +1259,22 @@ def persist_realtime_runtime_state(
     )
 
 
+def _get_realtime_memory_context(
+    db: Session,
+    user_id: str,
+    project_id: str | None,
+) -> str | None:
+    """Load memory as optional context without making voice availability depend on it."""
+
+    try:
+        from app.llm.system_instruction.memories import get_memories_context
+
+        return get_memories_context(db, user_id, project_id=project_id) or None
+    except Exception as exc:  # noqa: BLE001 - optional context boundary
+        logger.warning("[Realtime] Memories context attach failed: %s", exc)
+        return None
+
+
 def restore_realtime_session_runtime(
     db: Session,
     *,
@@ -1286,6 +1308,11 @@ def restore_realtime_session_runtime(
         realtime_model=str(payload.get("realtime_model") or record.model_name or ""),
         voice=str(payload.get("voice") or "alloy"),
         settings=payload.get("settings") if isinstance(payload.get("settings"), dict) else {},
+        memory_context=_get_realtime_memory_context(
+            db,
+            str(payload.get("user_id") or record.user_id or ""),
+            _normalize_optional_string(payload.get("project_id")),
+        ),
         created_chat=bool(payload.get("created_chat")),
         skill_file_ids=[str(file_id).strip() for file_id in (payload.get("skill_file_ids") or []) if str(file_id).strip()],
         agent_file_ids=[str(file_id).strip() for file_id in (payload.get("agent_file_ids") or []) if str(file_id).strip()],
@@ -1877,6 +1904,7 @@ def build_runtime_for_start(
         realtime_model=settings["model"],
         voice=settings["voice"],
         settings=_sanitize_realtime_runtime_settings(settings),
+        memory_context=_get_realtime_memory_context(db, user_id, project_id),
         created_chat=not bool(chat_id),
         skill_file_ids=selected_skill_file_ids,
         agent_file_ids=selected_agent_file_ids,
@@ -1916,6 +1944,9 @@ def build_runtime_for_start(
 
 def build_realtime_instructions(runtime: RealtimeSessionRuntime) -> str:
     sections = [DEFAULT_REALTIME_INSTRUCTIONS]
+    memory_context = getattr(runtime, "memory_context", None)
+    if memory_context:
+        sections.append(memory_context)
     if runtime.agent_instruction:
         sections.append(
             "Follow the agent instructions below for this realtime conversation.\n\n"
@@ -2859,6 +2890,14 @@ def persist_runtime_turn(
             realtime_session_id=runtime.id,
             realtime_turn_id=normalized_turn_id,
             commit=False,
+        )
+
+        from app.memories.consolidation import stage_memory_consolidation
+
+        stage_memory_consolidation(
+            db, user_id=runtime.user_id, source_message_id=str(user_msg.id),
+            source_at=user_msg.created_at, source_text=turn.user_transcript,
+            current_model_id=str(runtime.base_model_id or runtime.model_id or "") or None,
         )
 
         interactions: list[dict[str, Any]] = []

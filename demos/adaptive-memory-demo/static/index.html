@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <meta name="description" content="A standalone demonstration of adaptive, temporal memory for LLM chat.">
+    <title>Adaptive Memory Lab</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="/static/animations.css">
+  </head>
+  <body>
+    <a class="skip-link" href="#chat" data-i18n="skip_to_chat">Skip to chat</a>
+
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Adaptive Memory Lab" data-i18n-aria="app_name">
+        <span class="brand-mark" data-icon="memory" aria-hidden="true"></span>
+        <span data-i18n="app_name">Adaptive Memory Lab</span>
+      </a>
+      <div class="topbar-actions">
+        <div class="runtime-chip" id="runtimeChip">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span id="runtimeLabel" data-i18n="simulation_mode">Simulation</span>
+        </div>
+        <label class="language-control">
+          <span class="sr-only" data-i18n="language_label">Language</span>
+          <span data-icon="globe" aria-hidden="true"></span>
+          <select id="localeSelect" aria-label="Language" data-i18n-aria="language_label">
+            <option value="en">English</option>
+            <option value="de">Deutsch</option>
+            <option value="es">Español</option>
+            <option value="zh">中文</option>
+            <option value="fr">Français</option>
+            <option value="hi">हिन्दी</option>
+            <option value="ar">العربية</option>
+            <option value="ja">日本語</option>
+            <option value="it">Italiano</option>
+            <option value="pt">Português</option>
+            <option value="ru">Русский</option>
+          </select>
+        </label>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="heroTitle">
+        <div class="hero-copy">
+          <p class="eyebrow"><span data-icon="sparkles" aria-hidden="true"></span><span data-i18n="hero_eyebrow">Memory without tool calls</span></p>
+          <h1 id="heroTitle" data-i18n="hero_title">Memory that stays useful—and knows when to forget</h1>
+          <p class="hero-subtitle" data-i18n="hero_subtitle">A server-owned pipeline turns user messages into traceable facts, refreshes a concise profile, and retires stale information automatically.</p>
+          <p class="mode-note" id="modeNote" data-i18n="mode_note_simulation">No API calls are made. A deterministic local simulator updates memory.</p>
+          <p class="demo-warning" data-i18n="demo_warning">Local single-user demo — do not expose it publicly.</p>
+        </div>
+
+        <dl class="stats" aria-live="polite">
+          <div class="stat">
+            <dt data-i18n="stat_active">Active facts</dt>
+            <dd id="activeMetric">0</dd>
+          </div>
+          <div class="stat">
+            <dt data-i18n="stat_fresh">Fresh</dt>
+            <dd id="freshMetric">100%</dd>
+          </div>
+          <div class="stat">
+            <dt data-i18n="stat_tokens">API tokens</dt>
+            <dd id="tokenMetric">0</dd>
+          </div>
+          <div class="stat stat-accent">
+            <dt data-i18n="stat_cost">Last turn cost</dt>
+            <dd id="costMetric">$0.0000</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section class="pipeline" aria-labelledby="pipelineTitle">
+        <h2 class="sr-only" id="pipelineTitle" data-i18n="pipeline_label">Memory pipeline</h2>
+        <ol class="pipeline-list">
+          <li>
+            <span class="step-icon" data-icon="inbox" aria-hidden="true"></span>
+            <span><strong data-i18n="pipeline_capture">Capture</strong><small data-i18n="pipeline_capture_desc">Inspect the new user message after it is saved.</small></span>
+          </li>
+          <li>
+            <span class="step-icon" data-icon="layers" aria-hidden="true"></span>
+            <span><strong data-i18n="pipeline_resolve">Resolve</strong><small data-i18n="pipeline_resolve_desc">Add, confirm, supersede, or forget atomic facts.</small></span>
+          </li>
+          <li>
+            <span class="step-icon" data-icon="clock" aria-hidden="true"></span>
+            <span><strong data-i18n="pipeline_age">Age</strong><small data-i18n="pipeline_age_desc">Review changing facts and expire stale ones by policy.</small></span>
+          </li>
+          <li>
+            <span class="step-icon" data-icon="memory" aria-hidden="true"></span>
+            <span><strong data-i18n="pipeline_include">Include all</strong><small data-i18n="pipeline_include_desc">Give the chat model the complete bounded profile on every turn.</small></span>
+          </li>
+        </ol>
+      </section>
+
+      <div class="workspace">
+        <section class="panel chat-panel" id="chat" aria-labelledby="chatHeading">
+          <div class="panel-header">
+            <div>
+              <p class="section-kicker" data-i18n="chat_subtitle">Send a message to see the profile and fact history update.</p>
+              <h2 id="chatHeading" data-i18n="chat_heading">Memory conversation</h2>
+            </div>
+            <div class="chat-header-actions">
+              <button class="secondary-button" id="newChatButton" type="button">
+                <span data-icon="plus" aria-hidden="true"></span>
+                <span data-i18n="new_chat">New chat</span>
+              </button>
+              <div class="model-tag"><span data-icon="cpu" aria-hidden="true"></span><span id="modelName">gpt-5.6-luna</span></div>
+            </div>
+          </div>
+
+          <div class="chat-log" id="chatLog" aria-labelledby="chatHeading"></div>
+
+          <div class="samples" id="samples">
+            <span class="samples-label" data-i18n="sample_label">Try an example</span>
+            <div class="sample-list">
+              <button class="sample-button" type="button" data-sample="sample_identity" data-i18n="sample_identity">My name is Maya, and I live in Berlin.</button>
+              <button class="sample-button" type="button" data-sample="sample_project" data-i18n="sample_project">I'm building a solar-powered garden sensor.</button>
+              <button class="sample-button" type="button" data-sample="sample_change" data-i18n="sample_change">I moved from Berlin to Hamburg last month.</button>
+              <button class="sample-button" type="button" data-sample="sample_forget" data-i18n="sample_forget">Forget where I live.</button>
+            </div>
+          </div>
+
+          <form class="composer" id="chatForm">
+            <label class="sr-only" for="messageInput" data-i18n="message_placeholder">Tell the assistant something worth remembering…</label>
+            <textarea id="messageInput" rows="1" maxlength="4000" required disabled data-i18n-placeholder="message_placeholder" placeholder="Tell the assistant something worth remembering…"></textarea>
+            <button class="primary-button send-button" id="sendButton" type="submit" disabled data-i18n-aria="send" aria-label="Send">
+              <span data-icon="send" aria-hidden="true"></span>
+              <span data-i18n="send">Send</span>
+            </button>
+          </form>
+          <p class="sr-only" id="chatAnnouncement" aria-live="polite" aria-atomic="true"></p>
+          <p class="operation-status" id="operationStatus" aria-live="polite"></p>
+        </section>
+
+        <aside class="panel memory-panel" aria-labelledby="memoryHeading">
+          <div class="panel-header memory-header">
+            <div>
+              <p class="section-kicker" data-i18n="memory_subtitle">See what is stored, its source and confidence, and when it will be reviewed.</p>
+              <h2 id="memoryHeading" data-i18n="memory_heading">Memory inspector</h2>
+            </div>
+            <span class="memory-count" id="memoryCount">0</span>
+          </div>
+
+          <div class="tabs" role="tablist" aria-label="Memory inspector" data-i18n-aria="memory_heading">
+            <button type="button" role="tab" id="profileTab" aria-controls="profilePanel" aria-selected="true" data-tab="profilePanel" data-i18n="tab_profile">Profile</button>
+            <button type="button" role="tab" id="factsTab" aria-controls="factsPanel" aria-selected="false" tabindex="-1" data-tab="factsPanel" data-i18n="tab_facts">Facts</button>
+            <button type="button" role="tab" id="timelineTab" aria-controls="timelinePanel" aria-selected="false" tabindex="-1" data-tab="timelinePanel" data-i18n="tab_timeline">Timeline</button>
+            <button type="button" role="tab" id="architectureTab" aria-controls="architecturePanel" aria-selected="false" tabindex="-1" data-tab="architecturePanel" data-i18n="tab_architecture">Architecture</button>
+          </div>
+
+          <div class="tab-content">
+            <section role="tabpanel" id="profilePanel" aria-labelledby="profileTab">
+              <div class="profile-card">
+                <div class="profile-heading-row">
+                  <span class="profile-avatar" data-icon="user" aria-hidden="true"></span>
+                  <div>
+                    <h3 data-i18n="profile_heading">Derived user profile</h3>
+                    <p class="profile-meta"><span data-i18n="profile_version">Profile version</span> <span id="profileVersion">0</span></p>
+                  </div>
+                </div>
+                <p class="profile-copy" id="profileCopy" data-i18n="profile_empty">The profile will appear after the first durable fact is captured.</p>
+                <p class="profile-time" id="profileTime"></p>
+              </div>
+            </section>
+
+            <section role="tabpanel" id="factsPanel" aria-labelledby="factsTab" hidden>
+              <div class="fact-list" id="factList"></div>
+            </section>
+
+            <section role="tabpanel" id="timelinePanel" aria-labelledby="timelineTab" hidden>
+              <ol class="timeline" id="timeline"></ol>
+            </section>
+
+            <section role="tabpanel" id="architecturePanel" aria-labelledby="architectureTab" hidden>
+              <div class="architecture-intro">
+                <span class="architecture-icon" data-icon="git-branch" aria-hidden="true"></span>
+                <h3 data-i18n="architecture_heading">Bounded, temporal memory</h3>
+                <p data-i18n="architecture_body">Immutable message evidence supports versioned atomic facts. Their complete bounded profile is included on every turn without search.</p>
+              </div>
+              <div class="policy-list">
+                <article><span data-icon="anchor" aria-hidden="true"></span><div><h3 data-i18n="policy_stable">Stable identity</h3><p data-i18n="policy_stable_desc">Review yearly; expire after three years without fresh confirmation.</p></div></article>
+                <article><span data-icon="sliders" aria-hidden="true"></span><div><h3 data-i18n="policy_slow">Slow-changing preference</h3><p data-i18n="policy_slow_desc">Review periodically and strengthen only with new user evidence.</p></div></article>
+                <article><span data-icon="refresh" aria-hidden="true"></span><div><h3 data-i18n="policy_changing">Changing context</h3><p data-i18n="policy_changing_desc">Review soon and supersede when a newer value is explicit.</p></div></article>
+                <article><span data-icon="zap" aria-hidden="true"></span><div><h3 data-i18n="policy_ephemeral">Ephemeral detail</h3><p data-i18n="policy_ephemeral_desc">Keep briefly, then expire automatically unless confirmed.</p></div></article>
+              </div>
+              <div class="architecture-actions">
+                <button class="secondary-button" id="sweepButton" type="button"><span data-icon="scan" aria-hidden="true"></span><span data-i18n="run_sweep">Run lifecycle sweep</span></button>
+                <button class="secondary-button" id="simulateButton" type="button"><span data-icon="fast-forward" aria-hidden="true"></span><span data-i18n="simulate_time">Simulate time</span></button>
+                <a class="secondary-button" href="/api/export" download><span data-icon="download" aria-hidden="true"></span><span data-i18n="export_data">Export data</span></a>
+                <button class="danger-button" id="resetButton" type="button"><span data-icon="rotate" aria-hidden="true"></span><span data-i18n="reset_demo">Reset demo</span></button>
+              </div>
+            </section>
+          </div>
+        </aside>
+      </div>
+    </main>
+
+    <dialog id="editDialog" aria-labelledby="editDialogTitle">
+      <form method="dialog" id="editForm">
+        <div class="dialog-header">
+          <span class="dialog-icon" data-icon="edit" aria-hidden="true"></span>
+          <h2 id="editDialogTitle" data-i18n="dialog_edit_title">Edit memory fact</h2>
+          <button class="icon-button" type="button" data-close-dialog aria-label="Close" data-i18n-aria="close"><span data-icon="close" aria-hidden="true"></span></button>
+        </div>
+        <label for="editInput" data-i18n="dialog_edit_label">Fact</label>
+        <textarea id="editInput" rows="4" maxlength="320" required></textarea>
+        <div class="dialog-actions">
+          <button class="secondary-button" type="button" data-close-dialog data-i18n="dialog_cancel">Cancel</button>
+          <button class="primary-button" type="submit" data-i18n="dialog_save">Save changes</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="confirmDialog" aria-labelledby="confirmDialogTitle" aria-describedby="confirmDialogBody">
+      <div class="dialog-header">
+        <span class="dialog-icon" data-icon="alert" aria-hidden="true"></span>
+        <h2 id="confirmDialogTitle"></h2>
+        <button class="icon-button" type="button" data-close-dialog aria-label="Close" data-i18n-aria="close"><span data-icon="close" aria-hidden="true"></span></button>
+      </div>
+      <p id="confirmDialogBody"></p>
+      <div class="dialog-actions">
+        <button class="secondary-button" type="button" data-close-dialog data-i18n="dialog_cancel">Cancel</button>
+        <button class="danger-button" id="confirmActionButton" type="button" data-i18n="dialog_confirm">Continue</button>
+      </div>
+    </dialog>
+
+    <div class="toast-region" id="toastRegion" aria-live="polite" aria-atomic="true"></div>
+    <script type="module" src="/static/app.js"></script>
+  </body>
+</html>

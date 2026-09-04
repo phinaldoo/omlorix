@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+from datetime import datetime
 import json
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, WebSocket
@@ -499,7 +500,8 @@ def realtime_tool_call(
         user_role=user.role,
     )
     tool_payload = result.get("payload") or {}
-    output_payload = tool_payload.get("result") if isinstance(tool_payload, dict) and "result" in tool_payload else tool_payload
+    from app.tools.results import ToolResult
+    output_payload = ToolResult.from_payload(payload.tool_name, tool_payload).model_content
     if isinstance(output_payload, (dict, list)):
         output_string = json.dumps(output_payload, ensure_ascii=False)
     else:

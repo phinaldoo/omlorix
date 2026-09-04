@@ -1095,12 +1095,17 @@ def delete_model(db, model_id: str | None = None, provider_id: str | None = None
     for group in groups:
         settings = dict(group.settings or {})
         chat_settings = dict(settings.get("chat") or {})
+        memory_settings = dict(settings.get("memories") or {})
         changed = False
         if chat_settings.get("byok_title_generation_model_id") == model_id:
             chat_settings["byok_title_generation_model_id"] = ""
             changed = True
+        if memory_settings.get("memory_model_id") == model_id:
+            memory_settings["memory_model_id"] = ""
+            changed = True
         if changed:
             settings["chat"] = chat_settings
+            settings["memories"] = memory_settings
             group.settings = settings
             group.updated_at = datetime.now(timezone.utc)
     other_models = db.query(Models).filter(Models.id != model_id).all()

@@ -43,7 +43,7 @@ from app.tools.subagents.schemas import SUBAGENT_RUNTIME_TARGETS_SETTING
 from app.utils.utils import sanitize_chat_text
 from app.chats.streaming import stream_hub, cancel_registry
 from app.utils.background import title_generation_executor
-from app.files.access import get_accessible_file
+from app.files.access import accessible_files_query
 from app.files.models import Files
 from app.files.utils import get_file_info
 from app.groups.init import get_group_setting_value, get_user_group_setting_value
@@ -247,6 +247,11 @@ def _retry_guidance_log_metadata(retry_guidance: RetryGuidance | None) -> dict:
 TEMP_CHAT_ATTACHMENT_FIELDS = ("images", "videos", "audios", "documents", "youtube", "sources")
 MAX_CHAT_REFERENCE_CHATS = 5
 MAX_CHAT_REFERENCE_CONTEXT_CHARS = 120000
+MAX_TRACKED_ARTIFACT_IDS = 100
+MAX_CONTEXT_SELECTION_ITEMS = 20
+MAX_SKILL_INSTRUCTION_CHARS = 96_000
+MAX_PROMPT_LIBRARY_CHARS = 32_000
+MAX_SKILL_ATTACHMENT_FILES = 20
 CHAT_REFERENCE_BLOCK_FIELD = "chat_references"
 CHAT_REFERENCE_DETAIL_INVALID = "chat_reference_invalid"
 CHAT_REFERENCE_DETAIL_OVERSIZE = "chat_reference_context_too_large"
@@ -520,6 +525,8 @@ def _normalize_skill_ids(skill_id: str | None = None, skill_ids: list[str] | Non
     seen: set[str] = set()
 
     def _push(raw_value) -> None:
+        if len(normalized) >= MAX_CONTEXT_SELECTION_ITEMS:
+            return
         value = str(raw_value or "").strip()
         if not value or value in seen:
             return
@@ -585,6 +592,24 @@ def _resolve_generation_skill_ids(
     )
 
 
+def _fit_instruction_section(
+    header: str,
+    content: str,
+    *,
+    available_chars: int,
+) -> tuple[str, bool]:
+    """Fit one instruction source into a deterministic prompt budget."""
+    if available_chars <= 0:
+        return "", True
+    section = f"{header}\n{content}"
+    if len(section) <= available_chars:
+        return section, False
+    marker = "\n[Content truncated to the configured context budget.]"
+    if available_chars <= len(marker):
+        return section[:available_chars], True
+    return f"{section[: available_chars - len(marker)]}{marker}", True
+
+
 def _compose_skill_content(
     db,
     user_id: str,
@@ -597,6 +622,7 @@ def _compose_skill_content(
         return None
 
     chunks: list[str] = []
+    used_chars = 0
     for resolved_skill_id in resolved_skill_ids:
         # Only the skill's authored instructions belong in the system prompt.
         # Its files are added separately through the provider attachment path,
@@ -609,7 +635,19 @@ def _compose_skill_content(
         )
         if not content:
             continue
-        chunks.append(f"[Skill {len(chunks) + 1}]\n{content}")
+        separator_chars = 2 if chunks else 0
+        available_chars = MAX_SKILL_INSTRUCTION_CHARS - used_chars - separator_chars
+        chunk, was_truncated = _fit_instruction_section(
+            f"[Skill {len(chunks) + 1}]",
+            str(content),
+            available_chars=available_chars,
+        )
+        if not chunk:
+            break
+        chunks.append(chunk)
+        used_chars += separator_chars + len(chunk)
+        if was_truncated:
+            break
 
     return "\n\n".join(chunks) if chunks else None
 
@@ -638,7 +676,10 @@ def _collect_skill_file_attachment_ids(
         "document": "documents",
     }
 
+    seen_file_ids: set[str] = set()
     for resolved_skill_id in resolved_skill_ids:
+        if len(seen_file_ids) >= MAX_SKILL_ATTACHMENT_FILES:
+            break
         by_category = get_skill_file_descriptors_by_category_for_user(
             db,
             user_id,
@@ -648,10 +689,17 @@ def _collect_skill_file_attachment_ids(
         if not isinstance(by_category, dict):
             continue
         for source_key, target_key in field_map.items():
-            grouped[target_key] = _merge_attachment_ids(
-                grouped.get(target_key),
-                by_category.get(source_key),
-            )
+            if len(seen_file_ids) >= MAX_SKILL_ATTACHMENT_FILES:
+                break
+            for file_id in _normalize_attachment_ids(by_category.get(source_key)):
+                if len(seen_file_ids) >= MAX_SKILL_ATTACHMENT_FILES:
+                    break
+                if file_id in seen_file_ids:
+                    continue
+                seen_file_ids.add(file_id)
+                grouped[target_key].append(file_id)
+                if len(seen_file_ids) >= MAX_SKILL_ATTACHMENT_FILES:
+                    break
 
     return grouped
 
@@ -665,6 +713,8 @@ def _normalize_prompt_ids(prompt_ids: list[str] | None = None) -> list[str]:
         return normalized
 
     for item in prompt_ids:
+        if len(normalized) >= MAX_CONTEXT_SELECTION_ITEMS:
+            break
         value = str(item or "").strip()
         if not value or value in seen:
             continue
@@ -769,6 +819,7 @@ def _compose_prompt_content(db, user_id: str, resolved_prompt_ids: list[str]) ->
         return None
 
     chunks: list[str] = []
+    used_chars = 0
     for resolved_prompt_id in resolved_prompt_ids:
         prompt_payload = get_prompt_content_for_user(db, user_id, resolved_prompt_id)
         if not prompt_payload:
@@ -777,7 +828,19 @@ def _compose_prompt_content(db, user_id: str, resolved_prompt_ids: list[str]) ->
         content = str(prompt_payload.get("content") or "").strip()
         if not content:
             continue
-        chunks.append(f"[Prompt: {title} | ID: {resolved_prompt_id}]\n{content}")
+        separator_chars = 2 if chunks else 0
+        available_chars = MAX_PROMPT_LIBRARY_CHARS - used_chars - separator_chars
+        chunk, was_truncated = _fit_instruction_section(
+            f"[Prompt: {title} | ID: {resolved_prompt_id}]",
+            content,
+            available_chars=available_chars,
+        )
+        if not chunk:
+            break
+        chunks.append(chunk)
+        used_chars += separator_chars + len(chunk)
+        if was_truncated:
+            break
 
     return "\n\n".join(chunks) if chunks else None
 
@@ -1680,6 +1743,7 @@ def send_message(
     chat_history = []
     generation_id = requested_generation_id
     reference_id = None
+    memory_source_at = datetime.now(timezone.utc)
     normalized_current_chat_id = normalized_chat_id or None
     resolved_project_scope_id = str(project_id or "").strip() or None
     if normalized_current_chat_id and not resolved_project_scope_id:
@@ -1757,8 +1821,20 @@ def send_message(
                     content=user_msg_blocks,
                     commit=False,
                 )
+                from app.memories.consolidation import stage_memory_consolidation
+
+                stage_memory_consolidation(
+                    db, user_id=user_id, source_message_id=str(user_msg.id),
+                    source_at=user_msg.created_at or memory_source_at,
+                    source_text=sanitized_message,
+                    current_model_id=resolved_base_model_id if not byok else None,
+                    byok=byok,
+                )
                 db.commit()
                 db.refresh(user_msg)
+                memory_source_at = (
+                    getattr(user_msg, "created_at", None) or memory_source_at
+                )
             except Exception as exc:
                 _raise_message_persistence_failed(exc, chat_obj=chat, cleanup_empty_chat=True)
 
@@ -1897,8 +1973,20 @@ def send_message(
                     content=user_msg_blocks,
                     commit=False,
                 )
+                from app.memories.consolidation import stage_memory_consolidation
+
+                stage_memory_consolidation(
+                    db, user_id=user_id, source_message_id=str(user_msg.id),
+                    source_at=user_msg.created_at or memory_source_at,
+                    source_text=sanitized_message,
+                    current_model_id=resolved_base_model_id if not byok else None,
+                    byok=byok,
+                )
                 db.commit()
                 db.refresh(user_msg)
+                memory_source_at = (
+                    getattr(user_msg, "created_at", None) or memory_source_at
+                )
         except Exception as exc:
             _raise_message_persistence_failed(exc, chat_obj=chat, cleanup_empty_chat=new_chat)
 
@@ -1924,7 +2012,6 @@ def send_message(
         else:
             reference_id = None
         chat_history = db_get_chat_messages(db, chat_id)
-
 
     def _dispatch_title_generation(session, provider, model, message, sys_instr, *, provider_id=None, byok=None, user_id=None):
         """Dispatch title generation to the appropriate provider."""
@@ -3244,21 +3331,42 @@ def _collect_note_ids_from_value(value, *, in_note_context: bool = False) -> set
     """Collect note IDs from structured notes tool payloads in chat history."""
     note_ids: set[str] = set()
     if isinstance(value, dict):
+        meta = value.get("meta") if isinstance(value.get("meta"), dict) else {}
+        tool_label = str(
+            value.get("tool_name")
+            or meta.get("tool_name")
+            or ""
+        ).strip()
+        block_type = str(value.get("type") or "").strip().lower()
+        legacy_call = str(value.get("content") or "").lstrip()
+        is_notes_block = (
+            tool_label == "notes"
+            or tool_label.startswith("notes(")
+            or (
+                block_type == "tool_call"
+                and legacy_call.startswith("notes(")
+            )
+        )
+        current_note_context = in_note_context or is_notes_block
         direct_note_id = value.get("note_id")
         if isinstance(direct_note_id, str) and direct_note_id.strip():
             note_ids.add(direct_note_id.strip())
 
-        if in_note_context:
+        if current_note_context:
             direct_id = value.get("id")
             if isinstance(direct_id, str) and direct_id.strip():
                 note_ids.add(direct_id.strip())
 
         for key, child in value.items():
-            child_note_context = in_note_context or key in {"note", "notes"}
+            child_note_context = current_note_context or key in {"note", "notes"}
             note_ids.update(_collect_note_ids_from_value(child, in_note_context=child_note_context))
     elif isinstance(value, list):
         for child in value:
             note_ids.update(_collect_note_ids_from_value(child, in_note_context=in_note_context))
+    elif isinstance(value, str) and in_note_context:
+        decoded = _decode_jsonish(value)
+        if isinstance(decoded, (dict, list)):
+            note_ids.update(_collect_note_ids_from_value(decoded, in_note_context=True))
     return note_ids
 
 
@@ -3290,32 +3398,90 @@ def _build_notes_user_edit_context(db, *, user_id: str, chat_history: list) -> s
     if last_assistant_at is None:
         return None
 
-    candidate_note_ids = sorted(_collect_note_ids_from_chat_history(chat_history))
+    candidate_note_ids = sorted(_collect_note_ids_from_chat_history(chat_history))[
+        :MAX_TRACKED_ARTIFACT_IDS
+    ]
     if not candidate_note_ids:
         return None
 
     try:
-        from app.notes.models import NoteHistory, Notes, can_user_view_note
+        from app.notes.models import NoteHistory, Notes, SharedNoteSubscription
     except Exception:
         logger.warning("Failed to import note models for edit context.", exc_info=True)
         return None
 
+    try:
+        notes = db.query(Notes).filter(Notes.id.in_(candidate_note_ids)).all()
+        notes_by_id = {str(note.id): note for note in notes}
+        subscriptions = (
+            db.query(SharedNoteSubscription)
+            .filter(
+                SharedNoteSubscription.note_id.in_(candidate_note_ids),
+                SharedNoteSubscription.subscriber_id == str(user_id),
+            )
+            .all()
+        )
+        subscriptions_by_note_id = {
+            str(subscription.note_id): subscription for subscription in subscriptions
+        }
+        ranked_history = (
+            db.query(
+                NoteHistory.note_id.label("note_id"),
+                NoteHistory.actor_type.label("actor_type"),
+                NoteHistory.version_number.label("version_number"),
+                NoteHistory.created_at.label("created_at"),
+                NoteHistory.id.label("id"),
+                func.row_number()
+                .over(
+                    partition_by=NoteHistory.note_id,
+                    order_by=(
+                        NoteHistory.created_at.desc(),
+                        NoteHistory.id.desc(),
+                    ),
+                )
+                .label("history_rank"),
+            )
+            .filter(
+                NoteHistory.note_id.in_(candidate_note_ids),
+                NoteHistory.created_at > last_assistant_at,
+            )
+            .subquery()
+        )
+        history_rows = (
+            db.query(
+                ranked_history.c.note_id,
+                ranked_history.c.actor_type,
+                ranked_history.c.version_number,
+                ranked_history.c.created_at,
+                ranked_history.c.id,
+            )
+            .filter(ranked_history.c.history_rank == 1)
+            .all()
+        )
+    except Exception:
+        logger.warning("Failed to batch note edit history for chat context.", exc_info=True)
+        return None
+
+    latest_history_by_note_id = {
+        str(history_row.note_id): history_row for history_row in history_rows
+    }
+
     changed_notes: list[dict[str, str]] = []
     for note_id in candidate_note_ids:
         try:
-            if not can_user_view_note(db, str(user_id), str(note_id)):
-                continue
-            note = db.query(Notes).filter(
-                Notes.id == str(note_id),
-            ).first()
+            note = notes_by_id.get(str(note_id))
             if not note:
                 continue
-            latest_history = (
-                db.query(NoteHistory)
-                .filter(NoteHistory.note_id == str(note_id))
-                .order_by(NoteHistory.created_at.desc(), NoteHistory.id.desc())
-                .first()
+            is_owner = str(note.user_id) == str(user_id)
+            subscription = subscriptions_by_note_id.get(str(note_id))
+            share_type = str(getattr(subscription, "share_type", "") or "")
+            share_is_active = (
+                (share_type == "live" and bool(note.live_share_id))
+                or (share_type == "collaborate" and bool(note.collaborate_share_id))
             )
+            if not is_owner and not share_is_active:
+                continue
+            latest_history = latest_history_by_note_id.get(str(note_id))
             if not latest_history or str(latest_history.actor_type or "").strip().lower() != "user":
                 continue
             edited_at = _as_utc_datetime(latest_history.created_at)
@@ -3397,16 +3563,18 @@ def _build_canvas_user_edit_user_context(db, *, user_id: str, chat_history: list
     if last_assistant_at is None:
         return None
 
-    candidate_file_ids = sorted(_collect_canvas_file_ids_from_chat_history(chat_history))
+    candidate_file_ids = sorted(_collect_canvas_file_ids_from_chat_history(chat_history))[
+        :MAX_TRACKED_ARTIFACT_IDS
+    ]
     if not candidate_file_ids:
         return None
 
-    file_records: list[Files] = []
     try:
-        for file_id in candidate_file_ids:
-            file_record = get_accessible_file(db, str(user_id), str(file_id))
-            if file_record:
-                file_records.append(file_record)
+        file_records = (
+            accessible_files_query(db, str(user_id))
+            .filter(Files.id.in_(candidate_file_ids))
+            .all()
+        )
     except Exception:
         logger.warning("Failed to inspect canvas edit revisions for chat context.", exc_info=True)
         return None

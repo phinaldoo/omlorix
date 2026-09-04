@@ -173,6 +173,19 @@ def test_postgres_migration_runner_reaches_heads_and_ready_state():
         DATABASE_SCHEMA,
         "import_staging_reservations",
     )
+    _assert_table_exists(engine, DATABASE_SCHEMA, "memory_profiles")
+    _assert_table_exists(engine, DATABASE_SCHEMA, "memory_deletions")
+    _assert_table_exists(engine, DATABASE_SCHEMA, "memory_states")
+    _assert_column_exists(engine, DATABASE_SCHEMA, "memory_profiles", "source_revision")
+    _assert_column_missing(engine, DATABASE_SCHEMA, "memory_profiles", "last_run_status")
+    for column_name in (
+        "memory_key",
+        "stability",
+        "last_confirmed_at",
+        "review_at",
+        "expires_at",
+    ):
+        _assert_column_exists(engine, DATABASE_SCHEMA, "memories", column_name)
     _assert_table_exists(engine, LOGS_DATABASE_SCHEMA, "adminnotifications")
     _assert_table_exists(audit_engine, AUDIT_DATABASE_SCHEMA, "logs")
     _assert_table_exists(audit_engine, AUDIT_DATABASE_SCHEMA, "authenticationlogs")
@@ -182,7 +195,8 @@ def test_postgres_migration_runner_reaches_heads_and_ready_state():
     readiness = root_readiness_check()
     assert readiness["status"] == "ready"
     assert readiness["checks"]["database"] == "ok"
-    assert readiness["checks"]["redis"] == "ok"
+    expected_redis = "disabled" if os.getenv("REDIS_ENABLED", "true").lower() == "false" else "ok"
+    assert readiness["checks"]["redis"] == expected_redis
 
 
 def test_fresh_postgres_prepares_audit_partitions_before_security_events(monkeypatch):

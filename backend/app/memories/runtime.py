@@ -9,7 +9,6 @@ from fastapi import HTTPException
 from app.groups.init import get_user_group_setting_value
 from app.memories.service import MemoryScope
 from app.projects.models import get_project_with_access
-from app.users.init import get_user_settings
 
 
 @dataclass(frozen=True, slots=True)
@@ -19,16 +18,13 @@ class MemoryPolicy:
     user_id: str
     requested_project_id: str | None
     feature_enabled: bool
-    account_enabled: bool
-    include_in_context_setting: bool
-    auto_create_setting: bool
     project_enabled: bool
 
     @property
     def active(self) -> bool:
         """Return whether memories are active for the account."""
 
-        return self.feature_enabled and self.account_enabled
+        return self.feature_enabled
 
     @property
     def use_project_memory(self) -> bool:
@@ -38,7 +34,7 @@ class MemoryPolicy:
 
     @property
     def scope(self) -> MemoryScope:
-        """Return the effective chat/tool scope, falling back to personal."""
+        """Return the effective chat scope, falling back to personal."""
 
         if self.use_project_memory:
             return MemoryScope.project(str(self.requested_project_id))
@@ -48,24 +44,7 @@ class MemoryPolicy:
     def include_in_context(self) -> bool:
         """Return whether saved memories should be attached to model context."""
 
-        return self.active and self.include_in_context_setting
-
-    @property
-    def auto_create(self) -> bool:
-        """Return whether the model may create a memory."""
-
-        return self.active and self.auto_create_setting
-
-
-def get_memory_settings(db, user_id: str) -> dict[str, bool]:
-    """Load the complete memory settings page with one user-settings lookup."""
-
-    page = get_user_settings(user_id, db).get("memory", {})
-    return {
-        "enabled": bool(page.get("enabled")),
-        "include_in_context": bool(page.get("include_in_context")),
-        "auto_create": bool(page.get("auto_create")),
-    }
+        return self.active
 
 
 def get_memory_policy(
@@ -80,18 +59,15 @@ def get_memory_policy(
     normalized_user_id = str(user_id or "").strip()
     normalized_project_id = str(project_id or "").strip() or None
     if db is None or not normalized_user_id:
-        return MemoryPolicy(
-            "", normalized_project_id, False, False, False, False, False
-        )
+        return MemoryPolicy("", normalized_project_id, False, False)
 
     feature_enabled = bool(
         get_user_group_setting_value(
             normalized_user_id, "memories", "enabled_memories", db
         )
     )
-    settings = get_memory_settings(db, normalized_user_id)
     project_enabled = False
-    if normalized_project_id and feature_enabled and settings["enabled"]:
+    if normalized_project_id and feature_enabled:
         resolved_project = project
         if resolved_project is None:
             try:
@@ -114,8 +90,5 @@ def get_memory_policy(
         user_id=normalized_user_id,
         requested_project_id=normalized_project_id,
         feature_enabled=feature_enabled,
-        account_enabled=settings["enabled"],
-        include_in_context_setting=settings["include_in_context"],
-        auto_create_setting=settings["auto_create"],
         project_enabled=project_enabled,
     )

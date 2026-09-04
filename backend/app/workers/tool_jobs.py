@@ -319,7 +319,7 @@ def execute_tool_job(job: WorkerJobSnapshot, context: WorkerContext) -> dict[str
             payload = completed.value or {}
         context.raise_if_cancelled()
         return {
-            "payload": jsonable_encoder(payload),
+            "payload": jsonable_encoder(dict(payload)),
             "events": events,
             "streamed": publish_live,
         }

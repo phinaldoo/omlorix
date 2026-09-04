@@ -86,6 +86,7 @@ class TodoListPageResponse(BaseModel):
     limit: int
     offset: int
     has_more: bool = False
+    next_cursor: str | None = None
 
 
 # ============================================================================

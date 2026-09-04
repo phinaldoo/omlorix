@@ -1,5 +1,6 @@
 from copy import deepcopy
 from datetime import datetime, timezone
+import hashlib
 import json
 from typing import Any
 
@@ -31,6 +32,160 @@ def stringify_tool_call_arguments(arguments: Any) -> str:
         return json.dumps(arguments, ensure_ascii=False, separators=(",", ":"))
     except (TypeError, ValueError):
         return str(arguments)
+
+
+_CONTENT_ARGUMENT_FIELDS: dict[str, frozenset[str]] = {
+    "automations": frozenset({"prompt"}),
+    "canvas": frozenset({"content", "markdown"}),
+    "create_visualization": frozenset({"content"}),
+    "latex_pdf": frozenset({"tex"}),
+    "notes": frozenset({"content"}),
+    "skills": frozenset({"content"}),
+    "todos": frozenset({"content", "notes"}),
+}
+_PERSISTED_TOOL_ARGUMENT_MAX_CHARS = 32_000
+_PERSISTED_TOOL_RESULT_MAX_CHARS = 64_000
+_PERSISTED_TOOL_RESULT_PREVIEW_CHARS = 2_000
+_HISTORY_RECEIPT_PREFIX = "[omitted from chat history:"
+
+
+def _text_receipt(value: str) -> str:
+    encoded = value.encode("utf-8")
+    digest = hashlib.sha256(encoded).hexdigest()[:16]
+    return f"[omitted from chat history: {len(value)} chars, sha256={digest}]"
+
+
+def _sanitize_large_argument_value(value: Any, *, always_redact: bool = False) -> Any:
+    if isinstance(value, str):
+        # Provider adapters can compact the live history and then pass the same
+        # call through the persistence builder. Keep receipts stable across
+        # those repeated boundaries instead of hashing the receipt itself.
+        if value.startswith(_HISTORY_RECEIPT_PREFIX) and value.endswith("]"):
+            return value
+        if always_redact or len(value) > 4_000:
+            return _text_receipt(value)
+        return value
+    if isinstance(value, list):
+        return [
+            _sanitize_large_argument_value(item, always_redact=always_redact)
+            for item in value[:100]
+        ]
+    if isinstance(value, dict):
+        return {
+            str(key): _sanitize_large_argument_value(item, always_redact=always_redact)
+            for key, item in list(value.items())[:100]
+        }
+    return value
+
+
+def _bound_tool_call_arguments(value: Any) -> str:
+    serialized = stringify_tool_call_arguments(value)
+    if len(serialized) <= _PERSISTED_TOOL_ARGUMENT_MAX_CHARS:
+        return serialized
+    receipt: dict[str, Any] = {
+        "_arguments_compacted": _text_receipt(serialized),
+    }
+    if isinstance(value, dict):
+        for field in (
+            "type",
+            "action",
+            "entity",
+            "id",
+            "file_id",
+            "note_id",
+            "skill_id",
+            "automation_id",
+            "todo_id",
+            "todo_list_id",
+            "expected_revision",
+            "expected_updated_at",
+        ):
+            if field in value:
+                receipt[field] = _sanitize_large_argument_value(value[field])
+    return stringify_tool_call_arguments(receipt)
+
+
+def sanitize_tool_call_arguments_for_persistence(
+    tool_name: str | None,
+    arguments: Any,
+) -> str:
+    """Remove canonical artifact bodies from completed tool-call history.
+
+    The provider receives the original arguments while executing the live call.
+    Stored history only needs a protocol-valid description of what happened; the
+    canonical body lives in Notes, Files, or the corresponding feature store.
+    """
+
+    normalized_name = _normalize_tool_name(tool_name) or ""
+    if isinstance(arguments, str):
+        raw = arguments.strip() or "{}"
+        try:
+            parsed: Any = json.loads(raw)
+        except (TypeError, ValueError, json.JSONDecodeError):
+            if len(raw) > 4_000:
+                return json.dumps({"_arguments": _text_receipt(raw)}, separators=(",", ":"))
+            return raw
+    else:
+        parsed = arguments if arguments is not None else {}
+
+    if not isinstance(parsed, dict):
+        return _bound_tool_call_arguments(_sanitize_large_argument_value(parsed))
+
+    body_fields = _CONTENT_ARGUMENT_FIELDS.get(normalized_name, frozenset())
+    sanitized: dict[str, Any] = {}
+    for key, value in parsed.items():
+        key_text = str(key)
+        if key_text in body_fields:
+            sanitized[key_text] = _sanitize_large_argument_value(value, always_redact=True)
+            continue
+        if key_text == "edits" and normalized_name in {"canvas", "notes"} and isinstance(value, list):
+            compact_edits: list[Any] = []
+            for edit in value[:50]:
+                if not isinstance(edit, dict):
+                    compact_edits.append(edit)
+                    continue
+                compact_edits.append(
+                    {
+                        str(edit_key): _sanitize_large_argument_value(
+                            edit_value,
+                            always_redact=str(edit_key) == "content",
+                        )
+                        for edit_key, edit_value in edit.items()
+                    }
+                )
+            sanitized[key_text] = compact_edits
+            continue
+        if key_text == "files" and normalized_name == "skills" and isinstance(value, list):
+            sanitized[key_text] = [
+                {
+                    str(file_key): _sanitize_large_argument_value(
+                        file_value,
+                        always_redact=str(file_key) == "content",
+                    )
+                    for file_key, file_value in file_payload.items()
+                }
+                if isinstance(file_payload, dict)
+                else _sanitize_large_argument_value(file_payload)
+                for file_payload in value[:20]
+            ]
+            continue
+        sanitized[key_text] = _sanitize_large_argument_value(value)
+    return _bound_tool_call_arguments(sanitized)
+
+
+def sanitize_tool_call_arguments_object_for_history(
+    tool_name: str | None,
+    arguments: Any,
+) -> dict[str, Any]:
+    """Return compact, JSON-object arguments for provider history protocols."""
+    serialized = sanitize_tool_call_arguments_for_persistence(tool_name, arguments)
+    try:
+        decoded = json.loads(serialized)
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return {"_arguments": _text_receipt(serialized)}
+    if isinstance(decoded, dict):
+        return decoded
+    return {"_arguments": decoded}
 
 
 def parse_legacy_tool_call_content(content: Any) -> tuple[str | None, str | None]:
@@ -149,7 +304,10 @@ def build_tool_call_block(
     normalized_name = _normalize_tool_name(tool_name)
     if normalized_name:
         meta["tool_name"] = normalized_name
-    meta["arguments"] = stringify_tool_call_arguments(arguments)
+    meta["arguments"] = sanitize_tool_call_arguments_for_persistence(
+        normalized_name,
+        arguments,
+    )
 
     normalized_call_id = str(tool_call_id or "").strip()
     if normalized_call_id:
@@ -621,16 +779,13 @@ def extract_widget_model_context(widget_data: dict | None) -> Any:
     return None
 
 
-def sanitize_tool_result_content_for_persistence(
-    tool_name: str | None,
-    content: Any,
-    widget_data: dict | None = None,
-) -> Any:
-    """Choose the payload that should represent this tool result in persisted history."""
-    widget_model_context = extract_widget_model_context(widget_data)
-    if widget_model_context is not None:
-        return widget_model_context
-    return content
+def sanitize_tool_result_content_for_persistence(tool_name, content, widget_data=None):
+    """Compatibility boundary for persisted histories and external consumers."""
+    from app.tools.results import ToolResult, history_receipt
+    if isinstance(content, ToolResult):
+        return content.history_receipt
+    context = extract_widget_model_context(widget_data)
+    return history_receipt(tool_name, context if context is not None else content)
 
 
 def stringify_tool_result_content_for_persistence(
@@ -739,8 +894,12 @@ def build_tool_file_block(
     meta: dict[str, Any] = {}
     if tool_name:
         meta["tool_name"] = tool_name
-    if tool_label:
-        meta["tool_label"] = tool_label
+    # File cards only need a stable display name. Persisting the historical
+    # ``name(full arguments)`` label duplicated large document bodies.
+    if tool_name:
+        meta["tool_label"] = f"{tool_name}()"
+    elif tool_label:
+        meta["tool_label"] = str(tool_label)[:200]
     if meta:
         block["meta"] = meta
 

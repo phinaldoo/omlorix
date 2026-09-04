@@ -50,6 +50,7 @@ def _normalize_provider_value(provider: Any) -> str:
 
 REQUEST_TYPE_CHAT = "chat"
 REQUEST_TYPE_TITLE_GENERATION = "title_generation"
+REQUEST_TYPE_MEMORY_CONSOLIDATION = "memory_consolidation"
 
 
 @dataclass(slots=True)
@@ -91,9 +92,10 @@ class ProviderRequest:
 
     @property
     def provider_id(self) -> str | None:
-        if isinstance(self.model, str):
-            provider_id = self.extra.get("provider_id")
-        else:
+        # One-shot jobs may resolve a provider group before dispatch. Honour
+        # that concrete provider without mutating the shared ORM model row.
+        provider_id = self.extra.get("provider_id")
+        if not provider_id and not isinstance(self.model, str):
             provider_id = getattr(self.model, "provider_id", None)
         return str(provider_id).strip() if provider_id else None
 
@@ -335,6 +337,9 @@ def call_provider_title_generation(request: ProviderRequest) -> str | None:
     model_name = request.model_name
     prompt = request.prompt or ""
     system_instruction = request.system_instruction or ""
+    generation_options = request.extra.get("simple_generation_options")
+    if not isinstance(generation_options, dict):
+        generation_options = {}
 
     if provider == "ollama":
         from app.llm.ollama.utils import ollama_title_generation
@@ -350,6 +355,7 @@ def call_provider_title_generation(request: ProviderRequest) -> str | None:
                 user_id=request.user_id,
                 model_settings=request.model_settings,
                 settings_override=request.settings_override,
+                **generation_options,
             )
         return ollama_title_generation(
             request.db,
@@ -360,6 +366,7 @@ def call_provider_title_generation(request: ProviderRequest) -> str | None:
             user_id=request.user_id,
             model_settings=request.model_settings,
             settings_override=request.settings_override,
+            **generation_options,
         )
 
     if provider in {"openai", "openai_responses", "microsoft_azure", "lmstudio", "xai"}:
@@ -376,6 +383,7 @@ def call_provider_title_generation(request: ProviderRequest) -> str | None:
             user_id=request.user_id,
             model_settings=request.model_settings,
             settings_override=request.settings_override,
+            **generation_options,
         )
 
     if provider == "openai_chat_completions":
@@ -392,6 +400,7 @@ def call_provider_title_generation(request: ProviderRequest) -> str | None:
             openai_provider_type=provider,
             model_settings=request.model_settings,
             settings_override=request.settings_override,
+            **generation_options,
         )
 
     if provider == "google_aistudio":
@@ -406,6 +415,7 @@ def call_provider_title_generation(request: ProviderRequest) -> str | None:
             byok=request.byok,
             user_id=request.user_id,
             model_settings=request.model_settings,
+            **generation_options,
         )
 
     if provider == "openrouter":
@@ -421,6 +431,7 @@ def call_provider_title_generation(request: ProviderRequest) -> str | None:
             user_id=request.user_id,
             model_settings=request.model_settings,
             settings_override=request.settings_override,
+            **generation_options,
         )
 
     if provider in {"anthropic", "anthropic_base"}:
@@ -436,6 +447,25 @@ def call_provider_title_generation(request: ProviderRequest) -> str | None:
             user_id=request.user_id,
             model_settings=request.model_settings,
             settings_override=request.settings_override,
+            **generation_options,
         )
 
     return None
+
+
+def call_provider_memory_consolidation(request: ProviderRequest) -> str | None:
+    """Run schema-constrained extraction without exposing any model tool."""
+
+    response_schema = request.extra.get("response_schema")
+    try:
+        max_output_tokens = int(request.extra.get("max_output_tokens") or 8_192)
+    except (TypeError, ValueError):
+        max_output_tokens = 8_192
+    request.extra["simple_generation_options"] = {
+        "generation_category": REQUEST_TYPE_MEMORY_CONSOLIDATION,
+        "output_char_limit": None,
+        "max_output_tokens": max(256, min(max_output_tokens, 32_768)),
+        "response_schema": response_schema if isinstance(response_schema, dict) else None,
+        "raise_on_error": True,
+    }
+    return call_provider_title_generation(request)

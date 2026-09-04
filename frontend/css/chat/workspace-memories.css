@@ -13,6 +13,136 @@
     gap: 16px;
 }
 
+.memories-profile-card {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 18px;
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--primary-color) 3%, var(--background));
+}
+
+.memories-profile-card[hidden] {
+    display: none;
+}
+
+.memories-profile-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.memories-profile-header h2,
+.memories-profile-header p {
+    margin: 0;
+}
+
+.memories-profile-header h2 {
+    font-size: 16px;
+}
+
+.memories-profile-header p {
+    margin-top: 5px;
+    color: var(--text-color-secondary);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.memories-profile-status {
+    flex: 0 0 auto;
+    padding: 5px 9px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--text-color) 7%, transparent);
+    color: var(--text-color-secondary);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.memories-profile-status[data-status="updated"],
+.memories-profile-status[data-status="unchanged"] {
+    background: color-mix(in srgb, var(--success-color) 12%, transparent);
+    color: var(--success-color);
+}
+
+.memories-profile-status[data-status="failed"] {
+    background: color-mix(in srgb, var(--error-color) 12%, transparent);
+    color: var(--error-color);
+}
+
+.memories-profile-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin: 0;
+}
+
+.memories-profile-metrics > div {
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--text-color) 4%, transparent);
+}
+
+.memories-profile-metrics dt {
+    color: var(--text-color-secondary);
+    font-size: 11px;
+}
+
+.memories-profile-metrics dd {
+    margin: 4px 0 0;
+    color: var(--text-color);
+    font-size: 14px;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+}
+
+.memories-profile-content {
+    max-height: 300px;
+    overflow: auto;
+    padding: 13px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--background);
+    color: var(--text-color);
+    font-family: var(--font-courier);
+    font-size: 12px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.memories-profile-content.is-empty {
+    color: var(--text-color-secondary);
+    font-family: inherit;
+}
+
+.memory-item-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.memory-item-badges span {
+    padding: 3px 7px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--text-color) 6%, transparent);
+    color: var(--text-color-secondary);
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.memory-item-badges .needs-review {
+    background: color-mix(in srgb, var(--warning-color) 14%, transparent);
+    color: var(--warning-color);
+}
+
+.memory-item-expiry {
+    color: var(--text-color-tertiary);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+}
+
 .memories-card {
     border: 1px solid var(--border-color);
     border-radius: 12px;
@@ -385,6 +515,14 @@
 .memories-setting-row{
         flex-direction: column;
         align-items: stretch;
+    }
+
+    .memories-profile-header {
+        flex-direction: column;
+    }
+
+    .memories-profile-metrics {
+        grid-template-columns: 1fr;
     }
 
     .memory-item-footer {

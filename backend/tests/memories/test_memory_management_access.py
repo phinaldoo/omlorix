@@ -52,9 +52,6 @@ def _policy(*, project_id=None, project_enabled=True):
         user_id="user-1",
         requested_project_id=project_id,
         feature_enabled=True,
-        account_enabled=True,
-        include_in_context_setting=True,
-        auto_create_setting=True,
         project_enabled=project_enabled,
     )
 
@@ -176,4 +173,11 @@ def test_personal_and_project_create_share_one_service():
         )
 
     assert result is memory
-    create.assert_called_once_with(db, MemoryScope.personal("user-1"), "Remember this")
+    create.assert_called_once_with(
+        db,
+        MemoryScope.personal("user-1"),
+        "Remember this",
+        kind="other",
+        stability="slow",
+        importance=3,
+    )

@@ -153,6 +153,8 @@ CHAT_IMPORT_MAX_MESSAGE_CONTENT_LENGTH = 16 * 1024 * 1024
 CHAT_IMPORT_MAX_MESSAGE_BYTES_PER_CHAT = 64 * 1024 * 1024
 CHAT_IMPORT_MAX_PINNED_POSITION = 1000000
 CHAT_IMPORT_MAX_RETRY_COUNT = 1000000
+CHAT_CONTEXT_SELECTION_MAX_ITEMS = 20
+CHAT_REFERENCE_SELECTION_MAX_ITEMS = 5
 
 
 def _validate_import_field_size(value: Any, field_name: str, max_length: int = CHAT_IMPORT_MAX_TEXT_FIELD_LENGTH) -> Any:
@@ -710,14 +712,17 @@ class SendChatRequest(BaseModel):
     )
     skill_ids: Optional[list[str]] = Field(
         default=None,
+        max_length=CHAT_CONTEXT_SELECTION_MAX_ITEMS,
         description="Optional list of skill IDs to apply to this message",
     )
     note_ids: Optional[list[str]] = Field(
         default=None,
+        max_length=CHAT_CONTEXT_SELECTION_MAX_ITEMS,
         description="Optional list of note IDs to include with this message",
     )
     prompt_ids: Optional[list[str]] = Field(
         default=None,
+        max_length=CHAT_CONTEXT_SELECTION_MAX_ITEMS,
         description="Optional list of prompt library IDs to include with this message",
     )
     reference_parts: Optional[list[str]] = Field(
@@ -726,6 +731,7 @@ class SendChatRequest(BaseModel):
     )
     chat_reference_ids: Optional[list[str]] = Field(
         default=None,
+        max_length=CHAT_REFERENCE_SELECTION_MAX_ITEMS,
         description="Optional list of chat IDs to attach as full-transcript context for this message.",
     )
     subagent_targets: Optional[list[SubagentTargetRef]] = Field(
@@ -1151,11 +1157,24 @@ class RegenerateMessageRequest(BaseModel):
     user_message_id: str = Field(..., description="The ID of the user message to regenerate response for")
     model_id: Optional[str] = Field(default=None, description="Optional model ID to use for regeneration (uses current selected model)")
     skill_id: Optional[str] = Field(default=None, description="Optional single skill ID to apply (legacy compatibility)")
-    skill_ids: Optional[list[str]] = Field(default=None, description="Optional list of skill IDs to apply")
-    note_ids: Optional[list[str]] = Field(default=None, description="Optional list of note IDs to include")
-    prompt_ids: Optional[list[str]] = Field(default=None, description="Optional list of prompt IDs to include")
+    skill_ids: Optional[list[str]] = Field(
+        default=None,
+        max_length=CHAT_CONTEXT_SELECTION_MAX_ITEMS,
+        description="Optional list of skill IDs to apply",
+    )
+    note_ids: Optional[list[str]] = Field(
+        default=None,
+        max_length=CHAT_CONTEXT_SELECTION_MAX_ITEMS,
+        description="Optional list of note IDs to include",
+    )
+    prompt_ids: Optional[list[str]] = Field(
+        default=None,
+        max_length=CHAT_CONTEXT_SELECTION_MAX_ITEMS,
+        description="Optional list of prompt IDs to include",
+    )
     chat_reference_ids: Optional[list[str]] = Field(
         default=None,
+        max_length=CHAT_REFERENCE_SELECTION_MAX_ITEMS,
         description="Optional list of chat IDs to attach as context for regeneration. Defaults to stored message references when omitted.",
     )
     subagent_targets: Optional[list[SubagentTargetRef]] = Field(

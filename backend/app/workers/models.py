@@ -37,6 +37,7 @@ from app.utils.sqlalchemy_encryption import EncryptedJSON, EncryptedString
 
 QUEUE_OPERATIONS = "operations"
 QUEUE_GENERATION = "generation"
+QUEUE_MEMORY = "memory"
 QUEUE_RESEARCH = "research"
 QUEUE_FILES = "files"
 QUEUE_LIFECYCLE = "lifecycle"
@@ -49,6 +50,7 @@ WORKER_QUEUES = frozenset(
     {
         QUEUE_OPERATIONS,
         QUEUE_GENERATION,
+        QUEUE_MEMORY,
         QUEUE_RESEARCH,
         QUEUE_FILES,
         QUEUE_LIFECYCLE,

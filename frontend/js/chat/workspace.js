@@ -87,6 +87,9 @@ const WorkspaceManager = {
         if (tabId === 'bookmarks' && typeof window !== 'undefined' && window.enableBookmarksFeature === false) {
             return false;
         }
+        if (tabId === 'memories' && typeof window !== 'undefined' && window.enableMemoriesFeature === false) {
+            return false;
+        }
         if (tabId === 'connections') {
             if (typeof window === 'undefined') return true;
             if (window.enableConnectionsFeature === false) return false;

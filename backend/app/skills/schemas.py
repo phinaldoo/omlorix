@@ -264,3 +264,31 @@ class SaveSkillDraftResponse(BaseModel):
     skill_id: str
     title: str
     message: str
+
+
+class SkillCatalogItem(BaseModel):
+    """List metadata and preview; a detail read is required before editing."""
+    id: str
+    user_id: str
+    title: str
+    description: str
+    content: str
+    icon: str
+    created_at: str
+    updated_at: str
+    is_admin_skill: bool = False
+    is_subscribed: bool = False
+    share_type: str | None = None
+    clone_share_id: str | None = None
+    live_share_id: str | None = None
+    collaborate_share_id: str | None = None
+    summary_only: bool = True
+
+
+class SkillCatalogPage(BaseModel):
+    items: list[SkillCatalogItem]
+    count: int
+    limit: int
+    offset: int
+    has_more: bool
+    next_cursor: str | None = None

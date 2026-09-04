@@ -760,6 +760,7 @@ func expectedServiceNamesFromToggles(toggles envToggles) []string {
 var dedicatedWorkerServiceNames = []string{
 	"operations_worker",
 	"generation_worker",
+	"memory_worker",
 	"research_worker",
 	"file_processing_worker",
 	"account_lifecycle_worker",

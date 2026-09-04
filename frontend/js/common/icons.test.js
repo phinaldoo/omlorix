@@ -76,7 +76,7 @@ test('every declarative HTML icon resolves through icons.js', () => {
         }
     }
 
-    assert.equal(placeholderCount, 367);
+    assert.equal(placeholderCount, 366);
 });
 
 test('new semantic icons and dynamic SVG helpers are registered', () => {

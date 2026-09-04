@@ -9,10 +9,12 @@ from sqlalchemy.pool import QueuePool
 from app.llm.provider_request import (
     ProviderRequest,
     REQUEST_TYPE_CHAT,
+    REQUEST_TYPE_MEMORY_CONSOLIDATION,
     REQUEST_TYPE_TITLE_GENERATION,
     _bounded_sync_stream_workers,
     call_provider_chat,
     call_provider_chat_async,
+    call_provider_memory_consolidation,
     call_provider_title_generation,
     release_db_session_before_provider_io,
 )
@@ -237,3 +239,86 @@ def test_title_dispatch_passes_saved_model_settings(monkeypatch):
     assert captured["kwargs"]["openai_provider_type"] == "openai_responses"
     assert captured["kwargs"]["model_settings"] == model.settings
     assert captured["args"][1] == "gpt-4.1-mini"
+
+
+def test_one_shot_dispatch_honors_resolved_provider_group_member(monkeypatch):
+    from app.llm.openai import utils as openai_utils
+
+    captured = {}
+
+    def fake_title_generation(*args, **kwargs):
+        captured["args"] = args
+        captured["kwargs"] = kwargs
+        return "ok"
+
+    monkeypatch.setattr(openai_utils, "openai_title_generation", fake_title_generation)
+    model = SimpleNamespace(
+        provider="openai_responses",
+        model_name="gpt-4.1-mini",
+        provider_id="weighted-provider-group",
+        settings={},
+    )
+
+    result = call_provider_title_generation(
+        ProviderRequest(
+            request_type=REQUEST_TYPE_TITLE_GENERATION,
+            db=object(),
+            provider=model.provider,
+            model=model,
+            prompt="hello",
+            system_instruction="respond",
+            extra={"provider_id": "concrete-provider"},
+        )
+    )
+
+    assert result == "ok"
+    assert captured["args"][4] == "concrete-provider"
+
+
+def test_memory_dispatch_is_tool_free_and_forwards_schema_options(monkeypatch):
+    from app.llm.openai import utils as openai_utils
+
+    captured = {}
+
+    def fake_title_generation(*args, **kwargs):
+        captured["args"] = args
+        captured["kwargs"] = kwargs
+        return '{"candidates":[]}'
+
+    monkeypatch.setattr(openai_utils, "openai_title_generation", fake_title_generation)
+    response_schema = {
+        "type": "object",
+        "properties": {"candidates": {"type": "array"}},
+        "required": ["candidates"],
+        "additionalProperties": False,
+    }
+    request = ProviderRequest(
+        request_type=REQUEST_TYPE_MEMORY_CONSOLIDATION,
+        db=object(),
+        provider="openai_responses",
+        model=SimpleNamespace(
+            provider="openai_responses",
+            model_name="gpt-memory-mini",
+            provider_id="provider-group",
+            settings={},
+        ),
+        prompt="{}",
+        system_instruction="Return JSON without tools.",
+        user_id="user-1",
+        extra={
+            "provider_id": "concrete-provider",
+            "response_schema": response_schema,
+            "max_output_tokens": 4096,
+        },
+    )
+
+    result = call_provider_memory_consolidation(request)
+
+    assert result == '{"candidates":[]}'
+    assert captured["args"][4] == "concrete-provider"
+    assert captured["kwargs"]["generation_category"] == "memory_consolidation"
+    assert captured["kwargs"]["output_char_limit"] is None
+    assert captured["kwargs"]["max_output_tokens"] == 4096
+    assert captured["kwargs"]["response_schema"] == response_schema
+    assert captured["kwargs"]["raise_on_error"] is True
+    assert "tools" not in captured["kwargs"]

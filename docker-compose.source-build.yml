@@ -41,6 +41,12 @@ services:
       target: prod
     image: omlorix-backend:${OMLORIX_VERSION:-local}
 
+  memory_worker:
+    build:
+      context: ./backend
+      target: prod
+    image: omlorix-backend:${OMLORIX_VERSION:-local}
+
   research_worker:
     build:
       context: ./backend

@@ -110,14 +110,11 @@ def test_list_todo_lists_uses_owner_and_subscriber_response_shapes(monkeypatch):
     subscribed_list = _todo_list(id="subscribed-list", user_id="owner-1")
 
     monkeypatch.setattr(todos_router, "ensure_todo_enabled", lambda user, db: None)
-    monkeypatch.setattr(todos_router, "list_todo_lists", lambda db, user_id, **kwargs: [owner_list])
-    monkeypatch.setattr(
-        todos_router,
-        "get_subscribed_todo_lists",
-        lambda db, user_id, **kwargs: [(subscribed_list, _subscription())],
-    )
-    monkeypatch.setattr(todos_router, "get_todo_list_subscriber_count", lambda db, todo_list_id: 2)
-    monkeypatch.setattr(todos_router, "get_user", lambda db, user_id: SimpleNamespace(first_name="Owner", last_name=""))
+    def summary_page(*args, **kwargs):
+        owned = vars(owner_list) | {"is_subscribed": False, "subscriber_count": 2}
+        shared = vars(subscribed_list) | {"is_subscribed": True, "share_type": "live", "owner_name": "Owner"}
+        return {"todo_lists": [owned, shared], "limit": 50, "offset": 0, "has_more": False}
+    monkeypatch.setattr("app.todos.queries.list_todo_list_summaries", summary_page)
 
     response = todos_router.list_todo_lists_route(db=SimpleNamespace(), user=SimpleNamespace(id="viewer-1"))
     by_id = {item["id"]: item for item in response.model_dump()["items"]}

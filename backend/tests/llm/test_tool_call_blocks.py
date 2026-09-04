@@ -1,10 +1,13 @@
 import base64
+import json
 from unittest.mock import patch
 
 from app.llm.helper import (
     build_tool_call_block,
     extract_tool_call_block,
     format_tool_call_block_label,
+    sanitize_tool_call_arguments_for_persistence,
+    stringify_tool_result_content_for_persistence,
 )
 
 
@@ -31,6 +34,57 @@ def test_build_tool_call_block_persists_only_canonical_structured_data():
     )
 
 
+def test_artifact_history_uses_stable_receipts_instead_of_repeated_bodies():
+    body = "# Large Canvas\n" + ("content " * 25_000)
+    arguments = {
+        "type": "markdown",
+        "file_id": "canvas-1",
+        "expected_revision": 7,
+        "content": body,
+    }
+
+    compact_arguments = sanitize_tool_call_arguments_for_persistence(
+        "canvas",
+        arguments,
+    )
+    compact_arguments_again = sanitize_tool_call_arguments_for_persistence(
+        "canvas",
+        compact_arguments,
+    )
+    decoded_arguments = json.loads(compact_arguments)
+
+    assert compact_arguments_again == compact_arguments
+    assert len(compact_arguments) < 300
+    assert decoded_arguments["file_id"] == "canvas-1"
+    assert decoded_arguments["expected_revision"] == 7
+    assert decoded_arguments["content"].startswith("[omitted from chat history:")
+    assert body not in compact_arguments
+
+    raw_result = json.dumps(
+        {
+            "file_id": "canvas-1",
+            "canvas_revision": 8,
+            "content": body,
+        }
+    )
+    compact_result = stringify_tool_result_content_for_persistence(
+        "canvas",
+        raw_result,
+    )
+    compact_result_again = stringify_tool_result_content_for_persistence(
+        "canvas",
+        compact_result,
+    )
+    decoded_result = json.loads(compact_result)
+
+    assert compact_result_again == compact_result
+    assert len(compact_result) < 300
+    assert decoded_result["file_id"] == "canvas-1"
+    assert decoded_result["canvas_revision"] == 8
+    assert decoded_result["content_length"] == len(body)
+    assert "content" not in decoded_result
+
+
 def test_extract_tool_call_block_keeps_legacy_content_compatible():
     block = {
         "type": "tool_call",
@@ -45,6 +99,20 @@ def test_extract_tool_call_block_keeps_legacy_content_compatible():
         "tool_namespace": None,
     }
     assert format_tool_call_block_label(block) == 'weather({"location":"Berlin (DE)"})'
+
+
+def test_legacy_tool_call_arguments_are_not_compacted_on_replay():
+    body = "legacy canvas body " * 5_000
+    arguments = json.dumps(
+        {"type": "markdown", "content": body},
+        separators=(",", ":"),
+    )
+
+    extracted = extract_tool_call_block(
+        {"type": "tool_call", "content": f"canvas({arguments})"}
+    )
+
+    assert body in str(extracted["arguments"])
 
 
 def test_extract_tool_call_block_accepts_imported_argument_aliases():

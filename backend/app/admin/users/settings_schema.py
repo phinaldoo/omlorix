@@ -22,7 +22,6 @@ USER_SETTINGS_PAGE_TITLES: Dict[str, str] = {
     "general": "General",
     "appearance": "Appearance",
     "chat": "Chat",
-    "memory": "Memory",
     "login_2fa": "Two-Factor Authentication",
     "secret": "Secrets",
     "states": "User State",
@@ -47,10 +46,6 @@ _PAGE_I18N_OVERRIDES: Dict[str, Dict[str, str]] = {
     "chat": {
         "label": "us_nav_chat",
         "description": "admin_user_settings_page_chat_desc",
-    },
-    "memory": {
-        "label": "us_nav_memory",
-        "description": "us_memory_desc",
     },
     "login_2fa": {
         "label": "us_security_2fa_title",
@@ -151,10 +146,6 @@ _FIELD_I18N_OVERRIDES: Dict[tuple[str, str], Dict[str, str]] = {
         "label": "chat_customization_full_width_title",
         "description": "chat_customization_full_width_desc",
     },
-    ("memory", "enabled"): {
-        "label": "workspace_memories_enabled_title",
-        "description": "workspace_memories_enabled_desc",
-    },
     ("security", "has_to_change_password"): {
         "label": "admin_user_settings_field_security_has_to_change_password_label",
         "description": "admin_user_settings_field_security_has_to_change_password_desc",
@@ -198,14 +189,6 @@ _FIELD_I18N_OVERRIDES: Dict[tuple[str, str], Dict[str, str]] = {
     ("chat", "sidebar_button_visibility"): {
         "label": "sidebar_button_visibility_title",
         "description": "sidebar_button_visibility_desc",
-    },
-    ("memory", "include_in_context"): {
-        "label": "admin_user_settings_field_memory_include_in_context_label",
-        "description": "admin_user_settings_field_memory_include_in_context_desc",
-    },
-    ("memory", "auto_create"): {
-        "label": "admin_user_settings_field_memory_auto_create_label",
-        "description": "admin_user_settings_field_memory_auto_create_desc",
     },
     ("login_2fa", "enable_2fa"): {
         "label": "admin_user_settings_field_login_2fa_enable_2fa_label",
@@ -774,16 +757,6 @@ _USER_SETTING_FIELD_META: Dict[tuple[str, str], Dict[str, Any]] = {
     ("chat", "byok_statistics_retention_days"): {
         "dependency": "byok_statistics_enabled",
         "dependency_value": True,
-    },
-    ("memory", "include_in_context"): {
-        "dependency": "enabled",
-        "dependency_value": True,
-        "description": "Allow saved memories to be included as model context in chats.",
-    },
-    ("memory", "auto_create"): {
-        "dependency": "enabled",
-        "dependency_value": True,
-        "description": "Automatically create memories from suitable conversations when memory is enabled.",
     },
     ("login_2fa", "provider"): {
         "type": "select",

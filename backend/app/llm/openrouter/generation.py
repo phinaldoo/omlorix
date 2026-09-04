@@ -81,6 +81,11 @@ def _impl_openrouter_title_generation(
     user_id: str | None = None,
     model_settings: dict | None = None,
     settings_override: dict | None = None,
+    generation_category: str = "title_generation",
+    output_char_limit: int | None = None,
+    max_output_tokens: int | None = None,
+    response_schema: dict | None = None,
+    raise_on_error: bool = False,
 ):
     model_name: str | None = None
     start_time = datetime.now(timezone.utc)
@@ -118,7 +123,7 @@ def _impl_openrouter_title_generation(
             error_status_code=meta_error_status_code,
             error_message=meta_error_message,
             error_type=meta_error_type,
-            category="title_generation",
+            category=generation_category,
             meta=meta,
             user_id=user_id,
             is_byok=bool(byok),
@@ -187,6 +192,19 @@ def _impl_openrouter_title_generation(
         }
         settings = _merge_openrouter_simple_settings(model_settings, settings_override)
         _apply_openrouter_simple_settings(payload, settings)
+        if max_output_tokens is not None:
+            payload["max_output_tokens"] = max(1, int(max_output_tokens))
+        if isinstance(response_schema, dict):
+            text_config = (
+                dict(payload.get("text")) if isinstance(payload.get("text"), dict) else {}
+            )
+            text_config["format"] = {
+                "type": "json_schema",
+                "name": "memory_consolidation",
+                "strict": True,
+                "schema": response_schema,
+            }
+            payload["text"] = text_config
 
         try:
             response = requests.post(url, json=payload, headers=headers)
@@ -196,6 +214,10 @@ def _impl_openrouter_title_generation(
             meta_error_type = exc.__class__.__name__
             meta_error_message = message
             meta_error_status_code = getattr(exc, "status_code", 0)
+            if raise_on_error:
+                raise HTTPException(
+                    status_code=424, detail="Memory model request failed"
+                ) from exc
             _record_stat()
             return None
 
@@ -208,6 +230,10 @@ def _impl_openrouter_title_generation(
                 meta_error_type = exc.__class__.__name__
                 meta_error_message = "rate_limited"
                 meta_error_status_code = status_code
+                if raise_on_error:
+                    raise HTTPException(
+                        status_code=status_code, detail="Memory model request was rate limited"
+                    ) from exc
                 _record_stat()
                 return None
 
@@ -246,6 +272,11 @@ def _impl_openrouter_title_generation(
             meta_error_status_code = openrouter_response_error_http_status(
                 response_error
             )
+            if raise_on_error:
+                raise HTTPException(
+                    status_code=int(meta_error_status_code or 400),
+                    detail="Memory model returned an error",
+                )
             _record_stat()
             return None
         incomplete_reason = extract_openrouter_incomplete_reason(data)
@@ -253,6 +284,10 @@ def _impl_openrouter_title_generation(
             meta_error = True
             meta_error_type = "IncompleteResponse"
             meta_error_message = incomplete_reason
+            if raise_on_error:
+                raise HTTPException(
+                    status_code=502, detail="Memory model response was incomplete"
+                )
             _record_stat()
             return None
         title = _openrouter_extract_response_text(
@@ -262,12 +297,18 @@ def _impl_openrouter_title_generation(
         if not title:
             meta_error = True
             meta_error_message = "empty_response"
+            if raise_on_error:
+                raise HTTPException(
+                    status_code=502, detail="Memory model returned an empty response"
+                )
             _record_stat()
             return None
 
         meta_success = True
         _record_stat()
-        return title
+        if output_char_limit is None:
+            return title
+        return title[: max(1, int(output_char_limit))]
     except HTTPError as e:
         meta_error = True
         resp = e.response

@@ -631,5 +631,8 @@
   "schema_xai_realtime_silence_duration_desc": "Silence xAI waits before ending a spoken turn, in milliseconds.",
   "model_settings_system_instruction_label": "System Instruction",
   "model_settings_system_instruction_description": "Replace the administrator-configured system instruction for this conversation.",
-  "model_settings_system_instruction_placeholder": "Leave empty to use the administrator-configured system instruction."
+  "model_settings_system_instruction_placeholder": "Leave empty to use the administrator-configured system instruction.",
+  "schema_group_field_settings_memories_memory_model_id_label": "Memory model",
+  "schema_group_field_settings_memories_memory_model_id_description": "Dedicated model used to update member memories after each user message. Leave empty to use the current chat model.",
+  "schema_group_option_settings_memories_memory_model_id_current": "Use current chat model"
 }

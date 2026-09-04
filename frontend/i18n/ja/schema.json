@@ -631,5 +631,8 @@
   "schema_xai_realtime_silence_duration_desc": "xAI が発話ターンを終了するまで待機する無音時間（ミリ秒）。",
   "model_settings_system_instruction_label": "システム命令",
   "model_settings_system_instruction_description": "この会話では、管理者が設定したシステム命令を置き換えます。",
-  "model_settings_system_instruction_placeholder": "管理者が設定したシステム命令を使用する場合は空のままにしてください。"
+  "model_settings_system_instruction_placeholder": "管理者が設定したシステム命令を使用する場合は空のままにしてください。",
+  "schema_group_field_settings_memories_memory_model_id_label": "メモリモデル",
+  "schema_group_field_settings_memories_memory_model_id_description": "各ユーザーメッセージの後にメンバーのメモリを更新する専用モデルです。空欄の場合は現在のチャットモデルを使用します。",
+  "schema_group_option_settings_memories_memory_model_id_current": "現在のチャットモデルを使用"
 }

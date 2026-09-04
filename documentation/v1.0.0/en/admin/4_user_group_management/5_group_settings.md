@@ -25,7 +25,7 @@ Group names must be unique. A new group starts with standard defaults, not its p
 | Section | Controls |
 |---|---|
 | **Management** | **Owners**, **Managers**, **Coordinators**, temporary-account permission, active limit, credential length |
-| **Skills**, **Projects**, **Automations**, **Todo lists**, **Notes**, **Memories**, **Prompt library**, **Bookmarks**, **Agents** | Feature availability and related sharing where offered |
+| **Skills**, **Projects**, **Automations**, **Todo lists**, **Notes**, **Memories**, **Prompt library**, **Bookmarks**, **Agents** | Feature availability and related sharing where offered. Memories also selects the dedicated completion model used after every user message; an empty selection uses the current chat model. |
 | **BYOK** | User-supplied provider access, allowed tools, and search/scrape/title defaults |
 | **Sharing permissions** | Chat and artifact sharing |
 | **Chat experience** | Temporary chats, response actions, message/chat deletion, automatic and shadow-deletion retention |
@@ -39,6 +39,8 @@ Group names must be unique. A new group starts with standard defaults, not its p
 | **Access Windows** | Timezone, allow/block schedule, next available time, and blocked message |
 
 Options appear only when their parent feature is enabled. A sharing switch does not grant the underlying feature, a model assignment does not override group policy, and a personal preference cannot grant access that the group denies.
+
+Disabling Memories for a group hides its members' **Workspace > Memories** page, stops automatic extraction, and omits stored memory from new model requests. It does not delete existing facts. Re-enabling it resumes the same collection. Select a low-cost model with enough context for the complete current profile and enough output for structured extraction; the model is never exposed a Memories tool.
 
 ### Chat retention
 

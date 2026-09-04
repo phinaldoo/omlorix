@@ -24,6 +24,7 @@
         enableTodo: document.getElementById('managedGroupEnableTodo'),
         enableNotes: document.getElementById('managedGroupEnableNotes'),
         enableMemories: document.getElementById('managedGroupEnableMemories'),
+        memoryModel: document.getElementById('managedGroupMemoryModel'),
         enableSkills: document.getElementById('managedGroupEnableSkills'),
         enablePrompts: document.getElementById('managedGroupEnablePrompts'),
         enableBookmarks: document.getElementById('managedGroupEnableBookmarks'),
@@ -420,6 +421,41 @@
             if (!feature?.checked) share.disabled = true;
             share.setAttribute('aria-disabled', share.disabled.toString());
         });
+        if (dom.memoryModel) {
+            dom.memoryModel.disabled = !canManageSettings || !dom.enableMemories?.checked;
+            dom.memoryModel.setAttribute('aria-disabled', dom.memoryModel.disabled.toString());
+            syncCustomSelect(dom.memoryModel, dom.memoryModel._singleSelect);
+        }
+    }
+
+    function renderMemoryModelOptions(detail) {
+        if (!dom.memoryModel) return;
+        const selectedValue = String(detail.settings?.memories?.memory_model_id || '');
+        const modelMeta = ensureCustomSelect(dom.memoryModel, {
+            placeholderKey: 'us_managed_groups_memory_model_current',
+            placeholderFallback: 'Use current chat model',
+            emptyValueIsOption: true,
+        });
+        dom.memoryModel.innerHTML = '';
+        const currentOption = document.createElement('option');
+        currentOption.value = '';
+        currentOption.textContent = managedGroupsT(
+            'us_managed_groups_memory_model_current',
+            'Use current chat model',
+        );
+        dom.memoryModel.appendChild(currentOption);
+        (detail.memory_model_options || []).forEach((entry) => {
+            const value = String(entry?.value || '').trim();
+            if (!value) return;
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = String(entry?.label || value);
+            dom.memoryModel.appendChild(option);
+        });
+        dom.memoryModel.value = Array.from(dom.memoryModel.options || []).some(
+            (option) => option.value === selectedValue,
+        ) ? selectedValue : '';
+        syncCustomSelect(dom.memoryModel, modelMeta);
     }
 
     function renderSettings(detail) {
@@ -444,10 +480,11 @@
         FEATURE_SETTING_CONTROLS.forEach(({ control, page, key }) => {
             setInputValue(control, settings[page]?.[key]);
         });
+        renderMemoryModelOptions(detail);
 
         const canManageSettings = hasCapability('manage_settings', detail);
         const settingsPanel = document.querySelector('[data-managed-panel="settings"]');
-        settingsPanel?.querySelectorAll('input, textarea').forEach((control) => {
+        settingsPanel?.querySelectorAll('input, textarea, select').forEach((control) => {
             control.disabled = !canManageSettings;
         });
         syncContextFieldVisibility();
@@ -674,7 +711,12 @@
      * The native select stays the single source of truth: the widget writes
      * back into it and fires a regular "change" event.
      */
-    function ensureCustomSelect(select, { placeholderKey, placeholderFallback, searchable = false } = {}) {
+    function ensureCustomSelect(select, {
+        placeholderKey,
+        placeholderFallback,
+        searchable = false,
+        emptyValueIsOption = false,
+    } = {}) {
         if (!select) return null;
         if (select._singleSelect?.wrapper?.parentNode) return select._singleSelect;
         if (typeof window === 'undefined' || typeof window.upgradeAdminSingleSelect !== 'function') {
@@ -683,7 +725,7 @@
         return window.upgradeAdminSingleSelect(select, {
             key: select.id,
             placeholder: managedGroupsT(placeholderKey, placeholderFallback),
-            emptyValueIsOption: false,
+            emptyValueIsOption,
             ...(searchable
                 ? {
                     searchable: true,
@@ -1011,6 +1053,8 @@
             settings[page] ||= {};
             settings[page][key] = Boolean(control?.checked);
         });
+        settings.memories ||= {};
+        settings.memories.memory_model_id = String(dom.memoryModel?.value || '').trim();
         return { settings };
     }
 

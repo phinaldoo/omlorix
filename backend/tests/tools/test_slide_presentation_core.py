@@ -884,7 +884,12 @@ def test_canvas_save_survives_presentation_rerender_failure(monkeypatch):
     runner = tool_helper.resolve_tool_call(
         FakeDB(),
         "canvas",
-        {"type": "html", "file_id": "deck-1", "content": VALID_DECK},
+        {
+            "type": "html",
+            "file_id": "deck-1",
+            "content": VALID_DECK,
+            "expected_revision": 1,
+        },
         "user-1",
         None,
         None,
@@ -1812,6 +1817,7 @@ def test_canvas_presentation_edit_persists_assets_before_rerender(monkeypatch):
         {
             "type": "html",
             "file_id": "deck-1",
+            "expected_revision": 1,
             "content": VALID_DECK.replace(
                 "<h1>One</h1>",
                 '<img src="omlorix-file://logo-1"><h1>One</h1>',

@@ -631,5 +631,8 @@
   "schema_xai_realtime_silence_duration_desc": "Stille in Millisekunden, die xAI abwartet, bevor eine gesprochene Runde beendet wird.",
   "model_settings_system_instruction_label": "Systemanweisung",
   "model_settings_system_instruction_description": "Ersetzen Sie die vom Administrator konfigurierte Systemanweisung für diese Unterhaltung.",
-  "model_settings_system_instruction_placeholder": "Leer lassen, um die vom Administrator konfigurierte Systemanweisung zu verwenden."
+  "model_settings_system_instruction_placeholder": "Leer lassen, um die vom Administrator konfigurierte Systemanweisung zu verwenden.",
+  "schema_group_field_settings_memories_memory_model_id_label": "Erinnerungsmodell",
+  "schema_group_field_settings_memories_memory_model_id_description": "Eigenes Modell, das die Erinnerungen der Mitglieder nach jeder Benutzernachricht aktualisiert. Leer lassen, um das aktuelle Chatmodell zu verwenden.",
+  "schema_group_option_settings_memories_memory_model_id_current": "Aktuelles Chatmodell verwenden"
 }

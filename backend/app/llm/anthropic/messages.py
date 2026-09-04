@@ -587,6 +587,7 @@ def reformat_chat_history(
         if project_end:
             context_parts.append({"type": "text", "text": project_end})
 
+    notes_context_start = len(context_parts)
     # Notes Context
     if note_ids and db and user_id:
         try:
@@ -611,6 +612,7 @@ def reformat_chat_history(
                 "[Anthropic] Notes context attach failed: %s", exc
             )
 
+    memories_context_start = len(context_parts)
     if db and user_id:
         try:
             from app.llm.system_instruction.memories import get_memories_context
@@ -627,13 +629,25 @@ def reformat_chat_history(
 
     reference_context_parts = _build_reference_context_parts()
 
-    context_added = False
+    context_messages = []
+    context_sections = []
+    for source, start, end, required, priority in (
+        ("workspace", 0, notes_context_start, True, 90),
+        ("notes", notes_context_start, memories_context_start, False, 60),
+        ("memories", memories_context_start, len(context_parts), False, 40),
+    ):
+        if end > start:
+            index = len(context_messages)
+            context_messages.append({"role": "user", "content": context_parts[start:end]})
+            context_sections.append((source, index, index + 1, required, priority))
     latest_history_user_message: dict | None = None
 
     if not chat_history:
         if context_parts:
             return {
-                "formatted": [{"role": "user", "content": context_parts}],
+                "formatted": context_messages,
+                "context_prefix_count": len(context_messages),
+                "context_sections": context_sections,
                 "uploaded_cleanup": uploaded_cleanup,
                 "unsupported": unsupported_flag,
                 "unsupported_file_ids": sorted(unsupported_file_ids),
@@ -709,11 +723,6 @@ def reformat_chat_history(
         elif file_ids and not upload_files_bool:
             unsupported_flag = True
             _mark_unsupported_file_ids(file_ids)
-
-        # Insert context if this is the first user message
-        if role == "user" and not context_added and context_parts:
-            parts = context_parts + parts
-            context_added = True
 
         if parts:
             formatted.append({"role": role, "content": parts})
@@ -796,9 +805,8 @@ def reformat_chat_history(
                         _normalize_file_ids(msg.get(attachment_key))
                     )
 
-    # If context still not added (e.g. all messages were skipped or no user message), prepend it
-    if not context_added and context_parts:
-        formatted.insert(0, {"role": "user", "content": context_parts})
+    # Keep attachments separate until the common budget has selected segments.
+    formatted[0:0] = context_messages
 
     _append_reference_context_to_latest_user(
         reference_context_parts, latest_history_user_message
@@ -806,6 +814,8 @@ def reformat_chat_history(
 
     return {
         "formatted": formatted,
+        "context_prefix_count": len(context_messages),
+        "context_sections": context_sections,
         "uploaded_cleanup": uploaded_cleanup,
         "unsupported": unsupported_flag,
         "unsupported_file_ids": sorted(unsupported_file_ids),

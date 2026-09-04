@@ -7,6 +7,8 @@ extension seams exposed by that facade.
 
 from __future__ import annotations
 
+from app.llm.generation.engine import chat_adapter, ProviderCall, stream_tool_call
+
 # The extracted code retains a few intentionally assigned diagnostic values.
 # ruff: noqa: F821, F841, F541
 
@@ -130,6 +132,7 @@ for _dependency_name in (
         globals()[_dependency_name] = getattr(_compat_source, _dependency_name)
 
 
+@chat_adapter
 def _impl_aistudio_chat(
     chat_id: str,
     chat_history,
@@ -150,8 +153,9 @@ def _impl_aistudio_chat(
     reference_parts: list[str] | None = None,
     chat_reference_context: str | None = None,
     user_role: str | None = None,
+    engine=None,
 ):
-    from app.chats.models import create_chat_message
+    create_chat_message = engine.persist_message
 
     assistant_metadata = (
         assistant_metadata if isinstance(assistant_metadata, dict) else {}
@@ -237,6 +241,14 @@ def _impl_aistudio_chat(
         chat_reference_context=chat_reference_context,
         video_metadata=video_metadata,
         file_active_deadline_monotonic=file_active_deadline_monotonic,
+    )
+    engine.context.prefix_count = reformatted_chat_history.get(
+        "context_prefix_count", 0
+    )
+    engine.context.prefix_sections = (
+        reformatted_chat_history.get("context_sections", [])
+        if isinstance(reformatted_chat_history, dict)
+        else []
     )
     formatted_history = reformatted_chat_history.get("formatted", [])
     unsupported_file_ids = normalize_unsupported_file_ids(
@@ -647,35 +659,42 @@ def _impl_aistudio_chat(
             # Request
             # -------------------
             request_start_time = datetime.now(timezone.utc)
-            response = client.models.generate_content_stream(
-                model=model_name,
-                contents=formatted_history,
-                config=build_aistudio_generate_content_config(
-                    settings,
-                    system_instruction=system_instruction,
-                    temperature=settings.get("temperature", None),
-                    top_p=settings.get("top_p", None),
-                    top_k=settings.get("top_k", None),
-                    max_output_tokens=settings.get("max_output_tokens", None),
-                    stop_sequences=settings.get("stop_sequences", None),
-                    presence_penalty=settings.get("presence_penalty", None),
-                    frequency_penalty=settings.get("frequency_penalty", None),
-                    seed=settings.get("seed", None),
-                    media_resolution=settings.get("media_resolution", None),
-                    thinking_config=types.ThinkingConfig(
-                        include_thoughts=settings.get("include_thinking", True),
-                        thinking_budget=settings.get("thinking_budget", -1),
+            response = yield ProviderCall(
+                client.models.generate_content_stream,
+                {
+                    "model": model_name,
+                    "contents": formatted_history,
+                    "config": build_aistudio_generate_content_config(
+                        settings,
+                        system_instruction=system_instruction,
+                        temperature=settings.get("temperature", None),
+                        top_p=settings.get("top_p", None),
+                        top_k=settings.get("top_k", None),
+                        max_output_tokens=settings.get("max_output_tokens", None),
+                        stop_sequences=settings.get("stop_sequences", None),
+                        presence_penalty=settings.get("presence_penalty", None),
+                        frequency_penalty=settings.get("frequency_penalty", None),
+                        seed=settings.get("seed", None),
+                        media_resolution=settings.get("media_resolution", None),
+                        thinking_config=types.ThinkingConfig(
+                            include_thoughts=settings.get("include_thinking", True),
+                            thinking_budget=settings.get("thinking_budget", -1),
+                        ),
+                        tools=[] if suppress_tools else tools,
+                        include_server_side_tool_invocations=True
+                        if native_websearch_enabled
+                        else None,
                     ),
-                    tools=[] if suppress_tools else tools,
-                    include_server_side_tool_invocations=True
-                    if native_websearch_enabled
-                    else None,
-                ),
+                },
+                settings,
+                "google_aistudio",
+                args=(),
             )
 
-            for chunk in interruptible_provider_stream(
+            for chunk in engine.events(
                 response,
                 generation_id,
+                stream_factory=interruptible_provider_stream,
                 close_resource=response,
             ):
                 # Check for cancellation for this generation and exit gracefully if set
@@ -1084,7 +1103,7 @@ def _impl_aistudio_chat(
                                 try:
                                     from app.tools.helper import resolve_tool_call
 
-                                    helper_gen = resolve_tool_call(
+                                    helper_gen = stream_tool_call(resolve_tool_call,
                                         db,
                                         name,
                                         args,
@@ -1143,12 +1162,7 @@ def _impl_aistudio_chat(
 
                                 if helper_gen and tool_error_message is None:
                                     try:
-                                        while True:
-                                            helper_item = next(helper_gen)
-                                            if helper_item is not None:
-                                                yield helper_item
-                                    except StopIteration as helper_done:
-                                        helper_payload = helper_done.value or {}
+                                        helper_payload = yield from helper_gen
                                     except Exception as tool_exc:
                                         tool_error_message = str(tool_exc)
                                         tool_error_response = tool_error_tracker.record(
@@ -1243,16 +1257,7 @@ def _impl_aistudio_chat(
                                         )
 
                                 # Store tool name together with arguments for clarity, e.g. name({json-args})
-                                args_str = (
-                                    json.dumps(
-                                        args, ensure_ascii=False, separators=(",", ":")
-                                    )
-                                    if isinstance(args, dict)
-                                    else str(args)
-                                )
-                                tool_label = (
-                                    f"{name}({args_str})" if name else "unknown"
-                                )
+                                tool_label = f"{name}()" if name else "unknown"
 
                                 widget_data = helper_payload.get("widget")
                                 persisted_tool_content = (
@@ -1348,11 +1353,24 @@ def _impl_aistudio_chat(
                                     "error": f"Tool '{name}' is not allowed or not available"
                                 }
 
+                            # The resolver's content field is the model-facing
+                            # representation. Artifact tools deliberately keep
+                            # their canonical body in result for UI/storage work
+                            # while returning a compact save receipt in content.
                             result_to_append = (
-                                result
-                                if result is not None
-                                else (webpages + youtube if youtube else webpages)
+                                content
+                                if content not in (None, "", {}, [])
+                                else result
                             )
+                            if isinstance(result_to_append, str):
+                                try:
+                                    result_to_append = json.loads(result_to_append)
+                                except (TypeError, ValueError, json.JSONDecodeError):
+                                    pass
+                            if result_to_append is None:
+                                result_to_append = (
+                                    webpages + youtube if youtube else webpages
+                                )
                             if not result_to_append:
                                 result_to_append = "success"
                             function_response_part = types.Part(

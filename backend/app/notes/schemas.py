@@ -67,6 +67,7 @@ class NoteListResponse(BaseModel):
     limit: int
     offset: int
     has_more: bool = False
+    next_cursor: str | None = None
 
 
 class NoteReferencedFile(BaseModel):

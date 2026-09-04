@@ -108,8 +108,7 @@ To modify an existing presentation, edit its returned HTML file with the Canvas 
 
 canvas_tool = """
 ## For the canvas tool
-Use this tool when the user wants a markdown document, Mermaid diagram, CSV table, HTML page, or print-ready LaTeX document created or updated in the canvas.
-When doing any kind of text work that involves collaboration between a human and an AI assistant, such as writing emails or articles, always use the canvas (markdown) tool unless the user says otherwise. 
+Use this tool when the user asks for an editable markdown document, Mermaid diagram, CSV table, HTML page, or print-ready LaTeX document, or when sustained document collaboration clearly benefits from a Canvas. Do not create a Canvas for an ordinary chat answer, short plan, or suggestion list unless the user asks for an editable artifact.
 Please only include in the canvas content the raw content, no additional instructions or suggestions.
 Canvas content can reference existing user files when you know their file IDs.
 In markdown canvas content, reference a file as `[label](omlorix-file://FILE_ID)` or embed an image as `![alt text](omlorix-file://FILE_ID)`.
@@ -118,16 +117,16 @@ HTML canvas pages may be interactive. Prefer self-contained HTML, CSS, and JavaS
 For a polished PDF, paper, report, handout, resume, certificate, equation sheet, or other print-ready document, use `type="latex"` and provide complete compilable LaTeX including `\\documentclass` and the full document environment. The saved `.tex` file is the editable artifact and Omlorix generates its PDF preview separately.
 The renderer uses `pdflatex`. Prefer portable core packages such as `fontenc`, `inputenc`, `geometry`, `graphicx`, `xcolor`, `amsmath`, `amssymb`, `booktabs`, and `hyperref`. Do not add `babel`, `polyglossia`, or another locale-specific language package merely because the conversation is in that language: self-hosted renderers may not have every TeX language collection installed. Add language-specific packages only when the user requests their typography or you know that the renderer supports them. For ordinary Latin-script documents, write UTF-8 text directly.
 If LaTeX references uploaded images or assets, pass their exact IDs in `file_ids` and reference their original filenames from the LaTeX source. Prefer broadly available packages from a minimal TeX installation.
-Use the exact file ID from the conversation or tool result. If you need the latest content of an existing canvas file before editing or describing it, call this tool with `type="view"` and that `file_id`.
-When revising, copyediting, or proofreading an already-written article, preserve the existing document and use targeted edits with exact `start_snippet` and `end_snippet` anchors plus replacement `content`. Do not submit the complete article again unless the user explicitly requests a wholesale rewrite or the document does not yet exist.
+Use the exact file ID from the conversation or tool result. Canvas reads are bounded: use `heading`, `query`, or `start_line`/`end_line` to load only the relevant section. A fresh view or save receipt provides `canvas_revision`; pass it as `expected_revision` for every update. Do not call view merely to verify a successful save, and do not view again when the needed text and current revision are already present in this turn. If the tool reports a revision conflict, view the relevant current section and reconsider the edit.
+When revising, copyediting, or proofreading an already-written document, preserve it and use targeted replacements. Put multiple independent replacements into one atomic `edits` array so they share one snapshot and one save. Use a single `start_snippet`/`end_snippet` pair only for one replacement. Do not submit the complete document again unless the user requests a wholesale rewrite or it does not yet exist, and do not save intermediate drafts as separate calls.
 """
 
 notes_tool = """
 ## For the notes tool
 Use this tool when the user wants to create, inspect, update, or list notes.
-If you need the latest content of one note before editing or describing it, call this tool with `type="view"` and that `note_id`.
-Before every edit, call `type="view"` and pass the returned `updated_at` unchanged as `expected_updated_at`. If the tool reports a revision conflict, view the note again and reconsider the change; never retry an old full-document replacement against the new revision automatically.
-When revising, copyediting, or proofreading an existing note, use exact `start_snippet` and `end_snippet` anchors with `content` as the replacement for that inclusive range. Do not submit the complete note again unless the user explicitly requests a wholesale rewrite.
+Lists return paginated summaries without note bodies. Read one note with `type="view"`, or read up to 20 notes in one `type="view_many"` call. Reads are bounded; use `heading`, `query`, or `start_line`/`end_line` to load only what is relevant.
+An attached note snapshot that contains the needed section, a fresh view, or a save receipt provides a usable `updated_at`; pass it unchanged as `expected_updated_at` for an edit. Do not call view merely to verify a successful save or when the current needed text and revision are already available. If the tool reports a revision conflict, view the relevant current section and reconsider the change; never retry an old full-document replacement against the new revision automatically.
+When revising, copyediting, or proofreading an existing note, put multiple independent exact replacements into one atomic `edits` array. Use `start_snippet`, `end_snippet`, and `content` only for a single replacement. Do not submit the complete note again unless the user requests a wholesale rewrite, and do not save intermediate drafts as separate calls.
 Notes are Markdown. Reference an existing user file as `[label](omlorix-file://FILE_ID)` or embed an image as `![alt text](omlorix-file://FILE_ID)`.
 Use the exact file ID from the conversation or tool result.
 """
@@ -234,14 +233,6 @@ plt.ylabel('sin(x)')
 # Save to output directory
 plt.savefig('/tmp/output/sine_wave.png')
 ```
-"""
-
-memories_tool = """
-## For the memories tool
-Use this tool to inspect saved user memories and create new ones when appropriate.
-Only create a memory when the user reveals a durable personal preference, standing instruction, biography detail, or long-term work context that is likely to help in future conversations.
-Do not save temporary things, sensitive secrets/information, or one-off task details.
-Keep created memories short, atomic, and specific. Do not duplicate existing memories.
 """
 
 default_system_prompt_raw = """
@@ -420,9 +411,6 @@ def get_default_system_instruction(db, tools, knowledge_cutoff, user_id, web_sea
 
     if "code_execution" in tool_names or "code_execution_internal" in tool_names:
         tools_explanations += "\n" + code_execution_tool
-
-    if "memories" in tool_names:
-        tools_explanations += "\n" + memories_tool
 
     raw_system_instruction = ""
     if custom_system_instruction:

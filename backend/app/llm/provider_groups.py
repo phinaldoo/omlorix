@@ -19,7 +19,6 @@ from app.llm.models import (
     get_provider_group,
     get_llm_provider,
 )
-from app.llm.utils import list_provider_models
 from app.llm.schemas import resolve_provider_icon
 
 
@@ -137,6 +136,10 @@ def get_group_common_models(db, group_id: str) -> list[dict]:
     Returns:
         List of common model dictionaries with id, model, name, description
     """
+    # Provider selection is also used by standalone workers. Importing the
+    # model-discovery facade eagerly creates a cycle back into this module.
+    from app.llm.utils import list_provider_models
+
     group = get_provider_group(db, group_id)
     members = group.members or []
     providers_by_id: dict[str, LLMProvider] = {}

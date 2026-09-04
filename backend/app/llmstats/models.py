@@ -29,7 +29,13 @@ MODEL_TPS_MAX_AGE_DAYS = 30
 MODEL_PERFORMANCE_META_KEY = "performance"
 
 
-AVAILABLE_CATEGORIES = ["unknown", "chat", "title_generation", "realtime"]
+AVAILABLE_CATEGORIES = [
+    "unknown",
+    "chat",
+    "title_generation",
+    "memory_consolidation",
+    "realtime",
+]
 
 # Statistics from ordinary request/response generations and long-lived
 # realtime calls share one fact table, but they must retain their grain.  A

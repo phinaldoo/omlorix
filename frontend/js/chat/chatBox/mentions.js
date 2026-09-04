@@ -185,7 +185,7 @@ function createSkillMentionDropdown() {
   body.className = 'mention-menu__body';
   body.addEventListener('scroll', () => {
     const remaining = body.scrollHeight - body.scrollTop - body.clientHeight;
-    if (remaining < 120) void loadMoreMentionNotes();
+    if (remaining < 120) { void loadMoreMentionNotes(); void loadMoreMentionSkills(); }
   });
   dropdown.appendChild(body);
 
@@ -241,33 +241,44 @@ function buildMentionIntro() {
   return intro;
 }
 
-async function fetchSkills({ forceRefresh = false } = {}) {
-  const now = Date.now();
-  const cacheAge = 60000;
-  
-  if (!forceRefresh && skillMentionState.skills.length && now - skillMentionState.lastFetched < cacheAge) {
-    return skillMentionState.skills;
-  }
-  
+const skillCatalogState = { cursor: null, query: '', loading: false, request: 0 };
+
+async function fetchSkills({ forceRefresh = false, query = skillMentionState.query, append = false } = {}) {
+  const normalizedQuery = String(query || '').trim();
+  if (append && (skillCatalogState.loading || !skillCatalogState.cursor)) return skillMentionState.skills;
+  if (!append && !forceRefresh && skillCatalogState.query === normalizedQuery && Date.now() - skillMentionState.lastFetched < 60000) return skillMentionState.skills;
+  const request = ++skillCatalogState.request;
+  skillCatalogState.loading = true;
+  const params = new URLSearchParams({ limit: String(CHAT_MENTION_PAGE_LIMIT) });
+  if (normalizedQuery) params.set('q', normalizedQuery);
+  if (append) params.set('cursor', skillCatalogState.cursor);
   try {
-    const response = await window.authedFetch('/api/v1/skills', {
-      method: 'GET',
-    });
-    
-    if (!response.ok) {
-      console.error('Failed to fetch skills:', response.status);
-      return skillMentionState.skills;
-    }
-    
-    const skills = await response.json();
-    skillMentionState.skills = Array.isArray(skills) ? skills : [];
-    skillMentionState.lastFetched = now;
-    
-    return skillMentionState.skills;
+    const response = await window.authedFetch(`/api/v1/skills/catalog?${params}`, { method: 'GET' });
+    if (!response.ok) return skillMentionState.skills;
+    const page = await response.json();
+    if (request !== skillCatalogState.request) return skillMentionState.skills;
+    const items = Array.isArray(page) ? page : page.items || [];
+    const seen = new Set(append ? skillMentionState.skills.map(item => item.id) : []);
+    skillMentionState.skills = append ? [...skillMentionState.skills, ...items.filter(item => !seen.has(item.id))] : items;
+    skillMentionState.lastFetched = Date.now();
+    skillCatalogState.query = normalizedQuery;
+    skillCatalogState.cursor = page.next_cursor || null;
   } catch (error) {
     console.error('Failed to fetch skills:', error);
-    return skillMentionState.skills;
+  } finally {
+    if (request === skillCatalogState.request) skillCatalogState.loading = false;
   }
+  return skillMentionState.skills;
+}
+
+async function loadMoreMentionSkills() {
+  if (!skillMentionState.isOpen || (activeMentionCategory && activeMentionCategory !== 'skills') || !skillCatalogState.cursor || skillCatalogState.loading) return;
+  const scrollTop = skillMentionBody?.scrollTop || 0;
+  await fetchSkills({ query: skillCatalogState.query, append: true });
+  if (!skillMentionState.isOpen) return;
+  if (activeMentionCategory === 'skills') renderMentionCategoryDetail('skills', filterSkills(skillCatalogState.query));
+  else renderMentionDropdown(filterSkills(skillMentionState.query), filterNotes(skillMentionState.query), filterPrompts(skillMentionState.query), filterModels(skillMentionState.query), filterMcpConnectors(skillMentionState.query));
+  if (skillMentionBody) skillMentionBody.scrollTop = scrollTop;
 }
 
 async function fetchNotes({ forceRefresh = false, query = skillMentionState.query, append = false } = {}) {
@@ -609,7 +620,7 @@ function resolveNoteSnippet(note) {
 
 function filterSkills(query) {
   const normalized = String(query || '').toLowerCase().trim();
-  if (!normalized) {
+  if (!normalized || skillCatalogState.query.toLowerCase() === normalized) {
     return skillMentionState.skills.filter(s => !selectedSkillIds.has(normalizeSkillId(s.id)));
   }
   return skillMentionState.skills.filter(skill => {
@@ -958,6 +969,7 @@ function renderMentionCategoryDetail(categoryKey, items) {
   searchIcon.setAttribute('aria-hidden', 'true');
   const search = document.createElement('input');
   search.type = 'search';
+  if (categoryKey === 'skills') search.value = skillCatalogState.query;
   const searchLabel = formatChatI18nString(
     'mention_search_category',
     'Search {category}…',
@@ -990,7 +1002,14 @@ function renderMentionCategoryDetail(categoryKey, items) {
     empty.hidden = navIndex > 0;
     syncMentionMenuHeight();
   };
-  search.addEventListener('input', () => renderItems(search.value));
+  search.addEventListener('input', async () => {
+    if (categoryKey !== 'skills') { renderItems(search.value); return; }
+    const query = search.value;
+    await fetchSkills({ query, forceRefresh: true });
+    if (activeMentionCategory !== categoryKey || search.value !== query) return;
+    items = filterSkills(query);
+    renderItems();
+  });
   search.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
       event.preventDefault();
@@ -1077,7 +1096,7 @@ function renderMentionDropdown(
 
       const labelCount = document.createElement('span');
       labelCount.className = 'mention-menu__section-label-count';
-      labelCount.textContent = `${cat.items.length}${cat.key === 'notes' && noteMentionState.hasMore ? '+' : ''}`;
+      labelCount.textContent = `${cat.items.length}${((cat.key === 'notes' && noteMentionState.hasMore) || (cat.key === 'skills' && Boolean(skillCatalogState.cursor))) ? '+' : ''}`;
       labelRow.appendChild(labelCount);
 
       section.appendChild(labelRow);
@@ -1115,7 +1134,7 @@ function renderMentionDropdown(
     const header = buildCategoryHeaderEl({
       categoryKey: cat.key,
       count: cat.items.length,
-      countHasMore: cat.key === 'notes' && noteMentionState.hasMore,
+      countHasMore: ((cat.key === 'notes' && noteMentionState.hasMore) || (cat.key === 'skills' && Boolean(skillCatalogState.cursor))),
       expanded: false,
       navIndex,
       expandable: true,
@@ -1820,7 +1839,7 @@ async function handleSkillMentionInput() {
 
   // Every source is independent, so opening the menu never serializes API IO.
   await Promise.all([
-    fetchSkills(),
+    fetchSkills({ query: mentionMatch.query, forceRefresh: queryChanged }),
     fetchNotes({ query: mentionMatch.query, forceRefresh: queryChanged }),
     fetchPrompts(),
     fetchModelsForMention(),

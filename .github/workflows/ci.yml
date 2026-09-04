@@ -149,6 +149,7 @@ jobs:
           POSTGRES_PORT="$(docker port "$POSTGRES_CONTAINER" 5432/tcp | sed 's/.*://')"
           REDIS_PORT="$(docker port "$REDIS_CONTAINER" 6379/tcp | sed 's/.*://')"
           echo "DATABASE_PORT=$POSTGRES_PORT" >> "$GITHUB_ENV"
+          echo "MEMORY_TEST_DATABASE_URL=postgresql+psycopg2://postgres:postgres@127.0.0.1:$POSTGRES_PORT/omlorix" >> "$GITHUB_ENV"
           echo "REDIS_URL=redis://127.0.0.1:$REDIS_PORT/0" >> "$GITHUB_ENV"
 
       - name: Install dependencies
@@ -171,7 +172,7 @@ jobs:
         env:
           PYTHONWARNINGS: default
         run: |
-          python -m pytest -v tests/migrations/test_postgres_migration_smoke.py
+          python -m pytest -v tests/migrations/test_postgres_migration_smoke.py tests/memories/test_memory_postgres.py
         working-directory: backend
 
       - name: Stop migration services

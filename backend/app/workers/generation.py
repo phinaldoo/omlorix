@@ -322,7 +322,10 @@ def reconcile_terminal_generation_jobs(*, batch_size: int = 1000) -> int:
 def build_worker() -> DurableQueueWorker:
     return DurableQueueWorker(
         queue=QUEUE_GENERATION,
-        handlers={"send": _consume_send, "regenerate": _consume_regenerate},
+        handlers={
+            "send": _consume_send,
+            "regenerate": _consume_regenerate,
+        },
         reconciler=reconcile_terminal_generation_jobs,
         default_lease_seconds=120,
     )

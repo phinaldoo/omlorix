@@ -272,11 +272,6 @@ const MODEL_SELECT_TOOL_META = {
         fallback: 'Skills',
         icon: Icons.star,
     },
-    memories: {
-        key: 'model_select_tool_memories',
-        fallback: 'Memories',
-        icon: Icons.model_tool_memories,
-    },
     music_generation: {
         key: 'model_select_tool_music_generation',
         fallback: 'Music generation',
@@ -433,6 +428,7 @@ function getModelSelectTools(model) {
     const tools = explicit.length ? explicit : getModelRawTools(model);
     return tools.filter((toolName) => (
         !(toolName in MODEL_SELECT_OUTPUT_TOOL_FORMATS)
+        && toolName !== 'memories'
         && !isModelSelectMcpTool(toolName)
     ));
 }

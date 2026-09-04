@@ -75,6 +75,11 @@ def _impl_openai_title_generation(
     user_id: str | None = None,
     model_settings: dict | None = None,
     settings_override: dict | None = None,
+    generation_category: str = "title_generation",
+    output_char_limit: int | None = 60,
+    max_output_tokens: int | None = None,
+    response_schema: dict | None = None,
+    raise_on_error: bool = True,
 ):
     """OpenAI title generation."""
     start_time = datetime.now(timezone.utc)
@@ -101,7 +106,7 @@ def _impl_openai_title_generation(
         )
         _record_openai_stat_with_costs(
             db,
-            category="title_generation",
+            category=generation_category,
             meta=meta,
             success=meta_success,
             error=meta_error,
@@ -157,6 +162,25 @@ def _impl_openai_title_generation(
             user_id=user_id,
             openai_provider_type=openai_provider_type,
         )
+        if max_output_tokens is not None:
+            request_kwargs["max_output_tokens"] = max(1, int(max_output_tokens))
+        if isinstance(response_schema, dict) and openai_provider_type in {
+            "openai",
+            "openai_responses",
+            "microsoft_azure",
+        }:
+            text_config = (
+                dict(request_kwargs.get("text"))
+                if isinstance(request_kwargs.get("text"), dict)
+                else {}
+            )
+            text_config["format"] = {
+                "type": "json_schema",
+                "name": "memory_consolidation",
+                "strict": True,
+                "schema": response_schema,
+            }
+            request_kwargs["text"] = text_config
         release_db_session_before_provider_io(db)
         response = client.responses.create(
             **_merge_openai_request_options(request_kwargs, request_options)
@@ -193,7 +217,9 @@ def _impl_openai_title_generation(
             )
 
         meta_success = True
-        return title[:60]
+        if output_char_limit is None:
+            return title
+        return title[: max(1, int(output_char_limit))]
     except (AuthenticationError, BadRequestError, APIConnectionError) as exc:
         status, message, error_type, _ = _parse_openai_exception(exc)
         meta_error = True

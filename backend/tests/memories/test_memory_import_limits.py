@@ -31,12 +31,11 @@ def _export_payload(memory_count: int) -> dict:
     }
 
 
-def test_memory_export_payload_can_represent_complete_accounts_over_batch_limit():
-    payload = MemoryExportPayload.model_validate(
-        _export_payload(MAX_MEMORY_IMPORT_ITEMS + 1)
-    )
-
-    assert len(payload.data.memories) == MAX_MEMORY_IMPORT_ITEMS + 1
+def test_memory_export_payload_enforces_account_fact_cap():
+    with pytest.raises(ValidationError):
+        MemoryExportPayload.model_validate(
+            _export_payload(MAX_MEMORY_IMPORT_ITEMS + 1)
+        )
 
 
 def test_memory_export_payload_accepts_imports_at_limit():
@@ -47,8 +46,8 @@ def test_memory_export_payload_accepts_imports_at_limit():
     assert len(payload.data.memories) == MAX_MEMORY_IMPORT_ITEMS
 
 
-@pytest.mark.parametrize("version", [None, 0.9, 2.0, "1.0"])
-def test_memory_export_schema_rejects_every_non_current_version_shape(version):
+@pytest.mark.parametrize("version", [None, 0.9, 3.0, "1.0"])
+def test_memory_export_schema_rejects_unsupported_version_shapes(version):
     payload = _export_payload(0)
     payload["export_version"] = version
 
@@ -56,8 +55,18 @@ def test_memory_export_schema_rejects_every_non_current_version_shape(version):
         MemoryExportPayload.model_validate(payload)
 
 
-@pytest.mark.parametrize("version", [0.9, 2.0])
-def test_memory_import_rejects_non_current_export_versions(version):
+@pytest.mark.parametrize("version", [1.0, 2.0])
+def test_memory_export_schema_accepts_supported_versions(version):
+    payload = _export_payload(1)
+    payload["export_version"] = version
+
+    parsed = MemoryExportPayload.model_validate(payload)
+
+    assert parsed.export_version == version
+
+
+@pytest.mark.parametrize("version", [0.9, 3.0])
+def test_memory_import_rejects_unsupported_export_versions(version):
     payload = MemoryExportPayload.model_construct(
         export_type="memories",
         export_version=version,
@@ -74,7 +83,7 @@ def test_memory_import_rejects_non_current_export_versions(version):
         )
 
     assert exc_info.value.status_code == 400
-    assert "Expected '1.0'" in exc_info.value.detail
+    assert "Expected one of [1.0, 2.0]" in exc_info.value.detail
 
 
 def test_memory_import_rechecks_limit_before_database_work():

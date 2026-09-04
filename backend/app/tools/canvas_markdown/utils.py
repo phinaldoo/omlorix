@@ -38,6 +38,11 @@ from app.files.utils import (
     validate_file_type,
 )
 from app.tools.errors import SafeToolExecutionError
+from app.tools.text_edits import (
+    apply_atomic_text_edits,
+    apply_single_text_edit,
+    select_text_content,
+)
 from app.utils.blocking_io import run_blocking_io
 from fastapi import HTTPException
 
@@ -389,6 +394,11 @@ def view_canvas_file(
     *,
     user_id: str,
     file_id: str | None,
+    heading: str | None = None,
+    query: str | None = None,
+    start_line: int | None = None,
+    end_line: int | None = None,
+    max_chars: int | None = None,
 ) -> dict:
     """Return the current stored content for an accessible canvas-compatible file."""
     if not user_id:
@@ -414,11 +424,26 @@ def view_canvas_file(
     meta = file_record.meta if isinstance(file_record.meta, dict) else {}
     file_name = str(meta.get("original_filename") or file_record.file_name or _DEFAULT_FILENAMES.get(content_type, "canvas.md"))
 
+    returned_content = content_text
+    selection = None
+    if any(
+        value is not None
+        for value in (heading, query, start_line, end_line, max_chars)
+    ):
+        returned_content, selection = select_text_content(
+            content_text,
+            heading=heading,
+            query=query,
+            start_line=start_line,
+            end_line=end_line,
+            max_chars=max_chars,
+        )
+
     result = {
         "file_id": str(file_record.id),
         "file_name": file_name,
         "stored_file_name": file_record.file_name,
-        "content": content_text,
+        "content": returned_content,
         "content_type": content_type,
         "page_count": _count_pages(content_text) if content_type == "markdown" else 1,
         "created": False,
@@ -428,6 +453,8 @@ def view_canvas_file(
         "canvas_last_edited_by": meta.get("canvas_last_edited_by"),
         "canvas_last_edit_source": meta.get("canvas_last_edit_source"),
     }
+    if selection is not None:
+        result["selection"] = selection
     if content_type == "latex":
         result.update(
             {
@@ -692,15 +719,16 @@ def save_canvas_spreadsheet(
     # expected-revision comparison alone would still race if two collaborators
     # passed it concurrently before either transaction committed.
     if hasattr(db, "query"):
-        file_record = (
+        locked_file_query = (
             db.query(Files)
             .filter(
                 Files.id == normalized_file_id,
                 Files.user_id == normalized_user_id,
             )
-            .with_for_update()
-            .first()
         )
+        if hasattr(locked_file_query, "populate_existing"):
+            locked_file_query = locked_file_query.populate_existing()
+        file_record = locked_file_query.with_for_update().first()
     else:
         # A few focused unit tests use deliberately tiny session stand-ins.
         # Production FastAPI requests always take the row-locking branch.
@@ -921,24 +949,13 @@ def _apply_snippet_update(
     replacement_content: str,
 ) -> str:
     """Replace the inclusive range from start_snippet through end_snippet with replacement_content."""
-    if start_snippet is None and end_snippet is None:
-        return replacement_content
-    if start_snippet is None or end_snippet is None:
-        raise ValueError("Both start_snippet and end_snippet are required for a snippet update.")
-
-    start_text = str(start_snippet)
-    end_text = str(end_snippet)
-    start_index = _find_exact_snippet(existing_content, start_text, "start_snippet")
-
-    if start_text == end_text:
-        end_index = start_index + len(end_text)
-    else:
-        end_start_index = existing_content.find(end_text, start_index + len(start_text))
-        if end_start_index < 0:
-            raise ValueError("end_snippet was not found after start_snippet in the existing canvas file.")
-        end_index = end_start_index + len(end_text)
-
-    return f"{existing_content[:start_index]}{replacement_content}{existing_content[end_index:]}"
+    return apply_single_text_edit(
+        existing_content,
+        start_snippet=start_snippet,
+        end_snippet=end_snippet,
+        replacement_content=replacement_content,
+        artifact_label="canvas file",
+    )
 
 
 def save_canvas_markdown(
@@ -952,6 +969,7 @@ def save_canvas_markdown(
     project_id: str | None = None,
     start_snippet: str | None = None,
     end_snippet: str | None = None,
+    edits: list[dict[str, Any]] | None = None,
     edit_source: str = "assistant",
     edited_by: str | None = None,
     file_ids: list[str] | None = None,
@@ -978,6 +996,8 @@ def save_canvas_markdown(
 
     start_snippet = _normalize_optional_snippet(start_snippet)
     end_snippet = _normalize_optional_snippet(end_snippet)
+    if edits is not None and (start_snippet is not None or end_snippet is not None):
+        raise ValueError("Use either edits or start_snippet/end_snippet, not both.")
 
     if file_id:
         file_record = get_file(db, str(file_id), str(user_id))
@@ -995,14 +1015,21 @@ def save_canvas_markdown(
 
         content_type = _normalize_content_type(content_type, fallback=fallback_content_type)
         existing_content = ""
-        if start_snippet is not None or end_snippet is not None:
+        if edits is not None or start_snippet is not None or end_snippet is not None:
             existing_content = _read_existing_canvas_text(file_record, str(user_id))
-        content_text = _apply_snippet_update(
-            existing_content,
-            start_snippet=start_snippet,
-            end_snippet=end_snippet,
-            replacement_content=str(content if content is not None else ""),
-        )
+        if edits is not None:
+            content_text = apply_atomic_text_edits(
+                existing_content,
+                edits,
+                artifact_label="canvas file",
+            )
+        else:
+            content_text = _apply_snippet_update(
+                existing_content,
+                start_snippet=start_snippet,
+                end_snippet=end_snippet,
+                replacement_content=str(content if content is not None else ""),
+            )
         if content_transformer is not None:
             # Presentation Canvas edits use this hook to resolve authorized
             # omlorix-file references and sanitize the complete post-edit deck.
@@ -1059,15 +1086,16 @@ def save_canvas_markdown(
                 # serialize two concurrent revision checks.
                 if normalized_expected_revision is not None:
                     if hasattr(db, "query"):
-                        file_record = (
+                        locked_file_query = (
                             db.query(Files)
                             .filter(
                                 Files.id == str(file_id),
                                 Files.user_id == str(user_id),
                             )
-                            .with_for_update()
-                            .first()
                         )
+                        if hasattr(locked_file_query, "populate_existing"):
+                            locked_file_query = locked_file_query.populate_existing()
+                        file_record = locked_file_query.with_for_update().first()
                     else:
                         file_record = get_file(db, str(file_id), str(user_id))
                     if not file_record:
@@ -1307,8 +1335,8 @@ def save_canvas_markdown(
             )
         return result
 
-    if start_snippet is not None or end_snippet is not None:
-        raise ValueError("Snippet updates require file_id for the existing canvas file.")
+    if edits is not None or start_snippet is not None or end_snippet is not None:
+        raise ValueError("Text edits require file_id for the existing canvas file.")
 
     content_type = _normalize_content_type(content_type, fallback="markdown")
     content_text = str(content if content is not None else "")

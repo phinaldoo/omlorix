@@ -234,7 +234,9 @@ def test_todo_tool_hides_share_tokens_for_subscribed_lists():
     _seed_shared_list(db)
 
     listed_payload = next(
-        item for item in todo_tools.list_todo_lists_tool(db, "live-user") if item["id"] == "list-1"
+        item
+        for item in todo_tools.list_todo_lists_tool(db, "live-user")["todo_lists"]
+        if item["id"] == "list-1"
     )
     viewed_payload = todo_tools.view_todo_list_tool(db, "live-user", "list-1")["todo_list"]
 
@@ -253,19 +255,22 @@ def test_todo_tool_hides_share_tokens_for_subscribed_lists():
     assert "can_delete" not in viewed_todo
 
 
-def test_todo_tool_retains_share_tokens_for_owned_lists():
+def test_todo_tool_hides_share_tokens_for_owned_lists_too():
     db = _db_session()
     _seed_shared_list(db)
 
     listed_payload = next(
-        item for item in todo_tools.list_todo_lists_tool(db, "owner-1") if item["id"] == "list-1"
+        item
+        for item in todo_tools.list_todo_lists_tool(db, "owner-1")["todo_lists"]
+        if item["id"] == "list-1"
     )
     viewed_payload = todo_tools.view_todo_list_tool(db, "owner-1", "list-1")["todo_list"]
 
     for payload in (listed_payload, viewed_payload):
         assert payload["is_subscribed"] is False
-        assert payload["live_share_id"] == "live-share-1"
-        assert payload["collaborate_share_id"] == "collab-share-1"
+        assert "clone_share_id" not in payload
+        assert "live_share_id" not in payload
+        assert "collaborate_share_id" not in payload
 
 
 def test_clone_shared_todo_list_preserves_todo_metadata():

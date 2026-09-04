@@ -25,8 +25,6 @@ from app.tools.todos.utils import TODO_TOOL_OPERATIONS, todos_tool
 from app.tools.notes.utils import notes_tool
 from app.tools.automations.utils import WEBHOOK_MANAGEMENT_USER_MESSAGE, automations_tool
 from app.tools.skills.utils import skills_tool
-from app.memories.runtime import get_memory_policy
-from app.tools.memories.utils import memories_tool
 from app.tools.websearch.utils import web_search
 from app.tools.custom.utils import list_enabled_custom_python_tool_names, list_enabled_custom_python_tool_options
 
@@ -49,7 +47,6 @@ available_tools = {
     "notes": notes_tool,
     "automations": automations_tool,
     "skills": skills_tool,
-    "memories": memories_tool,
     "image_generation": image_generation,
     "video_generation": video_generation,
     "audio_generation": audio_generation,
@@ -212,25 +209,6 @@ def _get_web_search_tool_schema(
   return resolved_spec
 
 
-def _get_memories_tool_schema(
-    *,
-    db=None,
-    user_id: str | None = None,
-    project_id: str | None = None,
-) -> dict | None:
-  resolved_spec = deepcopy(tool_schemas["memories"])
-  policy = get_memory_policy(db, user_id or "", project_id=project_id)
-  if not policy.auto_create:
-    return None
-  if policy.use_project_memory:
-    resolved_spec["description"] = (
-      "Save a concise, durable fact or preference shared by future chats in the active project."
-    )
-  return resolved_spec
-
-
-
-
 # -------------------
 # Get Tool Schemas
 # -------------------
@@ -286,14 +264,6 @@ def get_tool_schemas(
         user_id=user_id,
         byok=byok,
       )
-    elif n == "memories":
-      resolved_spec = _get_memories_tool_schema(
-        db=db,
-        user_id=user_id,
-        project_id=project_id,
-      )
-      if resolved_spec is None:
-        continue
     elif n == "code_execution":
       resolved_spec = build_code_execution_tool_schema(
         default_type=code_execution_default_type,

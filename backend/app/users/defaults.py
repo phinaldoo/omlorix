@@ -49,11 +49,6 @@ DEFAULT_USER_SETTINGS = {
             "projects": True,
         },
     },
-    "memory": {
-        "enabled": True,
-        "include_in_context": True,
-        "auto_create": True,
-    },
     "login_2fa": {
         "enable_2fa": False,
         "provider": "",

@@ -458,6 +458,18 @@
     grid-column: 1 / -1;
 }
 
+.managed-groups-memory-model-field {
+    margin-top: 10px;
+    padding: 14px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--background);
+}
+
+.managed-groups-memory-model-field .admin-select {
+    width: 100%;
+}
+
 /* Toggle rows */
 .managed-groups-toggle-row {
     display: flex;

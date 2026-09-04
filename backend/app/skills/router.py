@@ -56,6 +56,7 @@ from app.skills.models import (
     detect_share_type_from_id,
 )
 from app.skills.schemas import (
+    SkillCatalogPage,
     AdminSkillListItem,
     AdminSkillListResponse,
     AdminSkillImportResult,
@@ -476,107 +477,74 @@ def _serialize_admin_skill_detail(skill) -> SkillResponse:
     )
 
 
+
+
+@skills_router.get("/catalog", response_model=SkillCatalogPage)
+def get_skill_catalog(
+    q: str | None = Query(default=None, max_length=200),
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0, le=10000),
+    cursor: str | None = Query(default=None, max_length=4096),
+    user=Depends(verified_user), db: Session = Depends(get_db),
+):
+    ensure_skills_enabled(user, db)
+    from app.skills.queries import list_skill_catalog
+    try:
+        return list_skill_catalog(db, user.id, query=q, limit=limit, offset=offset, cursor=cursor)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail={"code": "invalid_page_cursor"}) from exc
+
+
+def _accessible_skill_detail(db, user_id, skill_id):
+    from app.skills.models import Skills, AdminSkills, _user_can_access_admin_skill
+    from app.skills.queries import skill_access
+    access, share = skill_access(user_id)
+    row = db.query(Skills, share).filter(Skills.id == skill_id, access).first()
+    is_admin = row is None
+    if is_admin:
+        if not _user_can_access_admin_skill(db, user_id, skill_id):
+            raise HTTPException(status_code=404, detail="Skill not found")
+        skill = db.query(AdminSkills).filter(AdminSkills.id == skill_id).first()
+        if skill is None:
+            raise HTTPException(status_code=404, detail="Skill not found")
+        share_type = None
+        owner_id = ADMIN_SKILLS_USER_ID
+    else:
+        skill, share_type = row
+        owner_id = skill.user_id
+    fields = load_skill_markdown_fields(owner_id, skill.id)
+    owned = not is_admin and owner_id == user_id
+    return SkillResponse(
+        id=skill.id, user_id=owner_id, title=skill.name,
+        description=fields.get("description") or skill.description, content=skill.content,
+        icon=skill.icon, created_at=skill.created_at.isoformat(), updated_at=skill.updated_at.isoformat(),
+        compatibility=fields.get("compatibility"), license=fields.get("license"), metadata=fields.get("metadata"), author=fields.get("author"),
+        files=_build_files_response(owner_id, skill.id), is_admin_skill=is_admin,
+        is_subscribed=bool(share_type), share_type=share_type,
+        clone_share_id=skill.clone_share_id if owned else None,
+        live_share_id=skill.live_share_id if owned else None,
+        collaborate_share_id=skill.collaborate_share_id if owned else None,
+        subscriber_count=get_skill_subscriber_count(db, skill.id) if owned else None,
+    )
+
+
+@skills_router.get("/{skill_id}/detail", response_model=SkillResponse)
+def get_skill_detail(skill_id: str, user=Depends(verified_user), db: Session = Depends(get_db)):
+    ensure_skills_enabled(user, db)
+    return _accessible_skill_detail(db, user.id, skill_id)
+
+
 @skills_router.get("", response_model=List[SkillResponse])
 async def get_skills(
-    request: Request,
-    user=Depends(verified_user),
-    db: Session = Depends(get_db),
+    request: Request, user=Depends(verified_user), db: Session = Depends(get_db),
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0, le=10000),
 ):
-    """List all skills for the current user, including managed skills and subscribed shared skills."""
+    """Bounded legacy detail page; workspace clients use /catalog and /detail."""
     ensure_skills_enabled(user, db)
-    
-    responses: list[SkillResponse] = []
-    
-    # Get user's own skills
-    skills = list_skills(db, user.id)
-    for s in skills:
-        markdown_fields = load_skill_markdown_fields(user.id, s.id)
-        has_share = s.clone_share_id or s.live_share_id or s.collaborate_share_id
-        subscriber_count = get_skill_subscriber_count(db, s.id) if has_share else None
-        responses.append(
-            SkillResponse(
-                id=s.id,
-                user_id=s.user_id,
-                title=s.name,
-                description=markdown_fields.get("description") or s.description,
-                content=s.content,
-                icon=s.icon,
-                created_at=s.created_at.isoformat(),
-                updated_at=s.updated_at.isoformat(),
-                compatibility=markdown_fields.get("compatibility"),
-                license=markdown_fields.get("license"),
-                metadata=markdown_fields.get("metadata"),
-                author=markdown_fields.get("author"),
-                files=_build_files_response(user.id, s.id),
-                is_admin_skill=False,
-                clone_share_id=s.clone_share_id,
-                live_share_id=s.live_share_id,
-                collaborate_share_id=s.collaborate_share_id,
-                is_subscribed=False,
-                subscriber_count=subscriber_count,
-            )
-        )
-    
-    # Get subscribed shared skills (returns tuples of (skill, subscription))
-    subscribed_data = get_subscribed_skills(db, user.id)
-    for s, sub in subscribed_data:
-        markdown_fields = load_skill_markdown_fields(s.user_id, s.id)
-        owner = get_user(db, s.user_id)
-        owner_name = _get_user_display_name(owner)
-        responses.append(
-            SkillResponse(
-                id=s.id,
-                user_id=s.user_id,
-                title=s.name,
-                description=markdown_fields.get("description") or s.description,
-                content=s.content,
-                icon=s.icon,
-                created_at=s.created_at.isoformat(),
-                updated_at=s.updated_at.isoformat(),
-                compatibility=markdown_fields.get("compatibility"),
-                license=markdown_fields.get("license"),
-                metadata=markdown_fields.get("metadata"),
-                author=markdown_fields.get("author"),
-                files=_build_files_response(s.user_id, s.id),
-                is_admin_skill=False,
-                clone_share_id=s.clone_share_id,
-                live_share_id=s.live_share_id,
-                collaborate_share_id=s.collaborate_share_id,
-                is_subscribed=True,
-                share_type=sub.share_type,
-                owner_name=owner_name,
-            )
-        )
-    
-    # Get admin skills from user's group
-    try:
-        admin_skill_ids = get_user_group_setting_value(user.id, "skills", "admin_skill_ids", db)
-        if admin_skill_ids and isinstance(admin_skill_ids, list):
-            admin_skills = list_admin_skills_by_ids(db, admin_skill_ids)
-            for s in admin_skills:
-                markdown_fields = load_skill_markdown_fields(ADMIN_SKILLS_USER_ID, s.id)
-                responses.append(
-                    SkillResponse(
-                        id=s.id,
-                        user_id=ADMIN_SKILLS_USER_ID,
-                        title=s.name,
-                        description=markdown_fields.get("description") or s.description,
-                        content=s.content,
-                        icon=s.icon,
-                        created_at=s.created_at.isoformat(),
-                        updated_at=s.updated_at.isoformat(),
-                        compatibility=markdown_fields.get("compatibility"),
-                        license=markdown_fields.get("license"),
-                        metadata=markdown_fields.get("metadata"),
-                        author=markdown_fields.get("author"),
-                        files=_build_files_response(ADMIN_SKILLS_USER_ID, s.id),
-                        is_admin_skill=True,
-                    )
-                )
-    except Exception:
-        pass
-    
-    return responses
+    from app.skills.queries import list_skill_catalog
+    page = list_skill_catalog(db, user.id, limit=limit, offset=offset)
+    return [_accessible_skill_detail(db, user.id, item["id"]) for item in page["items"]]
 
 
 @skills_router.post("/import-markdown", response_model=SkillResponse, status_code=status.HTTP_201_CREATED)

@@ -8,7 +8,7 @@ from typing import List, Optional
 from urllib.parse import quote, unquote
 
 from fastapi import HTTPException, status
-from sqlalchemy import Column, DateTime, String, func, or_
+from sqlalchemy import Index, Column, DateTime, String, and_, func, or_
 from sqlalchemy.orm import Session
 
 from app.database import Base
@@ -31,6 +31,9 @@ SKILL_FILE_FOLDERS = ("scripts", "references", "assets")
 
 class Skills(Base):
     __tablename__ = "skills"
+    __table_args__ = (
+        Index('ix_skills_catalog_page', 'user_id', 'created_at', 'id'),
+    )
 
     id = Column(String, primary_key=True, index=True)
     user_id = Column(String, nullable=False, index=True)
@@ -71,6 +74,9 @@ class AdminSkills(Base):
 class SharedSkillSubscription(Base):
     """Tracks which users have subscribed to (accepted) shared skills."""
     __tablename__ = "shared_skill_subscriptions"
+    __table_args__ = (
+        Index('ix_skill_subscriber_access', 'subscriber_id', 'skill_id', 'share_type'),
+    )
 
     id = Column(String, primary_key=True, index=True)
     skill_id = Column(String, nullable=False, index=True)
@@ -240,16 +246,41 @@ def _infer_skill_file_category(mime_type: str | None) -> str:
 
 
 
-def list_skills(db: Session, user_id: str):
+def list_skills(
+    db: Session,
+    user_id: str,
+    *,
+    limit: int | None = None,
+    offset: int = 0,
+    query_text: str | None = None,
+):
     """
     Return all skills that belong to the provided user ordered by creation time.
     """
-    return (
+    query = (
         db.query(Skills)
         .filter(Skills.user_id == user_id)
         .order_by(Skills.created_at.desc())
-        .all()
     )
+    normalized_query = str(query_text or "").strip()
+    if normalized_query:
+        escaped = (
+            normalized_query.replace("\\", "\\\\")
+            .replace("%", "\\%")
+            .replace("_", "\\_")
+        )
+        pattern = f"%{escaped}%"
+        query = query.filter(
+            or_(
+                Skills.name.ilike(pattern, escape="\\"),
+                Skills.description.ilike(pattern, escape="\\"),
+            )
+        )
+    if isinstance(offset, int) and offset > 0:
+        query = query.offset(offset)
+    if isinstance(limit, int) and limit > 0:
+        query = query.limit(limit)
+    return query.all()
 
 
 def delete_skill(db: Session, user_id: str, skill_id: str):
@@ -778,26 +809,42 @@ def unsubscribe_from_shared_skill(db: Session, subscriber_id: str, skill_id: str
 
 
 
-def get_subscribed_skills(db: Session, user_id: str) -> List[tuple]:
+def get_subscribed_skills(
+    db: Session,
+    user_id: str,
+    *,
+    limit: int | None = None,
+    offset: int = 0,
+) -> List[tuple]:
     """Get all skills that a user is subscribed to with subscription info."""
-    subscriptions = db.query(SharedSkillSubscription).filter(
-        SharedSkillSubscription.subscriber_id == user_id
-    ).all()
-    
-    if not subscriptions:
-        return []
-    
-    result = []
-    for sub in subscriptions:
-        skill = db.query(Skills).filter(Skills.id == sub.skill_id).first()
-        if skill:
-            # Verify the share is still active
-            if sub.share_type == "live" and skill.live_share_id:
-                result.append((skill, sub))
-            elif sub.share_type == "collaborate" and skill.collaborate_share_id:
-                result.append((skill, sub))
-    
-    return result
+    query = (
+        db.query(Skills, SharedSkillSubscription)
+        .join(
+            SharedSkillSubscription,
+            SharedSkillSubscription.skill_id == Skills.id,
+        )
+        .filter(SharedSkillSubscription.subscriber_id == user_id)
+        .filter(
+            or_(
+                and_(
+                    SharedSkillSubscription.share_type == "live",
+                    Skills.live_share_id.isnot(None),
+                    Skills.live_share_id != "",
+                ),
+                and_(
+                    SharedSkillSubscription.share_type == "collaborate",
+                    Skills.collaborate_share_id.isnot(None),
+                    Skills.collaborate_share_id != "",
+                ),
+            )
+        )
+        .order_by(Skills.updated_at.desc(), Skills.created_at.desc(), Skills.id.desc())
+    )
+    if isinstance(offset, int) and offset > 0:
+        query = query.offset(offset)
+    if isinstance(limit, int) and limit > 0:
+        query = query.limit(limit)
+    return query.all()
 
 
 def get_skill_subscriber_count(db: Session, skill_id: str, share_type: Optional[str] = None) -> int:
@@ -902,23 +949,11 @@ def _resolve_accessible_skill_for_user(
     if not skill_id:
         return None
 
-    # 1. Check user's own skills
-    user_skill = db.query(Skills).filter(
-        Skills.id == skill_id,
-        Skills.user_id == user_id
-    ).first()
-    if user_skill:
-        return user_skill.content, user_skill.user_id
-
-    # 2. Check skills shared with the user (via subscription)
-    subscription = db.query(SharedSkillSubscription).filter(
-        SharedSkillSubscription.skill_id == skill_id,
-        SharedSkillSubscription.subscriber_id == user_id,
-    ).first()
-    if subscription:
-        shared_skill = db.query(Skills).filter(Skills.id == skill_id).first()
-        if shared_skill:
-            return shared_skill.content, shared_skill.user_id
+    from app.skills.queries import skill_access
+    access, _ = skill_access(user_id)
+    skill = db.query(Skills).filter(Skills.id == skill_id, access).first()
+    if skill is not None:
+        return skill.content, skill.user_id
 
     # 3. Check admin skills assigned to the user's group or applied by trusted server-side model settings.
     if _user_can_access_admin_skill(

@@ -97,6 +97,7 @@ def _normalize_automation_skill_id(
 class Automation(Base):
     __tablename__ = "automations"
     __table_args__ = (
+        Index('ix_automations_catalog_page', 'user_id', 'created_at', 'id'),
         Index("ix_automations_user_id", "user_id"),
         Index("ix_automations_is_active", "is_active"),
         Index("ix_automations_created_at", "created_at"),

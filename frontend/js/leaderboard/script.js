@@ -224,7 +224,6 @@
         'notes_management': ['notes'],
         'automations_management': ['automations'],
         'skills_management': ['skills'],
-        'memory_management': ['memories'],
         'information': ['weather'],
         'education': ['quiz', 'flashcards'],
         'media_generation': ['image_generation', 'video_generation', 'audio_generation', 'music_generation'],

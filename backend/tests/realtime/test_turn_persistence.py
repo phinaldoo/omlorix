@@ -39,6 +39,14 @@ from app.realtime import service as realtime_service
 from app.realtime import router as realtime_router
 
 
+@pytest.fixture(autouse=True)
+def memory_admission(monkeypatch):
+    from app.memories import consolidation
+    calls = []
+    monkeypatch.setattr(consolidation, "stage_memory_consolidation", lambda db, **payload: calls.append(payload))
+    return calls
+
+
 def _db():
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(
@@ -437,3 +445,25 @@ def test_first_realtime_turn_uses_message_fallback_when_title_generation_is_disa
     assert saved["chat_title"] == "Summarize the quarterly planning notes"
     assert "chat_title_pending" not in saved
     assert db.query(Chats).filter(Chats.id == "chat-1").one().title == saved["chat_title"]
+
+
+def test_retried_turn_keeps_original_memory_evidence_time(monkeypatch, memory_admission):
+    db = _db()
+    _insert_chat(db)
+    runtime = _runtime()
+    saved = persist_runtime_turn(db, runtime, turn_id="turn-1", user_transcript="Original fact")
+    source_at = datetime(2026, 1, 1)
+    message = db.query(ChatMessages).filter_by(id=saved["user_message_id"]).one()
+    message.created_at = source_at
+    db.commit()
+    monkeypatch.setattr(realtime_router, "_require_runtime", lambda *_args: runtime)
+    monkeypatch.setattr(realtime_router, "persist_realtime_runtime_state", lambda *_args: None)
+    tasks = BackgroundTasks()
+    realtime_router.persist_realtime_turn(
+        runtime.id, PersistRealtimeTurnRequest(turn_id="turn-1", user_transcript="Original fact"),
+        tasks, db=db, user=SimpleNamespace(id="user-1"),
+    )
+    memory_tasks = [task for task in tasks.tasks if task.func.__name__ == "schedule_memory_consolidation"]
+    assert memory_tasks == []
+    assert len(memory_admission) == 1
+    assert memory_admission[0]["source_text"] == "Original fact"

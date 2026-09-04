@@ -36,10 +36,6 @@ const dataControlElements = {
     navItem: document.getElementById('dataControlNavItem'),
     page: document.getElementById('dataControlPage'),
 };
-const memoryElements = {
-    navItem: document.getElementById('memoryNavItem'),
-    page: document.getElementById('memorySettingsPage'),
-};
 const passkeyElements = {
     section: document.getElementById('passkeySection'),
 };
@@ -124,9 +120,6 @@ const userSettingHeaders = {
     },
     chat: {
         title: () => usT('us_page_chat_title', 'Chat Settings'),
-    },
-    memory: {
-        title: () => usT('us_page_memory_title', 'Memory'),
     },
     byok: {
         title: () => usT('us_page_byok_title', 'Bring Your Own Key'),
@@ -253,22 +246,6 @@ function setActiveSection(sectionKey, options = {}) {
     }
 }
 
-function applyMemoryVisibility(enabled) {
-    const visible = Boolean(enabled);
-    if (memoryElements.navItem) {
-        memoryElements.navItem.style.display = visible ? '' : 'none';
-    }
-    if (memoryElements.page) {
-        memoryElements.page.style.display = visible ? '' : 'none';
-        if (!visible && memoryElements.page.classList.contains('active')) {
-            setActiveSection(DEFAULT_USER_SETTINGS_SECTION);
-        }
-    }
-    if (typeof window.MemorySettingsPage?.setVisibility === 'function') {
-        window.MemorySettingsPage.setVisibility(visible);
-    }
-}
-
 function applyTemporaryChatPreferenceVisibility(allowed) {
     if (!temporaryChatPreferenceSetting) {
         return;
@@ -341,12 +318,6 @@ function applyManagedGroupsVisibility(enabled) {
  * paint of the settings sidebar should already have its final structure.
  */
 function applyUserSettingsNavigationAvailability(setup = {}) {
-    // Memory access is already part of the chat bootstrap for workspace
-    // initialization, so reuse it here instead of waiting for settings init.
-    if (Object.prototype.hasOwnProperty.call(setup, 'enable_memories')) {
-        applyMemoryVisibility(setup.enable_memories);
-    }
-
     const availability = setup?.user_settings_navigation;
     if (!availability || typeof availability !== 'object') {
         return;
@@ -764,10 +735,6 @@ async function openUserSettings(initialSection = DEFAULT_USER_SETTINGS_SECTION) 
     }
     if (typeof window.MCPSettings?.setPolicy === 'function') {
         window.MCPSettings.setPolicy(data);
-    }
-    applyMemoryVisibility(window.enableMemoriesFeature === true);
-    if (typeof window.MemorySettingsPage?.load === 'function' && window.enableMemoriesFeature === true) {
-        window.MemorySettingsPage.load();
     }
     loadActiveSessions();
     const passkeysEnabled = applyPasskeyVisibility(data?.enable_passkeys);

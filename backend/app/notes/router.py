@@ -352,45 +352,19 @@ def list_notes_route(
     q: Annotated[str | None, Query(max_length=200)] = None,
     limit: Annotated[int, Query(ge=1, le=MAX_PAGE_LIMIT)] = DEFAULT_PAGE_LIMIT,
     offset: Annotated[int, Query(ge=0, le=MAX_PAGE_OFFSET)] = 0,
+    cursor: Annotated[str | None, Query(max_length=4096)] = None,
     db: Session = Depends(get_db),
     user=Depends(verified_user),
 ):
     """List all notes for the user (lightweight, no full content)."""
     ensure_notes_enabled(user, db)
 
-    fetch_limit = merged_window_limit(limit, offset)
-    responses = []
-    
-    # Get user's own notes
-    notes = list_user_notes(db, user.id, limit=fetch_limit, query_text=q)
-    for note in notes:
-        has_shares = note.clone_share_id or note.live_share_id or note.collaborate_share_id
-        subscriber_count = get_note_subscriber_count(db, note.id) if has_shares else None
-        responses.append(
-            _build_note_list_item(
-                note,
-                viewer_user_id=user.id,
-                subscriber_count=subscriber_count,
-            )
-        )
-    
-    # Get subscribed notes from other users (live and collaborate)
-    subscribed_data = get_subscribed_notes(db, user.id, limit=fetch_limit, query_text=q)
-    for note, subscription in subscribed_data:
-        owner = get_user(db, note.user_id)
-        owner_name = _get_user_display_name(owner)
-        responses.append(
-            _build_note_list_item(
-                note,
-                viewer_user_id=user.id,
-                owner_name=owner_name,
-                share_type=subscription.share_type,
-            )
-        )
-    
-    responses.sort(key=_note_sort_key, reverse=True)
-    items, has_more = page_from_merged_window(responses, limit=limit, offset=offset)
-    return NoteListResponse(items=items, limit=limit, offset=offset, has_more=has_more)
+    from app.notes.queries import list_note_summaries
+    try:
+        page = list_note_summaries(db, user.id, query=q, limit=limit, offset=offset, cursor=cursor, management=True)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail={"code": "invalid_page_cursor"}) from exc
+    return NoteListResponse(items=page.pop("notes"), **page)
 
 
 @notes_router.get("/{note_id}/content", response_model=NoteContentResponse)

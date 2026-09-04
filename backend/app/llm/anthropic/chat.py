@@ -1,5 +1,7 @@
 """Anthropic Messages API chat orchestration and streaming response handling."""
 
+from app.llm.generation.engine import chat_adapter, ProviderCall, stream_tool_call
+
 import copy
 import json
 import logging
@@ -36,6 +38,7 @@ from app.llm.helper import (
     format_meta_timestamp,
     merge_settings,
     normalize_unsupported_file_ids,
+    sanitize_tool_call_arguments_object_for_history,
     should_persist_files_in_file_block,
     stringify_tool_result_content_for_persistence,
 )
@@ -61,6 +64,7 @@ from app.users.roles import is_admin_role
 logger = logging.getLogger(__name__)
 
 
+@chat_adapter
 def anthropic_chat(
     chat_id: str,
     chat_history,
@@ -81,8 +85,9 @@ def anthropic_chat(
     reference_parts: list[str] | None = None,
     chat_reference_context: str | None = None,
     user_role: str | None = None,
+    engine=None,
 ):
-    from app.chats.models import create_chat_message
+    create_chat_message = engine.persist_message
 
     assistant_metadata = (
         assistant_metadata if isinstance(assistant_metadata, dict) else {}
@@ -155,6 +160,9 @@ def anthropic_chat(
         note_ids=note_ids,
         reference_parts=reference_parts,
         chat_reference_context=chat_reference_context,
+    )
+    engine.context.prefix_count = reformatted_chat_history.get(
+        "context_prefix_count", 0
     )
     formatted_history = reformatted_chat_history.get("formatted", [])
     unsupported_file_ids = normalize_unsupported_file_ids(
@@ -667,7 +675,9 @@ def anthropic_chat(
                     if use_compaction
                     else client.messages.create
                 )
-                response = create_fn(**request_kwargs)
+                response = yield ProviderCall(
+                    create_fn, {**request_kwargs}, settings, "anthropic", args=()
+                )
                 meta_generation_success = True
             except APIStatusError as api_exc:
                 if request_kwargs.get(
@@ -687,12 +697,18 @@ def anthropic_chat(
                     compaction_supported_by_endpoint = False
                     meta_compaction_enabled = False
                     meta_compaction_threshold = None
-                    response = client.messages.create(**request_kwargs)
+                    response = yield ProviderCall(
+                        client.messages.create,
+                        {**request_kwargs},
+                        settings,
+                        "anthropic",
+                        args=(),
+                    )
                     meta_generation_success = True
                 else:
                     raise
 
-            for chunk in interruptible_provider_stream(response, generation_id):
+            for chunk in engine.events(response, generation_id, stream_factory=interruptible_provider_stream):
                 try:
                     if generation_id:
                         from app.chats.streaming import cancel_registry
@@ -1121,17 +1137,8 @@ def anthropic_chat(
                                     )
                                 except TypeError:
                                     tool_content = str(tool_event_payload)
-                                args_str = (
-                                    json.dumps(
-                                        args or {},
-                                        ensure_ascii=False,
-                                        separators=(",", ":"),
-                                    )
-                                    if isinstance(args, dict)
-                                    else str(args or "{}")
-                                )
                                 tool_label = (
-                                    f"{collecting_tool_name}({args_str})"
+                                    f"{collecting_tool_name}()"
                                     if collecting_tool_name
                                     else "tool"
                                 )
@@ -1187,7 +1194,10 @@ def anthropic_chat(
                                 "type": "tool_use",
                                 "id": tool_call_id,
                                 "name": collecting_tool_name,
-                                "input": args,
+                                "input": sanitize_tool_call_arguments_object_for_history(
+                                    collecting_tool_name,
+                                    args,
+                                ),
                             }
                         )
 
@@ -1206,7 +1216,7 @@ def anthropic_chat(
                             try:
                                 from app.tools.helper import resolve_tool_call
 
-                                helper_gen = resolve_tool_call(
+                                helper_gen = stream_tool_call(resolve_tool_call,
                                     db,
                                     collecting_tool_name,
                                     args,
@@ -1234,12 +1244,7 @@ def anthropic_chat(
 
                             if helper_gen and tool_error_message is None:
                                 try:
-                                    while True:
-                                        helper_item = next(helper_gen)
-                                        if helper_item is not None:
-                                            yield helper_item
-                                except StopIteration as helper_done:
-                                    helper_payload = helper_done.value or {}
+                                    helper_payload = yield from helper_gen
                                 except Exception as tool_exc:
                                     tool_error_message = str(tool_exc)
                                     tool_error_response = tool_error_tracker.record(
@@ -1337,10 +1342,7 @@ def anthropic_chat(
                                     ]
 
                                 # Save Tool Message to DB using messages_to_save format
-                                args_str = json.dumps(
-                                    args, ensure_ascii=False, separators=(",", ":")
-                                )
-                                tool_label = f"{collecting_tool_name}({args_str})"
+                                tool_label = f"{collecting_tool_name}()"
 
                                 widget_data = helper_payload.get("widget")
 

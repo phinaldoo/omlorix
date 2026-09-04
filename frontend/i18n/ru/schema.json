@@ -631,5 +631,8 @@
   "schema_xai_realtime_silence_duration_desc": "Пауза, которую xAI ожидает перед завершением речевой реплики, в миллисекундах.",
   "model_settings_system_instruction_label": "Системная инструкция",
   "model_settings_system_instruction_description": "Замените системную инструкцию, настроенную администратором, для этого разговора.",
-  "model_settings_system_instruction_placeholder": "Оставьте пустым, чтобы использовать системную инструкцию, настроенную администратором."
+  "model_settings_system_instruction_placeholder": "Оставьте пустым, чтобы использовать системную инструкцию, настроенную администратором.",
+  "schema_group_field_settings_memories_memory_model_id_label": "Модель памяти",
+  "schema_group_field_settings_memories_memory_model_id_description": "Отдельная модель, обновляющая память участников после каждого сообщения. Оставьте поле пустым, чтобы использовать модель текущего чата.",
+  "schema_group_option_settings_memories_memory_model_id_current": "Использовать модель текущего чата"
 }

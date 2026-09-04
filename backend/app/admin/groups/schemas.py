@@ -342,6 +342,18 @@ GROUP_FORM_SCHEMA = GroupFormSchema(
                     type="boolean",
                     default=_default_setting("memories.enabled_memories"),
                 ),
+                FieldSchema(
+                    key="settings.memories.memory_model_id",
+                    label="Memory model",
+                    i18n_label="schema_group_field_settings_memories_memory_model_id_label",
+                    description="Dedicated model used to update member memories after each user message. Leave empty to use the current chat model.",
+                    i18n_description="schema_group_field_settings_memories_memory_model_id_description",
+                    type="select",
+                    options=[],
+                    dependency="settings.memories.enabled_memories",
+                    dependency_value=True,
+                    default=_default_setting("memories.memory_model_id"),
+                ),
             ],
         ),
         Section(

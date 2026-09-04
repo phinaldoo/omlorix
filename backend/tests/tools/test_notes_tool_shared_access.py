@@ -188,6 +188,59 @@ def test_notes_tool_partial_edit_replaces_exact_snippet_range(monkeypatch):
     assert result["note"]["content"] == "Alpha\nBeta new\nGamma new\nDelta"
 
 
+def test_notes_tool_batches_multiple_edits_into_one_saved_version(monkeypatch):
+    db = _session()
+    note = _seed_shared_note(db)
+    note.content = "# Plan\nAlpha old\nMiddle\nOmega old"
+    db.commit()
+    monkeypatch.setattr(
+        "app.tools.notes.utils.stage_tool_audit_action",
+        lambda *_args, **_kwargs: None,
+    )
+
+    result = notes_tool(
+        db=db,
+        user_id="collaborator-1",
+        type="edit",
+        note_id="note-1",
+        edits=[
+            {
+                "start_snippet": "Alpha old",
+                "end_snippet": "Alpha old",
+                "content": "Alpha new",
+            },
+            {
+                "start_snippet": "Omega old",
+                "end_snippet": "Omega old",
+                "content": "Omega new",
+            },
+        ],
+        expected_updated_at=note.updated_at.isoformat(),
+    )
+
+    assert result["note"]["content"] == "# Plan\nAlpha new\nMiddle\nOmega new"
+    assert result["note"]["edit_count"] == 2
+    assert db.query(NoteHistory).filter(NoteHistory.note_id == "note-1").count() == 1
+
+
+def test_notes_tool_view_is_bounded_by_default():
+    db = _session()
+    note = _seed_shared_note(db)
+    note.content = "x" * 50_000
+    db.commit()
+
+    result = notes_tool(
+        db=db,
+        user_id="collaborator-1",
+        type="view",
+        note_id="note-1",
+    )["note"]
+
+    assert len(result["content"]) == 20_000
+    assert result["selection"]["total_chars"] == 50_000
+    assert result["truncated"] is True
+
+
 def test_notes_tool_partial_edit_rejects_ambiguous_start_snippet():
     db = _session()
     note = _seed_shared_note(db)
@@ -318,7 +371,10 @@ def test_notes_tool_rejects_delete_operations_without_mutating_the_note():
     db = _session()
     _seed_shared_note(db)
 
-    with pytest.raises(ValueError, match="Allowed values are: list, view, create, edit"):
+    with pytest.raises(
+        ValueError,
+        match="Allowed values are: list, view, view_many, create, edit",
+    ):
         notes_tool(
             db=db,
             user_id="owner-1",
@@ -337,9 +393,11 @@ def test_notes_tool_list_includes_subscribed_collaborate_notes():
 
     assert len(result["notes"]) == 1
     assert note["id"] == "note-1"
-    assert note["user_id"] == "owner-1"
-    assert note["content"] == "Original content"
-    assert note["collaborate_share_id"] == "share-1"
+    assert note["title"] == "Original content"
+    assert note["content_length"] == len("Original content")
+    assert "user_id" not in note
+    assert "content" not in note
+    assert "collaborate_share_id" not in note
     assert note["is_subscribed"] is True
     assert note["share_type"] == "collaborate"
-    assert "can_edit" not in note
+    assert note["can_edit"] is True

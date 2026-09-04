@@ -37,6 +37,7 @@ const NotesState = {
     searchResults: [],
     isSearching: false,
     notesOffset: 0,
+    notesCursor: null,
     notesHasMore: false,
     notesLoadingMore: false,
     notesRequestToken: null,
@@ -109,15 +110,17 @@ function normalizeNotesPage(payload, fallbackOffset = 0) {
     return {
         items,
         offset: Number(payload?.offset ?? fallbackOffset) || 0,
+        nextCursor: payload?.next_cursor || null,
         hasMore: Array.isArray(payload) ? items.length >= NOTES_PAGE_LIMIT : Boolean(payload?.has_more),
     };
 }
 
-function buildNotesListUrl(offset = 0, query = '') {
+function buildNotesListUrl(offset = 0, query = '', cursor = null) {
     const params = new URLSearchParams({
         limit: String(NOTES_PAGE_LIMIT),
         offset: String(offset),
     });
+    if (cursor) { params.delete('offset'); params.set('cursor', cursor); }
     if (String(query || '').trim()) params.set('q', String(query).trim());
     return `/api/v1/notes/?${params.toString()}`;
 }

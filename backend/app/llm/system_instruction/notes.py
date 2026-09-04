@@ -1,16 +1,16 @@
-# Notes context for chat messages
-# Uses existing notes infrastructure from app.notes.models
+"""Bounded Notes context used by every provider adapter."""
+
+from app.utils.helpers import datetime_to_iso
+
+
+MAX_ATTACHED_NOTES = 20
+MAX_ATTACHED_NOTE_CHARS = 40_000
+MAX_ATTACHED_NOTES_TOTAL_CHARS = 120_000
 
 
 def get_notes_context_start(notes_content: list[dict]) -> str:
     """
-    Generate the context start text for notes.
-    
-    Args:
-        notes_content: List of dicts with 'id' and 'content' keys
-    
-    Returns:
-        Context start string to prepend to chat history
+    Generate provider context with stable note IDs and revision receipts.
     """
     if not notes_content:
         return ""
@@ -18,17 +18,34 @@ def get_notes_context_start(notes_content: list[dict]) -> str:
     note_count = len(notes_content)
     plural = "notes" if note_count > 1 else "note"
     
-    context_start = f"""
-The user has attached {note_count} {plural} to this conversation for additional context. Please consider the following notes as background knowledge:
-
-"""
-    
+    chunks = [
+        (
+            f"The user attached {note_count} {plural} as bounded background context. "
+            "Each header includes the exact note_id and updated_at revision. A non-truncated "
+            "attached snapshot is fresh enough to use directly; use a targeted Notes view only "
+            "when a needed section was truncated or the tool reports a revision conflict."
+        ),
+        "",
+    ]
     for i, note in enumerate(notes_content, 1):
-        note_text = note.get("content", "").strip()
-        if note_text:
-            context_start += f"--- Note {i} ---\n{note_text}\n\n"
-    
-    return context_start
+        note_text = str(note.get("content") or "").strip()
+        note_id = str(note.get("id") or "").strip()
+        updated_at = str(note.get("updated_at") or "").strip()
+        returned_chars = int(note.get("returned_chars") or len(note_text))
+        total_chars = int(note.get("total_chars") or len(note_text))
+        truncated = bool(note.get("truncated"))
+        chunks.extend(
+            [
+                (
+                    f"--- Note {i} | note_id={note_id} | updated_at={updated_at} | "
+                    f"chars={returned_chars}/{total_chars} | truncated={str(truncated).lower()} ---"
+                ),
+                note_text,
+                "",
+            ]
+        )
+
+    return "\n".join(chunks)
 
 
 def get_notes_context_end() -> str:
@@ -46,66 +63,72 @@ Now the main chat conversation continues. Use the above notes as context where r
 
 def fetch_notes_for_chat(db, user_id: str, note_ids: list[str]) -> list[dict]:
     """
-    Fetch notes by their IDs for a user. 
-    User can access their own notes or notes they are subscribed to.
-    Uses existing notes infrastructure from app.notes.models.
-    
-    Args:
-        db: Database session
-        user_id: The user ID requesting the notes
-        note_ids: List of note IDs to fetch
-    
-    Returns:
-        List of dicts with 'id' and 'content' keys for valid, accessible notes
+    Fetch accessible notes in two queries and enforce one shared context budget.
     """
     if not note_ids or not user_id:
         return []
     
-    from app.notes.models import Notes, get_subscription_for_note
-    
-    results = []
-    seen_ids = set()
-    
-    for note_id in note_ids:
+    from app.notes.models import Notes, SharedNoteSubscription
+
+    normalized_ids: list[str] = []
+    seen_ids: set[str] = set()
+    for raw_note_id in note_ids:
+        note_id = str(raw_note_id or "").strip()
         if not note_id or note_id in seen_ids:
             continue
         seen_ids.add(note_id)
-        
-        note_id_clean = str(note_id).strip()
-        if not note_id_clean:
+        normalized_ids.append(note_id)
+        if len(normalized_ids) >= MAX_ATTACHED_NOTES:
+            break
+    if not normalized_ids:
+        return []
+
+    notes = db.query(Notes).filter(Notes.id.in_(normalized_ids)).all()
+    notes_by_id = {str(note.id): note for note in notes}
+    subscriptions = (
+        db.query(SharedNoteSubscription)
+        .filter(
+            SharedNoteSubscription.note_id.in_(normalized_ids),
+            SharedNoteSubscription.subscriber_id == str(user_id),
+        )
+        .all()
+    )
+    subscriptions_by_note_id = {
+        str(subscription.note_id): subscription for subscription in subscriptions
+    }
+
+    results: list[dict] = []
+    remaining_chars = MAX_ATTACHED_NOTES_TOTAL_CHARS
+    for note_id in normalized_ids:
+        note = notes_by_id.get(note_id)
+        if note is None:
             continue
-        
-        # Try to find the note
-        note = db.query(Notes).filter(
-            Notes.id == note_id_clean,
-        ).first()
-        if not note:
+        is_owner = str(note.user_id) == str(user_id)
+        subscription = subscriptions_by_note_id.get(note_id)
+        share_type = str(getattr(subscription, "share_type", "") or "")
+        share_is_active = (
+            (share_type == "live" and bool(note.live_share_id))
+            or (share_type == "collaborate" and bool(note.collaborate_share_id))
+        )
+        if not is_owner and not share_is_active:
             continue
-        
-        # Check if user owns the note
-        if note.user_id == user_id:
-            if note.content:
-                results.append({
-                    "id": note.id,
-                    "content": note.content,
-                })
-            continue
-        
-        # Check if user is subscribed to the note using existing function
-        subscription = get_subscription_for_note(db, user_id, note_id_clean)
-        
-        if subscription:
-            # Verify the share is still active
-            is_active = False
-            if subscription.share_type == "live" and note.live_share_id:
-                is_active = True
-            elif subscription.share_type == "collaborate" and note.collaborate_share_id:
-                is_active = True
-            
-            if is_active and note.content:
-                results.append({
-                    "id": note.id,
-                    "content": note.content,
-                })
-    
+        if remaining_chars <= 0:
+            break
+
+        source_content = str(note.content or "")
+        returned_content = source_content[
+            : min(MAX_ATTACHED_NOTE_CHARS, remaining_chars)
+        ]
+        remaining_chars -= len(returned_content)
+        results.append(
+            {
+                "id": str(note.id),
+                "content": returned_content,
+                "updated_at": datetime_to_iso(getattr(note, "updated_at", None)),
+                "returned_chars": len(returned_content),
+                "total_chars": len(source_content),
+                "truncated": len(returned_content) < len(source_content),
+            }
+        )
+
     return results

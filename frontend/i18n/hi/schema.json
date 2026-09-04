@@ -631,5 +631,8 @@
   "schema_xai_realtime_silence_duration_desc": "बोले गए टर्न को समाप्त करने से पहले xAI जितनी चुप्पी की प्रतीक्षा करता है, मिलीसेकंड में।",
   "model_settings_system_instruction_label": "सिस्टम निर्देश",
   "model_settings_system_instruction_description": "इस बातचीत के लिए व्यवस्थापक द्वारा कॉन्फ़िगर किए गए सिस्टम निर्देश को बदलें।",
-  "model_settings_system_instruction_placeholder": "व्यवस्थापक द्वारा कॉन्फ़िगर किए गए सिस्टम निर्देश का उपयोग करने के लिए खाली छोड़ें।"
+  "model_settings_system_instruction_placeholder": "व्यवस्थापक द्वारा कॉन्फ़िगर किए गए सिस्टम निर्देश का उपयोग करने के लिए खाली छोड़ें।",
+  "schema_group_field_settings_memories_memory_model_id_label": "मेमोरी मॉडल",
+  "schema_group_field_settings_memories_memory_model_id_description": "हर उपयोगकर्ता संदेश के बाद सदस्यों की मेमोरी अपडेट करने वाला समर्पित मॉडल। मौजूदा चैट मॉडल का उपयोग करने के लिए खाली छोड़ें।",
+  "schema_group_option_settings_memories_memory_model_id_current": "मौजूदा चैट मॉडल का उपयोग करें"
 }

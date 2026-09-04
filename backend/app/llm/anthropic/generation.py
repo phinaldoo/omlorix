@@ -63,9 +63,15 @@ def anthropic_title_generation(
     user_id: str | None = None,
     model_settings: dict | None = None,
     settings_override: dict | None = None,
+    generation_category: str = "title_generation",
+    output_char_limit: int | None = None,
+    max_output_tokens: int | None = None,
+    response_schema: dict | None = None,
+    raise_on_error: bool = False,
 ):
     """Generate a title through the shared non-streaming service."""
-    fallback = prompt[:60]
+    fallback_limit = output_char_limit if output_char_limit is not None else 60
+    fallback = prompt[: max(1, int(fallback_limit))]
     # Preserve the historical fast fallback: client configuration failures do
     # not create a generation statistic because no provider request was made.
     try:
@@ -74,6 +80,8 @@ def anthropic_title_generation(
         else:
             client = get_anthropic_client(db, anthropic_provider_id)
     except Exception:
+        if raise_on_error:
+            raise
         return fallback
 
     model_name, model_id = _resolve_model_identifiers(model)
@@ -84,7 +92,7 @@ def anthropic_title_generation(
         model_id=model_id,
         provider="anthropic",
         provider_id=anthropic_provider_id,
-        category="title_generation",
+        category=generation_category,
         user_id=user_id,
         is_byok=bool(byok),
         record_statistic=create_llm_generation_statistic,
@@ -96,14 +104,25 @@ def anthropic_title_generation(
             model=model_name,
             prompt=prompt,
             system_instruction=system_instruction,
-            max_tokens=100,
+            max_tokens=max(1, int(max_output_tokens or 100)),
             settings=settings,
         )
 
-    return run_generation_once(
-        adapter,
-        request,
-        context,
-        fallback_on_error=fallback,
-        empty_text_fallback=fallback,
-    )
+    if raise_on_error:
+        result = run_generation_once(
+            adapter,
+            request,
+            context,
+            empty_text_error=lambda: RuntimeError("empty_model_output"),
+        )
+    else:
+        result = run_generation_once(
+            adapter,
+            request,
+            context,
+            fallback_on_error=fallback,
+            empty_text_fallback=fallback,
+        )
+    if output_char_limit is None:
+        return result
+    return result[: max(1, int(output_char_limit))]

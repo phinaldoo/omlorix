@@ -126,11 +126,8 @@ test('chat bootstrap fixes conditional settings navigation before settings data 
 
     harness.applySetupNavigation(
         { managed_groups: true, rate_limits: true },
-        { enable_memories: true },
     );
 
-    assert.equal(harness.getElement('memoryNavItem').style.display, '');
-    assert.equal(harness.getElement('memorySettingsPage').style.display, '');
     assert.equal(harness.getElement('managedGroupsNavItem').style.display, '');
     assert.equal(harness.getElement('managedGroupsPage').style.display, '');
     assert.equal(harness.getRateLimitsVisible(), true);

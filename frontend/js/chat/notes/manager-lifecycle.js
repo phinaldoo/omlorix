@@ -195,13 +195,14 @@ Object.assign(NotesManager, {
         }
 
         try {
-            const page = await NotesAPI.fetchNotes(offset, normalizedQuery);
+            const page = await NotesAPI.fetchNotes(offset, normalizedQuery, append ? NotesState.notesCursor : null);
             if (NotesState.notesRequestToken !== requestToken || NotesState.searchQuery !== normalizedQuery) return;
             NotesState.notes = append
                 ? this.appendUniqueById(NotesState.notes, page.items)
                 : page.items;
             NotesState.notesOffset = offset + page.items.length;
             NotesState.notesHasMore = page.hasMore;
+            NotesState.notesCursor = page.nextCursor;
             NotesState.searchResults = NotesState.isSearching ? NotesState.notes : [];
             this.sortNotesState();
             this.renderCurrentNotesList();
@@ -2016,6 +2017,7 @@ Object.assign(NotesManager, {
             NotesState.notes = freshPage.items;
             NotesState.notesOffset = freshPage.items.length;
             NotesState.notesHasMore = freshPage.hasMore;
+            NotesState.notesCursor = freshPage.nextCursor;
             this.sortNotesState();
             this.renderCurrentNotesList();
         } catch (error) {

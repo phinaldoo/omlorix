@@ -631,5 +631,8 @@
   "schema_xai_realtime_silence_duration_desc": "xAI 在结束一次语音轮次前等待的静音时长（毫秒）。",
   "model_settings_system_instruction_label": "系统指令",
   "model_settings_system_instruction_description": "替换管理员为此对话配置的系统指令。",
-  "model_settings_system_instruction_placeholder": "留空以使用管理员配置的系统指令。"
+  "model_settings_system_instruction_placeholder": "留空以使用管理员配置的系统指令。",
+  "schema_group_field_settings_memories_memory_model_id_label": "记忆模型",
+  "schema_group_field_settings_memories_memory_model_id_description": "用于在每条用户消息后更新成员记忆的专用模型。留空则使用当前聊天模型。",
+  "schema_group_option_settings_memories_memory_model_id_current": "使用当前聊天模型"
 }

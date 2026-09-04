@@ -7,9 +7,9 @@ from app.tools import helper as tool_helper
 from app.tools.skills import utils as skill_tool_utils
 
 
-def test_skill_tool_serialization_uses_only_typed_share_identifiers():
-    """Tool responses must not expose the removed generic sharing fields."""
-    payload = skill_tool_utils._serialize_skill_for_tool(
+def test_skill_tool_summary_omits_content_and_all_share_identifiers():
+    """A list result must stay small and must not expose capability tokens."""
+    payload = skill_tool_utils._serialize_skill_summary(
         SimpleNamespace(
             id="skill-1",
             user_id="user-1",
@@ -27,7 +27,11 @@ def test_skill_tool_serialization_uses_only_typed_share_identifiers():
 
     assert "share" not in payload
     assert "share_id" not in payload
-    assert payload["clone_share_id"] == "clone-token"
+    assert "clone_share_id" not in payload
+    assert "live_share_id" not in payload
+    assert "collaborate_share_id" not in payload
+    assert "content" not in payload
+    assert payload["content_length"] == len("Be precise.")
 
 
 def test_skill_draft_tool_returns_data_only_frontend_widget(monkeypatch):

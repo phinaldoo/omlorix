@@ -20,7 +20,6 @@ from app.tools.utils import (
     WEBHOOK_MANAGEMENT_USER_MESSAGE,
     automations_tool,
     skills_tool,
-    memories_tool,
     save_canvas_markdown,
     view_canvas_file,
     deep_research,
@@ -28,12 +27,16 @@ from app.tools.utils import (
 from app.tools.websearch.utils import normalize_web_search_call_args
 from app.tools.audit import stage_tool_audit_action
 from app.tools.common import should_hide_tool_call_from_user
+from app.tools.text_edits import DEFAULT_TOOL_TEXT_READ_CHARS
 from app.tools.errors import (
     GENERIC_TOOL_ERROR_MESSAGE,
     SafeToolExecutionError,
     build_tool_error_stream_event,
 )
-from app.llm.helper import build_widget_block_meta
+from app.llm.helper import (
+    build_widget_block_meta,
+    stringify_tool_result_content_for_persistence,
+)
 import logging
 
 logger = logging.getLogger(__name__)
@@ -262,7 +265,6 @@ AVAILABLE_TOOLS = [
     "notes",
     "automations",
     "skills",
-    "memories",
     "canvas",
     "slide_presentation",
     "deep_research",
@@ -1028,9 +1030,16 @@ def _resolve_tool_call(
             todo_ids=tool_args.get("todo_ids"),
             action=tool_args.get("action"),
             target_list_id=tool_args.get("target_list_id"),
+            limit=tool_args.get("limit"),
+            offset=tool_args.get("offset"),
+            cursor=tool_args.get("cursor"),
         )
         _raise_if_tool_error_payload(result, tool_name=tool_name)
-        content = json.dumps(result, ensure_ascii=False, separators=(",", ":"))
+        content = (
+            stringify_tool_result_content_for_persistence(tool_name, result)
+            if operation in {"create", "edit", "bulk"}
+            else json.dumps(result, ensure_ascii=False, separators=(",", ":"))
+        )
 
     elif tool_name == "image_generation":
         description = tool_args.get("description") if isinstance(tool_args, dict) else None
@@ -1238,21 +1247,49 @@ def _resolve_tool_call(
     elif tool_name == "notes":
         _ensure_feature_enabled(user_id, db, "notes")
         operation = str(_require_arg(tool_args, "type")).strip().lower()
-        if operation not in {"list", "view", "create", "edit"}:
-            raise ValueError("type must be one of: list, view, create, edit")
+        if operation not in {"list", "view", "view_many", "create", "edit"}:
+            raise ValueError("type must be one of: list, view, view_many, create, edit")
         result = notes_tool(
             db=db,
             user_id=user_id,
             type=operation,
             note_id=tool_args.get("note_id"),
+            note_ids=tool_args.get("note_ids"),
             content=tool_args.get("content"),
             start_snippet=tool_args.get("start_snippet"),
             end_snippet=tool_args.get("end_snippet"),
+            edits=tool_args.get("edits"),
             expected_updated_at=tool_args.get("expected_updated_at"),
+            query=tool_args.get("query"),
+            heading=tool_args.get("heading"),
+            start_line=tool_args.get("start_line"),
+            end_line=tool_args.get("end_line"),
+            max_chars=tool_args.get("max_chars", DEFAULT_TOOL_TEXT_READ_CHARS),
+            limit=tool_args.get("limit"),
+            offset=tool_args.get("offset"),
+            cursor=tool_args.get("cursor"),
         )
         _raise_if_tool_error_payload(result, tool_name=tool_name)
-        content = json.dumps(result, ensure_ascii=False, separators=(",", ":"))
         note_payload = result.get("note") if isinstance(result, dict) else None
+        if operation in {"create", "edit"} and isinstance(note_payload, dict):
+            content = json.dumps(
+                {
+                    "status": "saved",
+                    "operation": operation,
+                    "note_id": note_payload.get("id"),
+                    "updated_at": note_payload.get("updated_at"),
+                    "content_length": len(str(note_payload.get("content") or "")),
+                    "edit_count": note_payload.get("edit_count"),
+                    "instruction": (
+                        "Use note_id and updated_at as the version for a following edit. "
+                        "The saved note body is not repeated in chat history."
+                    ),
+                },
+                ensure_ascii=False,
+                separators=(",", ":"),
+            )
+        else:
+            content = json.dumps(result, ensure_ascii=False, separators=(",", ":"))
         if operation in {"view", "create", "edit"} and isinstance(note_payload, dict):
             event_payload = {
                 "note_id": note_payload.get("id"),
@@ -1306,22 +1343,45 @@ def _resolve_tool_call(
             ) from exc
 
         operation = str(tool_args.get("type") or tool_args.get("action") or "").strip().lower()
-        if operation not in {"information", "list", "create", "edit", "delete"}:
+        if operation not in {"information", "list", "view", "create", "edit", "delete"}:
             raise SafeToolExecutionError(
                 code="automations_invalid_operation",
-                safe_message="Choose one Automations operation: information, list, create, edit, or delete.",
+                safe_message="Choose one Automations operation: information, list, view, create, edit, or delete.",
             )
 
         # Old provider snapshots can still emit the former generic payload,
-        # including mutation-only defaults, for a read operation. Read calls
-        # are intentionally argument-free beyond their operation discriminator:
-        # discard every unrelated field before validation or normalization.
-        if operation in {"information", "list"}:
-            result = automations_tool(
-                db=db,
-                user_id=user_id,
-                type=operation,
-            )
+        # including mutation-only defaults, for a read operation. Keep only
+        # the bounded fields supported by the selected read operation.
+        if operation in {"information", "list", "view"}:
+            automation_id = tool_args.get("automation_id")
+            if operation == "view" and not str(automation_id or "").strip():
+                raise SafeToolExecutionError(
+                    code="automations_missing_automation_id",
+                    safe_message="automation_id is required to view an automation.",
+                )
+            read_args: dict[str, Any] = {
+                "db": db,
+                "user_id": user_id,
+                "type": operation,
+            }
+            if operation == "view":
+                read_args["automation_id"] = automation_id
+                read_args["query"] = tool_args.get("query")
+                read_args["heading"] = tool_args.get("heading")
+                read_args["start_line"] = tool_args.get("start_line")
+                read_args["end_line"] = tool_args.get("end_line")
+                read_args["max_chars"] = tool_args.get(
+                    "max_chars",
+                    DEFAULT_TOOL_TEXT_READ_CHARS,
+                )
+            elif operation == "information" and str(tool_args.get("model_id") or "").strip():
+                read_args["model_id"] = tool_args.get("model_id")
+            elif operation == "list":
+                if tool_args.get("limit") is not None:
+                    read_args["limit"] = tool_args.get("limit")
+                if tool_args.get("offset") is not None:
+                    read_args["offset"] = tool_args.get("offset")
+            result = automations_tool(**read_args)
             _raise_if_tool_error_payload(result, tool_name=tool_name)
             content = json.dumps(result, ensure_ascii=False, separators=(",", ":"))
             return {
@@ -1410,7 +1470,11 @@ def _resolve_tool_call(
                 safe_message=str(exc),
             ) from exc
         _raise_if_tool_error_payload(result, tool_name=tool_name)
-        content = json.dumps(result, ensure_ascii=False, separators=(",", ":"))
+        content = (
+            stringify_tool_result_content_for_persistence(tool_name, result)
+            if operation in {"create", "edit"}
+            else json.dumps(result, ensure_ascii=False, separators=(",", ":"))
+        )
 
     elif tool_name == "skills":
         _ensure_feature_enabled(user_id, db, "skills")
@@ -1439,6 +1503,14 @@ def _resolve_tool_call(
             license_value=tool_args.get("license_value"),
             metadata=tool_args.get("metadata"),
             files=tool_args.get("files"),
+            query=tool_args.get("query"),
+            heading=tool_args.get("heading"),
+            start_line=tool_args.get("start_line"),
+            end_line=tool_args.get("end_line"),
+            max_chars=tool_args.get("max_chars", DEFAULT_TOOL_TEXT_READ_CHARS),
+            limit=tool_args.get("limit"),
+            offset=tool_args.get("offset"),
+            cursor=tool_args.get("cursor"),
         )
         _raise_if_tool_error_payload(result, tool_name=tool_name)
         widget_payload = result.get("widget") if isinstance(result, dict) else None
@@ -1451,16 +1523,6 @@ def _resolve_tool_call(
         if isinstance(widget_payload, dict) and widget_payload.get("html"):
             yield _stream_widget_event(widget_payload, tool_name=tool_name)
 
-    elif tool_name == "memories":
-        result = memories_tool(
-            db=db,
-            user_id=user_id,
-            content=tool_args.get("content"),
-            project_id=project_id,
-        )
-        _raise_if_tool_error_payload(result, tool_name=tool_name)
-        content = json.dumps(result, ensure_ascii=False, separators=(",", ":"))
-
     elif tool_name == "canvas":
         canvas_type = tool_args.get("type")
         if str(canvas_type or "").strip().lower() == "view":
@@ -1469,6 +1531,11 @@ def _resolve_tool_call(
                 db=db,
                 user_id=str(user_id),
                 file_id=str(target_file_id or ""),
+                heading=tool_args.get("heading"),
+                query=tool_args.get("query"),
+                start_line=tool_args.get("start_line"),
+                end_line=tool_args.get("end_line"),
+                max_chars=tool_args.get("max_chars", DEFAULT_TOOL_TEXT_READ_CHARS),
             )
             _raise_if_tool_error_payload(view_result, tool_name=tool_name)
             result = view_result
@@ -1493,10 +1560,18 @@ def _resolve_tool_call(
         else:
             canvas_content = None
 
-        if canvas_content is None:
+        canvas_edits = tool_args.get("edits")
+        if canvas_edits is not None and not isinstance(canvas_edits, list):
+            raise ValueError("edits must be an array")
+        if canvas_content is None and canvas_edits is None:
             raise ValueError("content is required")
         filename = tool_args.get("filename")
         target_file_id = tool_args.get("file_id")
+        if target_file_id and tool_args.get("expected_revision") is None:
+            raise ValueError(
+                "expected_revision is required for an existing Canvas. "
+                "View it first or use the revision from its latest save receipt."
+            )
         start_snippet = str(tool_args.get("start_snippet") or "")
         start_snippet = start_snippet if start_snippet.strip() else None
         end_snippet = str(tool_args.get("end_snippet") or "")
@@ -1505,11 +1580,15 @@ def _resolve_tool_call(
         presentation_validator = None
         presentation_transformer = None
         presentation_asset_file_ids: list[str] | None = None
-        supplied_canvas_file_ids = (
-            tool_args.get("file_ids")
-            if isinstance(tool_args.get("file_ids"), list)
-            else None
-        )
+        raw_canvas_file_ids = tool_args.get("file_ids")
+        if raw_canvas_file_ids is not None and not isinstance(
+            raw_canvas_file_ids,
+            list,
+        ):
+            raise ValueError("file_ids must be an array")
+        supplied_canvas_file_ids = raw_canvas_file_ids
+        if isinstance(supplied_canvas_file_ids, list) and len(supplied_canvas_file_ids) > 20:
+            raise ValueError("file_ids may contain at most 20 entries")
         if target_file_id:
             from app.files.models import get_file as get_owned_file
 
@@ -1551,13 +1630,15 @@ def _resolve_tool_call(
         save_result = save_canvas_markdown(
             db=db,
             user_id=str(user_id),
-            content=str(canvas_content),
+            content=str(canvas_content) if canvas_content is not None else None,
             content_type=str(canvas_type),
             filename=filename,
             file_id=target_file_id,
             project_id=project_id,
             start_snippet=start_snippet,
             end_snippet=end_snippet,
+            edits=canvas_edits,
+            expected_revision=tool_args.get("expected_revision"),
             file_ids=supplied_canvas_file_ids,
             content_validator=presentation_validator,
             content_transformer=presentation_transformer,
@@ -1716,6 +1797,8 @@ def _resolve_tool_call(
                 "file_name": str(save_result.get("file_name") or ""),
                 "content_type": result_type,
                 "created": bool(save_result.get("created")),
+                "canvas_revision": save_result.get("canvas_revision"),
+                "content_length": len(str(save_result.get("content") or "")),
                 "instruction": (
                     f"The {type_label} Canvas is saved. Use the exact file_id above "
                     "for any following tool that consumes this file."
@@ -2191,7 +2274,7 @@ def resolve_tool_call(
 ):
     """Resolve a tool call and stream a safe terminal error before re-raising."""
     try:
-        return (yield from _resolve_tool_call(
+        payload = yield from _resolve_tool_call(
             db,
             tool_name,
             tool_arguments,
@@ -2207,7 +2290,9 @@ def resolve_tool_call(
             tool_call_id=tool_call_id,
             _skip_rate_limit=_skip_rate_limit,
             _execution_queue=_execution_queue,
-        ))
+        )
+        from app.tools.results import ToolResult
+        return ToolResult.from_payload(tool_name, payload)
     except Exception as exc:
         if (
             isinstance(exc, SafeToolExecutionError)

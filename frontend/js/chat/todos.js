@@ -72,6 +72,7 @@ const TodosState = {
     isSearching: false,
     allTodosCache: [],
     listsOffset: 0,
+    listsCursor: null,
     listsHasMore: false,
     listsLoadingMore: false,
     listsRequestToken: null,
@@ -133,15 +134,17 @@ function normalizeTodosPage(payload, fallbackOffset = 0) {
     return {
         items,
         offset: Number(payload?.offset ?? fallbackOffset) || 0,
+        nextCursor: payload?.next_cursor || null,
         hasMore: Array.isArray(payload) ? items.length >= TODOS_PAGE_LIMIT : Boolean(payload?.has_more),
     };
 }
 
-function buildTodosPagedUrl(path, offset = 0) {
+function buildTodosPagedUrl(path, offset = 0, cursor = null) {
     const params = new URLSearchParams({
         limit: String(TODOS_PAGE_LIMIT),
         offset: String(offset),
     });
+    if (cursor) { params.delete('offset'); params.set('cursor', cursor); }
     return `${path}?${params.toString()}`;
 }
 
@@ -280,8 +283,8 @@ const TodosAPI = {
         return fetch(input, init);
     },
 
-    async fetchLists(offset = 0) {
-        const response = await this.request(buildTodosPagedUrl('/api/v1/todo/lists', offset), {
+    async fetchLists(offset = 0, cursor = null) {
+        const response = await this.request(buildTodosPagedUrl('/api/v1/todo/lists', offset, cursor), {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
@@ -1627,6 +1630,7 @@ const TodosManager = {
             TodosState.lists = listsPage.items;
             TodosState.listsOffset = listsPage.items.length;
             TodosState.listsHasMore = listsPage.hasMore;
+            TodosState.listsCursor = listsPage.nextCursor;
             TodosState.markedTodos = markedPage.items;
             TodosState.markedOffset = markedPage.items.length;
             TodosState.markedHasMore = markedPage.hasMore;
@@ -1663,11 +1667,12 @@ const TodosManager = {
         const requestToken = TodosState.listsRequestToken;
         const offset = TodosState.listsOffset;
         try {
-            const page = await TodosAPI.fetchLists(offset);
+            const page = await TodosAPI.fetchLists(offset, TodosState.listsCursor);
             if (TodosState.listsRequestToken !== requestToken) return;
             TodosState.lists = this.appendUniqueTodos(TodosState.lists, page.items);
             TodosState.listsOffset = offset + page.items.length;
             TodosState.listsHasMore = page.hasMore;
+            TodosState.listsCursor = page.nextCursor;
             this.renderSidebarLists();
         } catch (error) {
             console.error('Failed to load more todo lists:', error);

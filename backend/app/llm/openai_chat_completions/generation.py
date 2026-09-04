@@ -72,6 +72,11 @@ def _impl_openai_chat_completions_title_generation(
     openai_provider_type: str = "openai_chat_completions",
     model_settings: dict | None = None,
     settings_override: dict | None = None,
+    generation_category: str = "title_generation",
+    output_char_limit: int | None = 60,
+    max_output_tokens: int | None = None,
+    response_schema: dict | None = None,
+    raise_on_error: bool = True,
 ):
     start_time = datetime.now(timezone.utc)
     meta: dict = {}
@@ -97,7 +102,7 @@ def _impl_openai_chat_completions_title_generation(
         )
         _record_openai_stat_with_costs(
             db,
-            category="title_generation",
+            category=generation_category,
             meta=meta,
             success=meta_success,
             error=meta_error,
@@ -136,6 +141,17 @@ def _impl_openai_chat_completions_title_generation(
             ],
         }
         _apply_openai_chat_completion_simple_settings(request_kwargs, settings)
+        if max_output_tokens is not None:
+            request_kwargs["max_completion_tokens"] = max(1, int(max_output_tokens))
+        if isinstance(response_schema, dict):
+            request_kwargs["response_format"] = {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "memory_consolidation",
+                    "strict": True,
+                    "schema": response_schema,
+                },
+            }
         response = client.chat.completions.create(
             **_merge_openai_request_options(request_kwargs, request_options)
         )
@@ -192,7 +208,9 @@ def _impl_openai_chat_completions_title_generation(
                 status_code=400, detail="Failed to generate title. Pls try again later."
             )
         meta_success = True
-        return title[:60]
+        if output_char_limit is None:
+            return title
+        return title[: max(1, int(output_char_limit))]
     except (AuthenticationError, BadRequestError, APIConnectionError) as exc:
         status, message, error_type, _ = _parse_openai_exception(exc)
         meta_error = True

@@ -7,10 +7,13 @@ extension seams exposed by that facade.
 
 from __future__ import annotations
 
+from app.llm.generation.engine import chat_adapter, ProviderCall, stream_tool_call
+
 # The extracted code retains a few intentionally assigned diagnostic values.
 # ruff: noqa: F821, F841, F541
 
 from app.llm.openrouter import utils as _compat_source
+from app.llm.helper import sanitize_tool_call_arguments_for_persistence
 from app.llm.tool_call_budget import MAX_TOOL_CALLS_PER_GENERATION
 
 _COMPAT_DEPENDENCIES = {
@@ -132,6 +135,7 @@ for _dependency_name in (
         globals()[_dependency_name] = getattr(_compat_source, _dependency_name)
 
 
+@chat_adapter
 def _impl_openrouter_chat(
     chat_id: str,
     chat_history,
@@ -152,12 +156,13 @@ def _impl_openrouter_chat(
     reference_parts: list[str] | None = None,
     chat_reference_context: str | None = None,
     user_role: str | None = None,
+    engine=None,
 ):
     assistant_metadata = (
         assistant_metadata if isinstance(assistant_metadata, dict) else {}
     )
     try:
-        from app.chats.models import create_chat_message
+        create_chat_message = engine.persist_message
 
         # -------------------
         # API Key
@@ -353,6 +358,16 @@ def _impl_openrouter_chat(
             note_ids=note_ids,
             reference_parts=reference_parts,
             chat_reference_context=chat_reference_context,
+        )
+        engine.context.prefix_count = (
+            reformat_result.get("context_prefix_count", 0)
+            if isinstance(reformat_result, dict)
+            else 0
+        )
+        engine.context.prefix_sections = (
+            reformat_result.get("context_sections", [])
+            if isinstance(reformat_result, dict)
+            else []
         )
         formatted_history = (
             reformat_result.get("formatted", [])
@@ -959,8 +974,8 @@ def _impl_openrouter_chat(
 
             plugins = []
             if has_documents:
-                pdf_engine = settings.get("pdf_processing_engine")
-                plugins.append({"id": "file-parser", "pdf": {"engine": pdf_engine}})
+                pdfengine = settings.get("pdf_processingengine")
+                plugins.append({"id": "file-parser", "pdf": {"engine": pdfengine}})
 
             if plugins:
                 payload["plugins"] = plugins
@@ -978,12 +993,17 @@ def _impl_openrouter_chat(
 
             request_start_time = datetime.now(timezone.utc)
             try:
-                response = requests.post(
-                    url,
-                    json=payload,
-                    headers=headers,
-                    stream=True,
-                    timeout=(connect_timeout_sec, inactivity_timeout_sec),
+                response = yield ProviderCall(
+                    requests.post,
+                    {
+                        "json": payload,
+                        "headers": headers,
+                        "stream": True,
+                        "timeout": (connect_timeout_sec, inactivity_timeout_sec),
+                    },
+                    settings,
+                    "openrouter",
+                    args=(url,),
                 )
             except HTTPError as e:
                 meta_generation_error = True
@@ -1069,9 +1089,10 @@ def _impl_openrouter_chat(
             # Process stream and handle mid-stream errors
             try:
                 response_completed_seen = False
-                for line in interruptible_provider_stream(
+                for line in engine.events(
                     response.iter_lines(),
                     generation_id,
+                    stream_factory=interruptible_provider_stream,
                     close_resource=response,
                 ):
                     last_activity = time.monotonic()
@@ -1763,9 +1784,10 @@ def _impl_openrouter_chat(
                                                 "id": call["response_item_id"],
                                                 "call_id": tool_call_id,
                                                 "name": name,
-                                                "arguments": call[
-                                                    "arguments_for_message"
-                                                ],
+                                                "arguments": sanitize_tool_call_arguments_for_persistence(
+                                                    name,
+                                                    call["arguments_for_message"],
+                                                ),
                                             }
                                         )
                                         hidden_from_user = (
@@ -1939,7 +1961,7 @@ def _impl_openrouter_chat(
                                                 {
                                                     "type": "function_call_output",
                                                     "call_id": tool_call_id,
-                                                    "output": str(result),
+                                                    "output": str(tool_content),
                                                 }
                                             )
                                             try:
@@ -1959,11 +1981,7 @@ def _impl_openrouter_chat(
                                             not temp_request_flag
                                             and not hidden_from_user
                                         ):
-                                            tool_label = (
-                                                f"{name}({serialized_arguments})"
-                                                if name
-                                                else "tool"
-                                            )
+                                            tool_label = f"{name}()" if name else "tool"
                                             content_str = stringify_tool_result_content_for_persistence(
                                                 name,
                                                 result
@@ -2144,7 +2162,10 @@ def _impl_openrouter_chat(
                                             or tool_call_id,
                                             "call_id": tool_call_id,
                                             "name": name,
-                                            "arguments": arguments_for_message,
+                                            "arguments": sanitize_tool_call_arguments_for_persistence(
+                                                name,
+                                                arguments_for_message,
+                                            ),
                                         }
                                     )
                                     content = ""
@@ -2239,7 +2260,7 @@ def _impl_openrouter_chat(
                                             ToolErrorResponse | None
                                         ) = None
                                         try:
-                                            helper_gen = resolve_tool_call(
+                                            helper_gen = stream_tool_call(resolve_tool_call,
                                                 db,
                                                 name,
                                                 arguments,
@@ -2271,12 +2292,7 @@ def _impl_openrouter_chat(
 
                                         if helper_gen and tool_error_message is None:
                                             try:
-                                                while True:
-                                                    helper_item = next(helper_gen)
-                                                    if helper_item is not None:
-                                                        yield helper_item
-                                            except StopIteration as helper_done:
-                                                helper_payload = helper_done.value or {}
+                                                helper_payload = yield from helper_gen
                                             except Exception as tool_exc:
                                                 tool_error_message = str(tool_exc)
                                                 tool_error_response = (
@@ -2366,7 +2382,7 @@ def _impl_openrouter_chat(
                                                 {
                                                     "type": "function_call_output",
                                                     "call_id": tool_call_id,
-                                                    "output": str(result),
+                                                    "output": str(tool_content),
                                                 }
                                             )
 
@@ -2405,11 +2421,7 @@ def _impl_openrouter_chat(
                                     widget_data = helper_payload.get("widget")
 
                                     if not temp_request_flag and not hidden_from_user:
-                                        tool_label = (
-                                            f"{name}({serialized_arguments})"
-                                            if name
-                                            else "tool"
-                                        )
+                                        tool_label = f"{name}()" if name else "tool"
                                         content_str = stringify_tool_result_content_for_persistence(
                                             name,
                                             result

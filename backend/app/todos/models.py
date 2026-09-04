@@ -206,6 +206,7 @@ def _parse_iso_datetime(value):
 class TodoLists(Base):
     __tablename__ = "todo_lists"
     __table_args__ = (
+        Index('ix_todo_lists_catalog_page', 'user_id', 'order', 'id'),
         Index("ix_todo_lists_user_order_created", "user_id", "order", "created_at"),
     )
 
@@ -229,6 +230,7 @@ class SharedTodoListSubscription(Base):
     """Tracks which users have subscribed to (accepted) shared todo lists."""
     __tablename__ = "shared_todo_list_subscriptions"
     __table_args__ = (
+        Index('ix_todo_subscriber_access', 'subscriber_id', 'todo_list_id', 'share_type'),
         UniqueConstraint(
             "todo_list_id",
             "subscriber_id",
@@ -408,6 +410,16 @@ def get_editable_todo(db: Session, user_id: str, todo_id: str) -> "Todos":
         user_id,
         todo_id,
         require_edit=True,
+    )
+    return todo
+
+
+def get_accessible_todo(db: Session, user_id: str, todo_id: str) -> "Todos":
+    """Return one todo when the user has read access to its current list."""
+    todo, _todo_list, _subscription = _get_accessible_todo(
+        db,
+        user_id,
+        todo_id,
     )
     return todo
 
@@ -1316,6 +1328,7 @@ def import_user_todo_lists(db: Session, user_id: str, payload: dict):
 class Todos(Base):
     __tablename__ = "todos"
     __table_args__ = (
+        Index('ix_todos_catalog_page', 'todo_list', 'is_done', 'order', 'created_at', 'id'),
         Index("ix_todos_list_order_created", "todo_list", "order", "created_at"),
         Index("ix_todos_marked_updated", "is_marked", "updated_at"),
     )

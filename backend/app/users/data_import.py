@@ -40,7 +40,7 @@ from app.settings.utils import (
 
 from app.chats.models import ChatMessages
 from app.files.models import Files
-from app.memories.schemas import MAX_MEMORY_IMPORT_ITEMS, MemoryExportPayload
+from app.memories.schemas import MemoryExportPayload
 from app.memories.service import MemoryScope, import_memory_export
 from app.notes.models import import_user_notes
 from app.projects.models import Project
@@ -160,7 +160,6 @@ SELF_IMPORT_PORTABLE_SETTING_PAGES = {
     "general",
     "appearance",
     "chat",
-    "memory",
 }
 
 SELF_IMPORT_PORTABLE_SECURITY_SETTING_KEYS = {
@@ -1756,34 +1755,9 @@ def _import_user_notes_archive(
 def _import_user_memories_archive(
     db, user_id: str, raw_memories: Any
 ) -> dict[str, Any]:
-    """Validate and import account memories in bounded feature-sized chunks."""
+    """Validate and import the user's bounded memory collection."""
     validated_payload = MemoryExportPayload.model_validate(raw_memories)
-    payload = validated_payload.model_dump(mode="json")
-    entries = payload["data"]["memories"]
-
-    # Interactive memory imports cap requests at 500 items. A full account may
-    # contain more, so administrative restoration reuses that validated path
-    # in chunks instead of relaxing the feature's abuse protection globally.
-    aggregate = {
-        "total_received": 0,
-        "created_count": 0,
-        "deduped_count": 0,
-        "items": [],
-    }
-    for offset in range(0, len(entries), MAX_MEMORY_IMPORT_ITEMS):
-        chunk = entries[offset : offset + MAX_MEMORY_IMPORT_ITEMS]
-        chunk_payload = deepcopy(payload)
-        chunk_payload.setdefault("data", {})
-        chunk_payload["data"]["user_id"] = user_id
-        chunk_payload["data"]["memories"] = chunk
-        chunk_payload["data"]["count"] = len(chunk)
-        validated = MemoryExportPayload.model_validate(chunk_payload)
-        result = import_memory_export(db, MemoryScope.personal(user_id), validated)
-        aggregate["total_received"] += int(result.get("total_received", 0))
-        aggregate["created_count"] += int(result.get("created_count", 0))
-        aggregate["deduped_count"] += int(result.get("deduped_count", 0))
-        aggregate["items"].extend(result.get("items") or [])
-    return aggregate
+    return import_memory_export(db, MemoryScope.personal(user_id), validated_payload)
 
 
 @dataclass(frozen=True)

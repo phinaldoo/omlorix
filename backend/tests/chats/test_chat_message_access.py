@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 import sys
 import json
 import inspect
@@ -820,6 +821,7 @@ def test_send_message_rejects_unavailable_chat_before_persistence(meta, archived
 
 
 def test_send_message_uses_dedicated_executor_for_title_generation(monkeypatch):
+    monkeypatch.setattr("app.memories.consolidation.stage_memory_consolidation", lambda *args, **kwargs: None)
     published_lines = []
     lifecycle_events = []
     title_submit = MagicMock()
@@ -850,7 +852,7 @@ def test_send_message_uses_dedicated_executor_for_title_generation(monkeypatch):
     monkeypatch.setattr(chat_utils, "_collect_skill_file_attachment_ids", lambda *args, **kwargs: {"images": [], "videos": [], "audios": [], "documents": []})
     monkeypatch.setattr(chat_utils, "resolve_chat_reference_payload", lambda *args, **kwargs: ([], None))
     monkeypatch.setattr(chat_utils, "create_chat", lambda *args, **kwargs: chat)
-    monkeypatch.setattr(chat_utils, "create_chat_message", lambda *args, **kwargs: SimpleNamespace(id="msg-1"))
+    monkeypatch.setattr(chat_utils, "create_chat_message", lambda *args, **kwargs: SimpleNamespace(id="msg-1", created_at=datetime.now(timezone.utc)))
     monkeypatch.setattr(chat_utils, "db_get_chat_messages", lambda *args, **kwargs: [])
     monkeypatch.setattr(chat_utils, "_filter_latest_assistant_versions", lambda history: history)
     monkeypatch.setattr(chat_utils, "_compose_skill_content", lambda *args, **kwargs: "")

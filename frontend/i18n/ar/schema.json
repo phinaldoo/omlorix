@@ -631,5 +631,8 @@
   "schema_xai_realtime_silence_duration_desc": "مدة الصمت التي ينتظرها xAI قبل إنهاء دور منطوق، بالمللي ثانية.",
   "model_settings_system_instruction_label": "تعليمات النظام",
   "model_settings_system_instruction_description": "استبدل تعليمات النظام التي ضبطها المسؤول لهذه المحادثة.",
-  "model_settings_system_instruction_placeholder": "اتركه فارغًا لاستخدام تعليمات النظام التي ضبطها المسؤول."
+  "model_settings_system_instruction_placeholder": "اتركه فارغًا لاستخدام تعليمات النظام التي ضبطها المسؤول.",
+  "schema_group_field_settings_memories_memory_model_id_label": "نموذج الذاكرة",
+  "schema_group_field_settings_memories_memory_model_id_description": "نموذج مخصص يحدّث ذاكرة الأعضاء بعد كل رسالة مستخدم. اتركه فارغًا لاستخدام نموذج المحادثة الحالية.",
+  "schema_group_option_settings_memories_memory_model_id_current": "استخدام نموذج المحادثة الحالية"
 }

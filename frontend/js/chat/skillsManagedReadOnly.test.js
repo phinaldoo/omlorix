@@ -76,7 +76,7 @@ test('managed skill rendering exposes full authorized data but no file mutations
 
 test('managed skills are guarded from every personal mutation entry point', () => {
     for (const methodSignature of [
-        'showEditScreen(skillId)',
+        'async showEditScreen(skillId)',
         'showDeleteScreen(skillId)',
         'async handleUpdate()',
         'async handleDelete()',

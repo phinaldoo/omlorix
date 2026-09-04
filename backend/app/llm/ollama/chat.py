@@ -7,10 +7,13 @@ extension seams exposed by that facade.
 
 from __future__ import annotations
 
+from app.llm.generation.engine import chat_adapter, ProviderCall, stream_tool_call
+
 # The extracted code retains a few intentionally assigned diagnostic values.
 # ruff: noqa: F821, F841, F541
 
 from app.llm.ollama import utils as _compat_source
+from app.llm.helper import sanitize_tool_call_arguments_object_for_history
 from app.llm.tool_call_budget import MAX_TOOL_CALLS_PER_GENERATION
 
 _COMPAT_DEPENDENCIES = {
@@ -114,6 +117,7 @@ for _dependency_name in (
         globals()[_dependency_name] = getattr(_compat_source, _dependency_name)
 
 
+@chat_adapter
 def _impl_ollama_chat(
     chat_id: str,
     chat_history: list[dict],
@@ -135,12 +139,13 @@ def _impl_ollama_chat(
     reference_parts: list[str] | None = None,
     chat_reference_context: str | None = None,
     user_role: str | None = None,
+    engine=None,
 ):
     assistant_metadata = (
         assistant_metadata if isinstance(assistant_metadata, dict) else {}
     )
     try:
-        from app.chats.models import create_chat_message
+        create_chat_message = engine.persist_message
 
         # -------------------
         # Client (deferred until streaming timeout computed)
@@ -338,6 +343,16 @@ def _impl_ollama_chat(
             note_ids=note_ids,
             reference_parts=reference_parts,
             chat_reference_context=chat_reference_context,
+        )
+        engine.context.prefix_count = (
+            reformat_result.get("context_prefix_count", 0)
+            if isinstance(reformat_result, dict)
+            else 0
+        )
+        engine.context.prefix_sections = (
+            reformat_result.get("context_sections", [])
+            if isinstance(reformat_result, dict)
+            else []
         )
         formatted_history = (
             reformat_result.get("formatted", reformat_result)
@@ -830,7 +845,9 @@ def _impl_ollama_chat(
                 }
                 if think_flag is not None:
                     chat_kwargs["think"] = think_flag
-                response = client.chat(**chat_kwargs)
+                response = yield ProviderCall(
+                    client.chat, {**chat_kwargs}, settings, "ollama", args=()
+                )
             except (requests.RequestException, ConnectionError, httpx.HTTPError) as e:
                 is_admin = is_admin_role(user_role)
                 error_message = (
@@ -850,9 +867,10 @@ def _impl_ollama_chat(
                 yield json.dumps({"t": "e", "d": error_message}) + "\n"
                 return
             try:
-                for chunk in interruptible_provider_stream(
+                for chunk in engine.events(
                     response,
                     generation_id,
+                    stream_factory=interruptible_provider_stream,
                     close_resource=client,
                     close_resource_on_finish=False,
                 ):
@@ -1112,10 +1130,9 @@ def _impl_ollama_chat(
                                 max_calls -= 1
                                 processed_tool = True
 
-                                arguments_json = (
-                                    arguments
-                                    if isinstance(arguments, dict)
-                                    else _stringify_tool_payload(arguments)
+                                arguments_json = sanitize_tool_call_arguments_object_for_history(
+                                    tool_name,
+                                    arguments,
                                 )
                                 assistant_tool_message = {
                                     "role": "assistant",
@@ -1162,7 +1179,7 @@ def _impl_ollama_chat(
                                 tool_error_message: str | None = None
                                 tool_error_response: ToolErrorResponse | None = None
                                 try:
-                                    helper_gen = resolve_tool_call(
+                                    helper_gen = stream_tool_call(resolve_tool_call,
                                         db,
                                         tool_name,
                                         arguments,
@@ -1190,12 +1207,7 @@ def _impl_ollama_chat(
 
                                 if helper_gen and tool_error_message is None:
                                     try:
-                                        while True:
-                                            helper_item = next(helper_gen)
-                                            if helper_item is not None:
-                                                yield helper_item
-                                    except StopIteration as helper_done:
-                                        helper_payload = helper_done.value or {}
+                                        helper_payload = yield from helper_gen
                                     except Exception as tool_exc:
                                         tool_error_message = str(tool_exc)
                                         tool_error_response = tool_error_tracker.record(
@@ -1275,8 +1287,8 @@ def _impl_ollama_chat(
                                         arguments,
                                         tool_call_id=tool_call_id,
                                     )
-                                    tool_call_label = format_tool_call_block_label(
-                                        tool_call_block
+                                    tool_call_label = (
+                                        f"{tool_name}()" if tool_name else "tool"
                                     )
                                     messages_to_save.append(tool_call_block)
                                     last_message_type = "tool_call"

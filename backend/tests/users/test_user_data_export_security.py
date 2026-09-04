@@ -448,7 +448,6 @@ def test_self_import_settings_only_keep_portable_preferences():
         "general": {"language": "de"},
         "appearance": {"theme": "dark"},
         "chat": {"ctrl_enter_to_send": True},
-        "memory": {"enabled": False},
         "states": {"welcome_card_dismissed": True},
     }
     assert "notifications" not in sanitized

@@ -7,10 +7,13 @@ extension seams exposed by that facade.
 
 from __future__ import annotations
 
+from app.llm.generation.engine import chat_adapter, ProviderCall, stream_tool_call
+
 # The extracted code retains a few intentionally assigned diagnostic values.
 # ruff: noqa: F821, F841, F541
 
 from app.llm.openai import utils as _compat_source
+from app.llm.helper import sanitize_tool_call_arguments_for_persistence
 from app.llm.provider_request import release_db_session_before_provider_io
 
 _COMPAT_DEPENDENCIES = {
@@ -216,6 +219,7 @@ def _interruptible_openai_response_stream(response, generation_id, db):
     )
 
 
+@chat_adapter
 def _impl_openai_chat(
     chat_id: str,
     chat_history,
@@ -237,6 +241,7 @@ def _impl_openai_chat(
     reference_parts: list[str] | None = None,
     chat_reference_context: str | None = None,
     user_role: str | None = None,
+    engine=None,
 ) -> Generator[str, None, bool]:
     """OpenAI chat function."""
     model_name: str | None = None
@@ -251,7 +256,7 @@ def _impl_openai_chat(
     )
     normalized_user_role = str(user_role or "").strip().lower()
     try:
-        from app.chats.models import create_chat_message
+        create_chat_message = engine.persist_message
 
         # -------------------
         # Client
@@ -288,47 +293,10 @@ def _impl_openai_chat(
             else getattr(db_model, "model_name", None)
         )
 
-        # Stored-response continuation is both cheaper and more faithful than
-        # replaying a visible transcript. Use it only for a verified, unchanged
-        # branch produced by the same provider/model and only when all-turn
-        # reasoning was explicitly requested.
-        previous_response_id: str | None = None
-        previous_response_message_index: int | None = None
-        continuation_signing_secret: str | None = None
+        # A response ID hides inherited input from the local context budget.
+        # Replay the native transcript (including encrypted reasoning) so every
+        # request can be budgeted and old complete turns can be evicted safely.
         history_for_request = list(chat_history or [])
-        requested_store = _resolve_openai_store_setting(settings)
-        if (
-            settings.get("reasoning_context") == "all_turns"
-            # Omitting ``store`` uses the Responses API's stored-response
-            # default. Only an explicit false value disables ID continuation.
-            and requested_store is not False
-            and is_openai_responses_provider_type(openai_provider_type)
-        ):
-            try:
-                continuation_signing_secret, _algorithm = get_jwt_material()
-            except Exception:
-                # Continuation is only an optimization. If signing material is
-                # unavailable, fail closed and replay the visible transcript.
-                logger.warning(
-                    "OpenAI stored-response continuation disabled because signing material is unavailable",
-                    exc_info=True,
-                )
-            if continuation_signing_secret:
-                previous_response_id, previous_response_message_index = (
-                    _find_openai_previous_response(
-                        history_for_request,
-                        model_name=requested_model_name,
-                        provider_id=selected_provider_identifier,
-                        user_id=user_id,
-                        chat_id=chat_id,
-                        signing_secret=continuation_signing_secret,
-                        provider_type=openai_provider_type,
-                    )
-                )
-            if previous_response_id and previous_response_message_index is not None:
-                history_for_request = history_for_request[
-                    previous_response_message_index + 1 :
-                ]
 
         # -------------------
         # Chat History
@@ -346,14 +314,20 @@ def _impl_openai_chat(
             max_document_count=settings.get("max_document_count"),
             max_audio_count=settings.get("max_audio_count"),
             input_formats_allowed=input_formats_allowed,
-            use_group_context=False if previous_response_id else use_group_context,
-            use_project_context=False if previous_response_id else use_project_context,
-            note_ids=None if previous_response_id else note_ids,
-            reference_parts=None if previous_response_id else reference_parts,
-            chat_reference_context=None
-            if previous_response_id
-            else chat_reference_context,
+            use_group_context=use_group_context,
+            use_project_context=use_project_context,
+            note_ids=note_ids,
+            reference_parts=reference_parts,
+            chat_reference_context=chat_reference_context,
             image_detail=settings.get("image_detail"),
+        )
+        engine.context.prefix_count = reformatted_chat_history.get(
+            "context_prefix_count", 0
+        )
+        engine.context.prefix_sections = (
+            reformatted_chat_history.get("context_sections", [])
+            if isinstance(reformatted_chat_history, dict)
+            else []
         )
         formatted_history = reformatted_chat_history.get("formatted", [])
         unsupported_file_ids = normalize_unsupported_file_ids(
@@ -832,18 +806,6 @@ def _impl_openai_chat(
                     "provider_usage" if meta_has_provider_reported_cost else None
                 ),
             }
-            if meta_response_id and meta_store is True and continuation_signing_secret:
-                continuation_signature = _openai_continuation_signature(
-                    signing_secret=continuation_signing_secret,
-                    user_id=user_id,
-                    chat_id=chat_id,
-                    response_id=meta_response_id,
-                    provider_id=selected_provider_identifier,
-                    model_name=effective_model_id,
-                    fingerprint=continuation_fingerprint,
-                )
-                if continuation_signature:
-                    meta_values["continuation_signature"] = continuation_signature
             add_cached_input_token_meta(meta_values, meta_cached_input_tokens)
             if meta_cache_write_tokens:
                 meta_values["cache_write_tokens"] = meta_cache_write_tokens
@@ -1075,11 +1037,6 @@ def _impl_openai_chat(
                     # when Omlorix requested storage, so every all-turn request
                     # asks for the client-side continuation state.
                     response_kwargs["include"] = ["reasoning.encrypted_content"]
-            # LM Studio's Responses endpoint supports stateful continuation even
-            # though it does not expose all OpenAI-hosted storage controls.
-            if previous_response_id:
-                response_kwargs["previous_response_id"] = previous_response_id
-
             def _coerce_float(value):
                 try:
                     if value in (None, ""):
@@ -1180,8 +1137,12 @@ def _impl_openai_chat(
             # tool calls, assistant persistence, and statistics afterward.
             release_db_session_before_provider_io(db)
             try:
-                response = client.responses.create(
-                    **_merge_openai_request_options(response_kwargs, request_options)
+                response = yield ProviderCall(
+                    client.responses.create,
+                    {**_merge_openai_request_options(response_kwargs, request_options)},
+                    settings,
+                    "openai",
+                    args=(),
                 )
             except BadRequestError as exc:
                 if response_kwargs.get(
@@ -1194,17 +1155,23 @@ def _impl_openai_chat(
                     compaction_supported_by_endpoint = False
                     meta_compaction_enabled = False
                     meta_compaction_threshold = None
-                    response = client.responses.create(
-                        **_merge_openai_request_options(
-                            response_kwargs, request_options
-                        )
+                    response = yield ProviderCall(
+                        client.responses.create,
+                        {
+                            **_merge_openai_request_options(
+                                response_kwargs, request_options
+                            )
+                        },
+                        settings,
+                        "openai",
+                        args=(),
                     )
                 else:
                     raise
             reasoning_summary_text = ""
             reasoning_summary_emitted_from_item_done = False
             for chunk in _validated_openai_responses_stream(
-                _interruptible_openai_response_stream(response, generation_id, db)
+                engine.events(response, generation_id, stream_factory=interruptible_provider_stream)
             ):
                 if redacted_debug_logging_enabled(_OPENAI_STREAM_DEBUG_FLAG):
                     logger.debug(
@@ -1872,7 +1839,7 @@ def _impl_openai_chat(
                                     try:
                                         from app.tools.helper import resolve_tool_call
 
-                                        helper_gen = resolve_tool_call(
+                                        helper_gen = stream_tool_call(resolve_tool_call,
                                             db,
                                             name,
                                             parsed_arguments,
@@ -1900,12 +1867,7 @@ def _impl_openai_chat(
 
                                     if helper_gen and tool_error_message is None:
                                         try:
-                                            while True:
-                                                helper_item = next(helper_gen)
-                                                if helper_item is not None:
-                                                    yield helper_item
-                                        except StopIteration as helper_done:
-                                            helper_payload = helper_done.value or {}
+                                            helper_payload = yield from helper_gen
                                         except Exception as tool_exc:
                                             tool_error_message = str(tool_exc)
                                             tool_error_response = (
@@ -2035,11 +1997,7 @@ def _impl_openai_chat(
                                             content_str,
                                         )
                                     )
-                                    tool_label = (
-                                        f"{name}({str(arguments_raw)})"
-                                        if name
-                                        else "unknown"
-                                    )
+                                    tool_label = f"{name}()" if name else "unknown"
                                     if (
                                         not temp_request_flag
                                         and not hide_tool_call_from_user
@@ -2141,7 +2099,10 @@ def _impl_openai_chat(
                                         "type": "function_call",
                                         "name": name,
                                         "namespace": call.get("namespace"),
-                                        "arguments": arguments_raw,
+                                        "arguments": sanitize_tool_call_arguments_for_persistence(
+                                            name,
+                                            arguments_raw,
+                                        ),
                                         "status": "completed",
                                     }
                                 )

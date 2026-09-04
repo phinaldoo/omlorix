@@ -237,6 +237,7 @@ class MaintenanceWorker(DurableQueueWorker):
         from app.llm.worker import start_llm_provider_worker
         from app.llmstats.worker import start_byok_stats_retention_worker
         from app.logging.worker import start_auth_log_retention_worker
+        from app.memories.worker import start_memory_lifecycle_worker
         from app.realtime.worker import start_realtime_enforcement_worker
         from app.utils.utils import start_internet_connectivity_checker_worker
 
@@ -251,6 +252,7 @@ class MaintenanceWorker(DurableQueueWorker):
         start_byok_stats_retention_worker()
         start_read_aloud_cleanup_worker()
         start_concurrency_metrics_maintenance_worker()
+        start_memory_lifecycle_worker()
 
     def _stop_component_workers(self) -> None:
         from app.admin.concurrency.models import stop_concurrency_metrics_maintenance_worker
@@ -260,6 +262,7 @@ class MaintenanceWorker(DurableQueueWorker):
         from app.llm.worker import stop_llm_provider_worker
         from app.llmstats.worker import stop_byok_stats_retention_worker
         from app.logging.worker import stop_auth_log_retention_worker
+        from app.memories.worker import stop_memory_lifecycle_worker
         from app.realtime.worker import stop_realtime_enforcement_worker
         from app.utils.utils import stop_internet_connectivity_checker_worker
 
@@ -273,6 +276,7 @@ class MaintenanceWorker(DurableQueueWorker):
             stop_auth_log_retention_worker,
             stop_byok_stats_retention_worker,
             stop_read_aloud_cleanup_worker,
+            stop_memory_lifecycle_worker,
             stop_concurrency_metrics_maintenance_worker,
         )
         for stopper in stoppers:

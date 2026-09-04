@@ -854,7 +854,7 @@
                     <div class="delete-warning-card-form memories-editor-form">
                         <div class="form-group">
                             <label class="form-label" for="memoriesContentInput" data-i18n="workspace_memories_content_label">Memory</label>
-                            <textarea id="memoriesContentInput" class="form-input memories-editor-textarea" rows="5" placeholder="Prefers terse answers and Python examples." data-i18n-attr="placeholder:workspace_memories_content_placeholder" aria-describedby="memoriesContentError" aria-invalid="false"></textarea>
+                            <textarea id="memoriesContentInput" class="form-input memories-editor-textarea" rows="5" maxlength="500" placeholder="Prefers terse answers and Python examples." data-i18n-attr="placeholder:workspace_memories_content_placeholder" aria-describedby="memoriesContentError" aria-invalid="false"></textarea>
                             <p class="field-validation-error" id="memoriesContentError" data-i18n="workspace_memories_error_content_required" aria-hidden="true" hidden>Memory content is required</p>
                         </div>
                         <p class="memories-form-meta" id="memoriesMetaText" data-i18n="workspace_memories_form_meta">Only store durable facts or preferences that will matter again later.</p>

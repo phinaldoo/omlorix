@@ -27,6 +27,7 @@ from app.realtime.service import (
     RealtimeSessionRegistry,
     RealtimeSessionRuntime,
     _sanitize_realtime_runtime_settings,
+    build_realtime_instructions,
     exchange_realtime_webrtc_offer,
     persist_realtime_runtime_state,
     restore_realtime_session_runtime,
@@ -140,7 +141,13 @@ def test_restore_realtime_session_runtime_round_trips_persisted_state():
         runtime_state=serialize_realtime_runtime(runtime),
     )
 
-    with patch("app.realtime.service.get_realtime_session_by_session_id", return_value=fake_record):
+    with (
+        patch("app.realtime.service.get_realtime_session_by_session_id", return_value=fake_record),
+        patch(
+            "app.realtime.service._get_realtime_memory_context",
+            return_value="Saved memory context",
+        ),
+    ):
         restored = restore_realtime_session_runtime(MagicMock(), session_id=runtime.id)
 
     assert restored is not None
@@ -154,6 +161,16 @@ def test_restore_realtime_session_runtime_round_trips_persisted_state():
     assert restored.turn.user_transcript == "Hello"
     assert restored.turn.file_ids == ["file-1"]
     assert restored.session_record_id == "session-record-1"
+    assert restored.memory_context == "Saved memory context"
+    assert "memory_context" not in fake_record.runtime_state
+
+
+def test_realtime_instructions_include_memory_without_exposing_a_tool():
+    instructions = build_realtime_instructions(
+        _make_runtime(memory_context="<personal_memory>Prefers concise answers</personal_memory>")
+    )
+
+    assert "<personal_memory>Prefers concise answers</personal_memory>" in instructions
 
 
 def test_persist_realtime_runtime_state_survives_fresh_database_session():

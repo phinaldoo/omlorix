@@ -66,6 +66,11 @@ def _impl_ollama_title_generation(
     user_id: str | None = None,
     model_settings: dict | None = None,
     settings_override: dict | None = None,
+    generation_category: str = "title_generation",
+    output_char_limit: int | None = None,
+    max_output_tokens: int | None = None,
+    response_schema: dict | None = None,
+    raise_on_error: bool = True,
 ):
     """Ollama title generation."""
     start_time = datetime.now(timezone.utc)
@@ -94,7 +99,7 @@ def _impl_ollama_title_generation(
             error_status_code=meta_error_status_code,
             error_message=meta_error_message,
             error_type=meta_error_type,
-            category="title_generation",
+            category=generation_category,
             meta=meta,
             user_id=user_id,
             is_byok=bool(byok_base_url or byok_api_key),
@@ -131,8 +136,12 @@ def _impl_ollama_title_generation(
             "messages": messages,
         }
         options = _ollama_options_from_settings(settings)
+        if max_output_tokens is not None:
+            options["num_predict"] = max(1, int(max_output_tokens))
         if options:
             chat_kwargs["options"] = options
+        if isinstance(response_schema, dict):
+            chat_kwargs["format"] = response_schema
         if thinking is not None:
             chat_kwargs["think"] = thinking
         response = client.chat(**chat_kwargs)
@@ -152,7 +161,10 @@ def _impl_ollama_title_generation(
                 status_code=400, detail="Failed to generate title. Pls try again later."
             )
         meta_success = True
-        return title.strip()
+        title = title.strip()
+        if output_char_limit is None:
+            return title
+        return title[: max(1, int(output_char_limit))]
     except ConnectionError as e:
         meta_error = True
         meta_error_message = str(e)

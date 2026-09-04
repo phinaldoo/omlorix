@@ -4,6 +4,7 @@ from app.todos.models import (
     create_todo as db_create_todo,
     create_todo_list as db_create_todo_list,
     bulk_update_todos as db_bulk_update_todos,
+    get_accessible_todo,
     get_accessible_todo_list,
     get_editable_todo,
     get_subscription_for_todo_list,
@@ -15,31 +16,32 @@ from app.todos.models import (
     update_todo_list as db_update_todo_list,
 )
 from app.tools.audit import stage_tool_audit_action
+from app.tools.text_edits import normalize_tool_text_query
 from app.utils.helpers import datetime_to_iso, parse_datetime
 
 
-TODO_TOOL_OPERATIONS = ("list", "create", "edit", "bulk")
+TODO_TOOL_OPERATIONS = ("list", "view", "create", "edit", "bulk")
 TODO_TOOL_BULK_ACTIONS = ("complete", "incomplete", "move", "tag")
+DEFAULT_TODOS_TOOL_PAGE_LIMIT = 20
+MAX_TODOS_TOOL_PAGE_LIMIT = 100
+MAX_TODOS_TOOL_OFFSET = 10_000
 
 
-def _serialize_todo_list(todo_list, *, include_share_tokens: bool = True) -> Dict[str, Any]:
-    payload = {
+def _serialize_todo_list(todo_list, *, summary: bool = False) -> Dict[str, Any]:
+    description = str(todo_list.description or "")
+    payload: Dict[str, Any] = {
         "id": todo_list.id,
-        "user_id": todo_list.user_id,
         "title": todo_list.title,
-        "description": todo_list.description,
+        "description": description[:240] if summary else description,
         "icon": todo_list.icon,
-        "sort_order": todo_list.sort_order,
         "order": todo_list.order,
         "created_at": datetime_to_iso(getattr(todo_list, "created_at", None)),
         "updated_at": datetime_to_iso(getattr(todo_list, "updated_at", None)),
     }
-    if include_share_tokens:
-        payload.update({
-            "clone_share_id": getattr(todo_list, "clone_share_id", None),
-            "live_share_id": getattr(todo_list, "live_share_id", None),
-            "collaborate_share_id": getattr(todo_list, "collaborate_share_id", None),
-        })
+    if summary:
+        payload["description_length"] = len(description)
+    if not summary:
+        payload["sort_order"] = todo_list.sort_order
     return payload
 
 
@@ -66,47 +68,89 @@ def _serialize_todo(todo) -> Dict[str, Any]:
     }
 
 
-def list_todo_lists_tool(db, user_id: str) -> List[Dict[str, Any]]:
-    owned_lists = []
-    for todo_list in db_list_todo_lists(db, user_id):
-        serialized = _serialize_todo_list(todo_list)
-        serialized.update({
-            "is_subscribed": False,
-            "share_type": None,
-        })
-        owned_lists.append(serialized)
+def _serialize_todo_summary(todo) -> Dict[str, Any]:
+    content = str(todo.content or "")
+    return {
+        "id": todo.id,
+        "todo_list": todo.todo_list,
+        "content": content[:500],
+        "content_length": len(content),
+        "priority": todo.priority,
+        "due_at": datetime_to_iso(getattr(todo, "due_at", None)),
+        "all_day": bool(getattr(todo, "all_day", False)),
+        "status": getattr(todo, "status", "todo"),
+        "is_done": bool(getattr(todo, "is_done", False)),
+        "is_marked": bool(getattr(todo, "is_marked", False)),
+        "has_notes": bool(str(getattr(todo, "notes", "") or "").strip()),
+        "subtask_count": len(getattr(todo, "subtasks", None) or []),
+        "link_count": len(getattr(todo, "links", None) or []),
+        "attachment_count": len(getattr(todo, "attachments", None) or []),
+        "updated_at": datetime_to_iso(getattr(todo, "updated_at", None)),
+    }
 
-    subscribed_lists = []
-    for todo_list, subscription in get_subscribed_todo_lists(db, user_id):
-        serialized = _serialize_todo_list(todo_list, include_share_tokens=False)
-        serialized.update({
-            "is_subscribed": True,
-            "share_type": subscription.share_type,
-        })
-        subscribed_lists.append(serialized)
 
-    return owned_lists + subscribed_lists
+def _normalize_page(limit: int | None, offset: int | None) -> tuple[int, int]:
+    try:
+        normalized_limit = int(
+            DEFAULT_TODOS_TOOL_PAGE_LIMIT if limit is None else limit
+        )
+        normalized_offset = int(0 if offset is None else offset)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("limit and offset must be integers.") from exc
+    if normalized_limit < 1 or normalized_limit > MAX_TODOS_TOOL_PAGE_LIMIT:
+        raise ValueError(f"limit must be between 1 and {MAX_TODOS_TOOL_PAGE_LIMIT}.")
+    if normalized_offset < 0 or normalized_offset > MAX_TODOS_TOOL_OFFSET:
+        raise ValueError(f"offset must be between 0 and {MAX_TODOS_TOOL_OFFSET}.")
+    return normalized_limit, normalized_offset
 
 
-def view_todo_list_tool(db, user_id: str, todo_list_id: str) -> Dict[str, Any]:
+def list_todo_lists_tool(
+    db,
+    user_id: str,
+    *,
+    limit: int | None = DEFAULT_TODOS_TOOL_PAGE_LIMIT,
+    offset: int | None = 0,
+    cursor: str | None = None,
+) -> Dict[str, Any]:
+    from app.todos.queries import list_todo_list_summaries
+    page_limit, page_offset = _normalize_page(limit, offset)
+    return list_todo_list_summaries(db, user_id, limit=page_limit, offset=page_offset, cursor=cursor)
+
+
+def view_todo_list_tool(
+    db,
+    user_id: str,
+    todo_list_id: str,
+    *,
+    limit: int | None = DEFAULT_TODOS_TOOL_PAGE_LIMIT,
+    offset: int | None = 0,
+    cursor: str | None = None,
+) -> Dict[str, Any]:
+    page_limit, page_offset = _normalize_page(limit, offset)
     normalized_user_id = str(user_id or "").strip()
     todo_list = get_accessible_todo_list(db, normalized_user_id, todo_list_id)
     subscription = None
     if todo_list.user_id != normalized_user_id:
         subscription = get_subscription_for_todo_list(db, normalized_user_id, todo_list.id)
 
-    todo_list_payload = _serialize_todo_list(
-        todo_list,
-        include_share_tokens=todo_list.user_id == normalized_user_id,
-    )
+    todo_list_payload = _serialize_todo_list(todo_list)
     todo_list_payload.update({
         "is_subscribed": subscription is not None,
         "share_type": subscription.share_type if subscription else None,
     })
-    todos = db_list_todos(db, user_id, todo_list_id)
+    from app.todos.queries import list_todo_summaries
+    result = list_todo_summaries(db, user_id, todo_list_id=todo_list_id, limit=page_limit, offset=page_offset, cursor=cursor)
+    result["todo_list"] = todo_list_payload
+    return result
+
+
+def view_todo_tool(db, user_id: str, todo_id: str) -> Dict[str, Any]:
+    todo_id_value = str(todo_id or "").strip()
+    if not todo_id_value:
+        raise ValueError("todo_id is required to view a todo")
     return {
-        "todo_list": todo_list_payload,
-        "todos": [_serialize_todo(todo) for todo in todos],
+        "operation": "view",
+        "todo": _serialize_todo(get_accessible_todo(db, user_id, todo_id_value)),
     }
 
 
@@ -118,18 +162,14 @@ def search_todos_tool(
     priority_min: Optional[int] = None,
     no_due_date: Optional[bool] = None,
     status: Optional[str] = None,
+    limit: int | None = DEFAULT_TODOS_TOOL_PAGE_LIMIT,
+    offset: int | None = 0,
+    cursor: str | None = None,
 ) -> Dict[str, Any]:
-    todos = db_search_todos(
-        db,
-        user_id,
-        query_text=query,
-        view=view,
-        priority_min=priority_min,
-        no_due_date=no_due_date,
-        status_value=status,
-        limit=200,
-    )
-    return {"todos": [_serialize_todo(todo) for todo in todos]}
+    page_limit, page_offset = _normalize_page(limit, offset)
+    normalized_query = normalize_tool_text_query(query)
+    from app.todos.queries import list_todo_summaries
+    return list_todo_summaries(db, user_id, query_text=normalized_query, view=view, priority_min=priority_min, no_due_date=no_due_date, status_value=status, limit=page_limit, offset=page_offset, cursor=cursor)
 
 
 def create_todo_tool(
@@ -427,6 +467,9 @@ def todos_tool(
     todo_ids: Optional[List[str]] = None,
     action: Optional[str] = None,
     target_list_id: Optional[str] = None,
+    limit: Optional[int] = DEFAULT_TODOS_TOOL_PAGE_LIMIT,
+    offset: Optional[int] = 0,
+    cursor: str | None = None,
 ) -> Dict[str, Any]:
     """Dispatch an LLM todo-tool request without exposing destructive actions."""
     operation = str(type or "").strip().lower()
@@ -436,7 +479,13 @@ def todos_tool(
 
     if operation == "list":
         if target == "list":
-            return {"todo_lists": list_todo_lists_tool(db, user_id)}
+            return list_todo_lists_tool(
+                db,
+                user_id,
+                limit=limit,
+                offset=offset,
+            cursor=cursor,
+            )
         if query or view or priority_min is not None or no_due_date is not None or status:
             return search_todos_tool(
                 db,
@@ -446,11 +495,49 @@ def todos_tool(
                 priority_min=priority_min,
                 no_due_date=no_due_date,
                 status=status,
+                limit=limit,
+                offset=offset,
+            cursor=cursor,
             )
         todo_list_id_value = str(todo_list_id or "").strip()
         if not todo_list_id_value:
             raise ValueError("todo_list_id is required to list todos")
-        return view_todo_list_tool(db, user_id, todo_list_id_value)
+        return view_todo_list_tool(
+            db,
+            user_id,
+            todo_list_id_value,
+            limit=limit,
+            offset=offset,
+            cursor=cursor,
+        )
+
+    if operation == "view":
+        if target == "list":
+            todo_list_id_value = str(todo_list_id or "").strip()
+            if not todo_list_id_value:
+                raise ValueError("todo_list_id is required to view a todo list")
+            normalized_user_id = str(user_id or "").strip()
+            todo_list = get_accessible_todo_list(
+                db,
+                normalized_user_id,
+                todo_list_id_value,
+            )
+            subscription = None
+            if str(todo_list.user_id) != normalized_user_id:
+                subscription = get_subscription_for_todo_list(
+                    db,
+                    normalized_user_id,
+                    todo_list.id,
+                )
+            payload = _serialize_todo_list(todo_list)
+            payload.update(
+                {
+                    "is_subscribed": subscription is not None,
+                    "share_type": subscription.share_type if subscription else None,
+                }
+            )
+            return {"operation": "view", "todo_list": payload}
+        return view_todo_tool(db, user_id, str(todo_id or "").strip())
 
     if operation == "create":
         if target == "list":
@@ -458,6 +545,7 @@ def todos_tool(
             if not title_value:
                 raise ValueError("title is required to create a todo list")
             return {
+                "operation": "create",
                 "todo_list": create_todo_list_tool(
                     db=db,
                     user_id=user_id,
@@ -475,6 +563,7 @@ def todos_tool(
         if not content_value:
             raise ValueError("content is required to create a todo")
         return {
+            "operation": "create",
             "todo": create_todo_tool(
                 db=db,
                 user_id=user_id,
@@ -499,6 +588,7 @@ def todos_tool(
             if not todo_list_id_value:
                 raise ValueError("todo_list_id is required to edit a todo list")
             return {
+                "operation": "edit",
                 "todo_list": edit_todo_list_tool(
                     db=db,
                     user_id=user_id,
@@ -514,6 +604,7 @@ def todos_tool(
         if not todo_id_value:
             raise ValueError("todo_id is required to edit a todo")
         return {
+            "operation": "edit",
             "todo": edit_todo_tool(
                 db=db,
                 user_id=user_id,
@@ -539,10 +630,14 @@ def todos_tool(
         todo_id_values = todo_ids or ([] if todo_id is None else [str(todo_id)])
         if not todo_id_values:
             raise ValueError("todo_ids is required for bulk actions")
+        if not isinstance(todo_id_values, list):
+            raise ValueError("todo_ids must be an array")
+        if len(todo_id_values) > 100:
+            raise ValueError("todo_ids may contain at most 100 entries")
         action_value = str(action or "").strip().lower()
         if not action_value:
             raise ValueError("action is required for bulk actions")
-        return bulk_todos_tool(
+        result = bulk_todos_tool(
             db=db,
             user_id=user_id,
             todo_ids=todo_id_values,
@@ -551,6 +646,8 @@ def todos_tool(
             tags=tags,
             is_done=is_done,
         )
+        result["operation"] = "bulk"
+        return result
 
     allowed_operations = ", ".join(TODO_TOOL_OPERATIONS)
     raise ValueError(f"Invalid type. Allowed values are: {allowed_operations}.")

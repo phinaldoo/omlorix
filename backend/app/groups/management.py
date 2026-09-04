@@ -20,6 +20,7 @@ from app.groups.models import Group, GroupManager, add_group_manager, get_group,
 from app.groups.sensitive import filter_settings_for_response
 from app.logging.models import create_audit_log
 from app.admin.groups.models import update_group_values
+from app.llm.models import Models
 from app.users.defaults import DEFAULT_USER_SETTINGS
 from app.users.models import User, build_user_email_match, create_user, get_user, normalize_utc_datetime
 from app.users.roles import is_admin_role
@@ -59,6 +60,7 @@ MANAGER_EDITABLE_RULES: dict[str, dict[str, Any]] = {
     "notes.enabled_notes": {"mode": "free"},
     "notes.allow_notes_share": {"mode": "free"},
     "memories.enabled_memories": {"mode": "free"},
+    "memories.memory_model_id": {"mode": "free"},
     "skills.enabled_skills": {"mode": "free"},
     "skills.allow_skill_share": {"mode": "free"},
     "prompts.enabled_prompts": {"mode": "free"},
@@ -540,6 +542,36 @@ def _temporary_accounts(db: Session, group_id: str, *, offset: int, limit: int) 
     return result
 
 
+def _memory_model_options(db: Session) -> list[dict[str, str]]:
+    """Return a bounded set of active completion models for delegated settings."""
+
+    rows = (
+        db.query(Models.id, Models.name, Models.model_name, Models.capabilities)
+        .filter(Models.is_active.is_(True))
+        .order_by(Models.name.asc(), Models.id.asc())
+        .limit(1_000)
+        .all()
+    )
+    options: list[dict[str, str]] = []
+    for row in rows:
+        capabilities = row.capabilities
+        supports_completion = (
+            bool(capabilities.get("completion"))
+            if isinstance(capabilities, dict)
+            else "completion" in capabilities
+            if isinstance(capabilities, (list, tuple, set))
+            else True
+        )
+        if supports_completion:
+            options.append(
+                {
+                    "value": str(row.id),
+                    "label": str(row.name or row.model_name or row.id),
+                }
+            )
+    return options
+
+
 def managed_group_details(
     db: Session,
     user: User,
@@ -592,6 +624,7 @@ def managed_group_details(
             editable_setting_paths,
         ),
         "editable_rules": MANAGER_EDITABLE_RULES,
+        "memory_model_options": _memory_model_options(db),
         "managers": _manager_entries(db, group.id, offset=offsets["managers"], limit=bounded_limit),
         "members": _direct_regular_members(
             db,

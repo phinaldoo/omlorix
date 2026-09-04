@@ -34,7 +34,7 @@ Use this only after verifying the person's identity. Save or discard unrelated e
 
 ## Preference pages
 
-The editor can also show the user's current **Security**, **General**, **Appearance**, **Chat**, **Memory**, and **Two-Factor Authentication** preferences. Authentication-linked accounts can add diagnostic pages such as **Social Login**, **SSO Login**, **SCIM**, or **LDAP Login**. **Secrets** and **User State** are recovery and investigation views; do not change them during ordinary preference support.
+The editor can also show the user's current **Security**, **General**, **Appearance**, **Chat**, and **Two-Factor Authentication** preferences. Memory availability and model choice are group settings, while users inspect their stored facts under **Workspace > Memories**. Authentication-linked accounts can add diagnostic pages such as **Social Login**, **SSO Login**, **SCIM**, or **LDAP Login**. **Secrets** and **User State** are recovery and investigation views; do not change them during ordinary preference support.
 
 Available fields depend on the user's group, sign-in source, models, and other settings. Directory-managed identity fields can be hidden or overwritten by the next synchronization. Change those at the identity provider unless a documented recovery procedure says otherwise.
 

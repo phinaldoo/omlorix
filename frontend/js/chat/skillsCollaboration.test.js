@@ -32,7 +32,7 @@ test('only collaborate subscriptions receive skill edit controls', () => {
 
 test('direct skill mutation entry points enforce effective edit access', () => {
     for (const methodSignature of [
-        'showEditScreen(skillId)',
+        'async showEditScreen(skillId)',
         'async handleUpdate()',
         'async handleFileDelete(skillId, folderType, filename)',
     ]) {

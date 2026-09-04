@@ -24,6 +24,11 @@ services:
       - omlorix-network
       - launcher-services
 
+  memory_worker:
+    networks:
+      - omlorix-network
+      - launcher-services
+
   research_worker:
     networks:
       - omlorix-network

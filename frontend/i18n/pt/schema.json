@@ -631,5 +631,8 @@
   "schema_xai_realtime_silence_duration_desc": "Silêncio que a xAI aguarda antes de terminar um turno falado, em milissegundos.",
   "model_settings_system_instruction_label": "Instrução do sistema",
   "model_settings_system_instruction_description": "Substitua a instrução do sistema configurada pelo administrador nesta conversa.",
-  "model_settings_system_instruction_placeholder": "Deixe em branco para usar a instrução do sistema configurada pelo administrador."
+  "model_settings_system_instruction_placeholder": "Deixe em branco para usar a instrução do sistema configurada pelo administrador.",
+  "schema_group_field_settings_memories_memory_model_id_label": "Modelo de memória",
+  "schema_group_field_settings_memories_memory_model_id_description": "Modelo dedicado que atualiza a memória dos membros após cada mensagem. Deixe em branco para usar o modelo do chat atual.",
+  "schema_group_option_settings_memories_memory_model_id_current": "Usar o modelo do chat atual"
 }

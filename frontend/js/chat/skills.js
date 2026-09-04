@@ -8,6 +8,9 @@
 // ============================================================================
 
 const SkillsState = {
+    nextCursor: null,
+    listRequest: 0,
+    detailRequest: 0,
     skills: [],
     isLoading: false,
     initialized: false,
@@ -72,8 +75,11 @@ const SkillsAPI = {
         return fetch(input, init);
     },
 
-    async fetchSkills() {
-        const response = await this.request('/api/v1/skills', {
+    async fetchSkills({ cursor = null, query = '' } = {}) {
+        const params = new URLSearchParams({ limit: '50' });
+        if (cursor) params.set('cursor', cursor);
+        if (query) params.set('q', query);
+        const response = await this.request(`/api/v1/skills/catalog?${params}`, {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
@@ -81,6 +87,14 @@ const SkillsAPI = {
         if (!response.ok) {
             throw new Error(skillsTranslate('workspace_skills_load_error_notification', 'Failed to load skills'));
         }
+        return response.json();
+    },
+
+    async fetchSkillDetail(skillId) {
+        const response = await this.request(`/api/v1/skills/${encodeURIComponent(skillId)}/detail`, {
+            method: 'GET', credentials: 'include',
+        });
+        if (!response.ok) throw new Error(skillsTranslate('workspace_skills_load_error_notification', 'Failed to load skills'));
         return response.json();
     },
 
@@ -1163,6 +1177,7 @@ const SkillsManager = {
             if (actionBtn) {
                 const skillId = actionBtn.dataset.skillId;
                 const action = actionBtn.dataset.action;
+                if (action === 'load-more') { this.loadSkills({ append: true }); return; }
                 if (action === 'view') this.showManagedSkillScreen(skillId);
                 else if (action === 'edit') this.showEditScreen(skillId);
                 else if (action === 'delete') this.showDeleteScreen(skillId);
@@ -1225,7 +1240,7 @@ const SkillsManager = {
                     }
                     // Refresh skills to get updated file lists
                     await this.loadSkills();
-                    const updatedSkill = SkillsState.skills.find(s => s.id === skill.id);
+                    const updatedSkill = await this.ensureSkillDetail(skill.id);
                     if (updatedSkill) {
                         SkillsState.activeSkillContext = updatedSkill;
                         this.renderSkillFiles(updatedSkill);
@@ -1288,7 +1303,7 @@ const SkillsManager = {
             }
             // Refresh skills to get updated file lists
             await this.loadSkills();
-            const updatedSkill = SkillsState.skills.find(s => s.id === skillId);
+            const updatedSkill = await this.ensureSkillDetail(skillId);
             if (updatedSkill) {
                 SkillsState.activeSkillContext = updatedSkill;
                 this.renderSkillFiles(updatedSkill);
@@ -1306,6 +1321,8 @@ const SkillsManager = {
 
     // Screen Navigation
     showListScreen() {
+        SkillsState.detailRequest += 1;
+        SkillsDOM.skillsGrid?.removeAttribute('aria-busy');
         const returnSkillId = SkillsState.detailReturnSkillId;
         SkillsDOM.skillsContent && (SkillsDOM.skillsContent.style.display = 'flex');
         SkillsDOM.skillsContentCreate && (SkillsDOM.skillsContentCreate.style.display = 'none');
@@ -1333,6 +1350,8 @@ const SkillsManager = {
     },
 
     showCreateScreen() {
+        SkillsState.detailRequest += 1;
+        SkillsDOM.skillsGrid?.removeAttribute('aria-busy');
         // Reset form
         if (SkillsDOM.skillNameInput) SkillsDOM.skillNameInput.value = '';
         if (SkillsDOM.skillDescriptionInput) SkillsDOM.skillDescriptionInput.value = '';
@@ -1360,8 +1379,27 @@ const SkillsManager = {
         SkillsDOM.skillNameInput?.focus();
     },
 
-    showEditScreen(skillId) {
-        const skill = SkillsState.skills.find(s => s.id === skillId);
+    async ensureSkillDetail(skillId) {
+        const request = ++SkillsState.detailRequest;
+        SkillsDOM.skillsGrid?.removeAttribute('aria-busy');
+        const cached = SkillsState.skills.find(skill => skill.id === skillId);
+        if (!cached?.summary_only) return cached;
+        SkillsDOM.skillsGrid?.setAttribute('aria-busy', 'true');
+        try {
+            const detail = await SkillsAPI.fetchSkillDetail(skillId);
+            if (request !== SkillsState.detailRequest) return null;
+            Object.assign(cached, detail, { summary_only: false });
+            return cached;
+        } catch (error) {
+            if (typeof showNotification === 'function') showNotification(skillsTranslate('workspace_skills_load_error_notification', 'Failed to load skills'), 'error');
+            return null;
+        } finally {
+            if (request === SkillsState.detailRequest) SkillsDOM.skillsGrid?.removeAttribute('aria-busy');
+        }
+    },
+
+    async showEditScreen(skillId) {
+        const skill = await this.ensureSkillDetail(skillId);
         if (!skill) return;
 
         // Managed skills are intentionally inspectable but immutable from the
@@ -1413,8 +1451,8 @@ const SkillsManager = {
      * Keeping this separate from the edit form makes the permission boundary
      * obvious and avoids presenting disabled controls that look broken.
      */
-    showManagedSkillScreen(skillId) {
-        const skill = SkillsState.skills.find(item => item.id === skillId);
+    async showManagedSkillScreen(skillId) {
+        const skill = await this.ensureSkillDetail(skillId);
         if (!skill || skill.is_admin_skill !== true) return;
 
         SkillsState.activeSkillContext = skill;
@@ -1560,18 +1598,26 @@ const SkillsManager = {
     },
 
     // CRUD Operations
-    async loadSkills() {
+    async loadSkills({ append = false } = {}) {
         const grid = SkillsDOM.skillsGrid;
         if (!grid) return;
 
+        if (append && (SkillsState.isLoading || !SkillsState.nextCursor)) return;
+        const request = ++SkillsState.listRequest;
         SkillsState.isLoading = true;
-        grid.innerHTML = SkillsRender.loadingState();
+        grid.setAttribute('aria-busy', 'true');
+        if (!append) grid.innerHTML = SkillsRender.loadingState();
 
         try {
-            const skills = await SkillsAPI.fetchSkills();
-            SkillsState.skills = skills;
+            const page = await SkillsAPI.fetchSkills({ cursor: append ? SkillsState.nextCursor : null, query: SkillsState.searchQuery });
+            if (request !== SkillsState.listRequest) return;
+            const items = Array.isArray(page) ? page : page.items || [];
+            const priorIds = new Set(append ? SkillsState.skills.map(skill => skill.id) : []);
+            SkillsState.skills = append ? [...SkillsState.skills, ...items.filter(skill => !priorIds.has(skill.id))] : items;
+            SkillsState.nextCursor = page.next_cursor || null;
             this.renderSkills();
         } catch (error) {
+            if (request !== SkillsState.listRequest) return;
             console.error('Failed to load skills:', error);
             grid.innerHTML = `<div class="skills-error"><p>${skillsTranslate('workspace_skills_load_error', 'Failed to load skills. Please try again.')}</p></div>`;
             if (typeof showNotification === 'function') {
@@ -1581,7 +1627,11 @@ const SkillsManager = {
                 );
             }
         } finally {
-            SkillsState.isLoading = false;
+            if (request === SkillsState.listRequest) {
+                SkillsState.isLoading = false;
+                grid.removeAttribute('aria-busy');
+                if (append) (grid.querySelector('[data-action="load-more"]') || grid.querySelector('.skill-action-btn'))?.focus();
+            }
         }
     },
 
@@ -1593,7 +1643,7 @@ const SkillsManager = {
         const hasActiveSearch = SkillsState.searchQuery.length > 0;
 
         if (SkillsState.skills.length === 0) {
-            grid.innerHTML = SkillsRender.emptyState();
+            grid.innerHTML = SkillsRender.emptyState({ isFiltered: hasActiveSearch, query: SkillsState.searchQuery });
             return;
         }
 
@@ -1606,6 +1656,14 @@ const SkillsManager = {
         }
 
         grid.innerHTML = filteredSkills.map(skill => SkillsRender.skillCard(skill)).join('');
+        if (SkillsState.nextCursor) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'skill-action-btn';
+            button.dataset.action = 'load-more';
+            button.textContent = skillsTranslate('common_load_more', 'Load more');
+            grid.appendChild(button);
+        }
     },
 
     updateSearchClearButton() {
@@ -1623,7 +1681,10 @@ const SkillsManager = {
         }
         this.updateSearchClearButton();
         this.scrollResultsToTop();
-        this.renderSkills();
+        clearTimeout(this.searchTimer);
+        // Invalidate old results immediately, before the debounced request.
+        SkillsState.listRequest += 1;
+        this.searchTimer = setTimeout(() => this.loadSkills(), 200);
     },
 
     clearSearch() {
@@ -1638,27 +1699,7 @@ const SkillsManager = {
     },
 
     getFilteredSkills() {
-        const query = SkillsUtils.normalizeSearchQuery(SkillsState.searchQuery);
-        if (!query) {
-            return SkillsState.skills;
-        }
-
-        return SkillsState.skills.filter((skill) => {
-            const haystack = [
-                skill?.title,
-                skill?.name,
-                skill?.description,
-                skill?.content,
-                skill?.compatibility,
-                skill?.license,
-                skill?.owner_name,
-            ]
-                .filter(Boolean)
-                .join(' ')
-                .toLowerCase();
-
-            return haystack.includes(query);
-        });
+        return SkillsState.skills;
     },
 
     async handleCreate() {

@@ -92,8 +92,8 @@ const NotesAPI = {
         return fetch(input, init);
     },
 
-    async fetchNotes(offset = 0, query = '') {
-        const response = await this.request(buildNotesListUrl(offset, query), {
+    async fetchNotes(offset = 0, query = '', cursor = null) {
+        const response = await this.request(buildNotesListUrl(offset, query, cursor), {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',

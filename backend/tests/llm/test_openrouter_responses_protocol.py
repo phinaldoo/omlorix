@@ -2,7 +2,6 @@
 
 import json
 from types import SimpleNamespace
-from unittest.mock import Mock
 
 from app.llm.openrouter.responses import (
     OpenRouterFunctionCallAccumulator,
@@ -20,6 +19,8 @@ def _run_openrouter_chat_with_events(
     events: list[dict] | list[list[dict]],
     reasoning_exclude: bool,
     with_tool: bool = False,
+    tool_result: object = "sunny",
+    tool_content: object = "sunny",
 ) -> dict:
     """Exercise the real OpenRouter chat stream with deterministic SSE events.
 
@@ -125,7 +126,7 @@ def _run_openrouter_chat_with_events(
             """Return a completed tool result through the generator contract."""
             if False:
                 yield None
-            return {"result": "sunny", "content": "sunny"}
+            return {"result": tool_result, "content": tool_content}
 
         monkeypatch.setattr(
             openrouter_utils,
@@ -316,6 +317,55 @@ def test_excluded_reasoning_is_transiently_replayed_for_tool_continuation(
     assert "reasoning" not in {block["type"] for block in saved_content}
     assert "transient-tool-reasoning" not in json.dumps(saved_content)
     assert any(block["type"] == "content" for block in saved_content)
+
+
+def test_tool_continuation_prefers_compact_model_content_over_full_result(
+    monkeypatch,
+):
+    full_result = {"content": "FULL_CANVAS_BODY_" * 2_000}
+    compact_receipt = '{"status":"saved","file_id":"file-1"}'
+    result = _run_openrouter_chat_with_events(
+        monkeypatch,
+        events=[
+            [
+                {
+                    "type": "response.output_item.done",
+                    "output_index": 0,
+                    "item": {
+                        "type": "function_call",
+                        "id": "fc_item_1",
+                        "call_id": "call_1",
+                        "name": "weather",
+                        "arguments": "{}",
+                    },
+                },
+                {
+                    "type": "response.completed",
+                    "response": {"status": "completed", "usage": {}},
+                },
+            ],
+            [
+                {"type": "response.output_text.delta", "delta": "Saved."},
+                {
+                    "type": "response.completed",
+                    "response": {"status": "completed", "usage": {}},
+                },
+            ],
+        ],
+        reasoning_exclude=True,
+        with_tool=True,
+        tool_result=full_result,
+        tool_content=compact_receipt,
+    )
+
+    continuation_input = result["payloads"][1]["input"]
+    function_output = next(
+        item
+        for item in continuation_input
+        if item.get("type") == "function_call_output"
+    )
+    assert function_output["output"] == compact_receipt
+    assert "FULL_CANVAS_BODY" not in json.dumps(continuation_input)
 
 
 def test_responses_settings_translate_wire_names_and_drop_chat_only_fields():

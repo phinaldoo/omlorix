@@ -10,7 +10,9 @@
 
 ## Settings and members
 
-Use **Settings** to manage the options delegated to you. These can include **Group context**, **Allow temporary chat**, file uploads and storage, temporary accounts, **Feature access**, and **Feature sharing** for projects, Todo, Notes, Memories, Skills, Prompts, Bookmarks, Agents, and Automations. A child group can be more restrictive than its parent but cannot enable access or sharing the parent blocks.
+Use **Settings** to manage the options delegated to you. These can include **Group context**, **Allow temporary chat**, file uploads and storage, temporary accounts, **Feature access**, and **Feature sharing** for projects, Todo, Notes, Memories, Skills, Prompts, Bookmarks, Agents, and Automations. Each group owns its settings independently; the hierarchy expands management reach but does not make a parent's feature switches a policy ceiling.
+
+When **Memories** is enabled, choose the dedicated completion model that updates member profiles after every user message. **Use current chat model** follows the model used for each turn. Disabling Memories hides the members' Workspace page and stops extraction and chat-context attachment without deleting their existing facts.
 
 Select **Save Settings** after editing. Keep **Group context** appropriate for every member because it can be used in their chats.
 

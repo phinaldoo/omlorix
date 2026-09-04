@@ -43,6 +43,7 @@ x-durable-worker-environment: &durable-worker-environment
   OPERATIONS_IMPORT_STAGING_GLOBAL_MAX_SLOTS: ${OPERATIONS_IMPORT_STAGING_GLOBAL_MAX_SLOTS:-1000}
   OPERATIONS_IMPORT_STAGING_PRINCIPAL_MAX_SLOTS: ${OPERATIONS_IMPORT_STAGING_PRINCIPAL_MAX_SLOTS:-10}
   GENERATION_WORKER_MODE: external
+  MEMORY_WORKER_MODE: external
   RESEARCH_WORKER_MODE: external
   FILE_PROCESSING_WORKER_MODE: external
   ACCOUNT_LIFECYCLE_WORKER_MODE: external
@@ -92,6 +93,7 @@ services:
       OPERATIONS_IMPORT_STAGING_GLOBAL_MAX_SLOTS: ${OPERATIONS_IMPORT_STAGING_GLOBAL_MAX_SLOTS:-1000}
       OPERATIONS_IMPORT_STAGING_PRINCIPAL_MAX_SLOTS: ${OPERATIONS_IMPORT_STAGING_PRINCIPAL_MAX_SLOTS:-10}
       GENERATION_WORKER_MODE: external
+      MEMORY_WORKER_MODE: external
       RESEARCH_WORKER_MODE: external
       FILE_PROCESSING_WORKER_MODE: external
       ACCOUNT_LIFECYCLE_WORKER_MODE: external
@@ -220,6 +222,25 @@ services:
     healthcheck:
       test: ["CMD", "python", "-m", "app.worker_heartbeat", "generation", "generation"]
       interval: 35s
+      timeout: 3s
+      retries: 6
+      start_period: 20s
+    networks:
+      - omlorix-network
+
+  memory_worker:
+    labels: *omlorix-labels
+    <<: [*backend-image, *backend-env, *backend-volumes, *backend-depends]
+    environment:
+      <<: *durable-worker-environment
+      OTEL_SERVICE_NAME: ${MEMORY_WORKER_OTEL_SERVICE_NAME:-omlorix-memory-worker}
+    restart: unless-stopped
+    stop_grace_period: 60s
+    command: >
+      sh -c "mkdir -p /app/app/logs /app/app/data /app/backups && chown appuser:appuser /app/app/logs /app/app/data /app/backups && exec gosu appuser python -m app.workers.memory run"
+    healthcheck:
+      test: ["CMD", "python", "-m", "app.worker_heartbeat", "memory", "memory"]
+      interval: 36s
       timeout: 3s
       retries: 6
       start_period: 20s
@@ -388,6 +409,7 @@ services:
       BACKUP_SCHEDULER_ENABLED: "false"
       OPERATIONS_WORKER_MODE: external
       GENERATION_WORKER_MODE: external
+      MEMORY_WORKER_MODE: external
       RESEARCH_WORKER_MODE: external
       FILE_PROCESSING_WORKER_MODE: external
       ACCOUNT_LIFECYCLE_WORKER_MODE: external

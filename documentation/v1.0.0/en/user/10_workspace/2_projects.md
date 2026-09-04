@@ -12,7 +12,7 @@ An existing chat can be added from its chat menu with **Add to project** or remo
 
 ## Shared project memory
 
-When the owner turns on **Use separate shared project memory**, every project member sees and manages the same project Memories for those chats instead of using personal memory there. Select **Manage project memory** to review them. Store only durable information suitable for every current and future member.
+When the owner turns on **Use separate shared project memory**, every project member sees and manages the same project Memories for those chats. Project facts are added alongside each member's personal profile rather than replacing it. Select **Manage project memory** to review them. Store only durable information suitable for every current and future member.
 
 ## Share a project
 

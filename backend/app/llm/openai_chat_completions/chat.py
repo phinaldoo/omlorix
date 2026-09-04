@@ -7,10 +7,13 @@ extension seams exposed by that facade.
 
 from __future__ import annotations
 
+from app.llm.generation.engine import chat_adapter, ProviderCall, stream_tool_call
+
 # The extracted code retains a few intentionally assigned diagnostic values.
 # ruff: noqa: F821, F841, F541
 
 from app.llm.openai_chat_completions import utils as _compat_source
+from app.llm.helper import sanitize_tool_call_arguments_for_persistence
 from app.llm.tool_call_budget import MAX_TOOL_CALLS_PER_GENERATION
 
 _COMPAT_DEPENDENCIES = {
@@ -126,6 +129,7 @@ for _dependency_name in (
         globals()[_dependency_name] = getattr(_compat_source, _dependency_name)
 
 
+@chat_adapter
 def _impl_openai_chat_completions_chat(
     chat_id: str,
     chat_history,
@@ -147,12 +151,13 @@ def _impl_openai_chat_completions_chat(
     chat_reference_context: str | None = None,
     user_role: str | None = None,
     openai_provider_type: str = "openai_chat_completions",
+    engine=None,
 ):
     assistant_metadata = (
         assistant_metadata if isinstance(assistant_metadata, dict) else {}
     )
     try:
-        from app.chats.models import create_chat_message
+        create_chat_message = engine.persist_message
 
         # -------------------
         # Client
@@ -201,6 +206,14 @@ def _impl_openai_chat_completions_chat(
             reference_parts=reference_parts,
             chat_reference_context=chat_reference_context,
             image_detail=settings.get("image_detail"),
+        )
+        engine.context.prefix_count = reformatted_chat_history.get(
+            "context_prefix_count", 0
+        )
+        engine.context.prefix_sections = (
+            reformatted_chat_history.get("context_sections", [])
+            if isinstance(reformatted_chat_history, dict)
+            else []
         )
         formatted_history = reformatted_chat_history.get("formatted", [])
         unsupported_file_ids = normalize_unsupported_file_ids(
@@ -730,8 +743,12 @@ def _impl_openai_chat_completions_chat(
                 request_kwargs["tools"] = tool_schemas
             try:
                 request_start_time = datetime.now(timezone.utc)
-                response = client.chat.completions.create(
-                    **_merge_openai_request_options(request_kwargs, request_options)
+                response = yield ProviderCall(
+                    client.chat.completions.create,
+                    {**_merge_openai_request_options(request_kwargs, request_options)},
+                    settings,
+                    "openai_chat_completions",
+                    args=(),
                 )
             except Exception as exc:
                 meta_generation_error = True
@@ -739,7 +756,7 @@ def _impl_openai_chat_completions_chat(
                 meta_error_type = exc.__class__.__name__
                 raise
 
-            for chunk in interruptible_provider_stream(response, generation_id):
+            for chunk in engine.events(response, generation_id, stream_factory=interruptible_provider_stream):
                 last_activity = time.monotonic()
                 # Check for cancellation for this generation and exit gracefully if set
                 try:
@@ -990,7 +1007,10 @@ def _impl_openai_chat_completions_chat(
                             "type": "function",
                             "function": {
                                 "name": function_name,
-                                "arguments": arguments_str,
+                                "arguments": sanitize_tool_call_arguments_for_persistence(
+                                    function_name,
+                                    arguments_str,
+                                ),
                             },
                         }
                     )
@@ -1228,11 +1248,7 @@ def _impl_openai_chat_completions_chat(
                             }
                         )
 
-                        tool_label = (
-                            f"{function_name}({history_arguments})"
-                            if function_name
-                            else "tool"
-                        )
+                        tool_label = f"{function_name}()" if function_name else "tool"
                         _persist_tool_message(
                             tool_content,
                             function_name,
@@ -1369,9 +1385,7 @@ def _impl_openai_chat_completions_chat(
                         _persist_tool_message(
                             error_output,
                             function_name,
-                            f"{function_name}({history_arguments})"
-                            if function_name
-                            else "tool",
+                            f"{function_name}()" if function_name else "tool",
                             system_instruction,
                             tool_call_id=call_id,
                         )
@@ -1386,7 +1400,7 @@ def _impl_openai_chat_completions_chat(
                     tool_error_message: str | None = None
                     tool_error_response: ToolErrorResponse | None = None
                     try:
-                        helper_gen = resolve_tool_call(
+                        helper_gen = stream_tool_call(resolve_tool_call,
                             db,
                             function_name,
                             parsed_args,
@@ -1412,12 +1426,7 @@ def _impl_openai_chat_completions_chat(
 
                     if helper_gen and tool_error_message is None:
                         try:
-                            while True:
-                                helper_item = next(helper_gen)
-                                if helper_item is not None:
-                                    yield helper_item
-                        except StopIteration as helper_done:
-                            helper_payload = helper_done.value or {}
+                            helper_payload = yield from helper_gen
                         except Exception as tool_exc:
                             tool_error_message = str(tool_exc)
                             tool_error_response = tool_error_tracker.record(
@@ -1486,11 +1495,7 @@ def _impl_openai_chat_completions_chat(
                     tool_audios_unique = _unique_or_none(tool_audios)
                     tool_youtube_payload = tool_youtube or None
                     tool_webpages = helper_payload.get("webpages") or None
-                    tool_label = (
-                        f"{function_name}({history_arguments})"
-                        if function_name
-                        else "tool"
-                    )
+                    tool_label = f"{function_name}()" if function_name else "tool"
 
                     _persist_tool_message(
                         tool_content,

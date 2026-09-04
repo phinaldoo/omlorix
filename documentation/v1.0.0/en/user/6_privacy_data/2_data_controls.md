@@ -42,7 +42,7 @@ Only retained data can be exported. A Temporary Chat configured for no server st
 
 After you choose a file, the confirmation checks that it is JSON with the supported account-archive type and version and shows its top-level section count. It is not a full validation preview. Select **Start Import** only when you trust the archive and its source; each feature validates its own records during the merge.
 
-Import adds supported content to the signed-in account. It does not replace the account or change its email, identity, password, passkeys, role, group, or server-managed settings. Portable General, Appearance, Chat, and Memory settings are merged, together with profile visibility, the supported personal-information access choices, and whether the first-run welcome card was dismissed. Organization-managed settings remain authoritative.
+Import adds supported content to the signed-in account. It does not replace the account or change its email, identity, password, passkeys, role, group, or server-managed settings. Portable General, Appearance, and Chat settings are merged, together with profile visibility, the supported personal-information access choices, and whether the first-run welcome card was dismissed. Memory facts are restored as content, but Memory availability and model choice remain organization-managed group settings.
 
 The restore runs section by section and is not one atomic transaction. One section can succeed while another fails, and there is no single undo. Some records are deduplicated or skipped, while others are recreated with new local IDs and can produce additional copies on a retry. Always read the final imported, failed, skipped, and **needs review** counts before retrying a partial import.
 

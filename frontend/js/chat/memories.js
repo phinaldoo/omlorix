@@ -6,15 +6,36 @@
 const MemoriesState = {
     initialized: false,
     memories: [],
+    profile: null,
     projects: [],
     projectsLoaded: false,
     selectedMemoryId: null,
     searchQuery: '',
     editorOpen: false,
     scope: { type: 'personal', projectId: null },
+    profilePollTimer: null,
+    profilePollDeadline: 0,
 };
 
-const MEMORIES_PAGE_LIMIT = 200;
+const MEMORIES_PAGE_LIMIT = 100;
+
+const MEMORY_KIND_LABELS = {
+    identity: ['workspace_memories_kind_identity', 'Identity'],
+    preference: ['workspace_memories_kind_preference', 'Preference'],
+    project: ['workspace_memories_kind_project', 'Project'],
+    relationship: ['workspace_memories_kind_relationship', 'Relationship'],
+    constraint: ['workspace_memories_kind_constraint', 'Constraint'],
+    experience: ['workspace_memories_kind_experience', 'Experience'],
+    goal: ['workspace_memories_kind_goal', 'Goal'],
+    other: ['workspace_memories_kind_other', 'Other'],
+};
+
+const MEMORY_STABILITY_LABELS = {
+    stable: ['workspace_memories_stability_stable', 'Stable'],
+    slow: ['workspace_memories_stability_slow', 'Slow-changing'],
+    changing: ['workspace_memories_stability_changing', 'Changing'],
+    ephemeral: ['workspace_memories_stability_ephemeral', 'Short-lived'],
+};
 
 function unwrapMemoriesPage(payload) {
     if (Array.isArray(payload)) return payload;
@@ -211,17 +232,16 @@ const MemoriesAPI = {
         });
     },
 
-    async fetchSettings() {
-        return this.send('/api/v1/memories/settings', {
-            fallback: t('workspace_memories_error_load_settings', 'Failed to load memory settings'),
+    async confirmMemory(scope, memoryId) {
+        return this.send(this.getScopeUrl(scope, `/${encodeURIComponent(memoryId)}/confirm`), {
+            method: 'POST',
+            fallback: t('workspace_memories_error_confirm', 'Failed to confirm memory'),
         });
     },
 
-    async updateSettings(payload) {
-        return this.send('/api/v1/memories/settings', {
-            method: 'PATCH',
-            body: payload,
-            fallback: t('workspace_memories_error_update_settings', 'Failed to update memory settings'),
+    async fetchProfile() {
+        return this.send('/api/v1/memories/profile', {
+            fallback: t('workspace_memories_error_load_profile', 'Failed to load memory profile'),
         });
     },
 
@@ -255,6 +275,12 @@ const MemoriesDOM = {
     get emptyText() { return document.getElementById('memoriesEmptyText'); },
     get createBtn() { return document.getElementById('memoriesCreateBtn'); },
     get importBtn() { return document.getElementById('memoriesImportBtn'); },
+    get profilePanel() { return document.getElementById('memoriesProfilePanel'); },
+    get profileStatus() { return document.getElementById('memoriesProfileStatus'); },
+    get profileFactCount() { return document.getElementById('memoriesProfileFactCount'); },
+    get profileReviewCount() { return document.getElementById('memoriesProfileReviewCount'); },
+    get profileVersion() { return document.getElementById('memoriesProfileVersion'); },
+    get profileContent() { return document.getElementById('memoriesProfileContent'); },
 
     get editorOverlay() { return document.getElementById('memoriesEditorOverlay'); },
     get editorCloseBtn() { return document.getElementById('memoriesEditorCloseBtn'); },
@@ -332,6 +358,10 @@ const MemoriesManager = {
                 this.openEditorForMemory(memoryId);
                 return;
             }
+            if (button.dataset.memoryAction === 'confirm') {
+                await this.confirmMemoryFromCard(memoryId, button);
+                return;
+            }
             if (button.dataset.memoryAction !== 'delete' || typeof window.showDeleteConfirm !== 'function') return;
             const confirmed = await window.showDeleteConfirm({
                 confirmLabel: t('workspace_memories_delete', 'Delete'),
@@ -350,6 +380,8 @@ const MemoriesManager = {
         });
         document.addEventListener('i18n:updated', () => {
             this.renderScopeOptions();
+            this.renderProfile();
+            this.renderMemories();
             if (MemoriesDOM.importPromptText) {
                 MemoriesDOM.importPromptText.textContent = this.getImportPrompt();
             }
@@ -402,10 +434,55 @@ const MemoriesManager = {
 
     async show() {
         this.init();
+        this.stopProfilePolling();
+        MemoriesState.profilePollDeadline = Date.now() + 120000;
         await this.loadProjects();
         this.applyPendingScopeRequest();
         this.renderScopeOptions();
         await this.loadMemories();
+    },
+
+    stopProfilePolling() {
+        if (MemoriesState.profilePollTimer !== null) {
+            clearTimeout(MemoriesState.profilePollTimer);
+            MemoriesState.profilePollTimer = null;
+        }
+        MemoriesState.profilePollDeadline = 0;
+    },
+
+    isMemoryWorkspaceVisible() {
+        const section = document.getElementById('workspaceSectionMemories');
+        if (!section) return false;
+        return !section.hidden
+            && section.style.display !== 'none'
+            && section.getAttribute('aria-hidden') !== 'true';
+    },
+
+    scheduleProfilePoll() {
+        if (MemoriesState.profilePollTimer !== null) return;
+        if (this.getScope().type !== 'personal' || MemoriesState.profile?.last_run_status !== 'processing') return;
+        if (!MemoriesState.profilePollDeadline) {
+            MemoriesState.profilePollDeadline = Date.now() + 120000;
+        }
+        if (Date.now() >= MemoriesState.profilePollDeadline || !this.isMemoryWorkspaceVisible()) return;
+
+        MemoriesState.profilePollTimer = setTimeout(async () => {
+            MemoriesState.profilePollTimer = null;
+            if (!this.isMemoryWorkspaceVisible() || this.getScope().type !== 'personal') return;
+            try {
+                const profile = await MemoriesAPI.fetchProfile();
+                const completed = profile?.last_run_status !== 'processing';
+                MemoriesState.profile = profile;
+                if (completed) {
+                    MemoriesState.memories = await MemoriesAPI.fetchMemories(this.getScope());
+                    this.renderMemories();
+                }
+                this.renderProfile();
+            } catch (error) {
+                this.scheduleProfilePoll();
+            }
+        }, 2000);
+        MemoriesState.profilePollTimer?.unref?.();
     },
 
     getScope() {
@@ -449,6 +526,9 @@ const MemoriesManager = {
 
     setScope(scope) {
         MemoriesState.scope = normalizeMemoryScope(scope);
+        if (MemoriesState.scope.type !== 'personal') {
+            this.stopProfilePolling();
+        }
     },
 
     setScopeFromSelectValue(value) {
@@ -539,6 +619,7 @@ const MemoriesManager = {
         if (MemoriesDOM.scopeDescription) {
             MemoriesDOM.scopeDescription.textContent = this.getScopeDescription();
         }
+        this.renderProfile();
         this.updateActionAvailability();
     },
 
@@ -588,7 +669,13 @@ const MemoriesManager = {
         if (list) list.innerHTML = '';
 
         try {
-            MemoriesState.memories = await MemoriesAPI.fetchMemories(this.getScope());
+            const scope = this.getScope();
+            const [memories, profile] = await Promise.all([
+                MemoriesAPI.fetchMemories(scope),
+                scope.type === 'personal' ? MemoriesAPI.fetchProfile() : Promise.resolve(null),
+            ]);
+            MemoriesState.memories = memories;
+            MemoriesState.profile = profile;
             const selectedExists = MemoriesState.memories.some((memory) => memory.id === MemoriesState.selectedMemoryId);
             if (!selectedExists) {
                 MemoriesState.selectedMemoryId = null;
@@ -598,6 +685,7 @@ const MemoriesManager = {
             this.renderMemories();
         } catch (error) {
             MemoriesState.memories = [];
+            MemoriesState.profile = null;
             this.renderScopeDetails();
             this.renderMemories();
             if (typeof notifyError === 'function') notifyError(error.message || t('workspace_memories_error_load', 'Failed to load memories'));
@@ -608,10 +696,62 @@ const MemoriesManager = {
 
     getFilteredMemories() {
         return MemoriesState.memories.filter((memory) => {
-            const haystack = `${memory.content || ''}`.toLowerCase();
+            const haystack = `${memory.content || ''} ${memory.memory_key || ''} ${memory.kind || ''}`.toLowerCase();
             const matchesSearch = !MemoriesState.searchQuery || haystack.includes(MemoriesState.searchQuery);
             return matchesSearch;
         });
+    },
+
+    renderProfile() {
+        const panel = MemoriesDOM.profilePanel;
+        if (!panel) return;
+        const isPersonal = this.getScope().type === 'personal';
+        panel.hidden = !isPersonal;
+        if (!isPersonal) return;
+
+        const profile = MemoriesState.profile || {};
+        const factCount = Number(profile.active_fact_count || 0);
+        const maxFactCount = Number(profile.max_fact_count || 100);
+        if (MemoriesDOM.profileFactCount) {
+            MemoriesDOM.profileFactCount.textContent = `${factCount} / ${maxFactCount}`;
+        }
+        if (MemoriesDOM.profileReviewCount) {
+            MemoriesDOM.profileReviewCount.textContent = String(Number(profile.review_fact_count || 0));
+        }
+        if (MemoriesDOM.profileVersion) {
+            MemoriesDOM.profileVersion.textContent = String(Number(profile.version || 0));
+        }
+        if (MemoriesDOM.profileContent) {
+            const content = String(profile.content || '').trim();
+            MemoriesDOM.profileContent.textContent = content || t(
+                'workspace_memories_profile_empty',
+                'Your profile will appear after a message contains reusable information about you.',
+            );
+            MemoriesDOM.profileContent.classList.toggle('is-empty', !content);
+        }
+
+        const statuses = {
+            processing: ['workspace_memories_profile_status_processing', 'Updating…'],
+            updated: ['workspace_memories_profile_status_updated', 'Updated'],
+            unchanged: ['workspace_memories_profile_status_unchanged', 'Checked — no changes'],
+            failed: ['workspace_memories_profile_status_failed', 'Last update failed'],
+        };
+        const statusEntry = statuses[profile.last_run_status];
+        if (MemoriesDOM.profileStatus) {
+            MemoriesDOM.profileStatus.textContent = statusEntry
+                ? t(statusEntry[0], statusEntry[1])
+                : t('workspace_memories_profile_status_waiting', 'Waiting for your first memory update');
+            MemoriesDOM.profileStatus.dataset.status = profile.last_run_status || 'waiting';
+            MemoriesDOM.profileStatus.title = profile.last_run_status === 'failed'
+                ? t('workspace_memories_profile_status_failed_help', 'The memory provider could not complete the last update. A later message will try again.')
+                : '';
+        }
+        if (profile.last_run_status === 'processing') {
+            this.scheduleProfilePoll();
+        } else if (MemoriesState.profilePollTimer !== null) {
+            clearTimeout(MemoriesState.profilePollTimer);
+            MemoriesState.profilePollTimer = null;
+        }
     },
 
     renderMemories() {
@@ -636,17 +776,39 @@ const MemoriesManager = {
             const sourceDateLabel = memory.source_date ? this.getSourceDateLabel(memory.source_date) : '';
             const editLabel = t('workspace_memories_form_edit_title', 'Edit memory');
             const deleteLabel = t('workspace_memories_delete', 'Delete');
+            const confirmLabel = t('workspace_memories_confirm', 'Confirm');
             const editIcon = window.Icons?.edit || '';
             const deleteIcon = window.Icons?.trash || '';
+            const confirmIcon = window.Icons?.check || '';
             const disabledAttribute = this.isScopeWritable() ? '' : ' disabled';
+            const kindEntry = MEMORY_KIND_LABELS[memory.kind] || MEMORY_KIND_LABELS.other;
+            const stabilityEntry = MEMORY_STABILITY_LABELS[memory.stability] || MEMORY_STABILITY_LABELS.slow;
+            const needsReview = memory.lifecycle_state === 'review';
+            const expiryLabel = memory.expires_at
+                ? formatT(
+                    'workspace_memories_expires',
+                    'Expires {date}',
+                    { date: this.formatDate(memory.expires_at) },
+                )
+                : '';
             return `
                 <article class="memory-item ${isActive ? 'active' : ''}" data-memory-id="${this.escapeHtml(memory.id)}">
                     <p class="memory-item-content">${this.escapeHtml(memory.content || '')}</p>
+                    <div class="memory-item-badges">
+                        <span>${this.escapeHtml(t(kindEntry[0], kindEntry[1]))}</span>
+                        <span>${this.escapeHtml(t(stabilityEntry[0], stabilityEntry[1]))}</span>
+                        ${needsReview ? `<span class="needs-review">${this.escapeHtml(t('workspace_memories_needs_review', 'Needs review'))}</span>` : ''}
+                    </div>
                     <div class="memory-item-footer">
                         ${sourceDateLabel ? `<span class="memory-item-date">${this.escapeHtml(sourceDateLabel)}</span>` : ''}
                         <span class="memory-item-updated">${this.escapeHtml(updatedLabel)}</span>
+                        ${expiryLabel ? `<span class="memory-item-expiry">${this.escapeHtml(expiryLabel)}</span>` : ''}
                     </div>
                     <div class="memory-item-actions" role="group" aria-label="${this.escapeHtml(t('workspace_memories_actions_aria', 'Memory actions'))}">
+                        ${needsReview ? `<button type="button" class="memory-item-action memory-item-confirm" data-memory-action="confirm" title="${this.escapeHtml(confirmLabel)}" aria-label="${this.escapeHtml(confirmLabel)}"${disabledAttribute}>
+                            <span aria-hidden="true">${confirmIcon}</span>
+                            <span>${this.escapeHtml(confirmLabel)}</span>
+                        </button>` : ''}
                         <button type="button" class="memory-item-action memory-item-edit" data-memory-action="edit" title="${this.escapeHtml(editLabel)}" aria-label="${this.escapeHtml(editLabel)}"${disabledAttribute}>
                             <span aria-hidden="true">${editIcon}</span>
                             <span>${this.escapeHtml(editLabel)}</span>
@@ -662,13 +824,32 @@ const MemoriesManager = {
 
     },
 
+    async confirmMemoryFromCard(memoryId, triggerButton = null) {
+        const targetId = String(memoryId || '').trim();
+        if (!targetId || !this.isScopeWritable()) return;
+        if (triggerButton) triggerButton.disabled = true;
+        try {
+            await MemoriesAPI.confirmMemory(this.getScope(), targetId);
+            await this.loadMemories();
+            if (typeof notifySuccess === 'function') {
+                notifySuccess(t('workspace_memories_success_confirmed', 'Memory confirmed'));
+            }
+        } catch (error) {
+            if (typeof notifyError === 'function') {
+                notifyError(error.message || t('workspace_memories_error_confirm', 'Failed to confirm memory'));
+            }
+        } finally {
+            if (triggerButton?.isConnected) triggerButton.disabled = false;
+        }
+    },
+
     renderEmptyState(hasAnyMemories) {
         if (!MemoriesDOM.emptyTitle || !MemoriesDOM.emptyText) return;
         if (hasAnyMemories) {
             MemoriesDOM.emptyTitle.textContent = t('workspace_memories_empty_filtered_title', 'No memories match your search');
             MemoriesDOM.emptyText.textContent = t(
                 'workspace_memories_empty_filtered_text',
-                'Try a different search or import another set of memories.',
+                'Try a different search.',
             );
             return;
         }
@@ -681,7 +862,7 @@ const MemoriesManager = {
             )
             : t(
                 'workspace_memories_empty_text',
-                'Import what another AI already remembers about you, or create memory entries by hand.',
+                'Reusable facts will appear here automatically after you mention them in chat. You can also add one by hand.',
             );
     },
 
@@ -1021,8 +1202,8 @@ const MemoriesManager = {
         if (parsed.length === 0) {
             throw new Error(t('workspace_memories_import_error_empty', 'The JSON array is empty.'));
         }
-        if (parsed.length > 500) {
-            throw new Error(t('workspace_memories_import_error_too_many', 'You can import up to 500 memories at once.'));
+        if (parsed.length > 100) {
+            throw new Error(t('workspace_memories_import_error_too_many', 'You can import up to 100 memories at once.'));
         }
 
         return parsed.map((item, index) => this.validateImportItem(item, index));
@@ -1149,9 +1330,9 @@ const MemoriesManager = {
     },
 
     formatDate(value) {
-        if (!value) return 'just now';
+        if (!value) return t('relative_time_now', 'just now');
         const date = new Date(value);
-        if (Number.isNaN(date.getTime())) return 'just now';
+        if (Number.isNaN(date.getTime())) return t('relative_time_now', 'just now');
         return date.toLocaleString(undefined, {
             month: 'short',
             day: 'numeric',

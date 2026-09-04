@@ -71,6 +71,13 @@ services:
       OTEL_SERVICE_NAME: omlorix-generation-worker
     depends_on: *worker-otel-depends
 
+  memory_worker:
+    labels: *omlorix-labels
+    environment:
+      <<: *worker-otel-environment
+      OTEL_SERVICE_NAME: omlorix-memory-worker
+    depends_on: *worker-otel-depends
+
   research_worker:
     labels: *omlorix-labels
     environment:

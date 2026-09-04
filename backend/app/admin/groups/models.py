@@ -34,7 +34,7 @@ from app.groups.init import (
 )
 from app.users.models import ACCOUNT_TYPE_REGULAR, User
 from app.admin.groups.schemas import GROUP_FORM_SCHEMA, GroupFormSchema
-from app.llm.models import list_models as list_llm_models
+from app.llm.models import Models, list_models as list_llm_models
 from app.skills.models import list_admin_skills
 from app.utils.schemas import Option, populate_sections_with_values
 
@@ -103,6 +103,39 @@ def _field_type_for_value(value: Any) -> str:
     if isinstance(value, list):
         return "string_list"
     return "string"
+
+
+def _validate_memory_model_reference(db: Session, settings: Dict[str, Any]) -> None:
+    """Reject stale or non-completion model selections before persistence."""
+
+    memories = settings.get("memories") if isinstance(settings, dict) else None
+    raw_model_id = memories.get("memory_model_id") if isinstance(memories, dict) else ""
+    model_id = str(raw_model_id or "").strip()
+    if not model_id:
+        return
+    model = (
+        db.query(Models)
+        .filter(Models.id == model_id, Models.is_active.is_(True))
+        .first()
+    )
+    if model is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The selected memory model is not available",
+        )
+    capabilities = getattr(model, "capabilities", None)
+    supports_completion = (
+        bool(capabilities.get("completion"))
+        if isinstance(capabilities, dict)
+        else "completion" in capabilities
+        if isinstance(capabilities, (list, tuple, set))
+        else True
+    )
+    if not supports_completion:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The selected memory model does not support text completion",
+        )
 
 
 # -------------------
@@ -278,25 +311,48 @@ def _hydrate_model_selects(db: Session, schema: GroupFormSchema) -> None:
         return
 
     models = list_llm_models(db)
-    if not models:
-        return
 
     options: list[Option] = []
+    memory_options: list[Option] = [
+        Option(
+            value="",
+            label="Use current chat model",
+            i18n_label="schema_group_option_settings_memories_memory_model_id_current",
+        )
+    ]
     for model in models:
         model_id = getattr(model, "id", None)
         if not isinstance(model_id, str):
             continue
         name = getattr(model, "name", None) or getattr(model, "model_name", None) or model_id
-        options.append(Option(value=model_id, label=str(name)))
+        option = Option(value=model_id, label=str(name), translatable=False)
+        options.append(option)
+        capabilities = getattr(model, "capabilities", None)
+        supports_completion = (
+            bool(capabilities.get("completion"))
+            if isinstance(capabilities, dict)
+            else "completion" in capabilities
+            if isinstance(capabilities, (list, tuple, set))
+            else True
+        )
+        if supports_completion:
+            memory_options.append(option.model_copy(deep=True))
 
     selectable_keys = {
         "settings.chat.byok_title_generation_model_id",
+        "settings.memories.memory_model_id",
     }
 
     for section in schema.sections:
         for field in getattr(section, "fields", []) or []:
-            if getattr(field, "key", None) in selectable_keys:
-                field.options = options
+            field_key = getattr(field, "key", None)
+            if field_key not in selectable_keys:
+                continue
+            field.options = (
+                memory_options
+                if field_key == "settings.memories.memory_model_id"
+                else options
+            )
 
 
 def _hydrate_admin_skills_select(db: Session, schema: GroupFormSchema) -> None:
@@ -668,6 +724,7 @@ def create_group(
         sanitized_settings = sanitize_group_settings_for_storage(settings if settings is not None else {})
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    _validate_memory_model_reference(db, sanitized_settings)
     group = orm_create_group(
         db,
         group_id=None,
@@ -758,6 +815,7 @@ def update_group(
             sanitized_settings = sanitize_group_settings_for_storage(settings)
         except ValueError as exc:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+        _validate_memory_model_reference(db, sanitized_settings)
         group.settings = sanitized_settings
         flag_modified(group, "settings")
         updated = True

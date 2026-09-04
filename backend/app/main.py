@@ -89,6 +89,10 @@ from app.groups.init import initialize_groups
 from app.llm.router import llm_router
 from app.feedback.router import feedback_router
 from app.memories.router import memories_router
+from app.memories.worker import (
+    start_memory_lifecycle_worker,
+    stop_memory_lifecycle_worker,
+)
 from app.notes.router import notes_router
 from app.prompts.router import prompts_router
 from app.llm.ollama.router import ollama_router
@@ -352,6 +356,7 @@ async def lifespan(app: FastAPI):
         start_byok_stats_retention_worker()
         start_read_aloud_cleanup_worker()
         start_concurrency_metrics_maintenance_worker()
+        start_memory_lifecycle_worker()
     # Startup: start automation scheduler worker
     start_automation_scheduler_worker()
 
@@ -364,6 +369,10 @@ async def lifespan(app: FastAPI):
         thread.start()
         inline_durable_workers.append((worker, thread))
 
+    from app.workers.memory import build_worker as build_memory_worker, external_memory_enabled
+
+    if not external_memory_enabled():
+        _start_inline_durable_worker(build_memory_worker(), "inline-memory-worker")
     if not operations_are_external:
         _start_inline_durable_worker(
             build_operations_worker(),
@@ -400,6 +409,7 @@ async def lifespan(app: FastAPI):
         _run_with_guard(stop_auth_log_retention_worker, "auth log retention worker")
         _run_with_guard(stop_byok_stats_retention_worker, "BYOK stats retention worker")
         _run_with_guard(stop_read_aloud_cleanup_worker, "read aloud cleanup worker")
+        _run_with_guard(stop_memory_lifecycle_worker, "memory lifecycle worker")
         _run_with_guard(
             stop_concurrency_metrics_maintenance_worker,
             "concurrency metrics maintenance worker",

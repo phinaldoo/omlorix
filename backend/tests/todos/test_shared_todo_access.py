@@ -131,9 +131,11 @@ def test_todo_tools_include_subscribed_lists():
     shared_list, _ = _seed_shared_list(db, share_type="live")
 
     payload = list_todo_lists_tool(db, "viewer-1")
-    by_id = {item["id"]: item for item in payload}
+    by_id = {item["id"]: item for item in payload["todo_lists"]}
 
     assert set(by_id) == {"owned-list", shared_list.id}
+    assert payload["count"] == 2
+    assert payload["has_more"] is False
     assert by_id["owned-list"]["is_subscribed"] is False
     assert "can_edit" not in by_id["owned-list"]
     assert by_id[shared_list.id]["is_subscribed"] is True

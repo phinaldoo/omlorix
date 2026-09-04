@@ -226,31 +226,18 @@ def _todo_response(
 def list_todo_lists_route(
     limit: Annotated[int, Query(ge=1, le=MAX_PAGE_LIMIT)] = DEFAULT_PAGE_LIMIT,
     offset: Annotated[int, Query(ge=0, le=MAX_PAGE_OFFSET)] = 0,
+    cursor: Annotated[str | None, Query(max_length=4096)] = None,
     db: Session = Depends(get_db),
     user=Depends(verified_user),
 ):
     ensure_todo_enabled(user, db)
 
-    fetch_limit = merged_window_limit(limit, offset)
-    responses = []
-    
-    # Get user's own todo lists
-    todo_lists = list_todo_lists(db, user.id, limit=fetch_limit)
-    for tl in todo_lists:
-        # Count subscribers for any active share
-        has_share = tl.clone_share_id or tl.live_share_id or tl.collaborate_share_id
-        subscriber_count = get_todo_list_subscriber_count(db, tl.id) if has_share else None
-        responses.append(_todo_list_owner_response(tl, subscriber_count=subscriber_count))
-    
-    # Get subscribed todo lists from other users (returns tuples of (list, subscription))
-    subscribed_data = get_subscribed_todo_lists(db, user.id, limit=fetch_limit)
-    for tl, sub in subscribed_data:
-        owner = get_user(db, tl.user_id)
-        owner_name = _get_user_display_name(owner)
-        responses.append(_todo_list_subscriber_response(tl, sub, owner_name=owner_name))
-    
-    items, has_more = page_from_merged_window(responses, limit=limit, offset=offset)
-    return TodoListPageResponse(items=items, limit=limit, offset=offset, has_more=has_more)
+    from app.todos.queries import list_todo_list_summaries
+    try:
+        page = list_todo_list_summaries(db, user.id, limit=limit, offset=offset, cursor=cursor, management=True)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail={"code": "invalid_page_cursor"}) from exc
+    return TodoListPageResponse(items=page.pop("todo_lists"), **page)
 
 
 @todo_router.post("/lists", response_model=TodoListResponse, status_code=status.HTTP_201_CREATED)

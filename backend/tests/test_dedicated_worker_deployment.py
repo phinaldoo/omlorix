@@ -9,6 +9,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 WORKERS = {
     "operations_worker": "app.workers.operations",
     "generation_worker": "app.workers.generation",
+    "memory_worker": "app.workers.memory",
     "research_worker": "app.workers.research",
     "file_processing_worker": "app.workers.files",
     "account_lifecycle_worker": "app.workers.lifecycle",
@@ -22,6 +23,7 @@ WORKER_HEARTBEATS = {
     "email_worker": ("email", "email", "90"),
     "operations_worker": ("operations", "operations"),
     "generation_worker": ("generation", "generation"),
+    "memory_worker": ("memory", "memory"),
     "research_worker": ("research", "research"),
     "file_processing_worker": ("files", "files"),
     "account_lifecycle_worker": ("lifecycle", "lifecycle"),
@@ -52,6 +54,7 @@ def test_all_dedicated_workers_are_always_on_in_server_topologies():
         for mode in (
             "OPERATIONS_WORKER_MODE: external",
             "GENERATION_WORKER_MODE: external",
+            "MEMORY_WORKER_MODE: external",
             "RESEARCH_WORKER_MODE: external",
             "FILE_PROCESSING_WORKER_MODE: external",
             "ACCOUNT_LIFECYCLE_WORKER_MODE: external",

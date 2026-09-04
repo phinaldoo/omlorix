@@ -7,6 +7,8 @@ extension seams exposed by that facade.
 
 from __future__ import annotations
 
+from fastapi import HTTPException
+
 # The extracted code retains a few intentionally assigned diagnostic values.
 # ruff: noqa: F821, F841, F541
 
@@ -58,6 +60,11 @@ def _impl_google_aistudio_title_generation(
     byok: dict | None = None,
     user_id: str | None = None,
     model_settings: dict | None = None,
+    generation_category: str = "title_generation",
+    output_char_limit: int | None = None,
+    max_output_tokens: int | None = None,
+    response_schema: dict | None = None,
+    raise_on_error: bool = False,
 ):
     start_time = datetime.now(timezone.utc)
     meta: dict = {}
@@ -108,7 +115,7 @@ def _impl_google_aistudio_title_generation(
             error_status_code=meta_error_status_code,
             error_message=meta_error_message,
             error_type=meta_error_type,
-            category="title_generation",
+            category=generation_category,
             meta=meta,
             user_id=user_id,
             is_byok=bool(byok),
@@ -129,25 +136,43 @@ def _impl_google_aistudio_title_generation(
             config=build_aistudio_generate_content_config(
                 model_settings,
                 system_instruction=system_instruction,
+                max_output_tokens=max_output_tokens,
+                response_mime_type=(
+                    "application/json" if isinstance(response_schema, dict) else None
+                ),
+                response_json_schema=(
+                    response_schema if isinstance(response_schema, dict) else None
+                ),
             ),
         )
         if hasattr(response, "usage_metadata"):
             meta.update(normalize_aistudio_usage_metadata(response.usage_metadata))
         title = response.text
         if not title:
+            if raise_on_error:
+                raise RuntimeError("empty_model_output")
             title = prompt[:60]
         meta_success = True
-        return title
+        if output_char_limit is None:
+            return title
+        return title[: max(1, int(output_char_limit))]
     except genai_errors.ClientError as exc:
         meta_error = True
-        meta_error_message = getattr(exc, "code", 0)
+        meta_error_status_code = getattr(exc, "code", 0)
         meta_error_message = getattr(exc, "message", str(exc))
         meta_error_type = getattr(exc, "status", str(exc))
+        if raise_on_error:
+            raise HTTPException(
+                status_code=int(meta_error_status_code or 400),
+                detail="Memory model request failed",
+            ) from exc
     except Exception as e:
         meta_error = True
         meta_error_message = str(e)
         meta_error_type = e.__class__.__name__
         meta_error_status_code = getattr(e, "status_code", 0)
+        if raise_on_error:
+            raise
         return prompt[:60]
     finally:
         _record_stat()

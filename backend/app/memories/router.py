@@ -10,29 +10,29 @@ from sqlalchemy.orm import Session
 from app.dependencies import get_db, get_db_log, verified_user
 from app.groups.init import get_user_group_setting_value
 from app.logging.models import create_audit_log, get_audit_request_ip
-from app.memories.runtime import get_memory_policy, get_memory_settings
+from app.memories.runtime import get_memory_policy
 from app.memories.schemas import (
     MemoryCreate,
     MemoryExportPayload,
     MemoryImportItem,
     MemoryImportResponse,
     MemoryListResponse,
+    MemoryProfileResponse,
     MemoryResponse,
-    MemorySettingsResponse,
-    MemorySettingsUpdate,
     MemoryUpdate,
 )
 from app.memories.service import (
     MemoryScope,
+    confirm_memory,
     create_memory,
     delete_memory,
+    get_memory_profile,
     import_memories,
     import_memory_export,
     list_memories,
     update_memory,
 )
 from app.projects.models import get_project_with_access
-from app.users.init import update_user_settings_bulk
 from app.utils.pagination import (
     DEFAULT_PAGE_LIMIT,
     MAX_PAGE_LIMIT,
@@ -90,11 +90,6 @@ def _resolve_scope(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Memories feature disabled for your group",
         )
-    if not policy.account_enabled:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Memories are not enabled for this user.",
-        )
     if normalized_project_id and not policy.project_enabled:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -128,44 +123,6 @@ def _audit(
         user_agent=request.headers.get("user-agent"),
         category="memories",
     )
-
-
-@scoped_memories_router.get("/settings", response_model=MemorySettingsResponse)
-def get_memory_settings_route(
-    db: Session = Depends(get_db),
-    user=Depends(verified_user),
-):
-    """Return the user's memory settings."""
-
-    _ensure_feature_available(user.id, db)
-    return get_memory_settings(db, user.id)
-
-
-@scoped_memories_router.patch("/settings", response_model=MemorySettingsResponse)
-def update_memory_settings_route(
-    payload: MemorySettingsUpdate,
-    request: Request,
-    db: Session = Depends(get_db),
-    db_log: Session = Depends(get_db_log),
-    user=Depends(verified_user),
-):
-    """Update all supplied memory settings in one transaction."""
-
-    _ensure_feature_available(user.id, db)
-    updates = payload.model_dump(exclude_none=True)
-    if updates:
-        update_user_settings_bulk(user.id, {"memory": updates}, db)
-    settings = get_memory_settings(db, user.id)
-    _audit(
-        db_log=db_log,
-        request=request,
-        db=db,
-        user_id=user.id,
-        scope=MemoryScope.personal(user.id),
-        event="SETTINGS_UPDATED",
-        details=settings,
-    )
-    return settings
 
 
 @project_memory_transfer_router.post(
@@ -225,6 +182,17 @@ def list_memories_route(
     )
 
 
+@scoped_memories_router.get("/profile", response_model=MemoryProfileResponse)
+def get_memory_profile_route(
+    db: Session = Depends(get_db),
+    user=Depends(verified_user),
+):
+    """Return the complete materialized personal profile and run status."""
+
+    _ensure_feature_available(user.id, db)
+    return get_memory_profile(db, user.id)
+
+
 @scoped_memories_router.post(
     "", response_model=MemoryResponse, status_code=status.HTTP_201_CREATED
 )
@@ -239,7 +207,14 @@ def create_memory_route(
     """Create a personal or shared project memory."""
 
     scope = _resolve_scope(db=db, user=user, project_id=project_id, require_write=True)
-    memory, created = create_memory(db, scope, payload.content)
+    memory, created = create_memory(
+        db,
+        scope,
+        payload.content,
+        kind=payload.kind,
+        stability=payload.stability,
+        importance=payload.importance,
+    )
     _audit(
         db_log=db_log,
         request=request,
@@ -265,7 +240,14 @@ def update_memory_route(
     """Update a memory in a writable scope."""
 
     scope = _resolve_scope(db=db, user=user, project_id=project_id, require_write=True)
-    memory = update_memory(db, scope, memory_id, payload.content)
+    memory = update_memory(
+        db,
+        scope,
+        memory_id,
+        payload.content,
+        stability=payload.stability,
+        importance=payload.importance,
+    )
     _audit(
         db_log=db_log,
         request=request,
@@ -273,6 +255,31 @@ def update_memory_route(
         user_id=user.id,
         scope=scope,
         event="UPDATED",
+        details={"memory_id": memory.id},
+    )
+    return memory
+
+
+@scoped_memories_router.post("/{memory_id}/confirm", response_model=MemoryResponse)
+def confirm_memory_route(
+    memory_id: str,
+    request: Request,
+    project_id: str | None = None,
+    db: Session = Depends(get_db),
+    db_log: Session = Depends(get_db_log),
+    user=Depends(verified_user),
+):
+    """Explicitly verify a fact and restart its lifecycle clock."""
+
+    scope = _resolve_scope(db=db, user=user, project_id=project_id, require_write=True)
+    memory = confirm_memory(db, scope, memory_id)
+    _audit(
+        db_log=db_log,
+        request=request,
+        db=db,
+        user_id=user.id,
+        scope=scope,
+        event="CONFIRMED",
         details={"memory_id": memory.id},
     )
     return memory

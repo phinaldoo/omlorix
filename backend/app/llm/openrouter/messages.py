@@ -1036,6 +1036,7 @@ def _impl_reformat_chat_history(
         )
 
     # Notes Context
+    notes_start_index = len(formatted)
     if note_ids and db and user_id:
         try:
             from app.llm.system_instruction.notes import (
@@ -1075,6 +1076,7 @@ def _impl_reformat_chat_history(
         except Exception as exc:
             logger.warning("[OpenRouter] Notes context attach failed: %s", exc)
 
+    memories_start_index = len(formatted)
     if db and user_id:
         try:
             from app.llm.system_instruction.memories import get_memories_context
@@ -1343,6 +1345,10 @@ def _impl_reformat_chat_history(
     )
     return {
         "formatted": formatted,
+        "context_prefix_count": history_start_index,
+        "context_sections": [("workspace", 0, notes_start_index, True, 90),
+                             ("notes", notes_start_index, memories_start_index, False, 60),
+                             ("memories", memories_start_index, history_start_index, False, 40)],
         "unsupported": unsupported_flag,
         "unsupported_file_ids": sorted(unsupported_file_ids),
     }

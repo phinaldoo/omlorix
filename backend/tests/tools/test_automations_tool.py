@@ -89,18 +89,22 @@ def test_automations_information_lists_available_choices(monkeypatch):
     monkeypatch.setattr(
         automation_tool_utils,
         "list_skills",
-        lambda _db, _user_id: [
+        lambda _db, _user_id, **_kwargs: [
             SimpleNamespace(id="skill-1", user_id="user-1", name="Reporter", description="Writes reports")
         ],
     )
-    monkeypatch.setattr(automation_tool_utils, "get_subscribed_skills", lambda _db, _user_id: [])
+    monkeypatch.setattr(
+        automation_tool_utils,
+        "get_subscribed_skills",
+        lambda _db, _user_id, **_kwargs: [],
+    )
     monkeypatch.setattr(automation_tool_utils, "get_user_group_setting_value", lambda *_args: [])
-    monkeypatch.setattr(automation_tool_utils, "load_skill_markdown_fields", lambda *_args: {})
 
     result = automation_tool_utils.automations_tool(
         db=object(),
         user_id="user-1",
         type="information",
+        model_id="model-1",
     )
 
     assert result["categories"]["information"]["required_inputs"] == ["type"]
@@ -137,10 +141,29 @@ def test_automations_schema_gives_read_operations_exact_minimal_payloads():
         for branch in operation_schemas
     }
 
-    assert set(branches) == {"information", "list", "create", "edit", "delete"}
-    for operation in ("information", "list"):
-        assert branches[operation]["required"] == ["type"]
-        assert set(branches[operation]["properties"]) == {"type"}
+    assert set(branches) == {
+        "information",
+        "list",
+        "view",
+        "create",
+        "edit",
+        "delete",
+    }
+    assert branches["information"]["required"] == ["type"]
+    assert set(branches["information"]["properties"]) == {"type", "model_id"}
+    assert branches["list"]["required"] == ["type"]
+    assert set(branches["list"]["properties"]) == {"type", "limit", "offset", "cursor"}
+    assert branches["view"]["required"] == ["type", "automation_id"]
+    assert {
+        "type",
+        "automation_id",
+        "query",
+        "heading",
+        "start_line",
+        "end_line",
+        "max_chars",
+    } == set(branches["view"]["properties"])
+    for operation in ("information", "list", "view"):
         assert branches[operation]["additionalProperties"] is False
     assert {"type", "title", "prompt", "model_id"}.issubset(
         branches["create"]["required"]
@@ -159,7 +182,7 @@ def test_automations_operation_schema_is_accepted_by_google_tool_declarations():
     assert len(tools[0].function_declarations) == 1
     declaration = tools[0].function_declarations[0]
     assert declaration.name == "automations"
-    assert len(declaration.parameters.any_of) == 5
+    assert len(declaration.parameters.any_of) == 6
 
 
 @pytest.mark.parametrize("operation", ["information", "list"])
@@ -302,14 +325,23 @@ def test_automations_information_excludes_agent_model_entries(monkeypatch):
         "app.tools.utils.resolve_enabled_tools",
         lambda *_args, **_kwargs: {"mcp_requested": False},
     )
-    monkeypatch.setattr(automation_tool_utils, "list_skills", lambda _db, _user_id: [])
-    monkeypatch.setattr(automation_tool_utils, "get_subscribed_skills", lambda _db, _user_id: [])
+    monkeypatch.setattr(
+        automation_tool_utils,
+        "list_skills",
+        lambda _db, _user_id, **_kwargs: [],
+    )
+    monkeypatch.setattr(
+        automation_tool_utils,
+        "get_subscribed_skills",
+        lambda _db, _user_id, **_kwargs: [],
+    )
     monkeypatch.setattr(automation_tool_utils, "get_user_group_setting_value", lambda *_args: [])
 
     result = automation_tool_utils.automations_tool(
         db=object(),
         user_id="user-1",
         type="information",
+        model_id="model-1",
     )
 
     assert result["available_models"] == [
@@ -337,7 +369,10 @@ def test_model_mcp_options_skip_a_model_removed_after_listing(monkeypatch):
 
 
 def test_direct_read_operation_does_not_normalize_mutation_fields(monkeypatch):
-    monkeypatch.setattr(automation_tool_utils, "db_list_automations", lambda *_args: [])
+    monkeypatch.setattr(
+        "app.automations.queries.list_automation_summaries",
+        lambda *_args, **_kwargs: {"operation": "list", "automations": [], "count": 0, "limit": 20, "offset": 0, "has_more": False},
+    )
     monkeypatch.setattr(
         automation_tool_utils,
         "_normalize_numbered_icon",
@@ -350,7 +385,14 @@ def test_direct_read_operation_does_not_normalize_mutation_fields(monkeypatch):
         type="list",
         icon={"irrelevant": True},
         is_active=False,
-    ) == {"automations": []}
+    ) == {
+        "operation": "list",
+        "automations": [],
+        "count": 0,
+        "limit": 20,
+        "offset": 0,
+        "has_more": False,
+    }
 
 
 def test_create_normalizes_numbered_icon_and_color(monkeypatch):

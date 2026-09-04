@@ -10,30 +10,6 @@ const elementsStyles = fs.readFileSync(path.join(frontendRoot, 'css/common/eleme
 
 const controls = [
     {
-        page: 'memory',
-        id: 'userSettingsMemoryEnabledToggle',
-        titleId: 'memoryEnabledTitle',
-        descriptionId: 'memoryEnabledDescription',
-        titleKey: 'workspace_memories_enabled_title',
-        descriptionKey: 'workspace_memories_enabled_desc',
-    },
-    {
-        page: 'memory',
-        id: 'userSettingsMemoryIncludeContextToggle',
-        titleId: 'memoryIncludeContextTitle',
-        descriptionId: 'memoryIncludeContextDescription',
-        titleKey: 'workspace_memories_include_context_title',
-        descriptionKey: 'workspace_memories_include_context_desc',
-    },
-    {
-        page: 'memory',
-        id: 'userSettingsMemoryAutoCreateToggle',
-        titleId: 'memoryAutoCreateTitle',
-        descriptionId: 'memoryAutoCreateDescription',
-        titleKey: 'workspace_memories_auto_create_title',
-        descriptionKey: 'workspace_memories_auto_create_desc',
-    },
-    {
         page: 'chat',
         id: 'userSettingsShowMessageNavToggle',
         titleId: 'chatShowMessageNavTitle',
@@ -122,10 +98,9 @@ function pageSource(page) {
     return indexSource.slice(start, nextPage === -1 ? undefined : nextPage);
 }
 
-test('all Chat and Memory toggles reference their visible translated title and description', () => {
+test('all Chat toggles reference their visible translated title and description', () => {
     const expectedIdsByPage = new Map([
         ['chat', controls.filter(({ page }) => page === 'chat').map(({ id }) => id).sort()],
-        ['memory', controls.filter(({ page }) => page === 'memory').map(({ id }) => id).sort()],
     ]);
 
     for (const [page, expectedIds] of expectedIdsByPage) {

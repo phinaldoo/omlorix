@@ -3,21 +3,41 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
-MAX_MEMORY_IMPORT_ITEMS = 500
+MAX_MEMORIES_PER_SCOPE = 100
+MAX_MEMORY_IMPORT_ITEMS = MAX_MEMORIES_PER_SCOPE
 MEMORY_IMPORT_LIMIT_MESSAGE = (
     f"You can import up to {MAX_MEMORY_IMPORT_ITEMS} memories at once"
 )
 
+MemoryKind = Literal[
+    "identity",
+    "preference",
+    "project",
+    "relationship",
+    "constraint",
+    "experience",
+    "goal",
+    "other",
+]
+MemoryStability = Literal["stable", "slow", "changing", "ephemeral"]
+MemorySensitivity = Literal["normal", "sensitive", "secret"]
+MemoryAction = Literal["create", "update", "confirm", "forget"]
+
 
 class MemoryCreate(BaseModel):
     content: str = Field(..., min_length=1, max_length=500)
+    kind: MemoryKind = "other"
+    stability: MemoryStability = "slow"
+    importance: int = Field(default=3, ge=1, le=5)
 
 
 class MemoryUpdate(BaseModel):
     content: str | None = Field(default=None, min_length=1, max_length=500)
+    stability: MemoryStability | None = None
+    importance: int | None = Field(default=None, ge=1, le=5)
 
 
 class MemoryResponse(BaseModel):
@@ -25,9 +45,22 @@ class MemoryResponse(BaseModel):
     user_id: str | None = None
     project_id: str | None = None
     content: str
-    source_date: Optional[date]
-    created_at: Optional[datetime]
-    updated_at: Optional[datetime]
+    memory_key: str = ""
+    kind: MemoryKind = "other"
+    stability: MemoryStability = "slow"
+    importance: int = 3
+    confidence: float = 1.0
+    sensitivity: MemorySensitivity = "normal"
+    lifecycle_state: Literal["fresh", "review"] = "fresh"
+    freshness: float = 1.0
+    version: int = 1
+    source_date: Optional[date] = None
+    source_excerpt: str | None = None
+    last_confirmed_at: Optional[datetime] = None
+    review_at: Optional[datetime] = None
+    expires_at: Optional[datetime] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
 
@@ -37,18 +70,45 @@ class MemoryListResponse(BaseModel):
     limit: int
     offset: int
     has_more: bool = False
+    max_items: int = MAX_MEMORIES_PER_SCOPE
 
 
-class MemorySettingsResponse(BaseModel):
-    enabled: bool
-    include_in_context: bool
-    auto_create: bool
+class MemoryProfileResponse(BaseModel):
+    content: str = ""
+    version: int = 0
+    active_fact_count: int = 0
+    review_fact_count: int = 0
+    max_fact_count: int = MAX_MEMORIES_PER_SCOPE
+    updated_at: datetime | None = None
+    last_run_at: datetime | None = None
+    last_run_status: Literal["processing", "updated", "unchanged", "failed"] | None = None
+    last_error_code: str | None = None
 
 
-class MemorySettingsUpdate(BaseModel):
-    enabled: bool | None = None
-    include_in_context: bool | None = None
-    auto_create: bool | None = None
+class MemoryCandidate(BaseModel):
+    """Schema-constrained model output. This is never exposed as a tool."""
+
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
+    action: MemoryAction
+    target_memory_id: str = Field(default="", max_length=80)
+    key: str = Field(min_length=1, max_length=120)
+    content: str = Field(default="", max_length=500)
+    kind: MemoryKind
+    stability: MemoryStability
+    importance: int = Field(ge=1, le=5)
+    confidence: float = Field(ge=0.0, le=1.0)
+    evidence: str = Field(min_length=1, max_length=500)
+    sensitivity: MemorySensitivity = "normal"
+
+
+class MemoryConsolidation(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    candidates: list[MemoryCandidate] = Field(
+        default_factory=list,
+        max_length=MAX_MEMORIES_PER_SCOPE,
+    )
 
 
 class MemoryImportItem(BaseModel):
@@ -87,18 +147,29 @@ class MemoryImportResponse(BaseModel):
 
 class MemoryExportItem(BaseModel):
     content: str = Field(..., min_length=1, max_length=500)
+    memory_key: str | None = Field(default=None, max_length=120)
+    kind: MemoryKind | None = None
+    stability: MemoryStability | None = None
+    importance: int | None = Field(default=None, ge=1, le=5)
+    confidence: float | None = Field(default=None, ge=0.0, le=1.0)
+    sensitivity: MemorySensitivity | None = None
+    version: int | None = Field(default=None, ge=1)
+    source_excerpt: str | None = Field(default=None, max_length=500)
     source_date: str | None = None
+    evidence_at: str | None = None
+    last_confirmed_at: str | None = None
+    review_at: str | None = None
+    expires_at: str | None = None
     created_at: str | None = None
     updated_at: str | None = None
 
 
 class MemoryExportData(BaseModel):
-    # Exports may contain a complete account. Interactive imports enforce the
-    # bounded batch size in the service after parsing this portable envelope.
-    memories: list[MemoryExportItem]
+    memories: list[MemoryExportItem] = Field(max_length=MAX_MEMORY_IMPORT_ITEMS)
 
 
 class MemoryExportPayload(BaseModel):
     export_type: Literal["memories"]
-    export_version: Literal[1.0]
+    # 1.0 archives remain importable; all new exports use 2.0.
+    export_version: Literal[1.0, 2.0]
     data: MemoryExportData
