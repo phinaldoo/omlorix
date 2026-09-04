@@ -53,6 +53,7 @@ const normalizedSemanticIconNames = [
     'verticalAlignMiddle',
     'verticalAlignTop',
 ];
+const normalizedOutlineSemanticIconNames = new Set(['palette', 'temporaryChat']);
 
 function loadIconRegistry() {
     const context = { console: { error() {}, log() {}, warn() {} } };
@@ -105,14 +106,17 @@ test('new semantic UI icons share the 20px currentColor system', () => {
         assert.match(rootTag, /\bfocusable="false"/i, `${iconName} is not hidden from legacy SVG focus handling`);
         assert.match(markup, /<path\b/i, `${iconName} has no path geometry`);
 
-        if (iconName === 'temporaryChat') {
+        if (normalizedOutlineSemanticIconNames.has(iconName)) {
             assert.match(rootTag, /\bfill="none"/i, `${iconName} is not an outline icon`);
             assert.match(rootTag, /\bstroke="currentColor"/i, `${iconName} does not inherit the stroke color`);
-            assert.match(markup, /\bstroke-dasharray="5\.5 3\.3"/i, `${iconName} is missing its temporary-state dash pattern`);
+            assert.doesNotMatch(markup, /<path\b[^>]*\bfill=/i, `${iconName} contains a filled path`);
         } else {
             assert.match(rootTag, /\bfill="currentColor"/i, `${iconName} does not inherit the foreground color`);
             assert.doesNotMatch(markup, /\bstroke\s*=/i, `${iconName} still depends on stroke rendering`);
             assert.doesNotMatch(markup, /\bfill="(?!currentColor)[^"]+"/i, `${iconName} contains a non-currentColor fill`);
+        }
+        if (iconName === 'temporaryChat') {
+            assert.match(markup, /\bstroke-dasharray="5\.5 3\.3"/i, `${iconName} is missing its temporary-state dash pattern`);
         }
         assert.doesNotMatch(markup, /<(?!\/?(?:svg|path)\b)[a-z][^>]*>/i, `${iconName} contains non-path SVG geometry`);
     }
