@@ -39,11 +39,13 @@ function extractFunction(source, functionName) {
 test('in-place dropdown panels reuse the shared chevron SVG', () => {
     const dropdownSource = readFrontendSource(path.join(__dirname, '..', 'common', 'dropdown.js'), 'utf8');
     const iconsSource = readFrontendSource(path.join(__dirname, '..', 'common', 'icons.js'), 'utf8');
+    const commonStyles = readFrontendSource(path.join(__dirname, '..', '..', 'css', 'common', 'elements.css'), 'utf8');
     const chevronMarkup = iconsSource.match(/chatFilesChevron:\s*'([^']+)'/)?.[1];
     assert.ok(chevronMarkup, 'expected the shared chat-files chevron icon');
     assert.equal((chevronMarkup.match(/<svg\b/g) || []).length, 1);
     assert.doesNotMatch(chevronMarkup, /<svg\b[^>]*>[\s\S]*<svg\b/);
     assert.match(chevronMarkup, /width="14" height="14" viewBox="0 0 16 16"/);
+    assert.match(commonStyles, /\.select-dropdown-panel-chevron > svg\s*\{[^}]*width:\s*14px;[^}]*height:\s*14px;[^}]*color:\s*var\(--text-color-tertiary\);/s);
 
     const addChevron = extractFunction(dropdownSource, 'addTriggerChevron');
     assert.match(addChevron, /window\.Icons\?\.chatFilesChevron/);

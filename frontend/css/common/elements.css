@@ -711,6 +711,12 @@ html[dir="rtl"] .select-dropdown-panel.is-behind {
     place-items: center;
 }
 
+.select-dropdown-panel-chevron > svg {
+    width: 14px;
+    height: 14px;
+    color: var(--text-color-tertiary);
+}
+
 html[dir="rtl"] .select-dropdown-panel-chevron {
     transform: scaleX(-1);
 }
