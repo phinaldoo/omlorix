@@ -71,7 +71,11 @@ def test_media_generation_rejects_quota_before_provider_work(monkeypatch, module
     assert exc_info.value.code == USER_FILE_COUNT_QUOTA_REACHED
 
 
-def test_slide_renderer_rejects_quota_before_remote_renderer_work(monkeypatch, tmp_path):
+def test_slide_renderer_rejects_quota_before_remote_renderer_work(
+    monkeypatch,
+    tmp_path,
+    valid_slide_presentation_html,
+):
     """PPTX count admission happens before any renderer HTTP call."""
 
     monkeypatch.setattr(slide_rendering_utils, "reserve_user_file_quota", _quota_denial)
@@ -109,7 +113,7 @@ def test_slide_renderer_rejects_quota_before_remote_renderer_work(monkeypatch, t
 
     with pytest.raises(FileQuotaError) as exc_info:
         slide_rendering_utils.render_slide_presentation(
-            "<html><body><section>Slide</section></body></html>",
+            valid_slide_presentation_html,
             "user-1",
             "deck.pptx",
             presentation_dir=tmp_path,

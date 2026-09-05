@@ -21,6 +21,7 @@ if "zstandard" not in sys.modules:
     )
     sys.modules["zstandard"] = fake_zstandard
 
+from app.notes import queries as notes_queries
 from app.notes import router as notes_router
 from app.notes.schemas import NoteUpdate
 
@@ -151,17 +152,52 @@ def test_download_note_route_rejects_inaccessible_note(monkeypatch):
 def test_list_notes_redacts_owner_share_tokens_for_subscribers(monkeypatch):
     owner_note = _note(id="owned-note", user_id="viewer-1")
     shared_note = _note(id="shared-note")
-    subscription = SimpleNamespace(share_type="live")
 
     monkeypatch.setattr(notes_router, "ensure_notes_enabled", lambda *args, **kwargs: None)
-    monkeypatch.setattr(notes_router, "list_user_notes", lambda *args, **kwargs: [owner_note])
-    monkeypatch.setattr(notes_router, "get_subscribed_notes", lambda *args, **kwargs: [(shared_note, subscription)])
-    monkeypatch.setattr(notes_router, "get_note_subscriber_count", lambda *args, **kwargs: 2)
-    monkeypatch.setattr(
-        notes_router,
-        "get_user",
-        lambda db, user_id: SimpleNamespace(first_name="Owner", last_name="User"),
-    )
+
+    def list_note_summaries(_db, user_id, **kwargs):
+        assert user_id == "viewer-1"
+        assert kwargs["management"] is True
+        return {
+            "notes": [
+                {
+                    "id": owner_note.id,
+                    "user_id": owner_note.user_id,
+                    "title": "Owned note",
+                    "snippet": "Body",
+                    "created_at": owner_note.created_at,
+                    "updated_at": owner_note.updated_at,
+                    "is_subscribed": False,
+                    "share_type": None,
+                    "clone_share_id": owner_note.clone_share_id,
+                    "live_share_id": owner_note.live_share_id,
+                    "collaborate_share_id": owner_note.collaborate_share_id,
+                    "subscriber_count": 2,
+                    "can_edit": True,
+                },
+                {
+                    "id": shared_note.id,
+                    "user_id": None,
+                    "title": "Shared note",
+                    "snippet": "Body",
+                    "created_at": shared_note.created_at,
+                    "updated_at": shared_note.updated_at,
+                    "is_subscribed": True,
+                    "share_type": "live",
+                    "owner_name": "Owner User",
+                    "clone_share_id": shared_note.clone_share_id,
+                    "live_share_id": shared_note.live_share_id,
+                    "collaborate_share_id": shared_note.collaborate_share_id,
+                    "can_edit": False,
+                },
+            ],
+            "limit": kwargs["limit"],
+            "offset": kwargs["offset"],
+            "has_more": False,
+            "next_cursor": None,
+        }
+
+    monkeypatch.setattr(notes_queries, "list_note_summaries", list_note_summaries)
     response = notes_router.list_notes_route(db=SimpleNamespace(), user=_user("viewer-1"))
 
     items = {item.id: item for item in response.items}

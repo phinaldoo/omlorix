@@ -683,7 +683,7 @@ def test_slide_preview_documents_include_csp_and_sandboxed_iframes():
     assert "const _SLIDE_PREVIEW_CSP" in source
     assert '<meta http-equiv="Content-Security-Policy" content="${_SLIDE_PREVIEW_CSP}">' in source
     assert "iframe.setAttribute('sandbox', '')" in source
-    assert "ssIframe.setAttribute('sandbox', '')" in source
+    assert "frame.setAttribute('sandbox', '')" in source
     assert "document.write" not in source
     assert "doc.write(html)" not in source
 
@@ -798,7 +798,11 @@ def test_code_execution_service_url_uses_outbound_policy(monkeypatch):
         code_execution_utils.execute_code("print('ok')", user_id="user-1")
 
 
-def test_slide_renderer_service_url_uses_outbound_policy(monkeypatch, tmp_path):
+def test_slide_renderer_service_url_uses_outbound_policy(
+    monkeypatch,
+    tmp_path,
+    valid_slide_presentation_html,
+):
     def deny_url(*_args, **_kwargs):
         raise outbound_policy.OutboundRequestBlockedError(
             target="http://127.0.0.1:8002",
@@ -824,7 +828,7 @@ def test_slide_renderer_service_url_uses_outbound_policy(monkeypatch, tmp_path):
 
     with pytest.raises(RuntimeError, match="Slide renderer service blocked"):
         slide_rendering_utils.render_slide_presentation(
-            "<html></html>",
+            valid_slide_presentation_html,
             "user-1",
             "deck.pptx",
             presentation_dir=tmp_path,

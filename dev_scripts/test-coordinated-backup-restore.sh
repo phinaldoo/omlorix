@@ -32,7 +32,7 @@ printf '%s\n' \
   'printf "%s\n" "$*" >> "$TEST_COMPOSE_LOG"' \
   'command_line=" $* "' \
   'if [[ "$command_line" == *" config --services "* ]]; then' \
-  '  printf "postgres\nmigrate\nemail_worker\noperations_worker\ngeneration_worker\nresearch_worker\nfile_processing_worker\naccount_lifecycle_worker\nmaintenance_worker\nrendering_worker\nmedia_worker\nconnector_worker\naudit_event_worker\nrealtime_gateway\nfastapi\nfrontend\n"' \
+  '  printf "postgres\nmigrate\nemail_worker\noperations_worker\ngeneration_worker\nmemory_worker\nresearch_worker\nfile_processing_worker\naccount_lifecycle_worker\nmaintenance_worker\nrendering_worker\nmedia_worker\nconnector_worker\naudit_event_worker\nrealtime_gateway\nfastapi\nfrontend\n"' \
   '  if [[ "${TEST_REDIS_ENABLED:-true}" == "true" ]]; then' \
   '    printf "automation_scheduler\nautomation_worker\n"' \
   '  fi' \
@@ -48,7 +48,7 @@ printf '%s\n' \
   '  printf "{\"ok\":%s}\n" "$([[ "${TEST_VERIFY_STATUS:-0}" == "0" ]] && printf true || printf false)"' \
   '  exit "${TEST_VERIFY_STATUS:-0}"' \
   'fi' \
-  'if [[ "$command_line" == *" stop frontend email_worker operations_worker generation_worker research_worker file_processing_worker account_lifecycle_worker maintenance_worker rendering_worker media_worker connector_worker audit_event_worker realtime_gateway automation_scheduler automation_worker fastapi "* ]]; then' \
+  'if [[ "$command_line" == *" stop frontend email_worker operations_worker generation_worker memory_worker research_worker file_processing_worker account_lifecycle_worker maintenance_worker rendering_worker media_worker connector_worker audit_event_worker realtime_gateway automation_scheduler automation_worker fastapi "* ]]; then' \
   '  exit "${TEST_STOP_STATUS:-0}"' \
   'fi' \
   'if [[ "$command_line" == *" app.backups.cli restore "* ]]; then' \
@@ -158,14 +158,14 @@ if [[ "$RESTORE_STATUS" -ne 9 ]]; then
   sed -n '1,160p' "$DOCKER_LOG" >&2
   fail "safe restore failure lost its original status"
 fi
-grep -Fq 'stop frontend email_worker operations_worker generation_worker research_worker file_processing_worker account_lifecycle_worker maintenance_worker rendering_worker media_worker connector_worker audit_event_worker realtime_gateway automation_scheduler automation_worker fastapi' "$COMPOSE_LOG" \
+grep -Fq 'stop frontend email_worker operations_worker generation_worker memory_worker research_worker file_processing_worker account_lifecycle_worker maintenance_worker rendering_worker media_worker connector_worker audit_event_worker realtime_gateway automation_scheduler automation_worker fastapi' "$COMPOSE_LOG" \
   || fail "restore did not stop every possibly stale application service"
 grep -Fq 'stop --time 60 bbbbbbbbbbbb eeeeeeeeeeee' "$DOCKER_LOG" \
   || fail "restore did not fence an active orphaned application container"
 if grep -Eq 'stop --time 60 .*aaaaaaaaaaaa' "$DOCKER_LOG"; then
   fail "restore stopped the normal PostgreSQL infrastructure container"
 fi
-grep -Fq 'up -d --no-deps --force-recreate --remove-orphans frontend email_worker operations_worker generation_worker research_worker file_processing_worker account_lifecycle_worker maintenance_worker rendering_worker media_worker connector_worker audit_event_worker realtime_gateway fastapi' "$COMPOSE_LOG" \
+grep -Fq 'up -d --no-deps --force-recreate --remove-orphans frontend email_worker operations_worker generation_worker memory_worker research_worker file_processing_worker account_lifecycle_worker maintenance_worker rendering_worker media_worker connector_worker audit_event_worker realtime_gateway fastapi' "$COMPOSE_LOG" \
   || fail "safe Redis-off failure did not restart the core application"
 if grep -E 'up -d .*automation_(scheduler|worker)' "$COMPOSE_LOG" >/dev/null; then
   fail "Redis-off recovery restart activated automation services"
@@ -208,7 +208,7 @@ grep -Fq 'app.backups.cli restore-preflight --job-id successful-job --target in_
 grep -Fq 'app.backups.cli restore --offline --job-id successful-job --target in_place --confirm RESTORE-IN-PLACE' \
   "$COMPOSE_LOG" \
   || fail "job-ID restore did not preserve validated restore options"
-grep -Fq 'up -d --no-deps --force-recreate --remove-orphans frontend email_worker operations_worker generation_worker research_worker file_processing_worker account_lifecycle_worker maintenance_worker rendering_worker media_worker connector_worker audit_event_worker realtime_gateway automation_scheduler automation_worker fastapi' \
+grep -Fq 'up -d --no-deps --force-recreate --remove-orphans frontend email_worker operations_worker generation_worker memory_worker research_worker file_processing_worker account_lifecycle_worker maintenance_worker rendering_worker media_worker connector_worker audit_event_worker realtime_gateway automation_scheduler automation_worker fastapi' \
   "$COMPOSE_LOG" \
   || fail "Redis-enabled restore did not restart the complete application set"
 
@@ -220,7 +220,7 @@ TEST_STOP_STATUS=8 TEST_REDIS_ENABLED=false \
 if grep -Fq 'app.backups.cli restore --offline' "$COMPOSE_LOG"; then
   fail "stop failure still launched the destructive restore"
 fi
-grep -Fq 'up -d --no-deps --force-recreate --remove-orphans frontend email_worker operations_worker generation_worker research_worker file_processing_worker account_lifecycle_worker maintenance_worker rendering_worker media_worker connector_worker audit_event_worker realtime_gateway fastapi' "$COMPOSE_LOG" \
+grep -Fq 'up -d --no-deps --force-recreate --remove-orphans frontend email_worker operations_worker generation_worker memory_worker research_worker file_processing_worker account_lifecycle_worker maintenance_worker rendering_worker media_worker connector_worker audit_event_worker realtime_gateway fastapi' "$COMPOSE_LOG" \
   || fail "stop failure did not attempt a topology-correct recovery restart"
 
 # Failure to stop a discovered orphan or one-off must fail closed before the

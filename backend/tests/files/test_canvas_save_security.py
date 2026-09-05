@@ -1624,7 +1624,9 @@ def test_canvas_view_reads_accessible_current_file_content(monkeypatch, tmp_path
     assert result["viewed"] is True
 
 
-def test_canvas_view_tool_result_does_not_emit_visible_file_attachment(monkeypatch):
+def test_canvas_view_tool_result_keeps_reference_without_visible_file_attachment(
+    monkeypatch,
+):
     monkeypatch.setattr(
         tool_helper, "_admit_tool_invocation_or_payload", lambda *args, **kwargs: None
     )
@@ -1658,7 +1660,7 @@ def test_canvas_view_tool_result_does_not_emit_visible_file_attachment(monkeypat
     assert payload["images"] == []
     assert payload["videos"] == []
     assert payload["audios"] == []
-    assert "file_id" not in payload
+    assert payload["file_id"] == "file-1"
     assert payload["result"]["viewed"] is True
     assert "# Current" in payload["content"]
 
@@ -2301,6 +2303,21 @@ def test_latex_canvas_edit_status_depends_on_existing_pdf(
     assert result["render_status"] == expected_status
 
 
+def _patch_accessible_canvas_files(monkeypatch, *file_records):
+    class _AccessibleFilesQuery:
+        def filter(self, *_args):
+            return self
+
+        def all(self):
+            return list(file_records)
+
+    monkeypatch.setattr(
+        chat_utils,
+        "accessible_files_query",
+        lambda *_args: _AccessibleFilesQuery(),
+    )
+
+
 def test_html_canvas_user_edit_context_prompts_view_for_newer_user_revision(
     monkeypatch,
 ):
@@ -2332,9 +2349,7 @@ def test_html_canvas_user_edit_context_prompts_view_for_newer_user_revision(
         ),
     ]
 
-    monkeypatch.setattr(
-        chat_utils, "get_accessible_file", lambda db, user_id, file_id: file_record
-    )
+    _patch_accessible_canvas_files(monkeypatch, file_record)
 
     context = chat_utils._build_canvas_user_edit_user_context(
         object(), user_id="user-1", chat_history=chat_history
@@ -2376,11 +2391,7 @@ def test_excel_user_edit_context_directs_model_to_binary_file_tools(monkeypatch)
             content='[{"type":"user","content":"check my changes"}]',
         ),
     ]
-    monkeypatch.setattr(
-        chat_utils,
-        "get_accessible_file",
-        lambda _db, _user_id, _file_id: file_record,
-    )
+    _patch_accessible_canvas_files(monkeypatch, file_record)
 
     context = chat_utils._build_canvas_user_edit_user_context(
         object(), user_id="user-1", chat_history=chat_history
@@ -2417,9 +2428,7 @@ def test_canvas_user_edit_user_context_ignores_assistant_revision(monkeypatch):
         ),
     ]
 
-    monkeypatch.setattr(
-        chat_utils, "get_accessible_file", lambda db, user_id, file_id: file_record
-    )
+    _patch_accessible_canvas_files(monkeypatch, file_record)
 
     assert (
         chat_utils._build_canvas_user_edit_user_context(
@@ -2701,7 +2710,7 @@ def test_canvas_tool_schema_lists_file_metadata_before_content():
     assert set(branches[1]["required"]) == {"type", "file_id"}
 
 
-def test_notes_tool_schema_advertises_view_snippet_edits_and_file_refs():
+def test_notes_tool_schema_advertises_bounded_reads_and_atomic_edits():
     notes_schema = tool_schemas["notes"]
     properties = notes_schema["parameters"]["properties"]
 
@@ -2709,6 +2718,7 @@ def test_notes_tool_schema_advertises_view_snippet_edits_and_file_refs():
     assert "delete" not in properties["type"]["enum"]
     assert "start_snippet" in properties
     assert "end_snippet" in properties
-    assert "omlorix-file://FILE_ID" in notes_schema["description"]
-    assert "proofreading" in notes_schema["description"]
-    assert "do not send the complete note again" in notes_schema["description"]
+    assert "bounded" in notes_schema["description"]
+    assert "view_many" in notes_schema["description"]
+    assert "atomic edits array" in notes_schema["description"]
+    assert "expected_updated_at" in notes_schema["description"]

@@ -298,6 +298,17 @@ def _ensure_webauthn_stub() -> None:
 _ensure_webauthn_stub()
 
 
+@pytest.fixture
+def valid_slide_presentation_html() -> str:
+    """Return the smallest complete document accepted by the slide renderer."""
+
+    return """<!doctype html><html><head><style>
+.slide { width: 1920px; height: 1080px; position: relative; overflow: hidden; box-sizing: border-box; }
+</style></head><body>
+<section class="slide" data-slide-index="1" data-slide-title="Slide">Slide</section>
+</body></html>"""
+
+
 @pytest.fixture(scope="session")
 def _used_test_engines():
     """Keep test-used engines alive until their database resources are disposed."""

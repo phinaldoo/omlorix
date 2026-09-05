@@ -215,7 +215,7 @@ def test_openai_realtime_schema_exposes_only_consumed_controls():
     assert [option.value for option in fields["realtime_voice"].options] == [
         *OPENAI_REALTIME_VOICES
     ]
-    assert "realtime_max_output_tokens" in fields
+    assert "realtime_max_output_tokens" not in fields
     assert "realtime_input_transcription_enabled" in fields
     assert "realtime_temperature" not in fields
     assert "realtime_enable_session_resumption" not in fields
