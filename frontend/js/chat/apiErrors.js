@@ -10,6 +10,9 @@ function resolveApiErrorMessage(errorData, fallback) {
     }
     if (detail && typeof detail === 'object') {
         const code = typeof detail.code === 'string' ? detail.code.trim() : '';
+        if (code === 'misalignment_policy_violation') {
+            return apiErrorT('chat_openai_safety_stop', detail.message || detail.d || fallback);
+        }
         if (code === 'byok_credential_unavailable') {
             return apiErrorT(
                 'byok_credential_unavailable',

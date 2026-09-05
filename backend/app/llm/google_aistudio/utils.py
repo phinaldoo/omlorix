@@ -338,9 +338,32 @@ def _extract_aistudio_extra_forbidden_fields(exc: Exception) -> set[str]:
 
 def build_aistudio_generate_content_config(
     settings: dict | None = None,
+    *,
+    model_name: str | None = None,
     **config_kwargs,
 ) -> types.GenerateContentConfig:
-    payload = {key: value for key, value in config_kwargs.items() if value is not None}
+    from .model_list import get_aistudio_model_capabilities
+
+    payload = {
+        key: value
+        for key, value in config_kwargs.items()
+        if value is not None and key not in {"max_output_tokens", "maxOutputTokens"}
+    }
+    thinking = get_aistudio_model_capabilities(model_name).get("thinking") or {}
+    levels = thinking.get("reasoning_effort") or []
+    if thinking.get("reasoning_effort_support") and levels:
+        # Gemini 3 uses thinking levels; saved legacy budgets and sampling
+        # controls must not leak into chat or auxiliary generation requests.
+        for key in ("temperature", "top_p", "top_k", "candidate_count"):
+            payload.pop(key, None)
+        settings = settings or {}
+        effort = settings.get("reasoning_effort")
+        if effort is not None and effort not in levels:
+            effort = levels[0]
+        payload["thinking_config"] = types.ThinkingConfig(
+            include_thoughts=settings.get("include_thinking", True),
+            thinking_level=effort,
+        )
     if "media_resolution" in payload:
         payload["media_resolution"] = _normalize_aistudio_media_resolution(
             payload.get("media_resolution")

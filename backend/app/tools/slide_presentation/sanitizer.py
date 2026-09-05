@@ -462,18 +462,38 @@ def prepare_slide_presentation_html(
 def sanitize_slide_presentation_html(html: str) -> str:
     """Return slide HTML safe for browser previews and server-side rendering.
 
-    The slide generator produces static decks. This sanitizer preserves ordinary
-    HTML, inline SVG, and inline CSS while removing active content and network
-    fetches that could execute in the UI or be requested by renderers.
+    Interactive sources retain inline scripts and controls only with an explicit
+    version marker. Their stored CSP still prohibits execution; playback uses
+    an isolated document, as do visual editing and external rendering.
     """
     soup = BeautifulSoup(str(html or ""), "html.parser")
+    interactive = bool(soup.html and soup.html.get("data-omlorix-interactive") == "1")
+    from app.tools.slide_presentation.playback import NETWORK_META, network_origins, public_https_origin
+    image_origins = network_origins(soup, "omlorix-img-src") if interactive else []
 
     for comment in soup.find_all(string=lambda text: isinstance(text, Comment)):
         comment.extract()
 
     for tag in list(soup.find_all(True)):
         tag_name = (tag.name or "").lower()
-        if tag_name in _DANGEROUS_TAGS:
+        if not tag.name:
+            continue
+        if interactive and tag_name == "meta" and tag.get("name") in NETWORK_META:
+            name = tag["name"]
+            tag.attrs = {"name": name, "content": " ".join(network_origins(soup, name))}
+            continue
+        if interactive and tag_name == "script":
+            if tag.get("src") or str(tag.get("type") or "").lower() not in {"", "text/javascript", "application/javascript", "module", "application/json"}:
+                tag.decompose()
+            else:
+                # Inline code is retained for isolated execution.
+                tag.attrs = {key: value for key, value in tag.attrs.items() if key in {"id", "type"}}
+            continue
+        retained = {"button", "input", "select", "textarea", "iframe", "audio", "video", "source", "track"} if interactive else set()
+        if tag_name == "form" and interactive:
+            tag.unwrap()
+            continue
+        if tag_name in _DANGEROUS_TAGS and tag_name not in retained:
             tag.decompose()
             continue
 
@@ -505,7 +525,20 @@ def sanitize_slide_presentation_html(html: str) -> str:
                 continue
 
             if normalized_attr in _URL_ATTRS and not _is_safe_url_attr(normalized_attr, str(attr_value)):
-                del tag.attrs[attr_name]
+                from urllib.parse import urlsplit
+                try:
+                    url = urlsplit(str(attr_value))
+                except ValueError:
+                    url = urlsplit("")
+                origin = public_https_origin(f"{url.scheme}://{url.netloc}")
+                remote_frame = interactive and tag_name == "iframe" and normalized_attr == "src" and origin
+                remote_image = interactive and tag_name == "img" and normalized_attr == "src" and origin in image_origins
+                if not remote_frame and not remote_image:
+                    del tag.attrs[attr_name]
+        if tag_name == "iframe":
+            tag["sandbox"] = "allow-scripts"
+            tag["referrerpolicy"] = "no-referrer"
+            tag.attrs.pop("allow", None)
 
     _ensure_csp_meta(soup)
     return str(soup).strip()

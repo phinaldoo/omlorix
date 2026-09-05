@@ -1150,7 +1150,7 @@ async function processRegenerationStream(
                             return { rateLimited: true, errorData, detail };
                         }
                         if (typeof appendAssistantError === 'function') {
-                            appendAssistantError(targetMessageId, detail, last_appended_message_type);
+                            appendAssistantError(targetMessageId, detail, last_appended_message_type, obj);
                         }
                         const targetContainerEl = document.getElementById('a-' + targetMessageId);
                         if (targetContainerEl) {

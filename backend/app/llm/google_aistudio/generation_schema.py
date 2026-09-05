@@ -47,7 +47,11 @@ for _dependency_name in (
         globals()[_dependency_name] = getattr(_compat_source, _dependency_name)
 
 
-def _impl_get_parameters_schema_filled(model_settings: dict | None = None):
+def _impl_get_parameters_schema_filled(
+    model_settings: dict | None = None, *, model_name: str | None = None
+):
+    from .model_list import get_aistudio_model_capabilities
+
     generation_schema = Sections(
         sections=[
             Section(
@@ -74,14 +78,6 @@ def _impl_get_parameters_schema_filled(model_settings: dict | None = None):
                         key="settings.top_k",
                         label="Top K",
                         description="Limits sampling to the top K most likely tokens.",
-                        type="string",
-                        input_type="int",
-                        required=False,
-                    ),
-                    FieldSchema(
-                        key="settings.max_output_tokens",
-                        label="Max output tokens",
-                        description="Maximum number of tokens allowed in the generated output.",
                         type="string",
                         input_type="int",
                         required=False,
@@ -123,6 +119,13 @@ def _impl_get_parameters_schema_filled(model_settings: dict | None = None):
             ),
         ]
     )
+    thinking = get_aistudio_model_capabilities(model_name).get("thinking") or {}
+    if thinking.get("reasoning_effort_support"):
+        generation_schema.sections[0].fields = [
+            field
+            for field in generation_schema.sections[0].fields
+            if field.key not in {"settings.temperature", "settings.top_p", "settings.top_k"}
+        ]
     video_schema = Sections(
         sections=[
             Section(
@@ -169,7 +172,6 @@ def _impl_get_parameters_schema_filled(model_settings: dict | None = None):
     value_temperature = None
     value_top_p = None
     value_top_k = None
-    value_max_output_tokens = None
     value_stop_sequences = None
     value_presence_penalty = None
     value_frequency_penalty = None
@@ -185,7 +187,6 @@ def _impl_get_parameters_schema_filled(model_settings: dict | None = None):
         value_temperature = model_settings.get("temperature")
         value_top_p = model_settings.get("top_p")
         value_top_k = model_settings.get("top_k")
-        value_max_output_tokens = model_settings.get("max_output_tokens")
         value_stop_sequences = model_settings.get("stop_sequences")
         value_presence_penalty = model_settings.get("presence_penalty")
         value_frequency_penalty = model_settings.get("frequency_penalty")
@@ -209,12 +210,6 @@ def _impl_get_parameters_schema_filled(model_settings: dict | None = None):
     # Top K
     if value_top_k:
         _set_schema_field_value(generation_schema, "settings.top_k", value_top_k)
-
-    # Max Output Tokens
-    if value_max_output_tokens:
-        _set_schema_field_value(
-            generation_schema, "settings.max_output_tokens", value_max_output_tokens
-        )
 
     # Stop Sequences
     if value_stop_sequences:

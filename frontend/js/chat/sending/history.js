@@ -178,6 +178,16 @@ function collectAssistantBlocksFromDom(container) {
     });
 
     const terminalState = String(container.dataset.assistantTerminalState || '').trim().toLowerCase();
+    if (container.dataset.providerSafetyStop) {
+        try {
+            const meta = JSON.parse(container.dataset.providerSafetyStop);
+            if (meta.error_code === 'misalignment_policy_violation') {
+                blocks.push({ type: 'content', content: '', meta });
+            }
+        } catch (_) {
+            // Ignore malformed display metadata when serializing temporary history.
+        }
+    }
     if ((terminalState === 'cancelled' || terminalState === 'canceled') && blocks.length) {
         const lastBlock = blocks[blocks.length - 1];
         lastBlock.meta = {
@@ -269,4 +279,3 @@ if (typeof window !== 'undefined') {
     window.collectTemporaryChatHistoryFromDom = collectTemporaryChatHistoryFromDom;
     window.serializeTemporaryChatHistory = serializeTemporaryChatHistory;
 }
-

@@ -5208,6 +5208,8 @@ def regenerate_message(
         db,
         "Response regeneration is disabled for your group.",
     )
+    chat = db.query(Chats).filter(Chats.id == chat_id, Chats.user_id == user_id).first()
+    ensure_chat_sendable(chat, allow_archived=True)
     db_model = None
     rate_limit_admission = None
     rate_limit_context_token = None
@@ -5296,10 +5298,6 @@ def regenerate_message(
             agent_skill_ids=agent_skill_ids,
         )
 
-    # Verify chat exists and belongs to user
-    chat = db.query(Chats).filter(Chats.id == chat_id, Chats.user_id == user_id).first()
-    if not chat:
-        raise HTTPException(status_code=404, detail="Chat not found!")
     existing_chat_meta = getattr(chat, "meta", None)
     chat_meta = existing_chat_meta if isinstance(existing_chat_meta, dict) else {}
     selection_metadata = _build_agent_selection_metadata(

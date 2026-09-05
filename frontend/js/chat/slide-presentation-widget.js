@@ -57,7 +57,7 @@
     const ssLoaderBar   = document.getElementById('slide-presentation-SlideshowLoaderBar');
     const ssLoaderCount = document.getElementById('slide-presentation-SlideshowLoaderCount');
     const ssStage       = document.getElementById('slide-presentation-SlideshowStage');
-    const ssImg         = document.getElementById('slide-presentation-SlideshowImg');
+    const ssViewport    = document.getElementById('slide-presentation-SlideshowViewport');
     const ssClose       = document.getElementById('slide-presentation-SsClose');
     const ssPrev        = document.getElementById('slide-presentation-SsPrev');
     const ssNext        = document.getElementById('slide-presentation-SsNext');
@@ -95,6 +95,8 @@
     let _editorInertElements = [];
     let _editorPreviewRefreshToken = 0;
     let _editorPreviewRetry = null;
+    let _previewDownloadEnabled = false;
+    let _previewDownloadIsBusy = false;
 
     // ResizeObserver-driven scaling to avoid race conditions during panel/sidebar transitions
     let _scaleObservers = [];
@@ -104,7 +106,6 @@
     const _IFRAME_SCALE_RETRY_DELAY_MS = 50;
     const _SLIDE_IMAGE_DECODE_TIMEOUT_MS = 15000;
     const _SLIDE_PREVIEW_CSP = "default-src 'none'; img-src data: blob:; style-src 'unsafe-inline'; font-src data:; base-uri 'none'; form-action 'none'; frame-src 'none'; object-src 'none'; script-src 'none'";
-    const _SLIDESHOW_SWITCH_ANIMATION_MS = 400;
     const _SLIDE_SELECTION_HYSTERESIS_RATIO = 0.035;
     const _SLIDE_SELECTION_HYSTERESIS_MIN_PX = 16;
     const _SLIDE_SELECTION_HYSTERESIS_MAX_PX = 40;
@@ -114,12 +115,18 @@
 
     // Slideshow state
     let ssIndex = 0;
-    let ssImages = [];   // URLs used by the slideshow (real image URLs once available)
+    let ssDocument = null; // Sanitized source snapshot, independent of raster revisions
+    let ssSlideCount = 0;
+    let ssLoadToken = 0;
+    let ssSourceController = null;
+    let ssScaleObserver = null;
+    let ssRuntimeFrame = null;
+    let ssRuntimeChannel = null;
+    let ssRuntimeReadyTimer = null;
     let ssOpen = false;
     let ssNavigationToken = 0;
     let ssPreviouslyFocused = null;
     let _ssHideTimer = null;
-    let _ssSwitchAnimationTimer = null;
 
     // Rendered slide images (from backend after export)
     let slidePresentationSlideImages = [];  // array of blob URLs generated from authenticated fetches
@@ -208,29 +215,43 @@
     }
 
     function _setPreviewDownloadBusy(isBusy) {
+        _previewDownloadIsBusy = isBusy;
+        _syncPreviewDownloadControls();
+    }
+
+    function _canDownloadPresentation(format) {
+        if (format === 'html') return Boolean(slidePresentationPresentationId);
+        return _previewDownloadEnabled && Boolean(
+            format === 'pptx' ? slidePresentationFileId : slidePresentationPresentationId
+        );
+    }
+
+    function _syncPreviewDownloadControls() {
         window.chatDownloadControls?.setDownloadBusy?.({
             button: previewDownloadBtn,
-            select: previewDownloadFormat,
-            busy: isBusy,
-            enabled: Boolean(slidePresentationFileId || slidePresentationPresentationId),
+            busy: _previewDownloadIsBusy,
+            enabled: _canDownloadPresentation(previewDownloadFormat?.value || 'pptx'),
             defaultHtml: previewDownloadBtnDefaultHtml,
             disabledClass: 'disabled',
             manageTabIndex: true,
             busyLabel: t('slide_presentation_downloading', 'Downloading...'),
             idleLabel: t('files_preview_download', 'Download'),
         });
+        // Keep the format selector usable when only the saved source is ready.
+        if (previewDownloadFormat) {
+            previewDownloadFormat.disabled = _previewDownloadIsBusy || !(
+                _previewDownloadEnabled || slidePresentationPresentationId
+            );
+            for (const option of previewDownloadFormat.options) {
+                option.disabled = !_canDownloadPresentation(option.value);
+            }
+            window.chatDownloadControls?.syncDownloadFormatSelect?.(previewDownloadFormat);
+        }
     }
 
     function _setPreviewDownloadEnabled(enabled) {
-        window.chatDownloadControls?.setDownloadControlsEnabled?.({
-            button: previewDownloadBtn,
-            select: previewDownloadFormat,
-            enabled,
-            defaultHtml: previewDownloadBtnDefaultHtml,
-            disabledClass: 'disabled',
-            manageTabIndex: true,
-            label: t('files_preview_download', 'Download'),
-        });
+        _previewDownloadEnabled = enabled;
+        _syncPreviewDownloadControls();
     }
 
     function _setPreviewEditEnabled(enabled) {
@@ -248,50 +269,6 @@
             return Boolean(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
         } catch (_) {
             return false;
-        }
-    }
-
-    /**
-     * Crossfades presenter-mode slide changes after the new asset has been
-     * swapped in. This keeps the transition smooth without showing a blank frame
-     * while images are preloading.
-     */
-    function _playSlideshowSwitchAnimation(targetEl, nextIndex, previousIndex) {
-        if (!targetEl || _shouldReduceMotion()) return;
-
-        if (_ssSwitchAnimationTimer) {
-            clearTimeout(_ssSwitchAnimationTimer);
-            _ssSwitchAnimationTimer = null;
-        }
-
-        targetEl.classList.remove('switching-in', 'switching-back');
-        if (Number(nextIndex) < Number(previousIndex)) {
-            targetEl.classList.add('switching-back');
-        }
-
-        void targetEl.offsetWidth;
-        targetEl.classList.add('switching-in');
-
-        _ssSwitchAnimationTimer = setTimeout(() => {
-            targetEl.classList.remove('switching-in', 'switching-back');
-            _ssSwitchAnimationTimer = null;
-        }, _SLIDESHOW_SWITCH_ANIMATION_MS);
-    }
-
-    /**
-     * Remove transient transition classes before rebuilding the preview panel or
-     * closing presenter mode.
-     */
-    function _clearSlideSwitchAnimations() {
-        if (_ssSwitchAnimationTimer) {
-            clearTimeout(_ssSwitchAnimationTimer);
-            _ssSwitchAnimationTimer = null;
-        }
-
-        if (ssOverlay) {
-            ssOverlay.querySelectorAll('.switching-in, .switching-back').forEach((el) => {
-                el.classList.remove('switching-in', 'switching-back');
-            });
         }
     }
 
@@ -655,8 +632,7 @@
     /**
      * Present close-time editor rendering as a non-destructive overlay. The
      * last complete slide revision stays visible until every replacement image
-     * has loaded, while actions that could export or present stale derivatives
-     * are temporarily disabled.
+     * has loaded, while export of stale derivatives is temporarily disabled.
      */
     function _setEditorPreviewRefreshState(state = 'idle', message = '') {
         const isBusy = state === 'busy';
@@ -678,7 +654,7 @@
         _setPreviewBusy(isBusy);
 
         if (isBusy) {
-            if (previewPresent) previewPresent.disabled = true;
+            if (previewPresent) previewPresent.disabled = !slidePresentationPresentationId;
             _setPreviewEditEnabled(false);
             _setPreviewDownloadEnabled(false);
             return;
@@ -686,10 +662,9 @@
 
         const hasPreview = _slideItems.length > 0;
         // A failed refresh leaves the last-good preview visible so the user
-        // can retry without a blank sidebar. That artifact is deliberately
-        // non-exportable/non-presentable because it may predate editor changes.
-        // Editing remains available so the source can still be corrected.
-        if (previewPresent) previewPresent.disabled = isError || !hasPreview;
+        // can retry without a blank sidebar. Export waits for the derivative;
+        // Present reads the saved source independently.
+        if (previewPresent) previewPresent.disabled = !hasPreview;
         _setPreviewEditEnabled(Boolean(slidePresentationPresentationId));
         _setPreviewDownloadEnabled(!isError && Boolean(slidePresentationFileId));
     }
@@ -746,9 +721,9 @@
 
     function showPreviewPanel(title) {
         if (_editorOpen) closePresentationEditor();
+        if (ssOpen) closeSlideshow();
         _editorPreviewRefreshToken += 1;
         _editorPreviewRetry = null;
-        _clearSlideSwitchAnimations();
         slidePresentationSlides = [];
         slidePresentationStyles = '';
         slidePresentationCurrentIndex = 0;
@@ -757,6 +732,7 @@
         slidePresentationFileId = null;
         slidePresentationPresentationId = null;
         slidePresentationRenderedRevision = 0;
+        slidePresentationImageLoadToken += 1;
         _revokeSlideImages();
         _disconnectScaleObservers();
         _slideItems = [];
@@ -871,7 +847,7 @@
      * reopen failed output after the terminal tool error. */
     function _discardFailedGenerationPreview() {
         hidePreviewPanel();
-        _clearSlideSwitchAnimations();
+        if (ssOpen) closeSlideshow();
         _revokeSlideImages();
         _disconnectScaleObservers();
         _destroySlideObserver();
@@ -986,10 +962,15 @@
     function _sanitizeSlideFrameHtml(bodyHtml) {
         const template = document.createElement('template');
         template.innerHTML = String(bodyHtml || '');
-        template.content.querySelectorAll(
+        _sanitizeSlideFrameContent(template.content);
+        return template.innerHTML;
+    }
+
+    function _sanitizeSlideFrameContent(root) {
+        root.querySelectorAll(
             'script, noscript, iframe, frame, frameset, object, embed, form, input, button, select, textarea, audio, video, source, track, link, meta, base'
         ).forEach(element => element.remove());
-        template.content.querySelectorAll('*').forEach(element => {
+        root.querySelectorAll('*').forEach(element => {
             [...element.attributes].forEach(attribute => {
                 const name = attribute.name.toLowerCase();
                 if (name.startsWith('on') || name === 'srcdoc' || name === 'autofocus' || name === 'contenteditable') {
@@ -997,12 +978,11 @@
                 }
             });
         });
-        return template.innerHTML;
     }
 
     function _slideHtmlDoc(bodyHtml) {
         const sanitizedBodyHtml = _sanitizeSlideFrameHtml(bodyHtml);
-        return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${_SLIDE_PREVIEW_CSP}"><style>*{box-sizing:border-box;}body{margin:0;padding:0;background:#fff;overflow:hidden;}${slidePresentationStyles}.slide{transform-origin:top left;}</style></head><body>${sanitizedBodyHtml}</body></html>`;
+        return `<!DOCTYPE html><html data-omlorix-mode="preview"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${_SLIDE_PREVIEW_CSP}"><style>*{box-sizing:border-box;}body{margin:0;padding:0;background:#fff;overflow:hidden;}${slidePresentationStyles}.slide{transform-origin:top left;}*,*::before,*::after{animation:none!important;transition:none!important;}</style></head><body>${sanitizedBodyHtml}</body></html>`;
     }
 
     function _writeIframe(iframe, bodyHtml) {
@@ -1505,11 +1485,6 @@
             _restorePreviewFromImages();
         }
         previousRevokers.forEach(revoke => revoke());
-
-        if (ssOpen) {
-            ssImages = _ssUseImages();
-            _ssGoTo(ssIndex);
-        }
         return true;
     }
 
@@ -1758,12 +1733,12 @@
             }
             previewDownloadBtn.setAttribute('download', '');
         }
-        _setPreviewDownloadEnabled(Boolean(fileId || presentationId));
         if (previewDownloadFormat) {
             if (!fileId && previewDownloadFormat.value === 'pptx') {
                 previewDownloadFormat.value = 'pdf';
             }
         }
+        _setPreviewDownloadEnabled(Boolean(fileId || presentationId));
         if (previewPresent) previewPresent.disabled = false;
         _setPreviewEditEnabled(Boolean(presentationId));
 
@@ -1914,7 +1889,6 @@
         if (!_editorOpen) return;
         const presentationId = String(options.presentationId || slidePresentationPresentationId || '');
         const refreshContext = options.refreshContext || null;
-        const preserveNativeSession = options.preserveNativeSession === true;
         _editorOpen = false;
         _editorOpenToken += 1;
         _editorInertElements.forEach(element => element.removeAttribute('inert'));
@@ -1922,18 +1896,10 @@
         document.body.classList.remove('slide-presentation-editor-open');
         editorOverlay?.classList.remove('open', 'ready');
         editorOverlay?.setAttribute('aria-hidden', 'true');
-        if (!preserveNativeSession) {
-            window.slidePresentationNativeEditor?.cancel?.();
-        }
+        window.slidePresentationNativeEditor?.cancel?.();
         const focusTarget = _editorReturnFocus;
-        if (preserveNativeSession) {
-            // Focus the underlying preview before opening the slideshow so its
-            // own focus restoration never targets a now-hidden editor control.
-            focusTarget?.focus?.();
-        } else {
-            _editorReturnFocus = null;
-            requestAnimationFrame(() => focusTarget?.focus?.());
-        }
+        _editorReturnFocus = null;
+        focusTarget?.focus?.();
         if (refreshContext) {
             _queueEditorClosePreviewRefresh(presentationId, refreshContext);
         }
@@ -1985,7 +1951,11 @@
             );
             if (!_editorOpen || openToken !== _editorOpenToken) return;
 
-            nativeEditor.open({
+            await nativeEditor.open({
+                prepare: changes => _editorFetchJson(
+                    `/api/v1/presentations/${encodeURIComponent(presentationId)}/editor/prepare`,
+                    { method: 'POST', body: JSON.stringify(changes) }
+                ),
                 payload,
                 exportFormat: previewDownloadFormat?.value || 'pptx',
                 save: async changes => {
@@ -2048,30 +2018,16 @@
                         throw error;
                     }
                 },
-                // The editor owns no slideshow or exporter. Both actions enter
-                // the shared canvas paths; Present hands off its render promise
-                // so the slideshow can display progress, while Export waits for
-                // the final derivative before starting the download.
-                present: async ({ slideIndex, renderPromise } = {}) => {
+                // Presentation reads the saved HTML immediately. The sidebar
+                // refresh continues independently for thumbnails and exports.
+                present: async ({ slideIndex, refreshContext } = {}) => {
+                    if (!_editorOpen || openToken !== _editorOpenToken
+                        || String(slidePresentationPresentationId || '') !== presentationId) return;
                     if (_slideItems.length) {
                         _setCurrentSlideIndex(Math.max(0, Math.min(Number(slideIndex) || 0, _slideItems.length - 1)));
                     }
-                    // Hide the editor without cancelling its save/render
-                    // session. The slideshow becomes visible immediately and
-                    // owns the wait, so the user sees useful progress instead
-                    // of an apparently frozen editor.
-                    closePresentationEditor({ preserveNativeSession: true });
-                    openSlideshow({ deferContent: true, slideIndex });
-
-                    const rendered = await Promise.resolve(renderPromise).catch(() => false);
-                    nativeEditor.cancel?.();
-                    _editorReturnFocus = null;
-                    if (!ssOpen) return;
-                    if (!rendered) {
-                        closeSlideshow();
-                        return;
-                    }
-                    _showSlideshowContent(slideIndex);
+                    closePresentationEditor({ presentationId, refreshContext });
+                    await openSlideshow({ slideIndex, returnFocus: previewPresent });
                 },
                 export: async ({ format } = {}) => {
                     await downloadPresentation(format);
@@ -2315,20 +2271,13 @@
     async function downloadPresentation(formatOverride = '') {
             const fileId = previewDownloadBtn.getAttribute('data-file-id');
             const presentationId = previewDownloadBtn.getAttribute('data-presentation-id') || slidePresentationPresentationId;
-            if (previewDownloadBtn.classList.contains('disabled')) {
-                return;
-            }
+            const format = String(formatOverride || '').trim() || (window.chatDownloadControls
+                    ? window.chatDownloadControls.getSelectedDownloadFormat(previewDownloadFormat, 'pptx')
+                    : (previewDownloadFormat && previewDownloadFormat.value ? previewDownloadFormat.value : 'pptx'));
+            if (_previewDownloadIsBusy || !_canDownloadPresentation(format)) return;
 
             try {
                 _setPreviewDownloadBusy(true);
-
-                // Get selected format and presentation title
-                let format = String(formatOverride || '').trim() || (window.chatDownloadControls
-                    ? window.chatDownloadControls.getSelectedDownloadFormat(previewDownloadFormat, 'pptx')
-                    : (previewDownloadFormat && previewDownloadFormat.value ? previewDownloadFormat.value : 'pptx'));
-                if (!format || format === 'slide-presentation-') {
-                    format = 'pptx';
-                }
                 const presentationTitle = (previewTitle && previewTitle.textContent) ? previewTitle.textContent : 'presentation';
                 
                 // Sanitize filename: remove special characters and limit length
@@ -2343,7 +2292,12 @@
                 let downloadUrl = '';
                 let outputFilename = `${sanitizedTitle}.pptx`;
 
-                if (format === 'slides_zip') {
+                if (format === 'html') {
+                    // The presentation ID is its canonical editable HTML file ID.
+                    // Reuse authenticated attachment downloads and their audit trail.
+                    downloadUrl = `/api/v1/files/download?file_id=${encodeURIComponent(presentationId)}`;
+                    outputFilename = `${sanitizedTitle}.html`;
+                } else if (format === 'slides_zip') {
                     if (!presentationId) {
                         throw new Error(t('slide_presentation_archive_unavailable', 'Slide image archive is not available for this presentation.'));
                     }
@@ -2371,7 +2325,7 @@
                 });
 
             } catch (error) {
-                console.error('PowerPoint download failed:', error);
+                console.error('Presentation download failed:', error);
                 // Show error message to user
                 if (typeof window.notifyError === 'function') {
                     window.notifyError(t('slide_presentation_download_failed_retry', 'Failed to download presentation. Please try again.'));
@@ -2384,6 +2338,7 @@
     }
 
     // Both the sidebar button and editor export control call the same helper.
+    previewDownloadFormat?.addEventListener('change', _syncPreviewDownloadControls);
     if (previewDownloadBtn) {
         previewDownloadBtn.addEventListener('click', async (e) => {
             e.preventDefault();
@@ -2393,6 +2348,7 @@
 
     window.addEventListener('resize', () => {
         _updatePreviewResizerA11y();
+        _scaleSlideshow();
         if (_slideItems.length > 0) {
             _schedulePreviewRescale();
         }
@@ -2415,57 +2371,79 @@
         });
         slidePresentationSlideImageRevokers = [];
         slidePresentationSlideImages = [];
-        
-        // Also clear slideshow images to prevent cross-contamination
-        ssImages = [];
     }
 
     // ── Slideshow functions ────────────────────────────────────────────────
     function _ssUpdateCounter() {
-        if (ssCurrent) ssCurrent.textContent = ssIndex + 1;
-        if (ssTotal)   ssTotal.textContent   = ssImages.length;
+        if (ssCurrent) ssCurrent.textContent = ssSlideCount ? ssIndex + 1 : 0;
+        if (ssTotal)   ssTotal.textContent   = ssSlideCount;
         if (ssPrev)    ssPrev.disabled  = ssIndex === 0;
-        if (ssNext)    ssNext.disabled  = ssIndex >= ssImages.length - 1;
+        if (ssNext)    ssNext.disabled  = ssIndex >= ssSlideCount - 1;
         if (ssOverlay) {
             ssOverlay.querySelectorAll('.slide-presentation-ss-dot').forEach((d, i) =>
                 d.classList.toggle('active', i === ssIndex));
         }
     }
 
-    function _ssGoTo(index) {
-        if (!ssImages.length) return;
-        const previousIndex = ssIndex;
-        ssIndex = Math.max(0, Math.min(index, ssImages.length - 1));
-        const url = ssImages[ssIndex] || '';
-        const ssImgEl = ssOverlay ? ssOverlay.querySelector('.slide-presentation-ss-img-real') : null;
-        const ssIframe = ssOverlay ? ssOverlay.querySelector('.slide-presentation-ss-iframe') : null;
-        const shouldAnimateSwitch = ssIndex !== previousIndex;
-        const navigationToken = ++ssNavigationToken;
+    function _scaleSlideshow() {
+        if (!ssOpen || !ssStage || !ssViewport) return;
+        const bounds = ssStage.getBoundingClientRect();
+        const style = window.getComputedStyle(ssStage);
+        const width = bounds.width - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+        const height = bounds.height - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
+        const scale = Math.max(0, Math.min(width / 1920, height / 1080));
+        ssViewport.style.width = `${1920 * scale}px`;
+        ssViewport.style.height = `${1080 * scale}px`;
+        ssViewport.querySelectorAll('iframe').forEach(frame => {
+            frame.style.transform = `scale(${scale})`;
+        });
+    }
 
-        if (ssImgEl) {
-            // Preload the image, then swap — no black flash
-            const preload = new Image();
-            let didSwap = false;
-            const swapPreloadedImage = () => {
-                if (didSwap || navigationToken !== ssNavigationToken || !ssOpen) return;
-                didSwap = true;
-                ssImgEl.src = url;
-                if (shouldAnimateSwitch) {
-                    _playSlideshowSwitchAnimation(ssImgEl, ssIndex, previousIndex);
-                }
-            };
-            preload.onload = swapPreloadedImage;
-            preload.src = url;
-            // If already cached, swap immediately
-            if (preload.complete) {
-                swapPreloadedImage();
-            }
-        } else if (ssIframe) {
-            ssIframe.src = url;
-            if (shouldAnimateSwitch) {
-                _playSlideshowSwitchAnimation(ssIframe, ssIndex, previousIndex);
-            }
+    function _ssGoTo(index) {
+        if (ssOpen && ssRuntimeFrame && ssRuntimeChannel) {
+            ssIndex = Math.max(0, Math.min(Number(index) || 0, ssSlideCount - 1));
+            ssRuntimeFrame.contentWindow?.postMessage({
+                type: 'omlorix-presentation:goto', channel: ssRuntimeChannel, index: ssIndex,
+            }, '*');
+            _ssUpdateCounter();
+            return;
         }
+        if (!ssOpen || !ssDocument || !ssSlideCount || !ssViewport) return;
+        ssIndex = Math.max(0, Math.min(index, ssSlideCount - 1));
+        const navigationToken = ++ssNavigationToken;
+        const doc = ssDocument.cloneNode(true);
+        // Retain the slide shells so nth-child selectors keep their meaning,
+        // but load assets and render content only for the active slide.
+        doc.querySelectorAll('section.slide').forEach((slide, i) => {
+            if (i !== ssIndex) {
+                slide.replaceChildren();
+                slide.style.setProperty('display', 'none', 'important');
+            }
+        });
+        const frame = document.createElement('iframe');
+        frame.className = 'slide-presentation-ss-iframe pending';
+        frame.setAttribute('sandbox', '');
+        frame.setAttribute('scrolling', 'no');
+        frame.setAttribute('tabindex', '-1');
+        frame.title = tf('slide_presentation_slide_number', 'Slide {number}', { number: ssIndex + 1 });
+        frame.setAttribute('aria-hidden', 'true');
+        // Keep the last loaded slide visible until its replacement is ready.
+        // Rapid navigation leaves at most one visible and one pending frame.
+        ssViewport.querySelectorAll('.pending').forEach(pending => pending.remove());
+        frame.addEventListener('load', () => {
+            if (!ssOpen || navigationToken !== ssNavigationToken) return;
+            ssViewport.querySelectorAll('iframe').forEach(other => {
+                if (other !== frame) other.remove();
+            });
+            frame.classList.remove('pending');
+            frame.removeAttribute('aria-hidden');
+            ssOverlay.classList.remove('is-loading');
+            ssLoader?.classList.add('hidden');
+            ssStage?.classList.add('visible');
+        }, { once: true });
+        frame.srcdoc = '<!DOCTYPE html>' + doc.documentElement.outerHTML;
+        ssViewport.appendChild(frame);
+        _scaleSlideshow();
         _ssUpdateCounter();
     }
 
@@ -2480,8 +2458,8 @@
             container.appendChild(prog);
         }
         prog.innerHTML = '';
-        if (ssImages.length <= 30) {
-            ssImages.forEach((_, i) => {
+        if (ssSlideCount <= 30) {
+            for (let i = 0; i < ssSlideCount; i++) {
                 const dot = document.createElement('button');
                 dot.type = 'button';
                 dot.className = 'slide-presentation-ss-dot' + (i === ssIndex ? ' active' : '');
@@ -2491,30 +2469,35 @@
                 );
                 dot.addEventListener('click', () => _ssGoTo(i));
                 prog.appendChild(dot);
-            });
+            }
         }
     }
 
-    function _ssUseImages() {
-        // Prefer real PNG images; fall back to blob URLs from HTML
-        if (slidePresentationSlideImages.length > 0) {
-            // Retain slide indices even when one backend image is temporarily
-            // unavailable, but never hand a null URL to the slideshow image.
-            return slidePresentationSlideImages.map((url, idx) => {
-                if (url) return url;
-                const label = tf('slide_presentation_slide_number', 'Slide {number}', { number: idx + 1 });
-                const svg = `${Icons.createSlidePlaceholder(label)}`;
-                return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-            });
+    function _prepareSlideshowDocument(html) {
+        const doc = new DOMParser().parseFromString(String(html || ''), 'text/html');
+        _sanitizeSlideFrameContent(doc);
+        // Only local, inline deck styling belongs in the generated document.
+        [...doc.head.children].forEach(element => {
+            if (element.tagName !== 'STYLE') element.remove();
+        });
+        const csp = doc.createElement('meta');
+        csp.httpEquiv = 'Content-Security-Policy';
+        csp.content = _SLIDE_PREVIEW_CSP;
+        doc.head.prepend(csp);
+        const layout = doc.createElement('style');
+        layout.textContent = `
+            html, body { width:1920px!important; height:1080px!important; margin:0!important; padding:0!important; overflow:hidden!important; }
+            body { display:block!important; }
+            section.slide { width:1920px!important; height:1080px!important; margin:0!important; position:relative; overflow:hidden; box-sizing:border-box; }
+            @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation:none!important; transition:none!important; scroll-behavior:auto!important; } }
+        `;
+        doc.head.appendChild(layout);
+        const count = doc.querySelectorAll('section.slide').length;
+        if (!count || count > 50) {
+            throw new Error(t('slide_presentation_preview_unavailable_for_file', 'Presentation preview is not available for this file.'));
         }
-        // Fallback: build blob URLs from HTML
-        const blobs = [];
-        for (let i = 0; i < slidePresentationSlides.length; i++) {
-            const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${_SLIDE_PREVIEW_CSP}"><style>*{margin:0;padding:0;box-sizing:border-box;}body{width:1920px;height:1080px;overflow:hidden;background:#fff;}${slidePresentationStyles}</style></head><body>${_sanitizeSlideFrameHtml(slidePresentationSlides[i])}</body></html>`;
-            const blob = new Blob([html], { type: 'text/html' });
-            blobs.push(URL.createObjectURL(blob));
-        }
-        return blobs;
+        ssDocument = doc;
+        ssSlideCount = count;
     }
 
     function _showSlideshowControls() {
@@ -2537,113 +2520,144 @@
         ssOverlay.classList.remove('show-controls');
     }
 
-    /**
-     * Populate an already-open slideshow from the newest available slide
-     * images. Kept separate from opening the shell so editor-triggered preview
-     * can reveal its loading state before backend rendering has completed.
-     */
-    function _showSlideshowContent(requestedIndex = ssIndex) {
-        if ((!slidePresentationSlides.length && !slidePresentationSlideImages.length) || !ssOverlay || !ssOpen) {
-            return false;
+    function _mountInteractiveSlideshow(payload, loadToken) {
+        const url = new URL(String(payload.frame_url || ''), window.location.origin);
+        if (url.origin !== window.location.origin || !/^\/api\/v1\/llm\/widgets\/frame\/[A-Za-z0-9_-]+$/.test(url.pathname)) {
+            throw new Error('invalid_presentation_frame');
         }
-
-        ssOverlay.classList.remove('is-rerendering');
-        if (ssLoaderText) {
-            ssLoaderText.textContent = t('slide_presentation_loading_slides', 'Loading slides…');
-        }
-        const useRealImages = slidePresentationSlideImages.length > 0;
-        ssImages = _ssUseImages();
-        ssIndex = Math.max(0, Math.min(Number(requestedIndex) || 0, ssImages.length - 1));
-
-        if (ssLoaderBar) ssLoaderBar.style.width = '100%';
-        if (ssLoaderCount) ssLoaderCount.textContent = `${ssImages.length} / ${ssImages.length}`;
-
+        ssSlideCount = Math.max(1, Math.min(Number(payload.slide_count) || 1, 50));
+        ssIndex = Math.min(ssIndex, ssSlideCount - 1);
+        ssRuntimeChannel = String(payload.channel_id || '');
+        const frame = document.createElement('iframe');
+        frame.className = 'slide-presentation-ss-iframe interactive';
+        frame.title = t('slide_presentation_slideshow_dialog_aria', 'Presentation slideshow');
+        frame.setAttribute('sandbox', 'allow-scripts');
+        frame.setAttribute('referrerpolicy', 'no-referrer');
+        frame.setAttribute('allow', 'fullscreen');
+        ssRuntimeFrame = frame;
+        frame.src = url.href;
+        ssViewport.appendChild(frame);
+        _scaleSlideshow();
         _buildProgressDots();
-
-        if (useRealImages) {
-            // Use <img> for real PNG images.
-            let ssImgEl = ssOverlay.querySelector('.slide-presentation-ss-img-real');
-            const existingIframe = ssOverlay.querySelector('.slide-presentation-ss-iframe');
-            if (existingIframe) existingIframe.remove();
-            if (!ssImgEl) {
-                ssImgEl = document.createElement('img');
-                ssImgEl.className = 'slide-presentation-ss-img-real';
-                ssImgEl.style.cssText = 'width:100%;height:100%;object-fit:contain;border-radius:6px;box-shadow:0 8px 60px rgba(0,0,0,0.6);display:block;';
-                if (ssImg?.isConnected) ssImg.replaceWith(ssImgEl);
-                else if (ssStage) ssStage.appendChild(ssImgEl);
-            }
-            ssImgEl.src = ssImages[ssIndex] || '';
-        } else {
-            // Fallback to the live HTML deck when no rendered PNGs exist.
-            let ssIframe = ssOverlay.querySelector('.slide-presentation-ss-iframe');
-            const existingImage = ssOverlay.querySelector('.slide-presentation-ss-img-real');
-            if (existingImage) existingImage.remove();
-            if (!ssIframe) {
-                ssIframe = document.createElement('iframe');
-                ssIframe.className = 'slide-presentation-ss-iframe';
-                ssIframe.setAttribute('sandbox', '');
-                ssIframe.style.cssText = 'width:100%;height:100%;border:none;border-radius:6px;box-shadow:0 8px 60px rgba(0,0,0,0.6);';
-                if (ssImg?.isConnected) ssImg.replaceWith(ssIframe);
-                else if (ssStage) ssStage.appendChild(ssIframe);
-            }
-            ssIframe.setAttribute('sandbox', '');
-            ssIframe.src = ssImages[ssIndex] || '';
-        }
-
         _ssUpdateCounter();
-        if (ssLoader) ssLoader.classList.add('hidden');
-        if (ssStage) ssStage.classList.add('visible');
-        _hideSlideshowControlsImmediately();
-        requestAnimationFrame(() => ssClose?.focus());
-        return true;
+        ssRuntimeReadyTimer = setTimeout(() => {
+            if (ssOpen && loadToken === ssLoadToken) {
+                closeSlideshow();
+                window.notifyError?.(t('slide_presentation_preview_unavailable_for_file', 'Presentation preview is not available for this file.'));
+            }
+        }, 15000);
     }
 
-    function openSlideshow(options = {}) {
-        const deferContent = options.deferContent === true;
-        if ((!deferContent && !slidePresentationSlides.length && !slidePresentationSlideImages.length) || !ssOverlay) return;
-        ssOpen = true;
-        ssPreviouslyFocused = document.activeElement;
-        ssIndex = Math.max(0, Number(options.slideIndex ?? slidePresentationCurrentIndex) || 0);
-
-        ssOverlay.classList.add('open');
-        ssOverlay.classList.toggle('is-rerendering', deferContent);
-        ssOverlay.setAttribute('aria-hidden', 'false');
-        if (ssLoader) ssLoader.classList.remove('hidden');
-        if (ssStage)  ssStage.classList.remove('visible');
-        if (ssTotal)  ssTotal.textContent = slidePresentationSlides.length;
-
-        if (deferContent) {
-            ssImages = [];
-            if (ssLoaderText) {
-                ssLoaderText.textContent = t('slide_presentation_editor_rendering', 'Updating preview…');
-            }
-            if (ssLoaderBar) ssLoaderBar.style.width = '0%';
-            if (ssLoaderCount) ssLoaderCount.textContent = '';
-            _buildProgressDots();
-            requestAnimationFrame(() => ssOverlay.focus());
-            return;
+    window.addEventListener('message', event => {
+        if (!ssOpen || !ssRuntimeFrame || event.source !== ssRuntimeFrame.contentWindow
+            || event.origin !== 'null' || event.data?.channel !== ssRuntimeChannel) return;
+        const data = event.data;
+        if (data.type === 'omlorix-presentation:ready') {
+            clearTimeout(ssRuntimeReadyTimer);
+            ssRuntimeReadyTimer = null;
+            ssLoader?.classList.add('hidden');
+            ssStage?.classList.add('visible');
+            ssOverlay.classList.remove('is-loading');
+            _hideSlideshowControlsImmediately();
         }
+        if (data.type === 'omlorix-presentation:state' || data.type === 'omlorix-presentation:ready') {
+            if (Number.isInteger(data.index)) ssIndex = Math.max(0, Math.min(data.index, ssSlideCount - 1));
+            _ssUpdateCounter();
+        }
+        if (data.type === 'omlorix-presentation:activity') _showSlideshowControls();
+        if (data.type === 'omlorix-presentation:close') closeSlideshow();
+        if (data.type === 'omlorix-presentation:fullscreen') _toggleSsFullscreen();
+        if (data.type === 'omlorix-presentation:focus-host') {
+            _showSlideshowControls();
+            (data.backwards ? ssClose : ssPrev?.disabled ? ssNext : ssPrev)?.focus();
+        }
+    });
 
-        _showSlideshowContent(ssIndex);
+    async function openSlideshow(options = {}) {
+        if (!ssOverlay || !ssViewport) return;
+        const presentationId = String(slidePresentationPresentationId || '');
+        if (!presentationId && !slidePresentationSlides.some(Boolean)) return;
+        const loadToken = ++ssLoadToken;
+        ssSourceController?.abort();
+        const controller = new AbortController();
+        ssSourceController = controller;
+        if (!ssOpen) ssPreviouslyFocused = options.returnFocus || document.activeElement;
+        ssOpen = true;
+        ssNavigationToken += 1;
+        ssDocument = null;
+        ssSlideCount = 0;
+        ssIndex = Math.max(0, Number(options.slideIndex ?? slidePresentationCurrentIndex) || 0);
+        clearTimeout(ssRuntimeReadyTimer);
+        ssRuntimeFrame = null;
+        ssRuntimeChannel = null;
+        ssViewport.replaceChildren();
+        ssOverlay.classList.add('open', 'is-loading');
+        ssOverlay.setAttribute('aria-hidden', 'false');
+        ssLoader?.classList.remove('hidden');
+        if (ssLoaderBar) ssLoaderBar.style.width = '0%';
+        if (ssLoaderCount) ssLoaderCount.textContent = '';
+        ssStage?.classList.remove('visible');
+        if (ssLoaderText) ssLoaderText.textContent = t('slide_presentation_loading_slides', 'Loading slides…');
+        _buildProgressDots();
+        _ssUpdateCounter();
+        ssClose?.focus();
+        ssScaleObserver?.disconnect();
+        if (typeof ResizeObserver !== 'undefined') {
+            ssScaleObserver = new ResizeObserver(_scaleSlideshow);
+            ssScaleObserver.observe(ssStage);
+        }
+        try {
+            // HTTP frame documents have their own response CSP, including in
+            // Safari. srcdoc would inherit the authenticated app's script policy.
+            if (presentationId) {
+                const payload = await _editorFetchJson(
+                    `/api/v1/presentations/${encodeURIComponent(presentationId)}/playback`,
+                    { method: 'POST', body: JSON.stringify({ slide_index: Math.min(ssIndex, 49) }), signal: controller.signal }
+                );
+                if (!ssOpen || loadToken !== ssLoadToken || presentationId !== String(slidePresentationPresentationId || '')) return;
+                _mountInteractiveSlideshow(payload, loadToken);
+                return;
+            }
+            const html = _slideHtmlDoc(slidePresentationSlides.filter(Boolean).join(''));
+            _prepareSlideshowDocument(html);
+            if (ssLoaderBar) ssLoaderBar.style.width = '100%';
+            if (ssLoaderCount) ssLoaderCount.textContent = `${ssSlideCount} / ${ssSlideCount}`;
+            _buildProgressDots();
+            _ssGoTo(ssIndex);
+            _hideSlideshowControlsImmediately();
+        } catch (error) {
+            if (!ssOpen || loadToken !== ssLoadToken) return;
+            closeSlideshow();
+            window.notifyError?.(t('slide_presentation_preview_unavailable_for_file', 'Presentation preview is not available for this file.'));
+        } finally {
+            if (ssSourceController === controller) ssSourceController = null;
+        }
     }
 
     function closeSlideshow() {
         ssOpen = false;
         ssNavigationToken += 1;
-        _clearSlideSwitchAnimations();
         if (ssOverlay) {
             ssOverlay.classList.remove('open');
             ssOverlay.classList.remove('is-fullscreen');
-            ssOverlay.classList.remove('is-rerendering');
+            ssOverlay.classList.remove('is-loading');
             ssOverlay.classList.remove('show-controls');
             ssOverlay.setAttribute('aria-hidden', 'true');
         }
-        // Only revoke blob URLs (real image URLs are permanent API endpoints)
-        if (slidePresentationSlideImages.length === 0) {
-            ssImages.forEach(url => { if (url && url.startsWith('blob:')) URL.revokeObjectURL(url); });
-        }
-        ssImages = [];
-        if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+        ssLoadToken += 1;
+        ssSourceController?.abort();
+        ssSourceController = null;
+        ssScaleObserver?.disconnect();
+        ssScaleObserver = null;
+        clearTimeout(ssRuntimeReadyTimer);
+        ssRuntimeReadyTimer = null;
+        ssRuntimeFrame = null;
+        ssRuntimeChannel = null;
+        ssViewport?.replaceChildren();
+        ssDocument = null;
+        ssSlideCount = 0;
+        _hideSlideshowControlsImmediately();
+        if (ssOverlay && document.fullscreenElement === ssOverlay) document.exitFullscreen().catch(() => {});
         if (ssPreviouslyFocused && typeof ssPreviouslyFocused.focus === 'function') {
             ssPreviouslyFocused.focus();
         }
@@ -2682,7 +2696,7 @@
     document.addEventListener('keydown', (e) => {
         if (!ssOpen) return;
         if (e.key === 'Tab' && ssOverlay) {
-            const controls = Array.from(ssOverlay.querySelectorAll('button:not(:disabled)'))
+            const controls = Array.from(ssOverlay.querySelectorAll('button:not(:disabled), iframe.interactive'))
                 .filter(button => !button.hidden && button.getClientRects().length > 0);
             if (controls.length) {
                 const first = controls[0];
@@ -2697,6 +2711,7 @@
             }
             return;
         }
+        if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || e.target.closest?.('input,textarea,select,[contenteditable="true"]')) return;
         const isArrow = (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowUp');
         if (isArrow) {
             e.preventDefault();
@@ -2713,7 +2728,8 @@
 
     document.addEventListener('fullscreenchange', () => {
         if (!ssOverlay) return;
-        if (!document.fullscreenElement) ssOverlay.classList.remove('is-fullscreen');
+        ssOverlay.classList.toggle('is-fullscreen', document.fullscreenElement === ssOverlay);
+        requestAnimationFrame(_scaleSlideshow);
     });
 
     // ══════════════════════════════════════════════════════════════════════
@@ -2813,15 +2829,14 @@
                     slidePresentationPresentationId = presId;
                     _loadSlideImages(presId, count, Number(data.revision) || 0)
                         .then((loaded) => {
-                            if (loaded) return;
-                            if (previewPresent) previewPresent.disabled = true;
+                            if (loaded || String(slidePresentationPresentationId || '') !== String(presId)) return;
                             updatePreviewStatus(
                                 t('slide_presentation_rendering_failed', 'Rendering failed'),
                                 false
                             );
                         })
                         .catch(err => {
-                            if (previewPresent) previewPresent.disabled = true;
+                            if (String(slidePresentationPresentationId || '') !== String(presId)) return;
                             updatePreviewStatus(
                                 t('slide_presentation_rendering_failed', 'Rendering failed'),
                                 false
@@ -3021,7 +3036,9 @@
     }
 
     async function openExistingPresentationPreview(options = {}) {
+        const openToken = ++_editorPreviewRefreshToken;
         const context = await _resolveLatestPresentationContext(options);
+        if (openToken !== _editorPreviewRefreshToken) return;
         const presentationId = context.presentationId;
         const fileId = context.fileId;
         const title = context.title;
@@ -3030,7 +3047,6 @@
             throw new Error(t('slide_presentation_preview_unavailable_for_file', 'Presentation preview is not available for this file.'));
         }
 
-        _revokeSlideImages();
         showPreviewPanel(title);
 
         slidePresentationFileId = fileId || null;
@@ -3042,18 +3058,41 @@
         if (previewSidebarToggle) previewSidebarToggle.disabled = true;
         if (previewPresent) previewPresent.disabled = true;
 
-        // Result blocks are immutable chat history, while editor saves are
-        // mutable. Always refresh the count so an older card cannot omit newly
-        // added slides or request slides that were removed later.
-        const slideCount = await _fetchSlideCountAndLoad(presentationId, 0);
+        const contextToken = _editorPreviewRefreshToken;
+        try {
+            const payload = await _editorFetchJson(
+                `/api/v1/presentations/${encodeURIComponent(presentationId)}/editor`
+            );
+            if (!_isEditorPreviewRefreshCurrent(contextToken, presentationId)) return;
+            const doc = new DOMParser().parseFromString(String(payload.html || ''), 'text/html');
+            const slides = [...doc.querySelectorAll('section.slide')];
+            if (!slides.length || slides.length > 50) {
+                throw new Error(t('slide_presentation_preview_unavailable_for_file', 'Presentation preview is not available for this file.'));
+            }
+            slidePresentationStyles = [...doc.querySelectorAll('style')].map(style => style.textContent).join('\n');
+            slidePresentationSlides = slides.map(slide => slide.outerHTML);
+            slidePresentationSlides.forEach((html, index) => {
+                _appendSlideItem(html, index);
+                _appendThumbnail(html, index);
+            });
+            previewGenerating?.classList.add('hidden');
+            previewNav?.classList.add('visible');
+            if (previewSidebarToggle) previewSidebarToggle.disabled = false;
+            _buildSlideObserver();
+            _setCurrentSlideIndex(0);
+            const slideCount = slides.length;
+            completePreview(payload.file_id || fileId || null, presentationId, payload.title || title, slideCount, context.operation || 'created');
+            _refreshStoredPresentationContext({ ...context, slideCount });
 
-        if (!slidePresentationSlideImages.length) {
+            // Images improve the sidebar and thumbnails, but are not a prerequisite
+            // for opening a saved presentation or presenting its HTML.
+            _loadSlideImages(presentationId, slideCount, Number(payload.render_revision) || 0)
+                .catch(error => console.warn('[slide-presentation] Could not refresh preview images', error));
+        } catch (error) {
+            if (!_isEditorPreviewRefreshCurrent(contextToken, presentationId)) return;
             hidePreviewPanel();
-            throw new Error(t('slide_presentation_slide_images_unavailable', 'Slide preview images are not available for this presentation.'));
+            throw error;
         }
-
-        completePreview(fileId || null, presentationId, title, slideCount, context.operation || 'created');
-        _refreshStoredPresentationContext({ ...context, slideCount });
     }
 
     // ── Expose to global scope ────────────────────────────────────────────

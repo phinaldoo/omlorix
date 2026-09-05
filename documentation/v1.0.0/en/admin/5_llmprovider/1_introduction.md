@@ -13,6 +13,14 @@ A provider connects Omlorix to an AI, speech, or media service. Providers hold s
 
 Choose a native provider type when one is available. Use **OpenAI Chat Completions API**, **OpenAI Responses API**, or **Anthropic Base** only for a compatible gateway or service. A compatible endpoint is not interchangeable with a native provider merely because model names look alike.
 
+## Output length
+
+Omlorix does not send optional output-token caps to OpenAI, OpenAI-compatible endpoints (including Azure, LM Studio, and xAI), Google AI Studio, OpenRouter, or Ollama. This also applies to titles, memory consolidation, tool-generated content such as presentations, and supported realtime sessions. The provider’s own limits still apply.
+
+Anthropic and Anthropic Base require `max_tokens`. Set **Max tokens** in the model’s admin generation settings; chat and auxiliary generation use that value unchanged. Per-chat settings and internal tool limits cannot override it. BYOK without a saved model must supply the required value in its model settings.
+
+Legacy optional output-limit settings remain readable in existing records and backups but are no longer offered as controls or sent to providers. No database migration is required. Model input/output capability metadata remains available for model discovery and input-context checks.
+
 ## Operate providers safely
 
 - Use a dedicated, least-privilege credential with provider-side budgets and alerts.

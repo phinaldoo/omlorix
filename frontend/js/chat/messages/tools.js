@@ -787,6 +787,10 @@ function appendAssistantTool(messageId, last_appended_message_type, assistantRea
 function resolveToolErrorDisplayMessage(descriptor) {
     const errorCode = String(descriptor?.error_code || '').trim();
     const translatedErrors = {
+        canvas_file_required: ['assistant_tool_error_canvas_file', 'Viewing or editing requires an existing Canvas file. To create one, provide content and set edits to null.'],
+        canvas_revision_required: ['assistant_tool_error_canvas_revision', 'Editing requires the current Canvas revision. Read the file and try again.'],
+        canvas_content_required: ['assistant_tool_error_canvas_content', 'Creating or replacing a Canvas requires content.'],
+        canvas_invalid_arguments: ['assistant_tool_error_canvas_inputs', 'Check the Canvas create, view, or edit inputs and try again.'],
         automations_feature_disabled: ['assistant_tool_error_automations_disabled', 'Automations are disabled for your group.'],
         automations_invalid_operation: ['assistant_tool_error_automations_operation', 'Choose a valid Automations operation.'],
         automations_webhook_user_managed: ['assistant_tool_error_automations_webhook', 'Webhook triggers must be managed in the Automations interface.'],

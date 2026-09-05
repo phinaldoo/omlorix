@@ -1,6 +1,7 @@
 from copy import deepcopy
 
 from app.tools.code_execution.utils import build_code_execution_tool_schema
+from app.tools.canvas_markdown.schemas import canvas_parameters_schema
 
 
 _AUTOMATION_FIELD_SCHEMAS = {
@@ -885,95 +886,18 @@ tool_schemas: dict[str, dict] = {
     "canvas": {
         "name": "canvas",
         "type": "function",
-        "description": "Create, view, or update an editable Canvas source file. Supports markdown, Mermaid diagrams, CSV tables, HTML pages, and complete LaTeX documents with a generated PDF preview. Reads are bounded and can target a heading, query, or line range. For multiple revisions, send one atomic edits array with file_id and expected_revision instead of making one tool call per change.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "type": {
-                    "type": "string",
-                    "enum": ["markdown", "mermaid", "csv", "html", "latex", "view"],
-                    "description": "Operation/content type: use 'view' to load current stored content; 'markdown' for rich text, 'mermaid' for diagram source, 'csv' for tabular data, 'html' for a complete page, or 'latex' for a complete compilable .tex document whose PDF is rendered in the Canvas preview. Defaults to markdown.",
-                },
-                "filename": {
-                    "type": "string",
-                    "description": "Optional filename (e.g. notes.md, diagram.mmd, data.csv, website.html, report.tex). Extension is added from the selected type when missing.",
-                },
-                "file_id": {
-                    "type": "string",
-                    "description": "Existing canvas file id to view or update. Required for type='view' and partial edits.",
-                },
-                "id": {
-                    "type": "string",
-                    "description": "Alias for file_id when type='view'.",
-                },
-                "start_snippet": {
-                    "type": "string",
-                    "description": "For partial edits only. Exact unique snippet where the replacement range starts. Requires file_id, end_snippet, and content. The matched start snippet is replaced too.",
-                },
-                "end_snippet": {
-                    "type": "string",
-                    "description": "For partial edits only. Exact snippet where the replacement range ends, searched after start_snippet. Requires file_id, start_snippet, and content. The matched end snippet is replaced too.",
-                },
-                "expected_revision": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "description": "Required for safe updates of an existing Canvas. Copy canvas_revision from the latest view or save receipt.",
-                },
-                "edits": {
-                    "type": "array",
-                    "minItems": 1,
-                    "maxItems": 50,
-                    "description": "Atomic non-overlapping replacements resolved against one stored snapshot. Use this instead of several Canvas calls.",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "start_snippet": {"type": "string", "minLength": 1},
-                            "end_snippet": {"type": "string", "minLength": 1},
-                            "content": {"type": "string"},
-                        },
-                        "required": ["start_snippet", "end_snippet", "content"],
-                        "additionalProperties": False,
-                    },
-                },
-                "heading": {
-                    "type": "string",
-                    "maxLength": 500,
-                    "description": "For type='view', return the matching Markdown heading section.",
-                },
-                "query": {
-                    "type": "string",
-                    "maxLength": 200,
-                    "description": "For type='view', return bounded context around the first case-insensitive match.",
-                },
-                "start_line": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "description": "For type='view', first line of a bounded line range.",
-                },
-                "end_line": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "description": "For type='view', final line of a bounded line range.",
-                },
-                "max_chars": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 100000,
-                    "description": "Maximum text returned by a Canvas view. Defaults to 20000 characters.",
-                },
-                "content": {
-                    "type": "string",
-                    "description": "Required unless type='view'. Full file content for create/full overwrite, or replacement content when start_snippet and end_snippet are provided. Use an empty string to delete the matched snippet range. Complete HTML pages may include JavaScript, event handlers, forms, embedded media, and external resources. Keep dependencies minimal and prefer self-contained HTML; scripts execute inside an isolated Canvas preview, while remote resources and network requests require an explicit viewer grant. For type='latex', generate portable pdflatex source and do not add babel/polyglossia or locale-specific packages merely because of the conversation language. If a validation error says retry_allowed=true, correct the existing payload and retry once; if false, do not call another tool in this response.",
-                },
-                "file_ids": {
-                    "type": "array",
-                    "items": {"type": "string"},
-                    "maxItems": 20,
-                    "description": "For type='latex', optional user file IDs made available to the renderer under their original filenames. When editing a slide-presentation HTML Canvas, pass every newly referenced image ID and use src='omlorix-file://FILE_ID'; Omlorix securely embeds those images before rendering. Omit during edits to preserve the existing asset bundle; pass [] to clear it.",
-                },
-            },
-            "required": [],
-        },
+        # Preserve the operation-specific optional fields. Responses otherwise
+        # attempts strict normalization, which can force unrelated edit inputs.
+        "strict": False,
+        "description": (
+            "Create, view, or edit an editable Canvas source file: Markdown, Mermaid, CSV, HTML, or LaTeX. "
+            "CREATE: supply content and optionally type/filename; omit file_id and use edits=null. "
+            "VIEW: type='view' and file_id return bounded source and canvas_revision. "
+            "EDIT: file_id and expected_revision are required; supply full content OR a non-empty edits array. "
+            "For proofreading, do not send the complete article again: use atomic edits with exact unique snippets. "
+            "For safe validation failures, correct the inputs once when retry_allowed=true; otherwise stop tool use."
+        ),
+        "parameters": canvas_parameters_schema(),
     },
     "code_execution": build_code_execution_tool_schema(
         default_type="public",

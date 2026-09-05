@@ -1,4 +1,11 @@
 {
+  "assistant_tool_error_canvas_file": "Zum Anzeigen oder Bearbeiten ist eine vorhandene Canvas-Datei erforderlich. Zum Erstellen Inhalt angeben und edits auf null setzen.",
+  "assistant_tool_error_canvas_revision": "Zum Bearbeiten ist die aktuelle Canvas-Revision erforderlich. Datei lesen und erneut versuchen.",
+  "assistant_tool_error_canvas_content": "Zum Erstellen oder Ersetzen eines Canvas ist Inhalt erforderlich.",
+  "assistant_tool_error_canvas_inputs": "Eingaben zum Erstellen, Anzeigen oder Bearbeiten des Canvas prüfen und erneut versuchen.",
+  "chat_openai_safety_stop": "OpenAI hat diese Unterhaltung zur Sicherheitsprüfung angehalten. Prüfe die bereits ausgeführten Aktionen gemeinsam mit der verantwortlichen Person. Dieser Ablauf kann nicht erneut gestartet werden.",
+  "chat_openai_tools_require_responses": "Dieses Modell benötigt für Tools den Anbieter OpenAI Responses. Wechsle den Anbieter, bevor du diese Unterhaltung fortsetzt.",
+  "llm.openai.tools_require_responses": "Verwende den Anbieter OpenAI Responses, um Tools für dieses Modell zu aktivieren.",
     "chat_context_budget_exceeded": "Diese Anfrage überschreitet das Kontextlimit des Modells. Entferne Anhänge, kürze die Anfrage oder wähle ein Modell mit größerem Kontext.",
   "us_personal_info_email_verification_sent": "Die Bestätigungslinks wurden gesendet. Deine aktuelle E-Mail-Adresse bleibt aktiv, bis die neue bestätigt wurde.",
   "us_personal_info_email_change_unavailable": "Die E-Mail-Änderung konnte nicht gestartet werden. Prüfe die Adresse oder bitte einen Administrator, die E-Mail-Zustellung zu überprüfen.",

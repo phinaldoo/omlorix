@@ -3449,7 +3449,7 @@
         <!-- Panel Header -->
         <div class="slide-presentation-preview-panel-header canvas-markdown-preview-header">
             <div class="slide-presentation-preview-panel-left canvas-markdown-preview-header-left">
-                <button class="slide-presentation-preview-panel-btn om-button" id="slide-presentation-PreviewClose" type="button" aria-label="Close preview" data-i18n-attr="aria-label:files_preview_close_aria">
+                <button class="om-button" id="slide-presentation-PreviewClose" type="button" aria-label="Close preview" data-i18n-attr="aria-label:files_preview_close_aria">
                     <span data-omlorix-icon="close" width="18" height="18"></span>
                 </button>
                 <div class="slide-presentation-preview-panel-info canvas-markdown-preview-title-wrap">
@@ -3458,24 +3458,25 @@
                 </div>
             </div>
             <div class="slide-presentation-preview-panel-right canvas-markdown-preview-header-right">
-                <div class="slide-presentation-preview-download-controls">
+                <div class="slide-presentation-preview-download-actions">
                     <select class="slide-presentation-preview-download-select" id="slide-presentation-PreviewDownloadFormat" aria-label="Download format" disabled data-i18n-attr="aria-label:slide_presentation_download_format_aria">
                         <option value="pptx">PPTX</option>
                         <option value="pdf">PDF</option>
                         <option value="slides_zip" data-i18n="pdf_export_images">Images</option>
+                        <option value="html" data-i18n="slide_presentation_editor_html_source">HTML source</option>
                     </select>
-                    <a class="slide-presentation-preview-download-btn disabled" id="slide-presentation-PreviewDownloadBtn" aria-disabled="true" tabindex="-1">
+                    <a class="om-button disabled" id="slide-presentation-PreviewDownloadBtn" aria-label="Download" data-i18n-attr="aria-label:files_preview_download" aria-disabled="true" tabindex="-1">
                         <span data-omlorix-icon="download" width="14" height="14"></span>
                         <span class="slide-presentation-preview-btn-label" data-i18n="files_preview_download">Download</span>
                     </a>
                 </div>
-                <button class="slide-presentation-preview-panel-btn-secondary" id="slide-presentation-PreviewEdit" type="button" aria-label="Edit presentation" title="Edit presentation" disabled data-i18n-attr="aria-label:slide_presentation_edit_fullscreen_aria;title:slide_presentation_edit_fullscreen_aria">
+                <button class="om-button" id="slide-presentation-PreviewEdit" type="button" aria-label="Edit presentation" title="Edit presentation" disabled data-i18n-attr="aria-label:slide_presentation_edit_fullscreen_aria;title:slide_presentation_edit_fullscreen_aria">
                     <span class="slide-presentation-preview-edit-icon" aria-hidden="true"></span>
                 </button>
-                <button class="slide-presentation-preview-panel-btn-secondary" id="slide-presentation-PreviewSidebarToggle" aria-pressed="false" aria-label="Toggle outline sidebar" disabled data-i18n-attr="aria-label:slide_presentation_toggle_outline_aria">
+                <button class="om-button" id="slide-presentation-PreviewSidebarToggle" type="button" aria-pressed="false" aria-label="Toggle outline sidebar" disabled data-i18n-attr="aria-label:slide_presentation_toggle_outline_aria">
                     <span data-omlorix-icon="eye" width="14" height="14"></span>
                 </button>
-                <button class="slide-presentation-preview-panel-btn-present" id="slide-presentation-PreviewPresent" disabled>
+                <button class="om-button" id="slide-presentation-PreviewPresent" type="button" aria-label="Present" data-i18n-attr="aria-label:slide_presentation_present" disabled>
                     <span data-omlorix-icon="play" width="14" height="14"></span>
                     <span class="slide-presentation-preview-btn-label" data-i18n="slide_presentation_present">Present</span>
                 </button>
@@ -3560,7 +3561,7 @@
             </div>
             <!-- Slide display -->
             <div class="slide-presentation-slideshow-stage" id="slide-presentation-SlideshowStage">
-                <img class="slide-presentation-slideshow-img" id="slide-presentation-SlideshowImg" draggable="false" alt="Slide" data-i18n-attr="alt:slide_presentation_slide_alt">
+                <div class="slide-presentation-slideshow-viewport" id="slide-presentation-SlideshowViewport"></div>
             </div>
             <!-- Controls bar -->
             <div class="slide-presentation-slideshow-controls" id="slide-presentation-SlideshowControls">

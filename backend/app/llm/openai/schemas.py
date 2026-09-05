@@ -25,6 +25,7 @@ from app.llm.openai.provider_types import (
 from app.llm.reasoning_effort_options import (
     build_reasoning_effort_options,
 )
+from app.llm.openai.request_policy import normalize_required_reasoning_effort
 from app.llm.model_schemas import (
     MODEL_SCHEMA_INFORMATION_SECTION,
     MODEL_SCHEMA_FILE_SECTION,
@@ -605,8 +606,24 @@ def _apply_openai_model_caps_to_schema(
         ]
         return
 
+    if caps.get("tools_require_responses") and is_openai_chat_completions_provider_type(openai_provider_type):
+        for section in schema.sections or []:
+            section.fields = [
+                field for field in section.fields or []
+                if field.key not in {"tools", "settings.enabled_tools", "settings.native_websearch", "settings.tool_search"}
+            ]
+        tool_section = next(
+            (section for section in schema.sections or [] if section.title in {"Tools & enrichment", "Model Context"}),
+            None,
+        )
+        if tool_section:
+            tool_section.description = "Use the OpenAI Responses provider to enable tools for this model."
+            tool_section.i18n_description = "llm.openai.tools_require_responses"
+
     reasoning_section = "Reasoning & advanced capabilities"
     thinking_caps = caps.get("thinking") or {}
+    if caps.get("requires_reasoning"):
+        _remove_field_from_section(schema.sections, reasoning_section, "settings.reasoning")
     reasoning_supported = thinking_caps.get("thinking")
     if not reasoning_supported:
         schema.sections = [
@@ -618,6 +635,10 @@ def _apply_openai_model_caps_to_schema(
             schema.sections, reasoning_section, "settings.reasoning_effort"
         )
         if effort_field:
+            if caps.get("requires_reasoning"):
+                effort_field.dependency = None
+                effort_field.dependency_value = None
+                effort_field.value = normalize_required_reasoning_effort(effort_field.value, caps)
             if effort_options:
                 effort_field.options = effort_options
                 default_effort = str(
@@ -856,9 +877,8 @@ class OpenAIModelSettings(
     top_p: float | None = None
     frequency_penalty: float | None = None
     presence_penalty: float | None = None
+    # Retained for reading older model records and backups; never sent.
     max_output_tokens: int | None = None
-    # Compatibility fallback for model records created before Omlorix adopted
-    # the provider-neutral max_output_tokens setting key.
     max_completion_tokens: int | None = None
     logit_bias: dict[str, float] | None = None
     # ``None`` is an internal "use the endpoint default" sentinel. Request

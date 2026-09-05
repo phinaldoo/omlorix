@@ -28,6 +28,7 @@ from app.tools.websearch.utils import normalize_web_search_call_args
 from app.tools.audit import stage_tool_audit_action
 from app.tools.common import should_hide_tool_call_from_user
 from app.tools.text_edits import DEFAULT_TOOL_TEXT_READ_CHARS
+from app.tools.canvas_markdown.schemas import parse_canvas_tool_arguments
 from app.tools.errors import (
     GENERIC_TOOL_ERROR_MESSAGE,
     SafeToolExecutionError,
@@ -1524,6 +1525,7 @@ def _resolve_tool_call(
             yield _stream_widget_event(widget_payload, tool_name=tool_name)
 
     elif tool_name == "canvas":
+        tool_args = parse_canvas_tool_arguments(tool_args)
         canvas_type = tool_args.get("type")
         if str(canvas_type or "").strip().lower() == "view":
             target_file_id = tool_args.get("file_id") or tool_args.get("id")
@@ -1551,44 +1553,17 @@ def _resolve_tool_call(
                 "result": result,
             }
 
-        # Support both old 'markdown' param and new 'content' param for backwards compatibility.
-        # Empty content is valid when deleting a snippet range, so check for key presence instead of truthiness.
-        if "content" in tool_args:
-            canvas_content = tool_args.get("content")
-        elif "markdown" in tool_args:
-            canvas_content = tool_args.get("markdown")
-        else:
-            canvas_content = None
-
+        canvas_content = tool_args.get("content")
         canvas_edits = tool_args.get("edits")
-        if canvas_edits is not None and not isinstance(canvas_edits, list):
-            raise ValueError("edits must be an array")
-        if canvas_content is None and canvas_edits is None:
-            raise ValueError("content is required")
         filename = tool_args.get("filename")
         target_file_id = tool_args.get("file_id")
-        if target_file_id and tool_args.get("expected_revision") is None:
-            raise ValueError(
-                "expected_revision is required for an existing Canvas. "
-                "View it first or use the revision from its latest save receipt."
-            )
-        start_snippet = str(tool_args.get("start_snippet") or "")
-        start_snippet = start_snippet if start_snippet.strip() else None
-        end_snippet = str(tool_args.get("end_snippet") or "")
-        end_snippet = end_snippet if end_snippet.strip() else None
+        start_snippet = tool_args.get("start_snippet")
+        end_snippet = tool_args.get("end_snippet")
 
         presentation_validator = None
         presentation_transformer = None
         presentation_asset_file_ids: list[str] | None = None
-        raw_canvas_file_ids = tool_args.get("file_ids")
-        if raw_canvas_file_ids is not None and not isinstance(
-            raw_canvas_file_ids,
-            list,
-        ):
-            raise ValueError("file_ids must be an array")
-        supplied_canvas_file_ids = raw_canvas_file_ids
-        if isinstance(supplied_canvas_file_ids, list) and len(supplied_canvas_file_ids) > 20:
-            raise ValueError("file_ids may contain at most 20 entries")
+        supplied_canvas_file_ids = tool_args.get("file_ids")
         if target_file_id:
             from app.files.models import get_file as get_owned_file
 
@@ -1631,7 +1606,7 @@ def _resolve_tool_call(
             db=db,
             user_id=str(user_id),
             content=str(canvas_content) if canvas_content is not None else None,
-            content_type=str(canvas_type),
+            content_type=canvas_type,
             filename=filename,
             file_id=target_file_id,
             project_id=project_id,

@@ -737,8 +737,8 @@
             const draft = draftMap.get(draftKey);
             if (!draft || !isDraftPersistable(draft)) return;
     
-            const state = getDraftEditState(draftKey, draft.content || '');
-            if (!state || !state.dirty || state.saving) return;
+            const editState = getDraftEditState(draftKey, draft.content || '');
+            if (!editState || !editState.dirty || editState.saving) return;
             clearAutoSaveTimer(draftKey);
             if (SPREADSHEET_CONTENT_TYPES.has(normalizeContentType(draft.contentType))) {
                 // Destroy the cell input without committing it. Revert must throw
@@ -748,10 +748,10 @@
                     commitPending: false,
                 });
             }
-            state.draftContent = state.baselineContent;
-            state.dirty = false;
-            state.autoSavePending = false;
-            state.error = '';
+            editState.draftContent = editState.baselineContent;
+            editState.dirty = false;
+            editState.autoSavePending = false;
+            editState.error = '';
             renderDraft(draft, true);
         }
     
@@ -804,37 +804,37 @@
     
         function captureScrollState(key) {
             if (!key) return;
-            const state = getScrollState(key);
-            if (!state) return;
+            const scrollState = getScrollState(key);
+            if (!scrollState) return;
             if (previewTrack) {
-                state.trackScrollTop = previewTrack.scrollTop;
-                state.trackScrollLeft = previewTrack.scrollLeft;
+                scrollState.trackScrollTop = previewTrack.scrollTop;
+                scrollState.trackScrollLeft = previewTrack.scrollLeft;
             }
             const existingCodeView = previewTrack ? previewTrack.querySelector('.canvas-html-code-view') : null;
             if (existingCodeView) {
-                state.codeScrollTop = existingCodeView.scrollTop;
-                state.codeScrollLeft = existingCodeView.scrollLeft;
+                scrollState.codeScrollTop = existingCodeView.scrollTop;
+                scrollState.codeScrollLeft = existingCodeView.scrollLeft;
             }
             const editorViewport = state.activeMarkdownEditorInstance?.getScrollState?.() || null;
             if (editorViewport) {
-                state.markdownEditorScrollTop = editorViewport.editorScrollTop;
-                state.markdownEditorScrollLeft = editorViewport.editorScrollLeft;
-                state.markdownSourceScrollTop = editorViewport.sourceScrollTop;
-                state.markdownSourceScrollLeft = editorViewport.sourceScrollLeft;
-                state.markdownActiveView = editorViewport.view === 'source' ? 'source' : 'editor';
+                scrollState.markdownEditorScrollTop = editorViewport.editorScrollTop;
+                scrollState.markdownEditorScrollLeft = editorViewport.editorScrollLeft;
+                scrollState.markdownSourceScrollTop = editorViewport.sourceScrollTop;
+                scrollState.markdownSourceScrollLeft = editorViewport.sourceScrollLeft;
+                scrollState.markdownActiveView = editorViewport.view === 'source' ? 'source' : 'editor';
             } else {
                 const markdownEditorView = getMarkdownEditorScrollElement();
                 if (markdownEditorView) {
-                    state.markdownEditorScrollTop = markdownEditorView.scrollTop;
-                    state.markdownEditorScrollLeft = markdownEditorView.scrollLeft;
+                    scrollState.markdownEditorScrollTop = markdownEditorView.scrollTop;
+                    scrollState.markdownEditorScrollLeft = markdownEditorView.scrollLeft;
                 }
                 const markdownSourceEditor = getMarkdownSourceScrollElement();
                 if (markdownSourceEditor) {
-                    state.markdownSourceScrollTop = markdownSourceEditor.scrollTop;
-                    state.markdownSourceScrollLeft = markdownSourceEditor.scrollLeft;
+                    scrollState.markdownSourceScrollTop = markdownSourceEditor.scrollTop;
+                    scrollState.markdownSourceScrollLeft = markdownSourceEditor.scrollLeft;
                 }
                 const markdownSourceView = previewTrack?.querySelector('.canvas-md-editor-source-view');
-                state.markdownActiveView = markdownSourceView && !markdownSourceView.hidden ? 'source' : 'editor';
+                scrollState.markdownActiveView = markdownSourceView && !markdownSourceView.hidden ? 'source' : 'editor';
             }
         }
     
@@ -960,11 +960,11 @@
         function handleUserGestureEvent() {
             const key = state.activeDraftKey;
             if (!key) return;
-            const state = getScrollState(key);
-            if (!state) return;
-            state.autoFollow = false;
-            state.userInterrupted = true;
-            state.restoreOnNextRender = false;
+            const scrollState = getScrollState(key);
+            if (!scrollState) return;
+            scrollState.autoFollow = false;
+            scrollState.userInterrupted = true;
+            scrollState.restoreOnNextRender = false;
         }
     
         function handleUserScrollEvent(event) {
@@ -972,63 +972,63 @@
             hideReferenceToolbar();
             const key = state.activeDraftKey;
             if (!key) return;
-            const state = getScrollState(key);
-            if (!state) return;
-            state.restoreOnNextRender = false;
-            if (!state.userInterrupted) {
-                state.userInterrupted = true;
-                state.autoFollow = false;
+            const scrollState = getScrollState(key);
+            if (!scrollState) return;
+            scrollState.restoreOnNextRender = false;
+            if (!scrollState.userInterrupted) {
+                scrollState.userInterrupted = true;
+                scrollState.autoFollow = false;
             }
             if (event.currentTarget === previewTrack && previewTrack) {
-                state.trackScrollTop = previewTrack.scrollTop;
-                state.trackScrollLeft = previewTrack.scrollLeft;
+                scrollState.trackScrollTop = previewTrack.scrollTop;
+                scrollState.trackScrollLeft = previewTrack.scrollLeft;
                 return;
             }
             const target = event.currentTarget;
             if (target && target.classList && target.classList.contains('canvas-html-code-view')) {
-                state.codeScrollTop = target.scrollTop;
-                state.codeScrollLeft = target.scrollLeft;
+                scrollState.codeScrollTop = target.scrollTop;
+                scrollState.codeScrollLeft = target.scrollLeft;
                 return;
             }
             if (target && target.classList && target.classList.contains('canvas-md-editor-view')) {
-                state.markdownEditorScrollTop = target.scrollTop;
-                state.markdownEditorScrollLeft = target.scrollLeft;
+                scrollState.markdownEditorScrollTop = target.scrollTop;
+                scrollState.markdownEditorScrollLeft = target.scrollLeft;
                 return;
             }
             if (target && target.classList && target.classList.contains('canvas-md-source-editor')) {
-                state.markdownSourceScrollTop = target.scrollTop;
-                state.markdownSourceScrollLeft = target.scrollLeft;
+                scrollState.markdownSourceScrollTop = target.scrollTop;
+                scrollState.markdownSourceScrollLeft = target.scrollLeft;
             }
         }
     
         function applyScrollState(key, draft) {
             if (!key || !previewTrack) return;
-            const state = getScrollState(key);
-            if (!state) return;
+            const scrollState = getScrollState(key);
+            if (!scrollState) return;
             const codeView = previewTrack.querySelector('.canvas-html-code-view');
             attachScrollListeners(codeView);
     
             const applyMarkdownEditorScroll = () => {
                 state.activeMarkdownEditorInstance?.restoreScrollState?.({
-                    view: state.markdownActiveView,
-                    editorScrollTop: state.markdownEditorScrollTop,
-                    editorScrollLeft: state.markdownEditorScrollLeft,
-                    sourceScrollTop: state.markdownSourceScrollTop,
-                    sourceScrollLeft: state.markdownSourceScrollLeft,
+                    view: scrollState.markdownActiveView,
+                    editorScrollTop: scrollState.markdownEditorScrollTop,
+                    editorScrollLeft: scrollState.markdownEditorScrollLeft,
+                    sourceScrollTop: scrollState.markdownSourceScrollTop,
+                    sourceScrollLeft: scrollState.markdownSourceScrollLeft,
                 });
                 const markdownEditorView = getMarkdownEditorScrollElement();
                 if (markdownEditorView) {
-                    markdownEditorView.scrollTop = state.markdownEditorScrollTop || 0;
-                    markdownEditorView.scrollLeft = state.markdownEditorScrollLeft || 0;
+                    markdownEditorView.scrollTop = scrollState.markdownEditorScrollTop || 0;
+                    markdownEditorView.scrollLeft = scrollState.markdownEditorScrollLeft || 0;
                 }
                 const markdownSourceEditor = getMarkdownSourceScrollElement();
                 if (markdownSourceEditor) {
-                    markdownSourceEditor.scrollTop = state.markdownSourceScrollTop || 0;
-                    markdownSourceEditor.scrollLeft = state.markdownSourceScrollLeft || 0;
+                    markdownSourceEditor.scrollTop = scrollState.markdownSourceScrollTop || 0;
+                    markdownSourceEditor.scrollLeft = scrollState.markdownSourceScrollLeft || 0;
                 }
             };
     
-            const shouldAuto = shouldAutoScrollDraft(draft, state);
+            const shouldAuto = shouldAutoScrollDraft(draft, scrollState);
             if (shouldAuto) {
                 runWithProgrammaticScroll(() => {
                     const maxTrackTop = previewTrack.scrollHeight - previewTrack.clientHeight;
@@ -1041,22 +1041,22 @@
                         codeView.scrollTop = Math.max(maxCodeTop, 0);
                     }
                 });
-                state.trackScrollTop = previewTrack.scrollTop;
-                state.trackScrollLeft = previewTrack.scrollLeft;
+                scrollState.trackScrollTop = previewTrack.scrollTop;
+                scrollState.trackScrollLeft = previewTrack.scrollLeft;
                 if (codeView) {
-                    state.codeScrollTop = codeView.scrollTop;
-                    state.codeScrollLeft = codeView.scrollLeft;
+                    scrollState.codeScrollTop = codeView.scrollTop;
+                    scrollState.codeScrollLeft = codeView.scrollLeft;
                 }
                 return;
             }
     
-            if (state.userInterrupted) {
+            if (scrollState.userInterrupted) {
                 runWithProgrammaticScroll(() => {
-                    previewTrack.scrollTop = state.trackScrollTop;
-                    previewTrack.scrollLeft = state.trackScrollLeft;
+                    previewTrack.scrollTop = scrollState.trackScrollTop;
+                    previewTrack.scrollLeft = scrollState.trackScrollLeft;
                     if (codeView) {
-                        codeView.scrollTop = state.codeScrollTop;
-                        codeView.scrollLeft = state.codeScrollLeft;
+                        codeView.scrollTop = scrollState.codeScrollTop;
+                        codeView.scrollLeft = scrollState.codeScrollLeft;
                     }
                     applyMarkdownEditorScroll();
                 });

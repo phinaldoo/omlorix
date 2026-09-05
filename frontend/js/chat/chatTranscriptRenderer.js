@@ -735,6 +735,17 @@
                         });
 
                         renderAssistantAttachmentsForSource(messageId, message, renderedAttachmentIds);
+                        const safetyStop = message.content.find(
+                            (block) => block?.meta?.error_code === 'misalignment_policy_violation'
+                        )?.meta;
+                        if (safetyStop && typeof appendAssistantError === 'function') {
+                            const fallback = safetyStop.error_message || '';
+                            const errorText = typeof window.getTranslation === 'function'
+                                ? window.getTranslation('chat_openai_safety_stop', fallback)
+                                : fallback;
+                            appendAssistantError(messageId, errorText, lastAppendedMessageType, safetyStop);
+                            metadataToAppend = safetyStop;
+                        }
                     } else {
                         if (message.thinking) {
                             lastReasoningTime = message.thinking_time ?? message.meta?.thinking_time ?? 0;

@@ -1,4 +1,11 @@
 {
+  "assistant_tool_error_canvas_file": "表示や編集には既存の Canvas ファイルが必要です。新規作成する場合は内容を指定し、edits を null に設定してください。",
+  "assistant_tool_error_canvas_revision": "編集には Canvas の現在のリビジョンが必要です。ファイルを読み取ってから再試行してください。",
+  "assistant_tool_error_canvas_content": "Canvas の作成や置き換えには内容が必要です。",
+  "assistant_tool_error_canvas_inputs": "Canvas の作成・表示・編集の入力を確認して再試行してください。",
+  "chat_openai_safety_stop": "OpenAIは安全性の確認のため、この会話を停止しました。責任者とともに、すでに実行された操作を確認してください。このワークフローは再試行できません。",
+  "chat_openai_tools_require_responses": "このモデルでツールを使うには、OpenAI Responsesプロバイダーが必要です。この会話を続ける前にプロバイダーを変更してください。",
+  "llm.openai.tools_require_responses": "このモデルのツールを有効にするには、OpenAI Responsesプロバイダーを使用してください。",
     "chat_context_budget_exceeded": "このリクエストはモデルのコンテキスト上限を超えています。添付ファイルを削除するか、リクエストを短くするか、より大きなコンテキストに対応したモデルを選んでください。",
   "us_personal_info_email_verification_sent": "確認リンクを送信しました。新しいアドレスが確認されるまで、現在のメールアドレスが有効です。",
   "us_personal_info_email_change_unavailable": "メールアドレスの変更を開始できませんでした。アドレスを確認するか、管理者にメール配信設定の確認を依頼してください。",

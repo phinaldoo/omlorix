@@ -380,8 +380,8 @@ def test_current_catalogs_include_new_models_and_exclude_shutdown_ids() -> None:
 @pytest.mark.parametrize(
     ("catalog", "expected_groups", "expected_ids"),
     [
-        (OPENAI_MODEL_DICT, 35, 66),
-        (AISTUDIO_MODEL_DICT, 18, 19),
+        (OPENAI_MODEL_DICT, 36, 67),
+        (AISTUDIO_MODEL_DICT, 19, 20),
     ],
 )
 def test_priced_catalogs_have_unique_ids_and_valid_prices(

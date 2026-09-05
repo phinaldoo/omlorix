@@ -125,14 +125,6 @@ def _impl_get_openrouter_parameters_schema(
                         required=False,
                     ),
                     FieldSchema(
-                        key="settings.max_tokens",
-                        label="Max tokens",
-                        description="Maximum number of tokens generated in the response.",
-                        type="string",
-                        input_type="int",
-                        required=False,
-                    ),
-                    FieldSchema(
                         key="settings.stop",
                         label="Stop sequences",
                         description="Sequences that will terminate generation when encountered.",
@@ -200,7 +192,6 @@ def _impl_get_openrouter_parameters_schema(
         "settings.min_p",
         "settings.top_a",
         "settings.seed",
-        "settings.max_tokens",
         "settings.stop",
         "settings.logit_bias",
         "settings.verbosity",

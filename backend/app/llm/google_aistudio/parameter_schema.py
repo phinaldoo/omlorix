@@ -81,7 +81,9 @@ def _impl_get_aistudio_model_schema_parameter(db, user_id, model_id, project_id)
         enabled_tools_value=tool_names,
         model_settings=model_settings,
     )
-    parameter_schema = get_parameters_schema_filled(model_settings)
+    parameter_schema = get_parameters_schema_filled(
+        model_settings, model_name=model.model_name
+    )
     thinking_sections: list[Section] = []
     if thinking_capabilities or has_existing_thinking_values:
         thinking_schema = GOOGLE_AISTUDIO_MODEL_SCHEMA_THINKING_SECTION.model_copy(

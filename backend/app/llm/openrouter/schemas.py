@@ -687,9 +687,6 @@ openrouter_model_parameters: Set[str] = {
     "top_k",
     "frequency_penalty",
     "presence_penalty",
-    # The model catalog uses max_tokens as its capability name. The request
-    # adapter translates it to max_output_tokens for /responses.
-    "max_tokens",
     "tool_choice",
     "response_format",
     "parallel_tool_calls",

@@ -4,6 +4,7 @@ from pathlib import Path
 import threading
 import logging
 import os
+import time
 
 from app.database import SessionLocal
 from app.files.sharing import delete_expired_artifact_shares
@@ -100,6 +101,14 @@ def _temp_cleanup_worker(stop_event: threading.Event):
             cleanup_temp_files()
         except Exception:
             logger.exception("[Files] Temporary file cleanup failed")
+        try:
+            from app.tools.slide_presentation.frame_storage import cleanup_expired_documents
+
+            deadline = time.monotonic() + 30
+            while cleanup_expired_documents() == 100 and time.monotonic() < deadline:
+                pass
+        except Exception:
+            logger.exception("[Files] Playback document cleanup failed")
         if stop_event.wait(TEMP_CLEANUP_INTERVAL_SECONDS):
             break
 

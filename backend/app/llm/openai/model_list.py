@@ -74,6 +74,45 @@ OPENAI_ANNOUNCED_SHUTDOWN_DATES = {
 }
 
 OPENAI_MODEL_DICT = {
+    # Astra metadata and rates verified on 2026-09-04. Other entries retain
+    # the catalog-wide verification date above.
+    "gpt-6-astra": {
+        "ids": ["gpt-6-astra"],
+        "name": "GPT-6 Astra",
+        "description": "GPT-6 Astra",
+        "supports_tool_search": True,
+        "tools_require_responses": True,
+        "requires_reasoning": True,
+        "supports_reasoning_mode": True,
+        "reasoning_context": ["auto", "current_turn", "all_turns"],
+        "prompt_caching": {"ttl": ["30m"], "cache_write": True},
+        "thinking": {
+            "thinking": True,
+            "thinking_effort": ["low", "medium", "high", "xhigh", "max"],
+            "default_thinking_effort": "medium",
+        },
+        "verbosity": {"verbosity": True, "verbosity_level": ["low", "medium", "high"]},
+        "temperature": {"temperature": False},
+        "top_p": {"top_p": False},
+        "input_formats": ["text", "image", "pdf", "text_document"],
+        "output_formats": ["text"],
+        "input_token_limit": 922000,
+        "output_token_limit": 128000,
+        "knowledge_cutoff": datetime(2026, 4, 30),
+        "supported_service_tier": ["flex", "standard", "priority"],
+        "pricing": {
+            "standard": {"input": 10.0, "cached_input": 1.0, "cache_write": 12.5, "output": 50.0},
+            "flex": {"input": 5.0, "cached_input": 0.5, "cache_write": 6.25, "output": 25.0},
+            "priority": {"input": 20.0, "cached_input": 2.0, "cache_write": 25.0, "output": 100.0},
+            "high_context_pricing": {
+                "mark": 272000,
+                "standard": {"input": 20.0, "cached_input": 2.0, "cache_write": 25.0, "output": 75.0},
+                "flex": {"input": 10.0, "cached_input": 1.0, "cache_write": 12.5, "output": 37.5},
+                "priority": {"input": 40.0, "cached_input": 4.0, "cache_write": 50.0, "output": 150.0},
+            },
+            "native_web_search_tool_call": 0.01,
+        },
+    },
     "gpt-5.6-sol": {
         "ids": ["gpt-5.6-sol", "gpt-5.6", "gpt-daybreak-blue-latest"],
         "name": "GPT-5.6 Sol",
@@ -2248,6 +2287,7 @@ OPENAI_AUDIO_MODELS = [
 
 
 OPENAI_COMPLETION_MODELS = [
+    "gpt-6-astra",
     "gpt-5.6-sol",
     "gpt-5.6",
     "gpt-5.6-terra",

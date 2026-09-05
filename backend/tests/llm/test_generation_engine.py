@@ -62,6 +62,10 @@ def test_total_budget_preserves_current_turn_and_complete_tool_pairs(protocol):
         <= builder.last_report["input_budget"]
     )
     assert builder.last_report["removed_segments"] == 1
+    if protocol != "anthropic":
+        assert not {"max_output_tokens", "max_completion_tokens", "max_tokens"} & payload.keys()
+        assert builder.last_report["output_reserve"] == 0
+
 
 
 def test_optional_context_has_provenance_and_does_not_evict_instructions():
@@ -182,18 +186,18 @@ def test_closing_client_stream_closes_suspended_tool_generator():
     assert closed == [True]
 
 
-def test_ollama_budget_respects_server_window_and_model_output_cap():
+def test_ollama_budget_respects_server_window_without_injecting_output_cap():
     builder = ContextBuilder()
     payload = {
         "messages": [{"role": "user", "content": "hello"}],
-        "options": {"num_ctx": 2048, "num_predict": 1000},
+        "options": {"num_ctx": 2048},
     }
     builder.prepare(
         payload,
         settings={"input_token_limit": 100000, "output_token_limit": 500},
         protocol="ollama",
     )
-    assert payload["options"] == {"num_ctx": 2048, "num_predict": 500}
+    assert payload["options"] == {"num_ctx": 2048}
     assert builder.last_report["input_budget"] < 2048
 
 
@@ -210,3 +214,15 @@ def test_tool_receipt_retains_cursor_for_later_turns():
     )
     assert result.history_receipt["next_cursor"] == "next-page"
     assert result.model_content["next_cursor"] == "next-page"
+
+
+def test_anthropic_admin_limit_is_never_clamped_by_context_builder():
+    payload = {"messages": [{"role": "user", "content": "hello"}], "max_tokens": 16000}
+    builder = ContextBuilder()
+    builder.prepare(
+        payload,
+        settings={"input_token_limit": 200000, "output_token_limit": 4096},
+        protocol="anthropic",
+    )
+    assert payload["max_tokens"] == 16000
+    assert builder.last_report["output_reserve"] == 16000

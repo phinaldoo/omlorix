@@ -1,4 +1,11 @@
 {
+  "assistant_tool_error_canvas_file": "查看或编辑需要已有的 Canvas 文件。要创建文件，请提供内容并将 edits 设为 null。",
+  "assistant_tool_error_canvas_revision": "编辑需要 Canvas 的当前修订版本。请读取文件后重试。",
+  "assistant_tool_error_canvas_content": "创建或替换 Canvas 需要提供内容。",
+  "assistant_tool_error_canvas_inputs": "请检查 Canvas 创建、查看或编辑操作的输入，然后重试。",
+  "chat_openai_safety_stop": "OpenAI 已停止此对话以进行安全审查。请与负责的操作人员一起审查已执行的操作。此工作流程无法重试。",
+  "chat_openai_tools_require_responses": "此模型需要使用 OpenAI Responses 提供商才能调用工具。请在继续此对话前更换提供商。",
+  "llm.openai.tools_require_responses": "请使用 OpenAI Responses 提供商为此模型启用工具。",
     "chat_context_budget_exceeded": "此请求超出了模型的上下文限制。请移除附件、缩短请求，或选择支持更大上下文的模型。",
   "us_personal_info_email_verification_sent": "验证链接已发送。在新地址通过验证前，当前电子邮件地址仍然有效。",
   "us_personal_info_email_change_unavailable": "无法开始更改电子邮件地址。请检查地址，或请管理员核对邮件发送设置。",

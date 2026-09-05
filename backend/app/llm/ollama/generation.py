@@ -136,8 +136,6 @@ def _impl_ollama_title_generation(
             "messages": messages,
         }
         options = _ollama_options_from_settings(settings)
-        if max_output_tokens is not None:
-            options["num_predict"] = max(1, int(max_output_tokens))
         if options:
             chat_kwargs["options"] = options
         if isinstance(response_schema, dict):

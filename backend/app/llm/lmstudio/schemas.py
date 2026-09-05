@@ -367,15 +367,6 @@ def _build_generation_section(model_settings: dict[str, Any]) -> list[Section]:
                     required=False,
                     value=defaults.get("presence_penalty"),
                 ),
-                FieldSchema(
-                    key="settings.max_output_tokens",
-                    label="Max output tokens",
-                    description="Maximum number of output tokens to generate.",
-                    type="string",
-                    input_type="int",
-                    required=False,
-                    value=defaults.get("max_output_tokens"),
-                ),
             ],
         )
     ]

@@ -2,7 +2,7 @@
    Native Slide Presentation Editor
    ========================================================================== */
 
-(function () {
+function installSlidePresentationEditor() {
 'use strict';
 
 const host = document.getElementById('slide-presentation-EditorHost');
@@ -444,6 +444,7 @@ root.innerHTML = `
         <option value="pptx">PPTX</option>
         <option value="pdf">PDF</option>
         <option value="slides_zip">Images</option>
+        <option value="html">HTML source</option>
       </select>
       <button class="shared-export-btn" id="btnExport" title="Download">
         ${Icons.resolveIcon("download")}
@@ -468,9 +469,7 @@ root.innerHTML = `
     <div id="canvasArea">
       <div id="canvasScroller">
         <div id="stage">
-          <!-- Active content is removed before loading and the frame CSP blocks
-               scripts. Leaving this same-origin srcdoc unsandboxed keeps direct
-               DOM editing and pointer events reliable in WebKit/Safari. -->
+          <!-- This canvas shares only the isolated editor's opaque origin. -->
           <iframe id="deckFrame" title="Slide canvas"></iframe>
           <div id="overlay">
             <div id="hoverBox"></div>
@@ -635,17 +634,12 @@ root.innerHTML = `
 <div id="toast"></div>
 <input type="file" id="fileInput" accept=".html,.htm,text/html" class="hidden">
 `;
-// The production build hashes these URLs in index.html. Clone the rewritten
-// links so the Shadow DOM never falls back to unhashed asset names.
-const sharedStylesheets = Array.from(
-  document.querySelectorAll('link[data-slide-presentation-editor-stylesheet]'),
-  sourceStylesheet => {
-    const stylesheet = sourceStylesheet.cloneNode(false);
-    stylesheet.removeAttribute('data-slide-presentation-editor-stylesheet');
-    return stylesheet;
-  }
-);
-root.prepend(...sharedStylesheets);
+// Shared, hashed application styles are fetched by the authenticated host.
+root.prepend(...(window.slideEditorStyles || []).map(css => {
+  const style = document.createElement('style');
+  style.textContent = css;
+  return style;
+}));
 host.dataset.embedded = 'true';
 host.dataset.theme = 'dark';
 
@@ -796,11 +790,9 @@ const EDITOR_CSS = `
   ::selection { background: rgba(124,154,255,.35); }
 `;
 
-// Apply the same restrictive resource policy used by the server-side deck
-// sanitizer. This also protects unsaved source while the user is editing it.
-const EDITOR_FRAME_CSP = "default-src 'none'; img-src data: blob:; media-src data: blob:; font-src data:; style-src 'unsafe-inline';";
-const editorFrameCspMeta = () =>
-  `<meta http-equiv="Content-Security-Policy" content="${EDITOR_FRAME_CSP}">`;
+let editorRuntime = '', editorPolicy = '', resumeState = null;
+const editorFrameCspMeta = () => `<meta http-equiv="Content-Security-Policy" content="${escapeHtmlAttribute(editorPolicy.replace("frame-ancestors 'self'; ", ""))}">`;
+let deckDocument = { attributes: {}, extras: '' };
 
 function parseDeckHTML(text) {
   const doc = new DOMParser().parseFromString(text, 'text/html');
@@ -809,12 +801,13 @@ function parseDeckHTML(text) {
   if (!slideEls.length) slideEls = $$('.slide', doc);
   if (!slideEls.length) return null;
 
-  // Presentation decks are static documents. Strip active content before it
-  // is copied into the sandboxed editing frame. The backend applies the same
-  // policy to saved decks, but this client-side boundary also covers imported
-  // files and older stored presentations. Besides keeping the editor safe, it
-  // prevents browsers from repeatedly reporting blocked script execution for
-  // every script nested inside a slide.
+  const attributes = {};
+  ['lang', 'dir', 'data-omlorix-interactive', 'data-transition', 'data-transition-duration'].forEach(name => {
+    if (doc.documentElement.hasAttribute(name)) attributes[name] = doc.documentElement.getAttribute(name);
+  });
+  const extras = $$('meta[name="omlorix-connect-src"], meta[name="omlorix-frame-src"], meta[name="omlorix-img-src"], script', doc)
+    .filter(element => !element.closest('.slide'))
+    .map(element => element.outerHTML).join('\n');
   const sanitizedSlidesHTML = slideEls.map((slide, index) => {
     const clone = doc.createElement('section');
     [...slide.attributes].forEach(attribute => clone.setAttribute(attribute.name, attribute.value));
@@ -828,26 +821,26 @@ function parseDeckHTML(text) {
         heading?.textContent?.trim() || `${tr('slide_presentation_editor_slide', 'Slide')} ${index + 1}`
       );
     }
-    $$('script, noscript, iframe, frame, object, embed', clone).forEach(element => element.remove());
-    $$('*', clone).forEach(element => {
-      [...element.attributes].forEach(attribute => {
-        if (attribute.name.toLowerCase().startsWith('on')) {
-          element.removeAttribute(attribute.name);
-        }
-      });
+    $$('iframe', clone).forEach(embed => {
+      embed.dataset.omlorixEmbedSrc = embed.getAttribute('src') || embed.dataset.omlorixEmbedSrc || '';
+      embed.removeAttribute('src');
+      embed.setAttribute('sandbox', 'allow-scripts');
+      embed.setAttribute('referrerpolicy', 'no-referrer');
     });
     return clone.outerHTML;
   });
 
-  return { css: withSlideContractCss(css), slidesHTML: sanitizedSlidesHTML, title: doc.title || 'Untitled deck' };
+  return { css: withSlideContractCss(css), slidesHTML: sanitizedSlidesHTML, title: doc.title || 'Untitled deck', metadata: { attributes, extras } };
 }
 
 function buildSrcdoc(css, slidesHTML, loadId) {
-  return `<!DOCTYPE html><html data-editor-load-id="${loadId}"><head><meta charset="utf-8">` +
+  const attributes = Object.entries(deckDocument.attributes).map(([name, value]) => `${name}="${escapeHtmlAttribute(value)}"`).join(' ');
+  return `<!DOCTYPE html><html ${attributes} data-omlorix-mode="editor" data-editor-load-id="${loadId}"><head><meta charset="utf-8">` +
     editorFrameCspMeta() +
+    `<script>${editorRuntime.replace(/<\/script/gi, '<\\/script')}</script>` +
     `<style id="__deckstyle">${css}</style>` +
     `<style id="__ampcss">${EDITOR_CSS}</style>` +
-    `</head><body>${slidesHTML.join('\n')}</body></html>`;
+    `</head><body>${slidesHTML.join('\n')}${deckDocument.extras}</body></html>`;
 }
 
 let frameLoadId = 0;
@@ -862,6 +855,7 @@ function loadDeck(text, name) {
     toast(tr('slide_presentation_editor_slide_limit', 'A presentation can contain at most 50 slides.'));
     return;
   }
+  deckDocument = parsed.metadata;
   $('#deckTitle').value = parsed.title;
   state.active = 0; state.selected = null; state.undo = []; state.redo = [];
   const loadId = ++frameLoadId;
@@ -874,7 +868,13 @@ function loadDeck(text, name) {
     bindFrameEvents();
     afterDeckLoaded();
   };
-  frame.srcdoc = buildSrcdoc(parsed.css, parsed.slidesHTML, loadId);
+  // The initial about:blank canvas inherits the editor's opaque origin.
+  // Write in place so navigation cannot assign it a different opaque origin.
+  state.loaded = true;
+  const canvasDocument = frame.contentDocument;
+  canvasDocument.open();
+  canvasDocument.write(buildSrcdoc(parsed.css, parsed.slidesHTML, loadId));
+  canvasDocument.close();
   $('#landing').classList.add('hidden');
   $('#app').classList.remove('hidden');
   state.loaded = true;
@@ -882,7 +882,7 @@ function loadDeck(text, name) {
 }
 
 function afterDeckLoaded() {
-  setActive(0);
+  setActive(resumeState?.active || 0);
   fitZoom();
   renderThumbs();
   pushUndo();
@@ -897,6 +897,13 @@ function afterDeckLoaded() {
     setSaveState(tr('slide_presentation_editor_saved', 'Saved'), 'saved');
     pendingServerPayload = null;
   }
+  if (resumeState) {
+    server.openedRevision = resumeState.openedRevision ?? server.openedRevision;
+    state.undo = resumeState.undo || state.undo;
+    state.redo = resumeState.redo || [];
+    updateUndoButtons();
+    resumeState = null;
+  }
   editorController?.onReady?.();
 }
 
@@ -907,6 +914,8 @@ function loadEmbeddedDeck(payload) {
   if (!html) {
     throw new Error(tr('slide_presentation_editor_load_failed', 'Failed to open the presentation editor.'));
   }
+  editorRuntime = String(payload.runtime || "");
+  editorPolicy = String(payload.csp || "");
   pendingServerPayload = payload;
   loadDeck(html, null);
   $('#deckTitle').value = String(payload.title || tr('slide_presentation_default_title', 'Presentation'));
@@ -947,7 +956,13 @@ const BLANK_DECK = `<!DOCTYPE html>
 function setActive(i) {
   const all = slides();
   if (!all.length) return;
-  state.active = Math.max(0, Math.min(i, all.length - 1));
+  const next = Math.max(0, Math.min(i, all.length - 1));
+  const api = frame.contentWindow?.OmlorixPresentation;
+  if (api && api.index !== next) {
+    api.goTo(next);
+    if (api.index !== next) return;
+  }
+  state.active = next;
   all.forEach((s, k) => s.classList.toggle('__amp-active', k === state.active));
   select(null);
   updateThumbActive();
@@ -984,6 +999,19 @@ function slideOf(node) {
 function buildThumb(s, i, css) {
   const clone = s.cloneNode(true);
   clone.classList.remove('__amp-active');
+  clone.removeAttribute('inert');
+  clone.removeAttribute('aria-hidden');
+  $$('script', clone).forEach(script => script.remove());
+  const thumbnailCanvases = $$('canvas', clone);
+  $$('canvas', s).forEach((canvas, index) => {
+    try {
+      const image = ownerDocument.createElement('img');
+      image.src = canvas.toDataURL();
+      image.style.cssText = canvas.style.cssText;
+      image.width = canvas.width; image.height = canvas.height;
+      thumbnailCanvases[index]?.replaceWith(image);
+    } catch (_) { /* Cross-origin canvases cannot be read by the browser. */ }
+  });
   clone.removeAttribute('contenteditable');
   const item = ownerDocument.createElement('div');
   item.className = 'thumb' + (i === state.active ? ' active' : '');
@@ -1001,17 +1029,21 @@ function buildThumb(s, i, css) {
   const fr = ownerDocument.createElement('iframe');
   fr.className = 'thumb-frame';
   fr.setAttribute('tabindex', '-1');
-  // The thumbnail receives already-sanitized slide markup and the restrictive
-  // frame CSP. An iframe sandbox is unnecessary and produces repeated WebKit
-  // console errors for browser-injected frame helpers.
-  fr.removeAttribute('sandbox');
+  // Thumbnail markup reflects the running canvas; authored code runs only once.
+  // The whole editor is already isolated; retain its opaque origin here.
   // CSS-driven scaling via 100vw of the thumb viewport — no parse-timing pitfalls
-  fr.srcdoc = `<!DOCTYPE html><html><head><meta charset="utf-8">${editorFrameCspMeta()}<style>${css}</style>` +
+  const thumbnailHtml = `<!DOCTYPE html><html><head><meta charset="utf-8">${editorFrameCspMeta()}<meta http-equiv="Content-Security-Policy" content="script-src 'none'"><style>${css}</style>` +
     `<style>html,body{margin:0!important;padding:0!important;overflow:hidden!important;background:transparent!important}` +
     `.slide{margin:0!important;display:block!important}` +
     `#w{width:${SLIDE_W}px;height:${SLIDE_H}px;transform-origin:0 0;` +
     `transform:scale(calc(100vw / ${SLIDE_W}px));}</style></head>` +
     `<body><div id="w">${clone.outerHTML}</div></body></html>`;
+  fr.onload = () => {
+    fr.onload = null;
+    const doc = fr.contentDocument;
+    if (!doc) return;
+    doc.open(); doc.write(thumbnailHtml); doc.close();
+  };
   item.append(num, acts, fr);
   const idxOf = () => slides().indexOf(item._slide);
   item.addEventListener('click', e => {
@@ -1311,8 +1343,10 @@ let drag = null; // {mode:'move'|'resize', ...}
 
 function bindFrameEvents() {
   const doc = idoc();
+  doc.addEventListener('omlorix:slide-enter', event => setActive(event.detail.index));
 
   doc.addEventListener('mousedown', e => {
+    if (e.target.closest('button,input,select,textarea,a,iframe,[role=slider]') && !state.editing && !e.altKey) return;
     if (state.editing) {
       const t = pickTarget(e.target);
       if (t && state.selected && (t === state.selected || state.selected.contains(t))) return; // continue editing
@@ -1342,7 +1376,7 @@ function bindFrameEvents() {
   doc.addEventListener('mouseup', endDrag);
   doc.addEventListener('mouseleave', () => { state.hovered = null; updateOverlay(); });
 
-  doc.addEventListener('input', () => { scheduleThumbs(); debouncedCommit(); updateOverlay(); });
+  doc.addEventListener('input', () => { scheduleThumbs(); if (state.editing) debouncedCommit(); updateOverlay(); });
   doc.addEventListener('keydown', e => {
     if (state.editing) {
       const meta = e.metaKey || e.ctrlKey;
@@ -1354,7 +1388,7 @@ function bindFrameEvents() {
       if (e.key === 'Escape') { e.preventDefault(); stopTextEdit(); }
       return;
     }
-    handleEditorKeys(e);
+    if (!e.target.closest('button,input,select,textarea,a,[role=slider]')) handleEditorKeys(e);
   });
 
   // keep floating toolbar state in sync with the caret/selection
@@ -1828,7 +1862,8 @@ function handleEditorKeys(e) {
 }
 function trapModalFocus(e, modal) {
   if (e.key !== 'Tab') return false;
-  const controls = $$('button:not(:disabled), textarea, input:not(:disabled), select:not(:disabled), [tabindex]:not([tabindex="-1"])', modal);
+  const controls = $$('button:not(:disabled), textarea, input:not(:disabled), select:not(:disabled), [tabindex]:not([tabindex="-1"])', modal)
+    .filter(control => control.getClientRects().length && getComputedStyle(control).visibility !== 'hidden');
   if (!controls.length) return false;
   const first = controls[0];
   const last = controls[controls.length - 1];
@@ -1852,6 +1887,7 @@ root.addEventListener('keydown', e => {
     if (e.key === 'Escape') closeTemplateModal();
     return;
   }
+  if (trapModalFocus(e, $('#app'))) return;
   const tag = root.activeElement && root.activeElement.tagName;
   if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
   handleEditorKeys(e);
@@ -1881,11 +1917,12 @@ function duplicateElement() {
    Undo / redo (snapshot-based)
 --------------------------------------------------------------------- */
 function snapshot() {
-  return { body: ibody().innerHTML, css: deckStyleEl().textContent, active: state.active };
+  return { body: ibody().innerHTML, css: deckStyleEl().textContent, active: state.active, metadata: JSON.stringify(deckDocument) };
 }
 function restore(s) {
   select(null);
   stopTextEdit();
+  deckDocument = JSON.parse(s.metadata || '{"attributes":{},"extras":""}');
   deckStyleEl().textContent = s.css;
   ibody().innerHTML = s.body;
   state.active = Math.min(s.active, slides().length - 1);
@@ -1902,7 +1939,7 @@ function pushUndo() {
 function commit(label) {
   const top = state.undo[state.undo.length - 1];
   const now = snapshot();
-  if (top && top.body === now.body && top.css === now.css) return;
+  if (top && top.body === now.body && top.css === now.css && top.metadata === now.metadata) return;
   state.undo.push(now);
   if (state.undo.length > 120) state.undo.shift();
   state.redo = [];
@@ -1913,21 +1950,37 @@ function commit(label) {
 let commitTimer;
 function debouncedCommit() { clearTimeout(commitTimer); commitTimer = setTimeout(() => commit(), 600); }
 
-function undo() {
+async function undo() {
   if (state.undo.length < 2) return;
   state.redo.push(state.undo.pop());
   restore(state.undo[state.undo.length - 1]);
   updateUndoButtons();
   markServerDirty();
+  await restartDeckScripts();
 }
-function redo() {
+async function redo() {
   if (!state.redo.length) return;
   const s = state.redo.pop();
   state.undo.push(s);
   restore(s);
   updateUndoButtons();
   markServerDirty();
+  await restartDeckScripts();
 }
+async function restartDeckScripts() {
+  clearTimeout(server.saveTimer);
+  if (!await flushServerSave() || server.dirty) return;
+  clearTimeout(server.renderTimer);
+  try {
+    await editorController.reload({
+      payload: { html: serializeDeck(), title: $('#deckTitle').value, canvas_revision: server.revision, render_revision: server.renderRevision },
+      resume: { active: state.active, undo: state.undo, redo: state.redo, openedRevision: server.openedRevision },
+    });
+  } catch (error) {
+    toast(error?.message || tr('slide_presentation_editor_load_failed', 'Failed to open the presentation editor.'));
+  }
+}
+
 function updateUndoButtons() {
   $('#btnUndo').disabled = state.undo.length < 2;
   $('#btnRedo').disabled = !state.redo.length;
@@ -2309,7 +2362,7 @@ $('#codeClose').addEventListener('click', closeCode);
 $('#codeCancel').addEventListener('click', closeCode);
 $('#codeModal').addEventListener('mousedown', e => { if (e.target === e.currentTarget) closeCode(); });
 
-$('#codeApply').addEventListener('click', () => {
+$('#codeApply').addEventListener('click', async () => {
   const val = $('#codeArea').value;
   if (codeScope === 'slide') {
     const s = activeSlide();
@@ -2334,6 +2387,7 @@ $('#codeApply').addEventListener('click', () => {
       toast(tr('slide_presentation_editor_slide_limit', 'A presentation can contain at most 50 slides.'));
       return;
     }
+    deckDocument = parsed.metadata;
     deckStyleEl().textContent = parsed.css;
     ibody().innerHTML = parsed.slidesHTML.join('\n');
     state.active = Math.min(state.active, slides().length - 1);
@@ -2343,7 +2397,7 @@ $('#codeApply').addEventListener('click', () => {
   renderThumbs();
   renderInspector();
   commit('Code edited');
-  toast(tr('slide_presentation_editor_changes_applied', 'Changes applied'));
+  await restartDeckScripts();
 });
 
 /* ---------------------------------------------------------------------
@@ -2354,6 +2408,16 @@ function cleanSlideHTML(slideEl) {
   c.classList.remove('__amp-active');
   if (!c.className.trim()) c.removeAttribute('class');
   $$('[contenteditable]', c).forEach(x => { x.removeAttribute('contenteditable'); x.removeAttribute('spellcheck'); });
+  [c, ...$$('*', c)].forEach(element => {
+    element.classList?.remove('omlorix-active', 'omlorix-entering', 'omlorix-leaving');
+  });
+  c.removeAttribute('inert');
+  c.removeAttribute('aria-hidden');
+  c.removeAttribute('tabindex');
+  $$('iframe[data-omlorix-embed-src]', c).forEach(frame => {
+    frame.src = frame.dataset.omlorixEmbedSrc;
+    frame.removeAttribute('data-omlorix-embed-src');
+  });
   return c.outerHTML;
 }
 
@@ -2361,8 +2425,9 @@ function serializeDeck() {
   const title = $('#deckTitle').value || 'Presentation';
   const css = deckStyleEl().textContent;
   const slidesHTML = slides().map(cleanSlideHTML).join('\n\n');
+  const attributes = Object.entries(deckDocument.attributes).map(([name, value]) => `${name}="${escapeHtmlAttribute(value)}"`).join(' ');
   return `<!DOCTYPE html>
-<html lang="en">
+<html ${attributes}>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -2373,6 +2438,7 @@ ${css}
 </head>
 <body>
 ${slidesHTML}
+${deckDocument.extras}
 </body>
 </html>`;
 }
@@ -2399,7 +2465,7 @@ async function requestServerRender() {
   let drainIterations = 0;
   clearTimeout(server.renderTimer);
 
-  // A caller awaiting this function (notably Present and Export) must not be
+  // A caller awaiting this function (notably Export) must not be
   // released merely because *a* render completed. Keep draining renders until
   // the derivative revision matches the newest saved canvas revision. This
   // also joins an older render started by the autosave path without mistaking
@@ -2574,26 +2640,28 @@ async function flushServerSave({ renderAfter = false } = {}) {
 async function requestSharedPresent() {
   if (!state.loaded || typeof editorController?.present !== 'function') return;
   stopTextEdit();
-  // Persist the editable source first, then let the parent open the slideshow
-  // immediately while the expensive derivative render continues. Waiting for
-  // rendering here kept the editor covering the loading UI, making Preview
-  // appear unresponsive even though a purpose-built slideshow loader exists.
+  // Save the source, then present it without waiting for raster derivatives.
   const saved = await flushServerSave();
   if (!saved) return;
   clearTimeout(server.renderTimer);
-  const renderPromise = requestServerRender();
   await editorController.present({
     slideIndex: state.active,
-    renderPromise,
+    refreshContext: {
+      sourceChanged: server.revision !== server.openedRevision,
+      canvasRevision: server.revision,
+      renderRevision: server.renderRevision,
+      renderPromise: server.renderInFlight,
+    },
   });
 }
 
 async function requestSharedExport() {
   if (!state.loaded || typeof editorController?.export !== 'function') return;
   stopTextEdit();
-  const saved = await flushServerSave({ renderAfter: true });
+  const format = $('#editorExportFormat').value;
+  const saved = await flushServerSave({ renderAfter: format !== 'html' });
   if (!saved) return;
-  await editorController.export({ format: $('#editorExportFormat').value });
+  await editorController.export({ format });
 }
 
 $('#btnPresent').addEventListener('click', () => requestSharedPresent().catch(error => toast(error?.message || String(error))));
@@ -2683,6 +2751,7 @@ function localizeEmbeddedChrome() {
   $('#btnExport').title = tr('files_preview_download', 'Download');
   $('#editorExportFormat').setAttribute('aria-label', tr('slide_presentation_download_format_aria', 'Download format'));
   const imagesOption = $('#editorExportFormat option[value="slides_zip"]');
+  $('#editorExportFormat option[value="html"]').textContent = tr('slide_presentation_editor_html_source', 'HTML source');
   if (imagesOption) imagesOption.textContent = tr('pdf_export_images', 'Images');
   const deckTitleLabel = tr('slide_presentation_editor_deck_title', 'Presentation title');
   $('#deckTitle').title = deckTitleLabel;
@@ -2865,7 +2934,8 @@ function resetNativeEditorState() {
   state.editing = false;
   state.undo = [];
   state.redo = [];
-  frame.srcdoc = '';
+  frame.contentDocument?.open();
+  frame.contentDocument?.close();
   $$('.modal-back').forEach(modal => {
     modal.classList.remove('open');
     modal.hidden = true;
@@ -2880,8 +2950,9 @@ function openNativeEditor(options = {}) {
   resetNativeEditorState();
   localizeEmbeddedChrome();
   const exportFormat = String(options.exportFormat || 'pptx');
-  $('#editorExportFormat').value = ['pptx', 'pdf', 'slides_zip'].includes(exportFormat) ? exportFormat : 'pptx';
+  $('#editorExportFormat').value = ['pptx', 'pdf', 'slides_zip', 'html'].includes(exportFormat) ? exportFormat : 'pptx';
   editorController = {
+    reload: options.reload,
     save: options.save,
     render: options.render,
     present: options.present,
@@ -2891,6 +2962,7 @@ function openNativeEditor(options = {}) {
   };
   setSaveState(tr('slide_presentation_editor_loading', 'Opening presentation editor…'));
   try {
+    resumeState = options.resume || null;
     loadEmbeddedDeck(options.payload || {});
   } catch (error) {
     const message = error?.message || tr(
@@ -2916,7 +2988,8 @@ function cancelNativeEditor() {
   editorController = null;
   stopTextEdit();
   select(null);
-  frame.srcdoc = '';
+  frame.contentDocument?.open();
+  frame.contentDocument?.close();
 }
 
 window.slidePresentationNativeEditor = Object.freeze({
@@ -2930,4 +3003,164 @@ window.slidePresentationNativeEditor = Object.freeze({
     return root;
   },
 });
+}
+
+// The authenticated host exposes only this deck's existing editor operations.
+// The complete editor and its executable canvas live under a separate opaque origin.
+(function installIsolatedEditorHost() {
+  const host = document.getElementById('slide-presentation-EditorHost');
+  if (!host) return;
+  let view, options, channel, generation = 0, renderInFlight = null;
+  let stylesPromise;
+  const editorSource = installSlidePresentationEditor.toString();
+  const translationKeys = [...new Set([...editorSource.matchAll(/['"]([a-z][a-z0-9]*(?:_[a-z0-9]+)+)['"]/g)].map(match => match[1]))];
+  const translations = () => Object.fromEntries(translationKeys.map(key => [key, window.getTranslation?.(key, '') || '']));
+  const send = message => view?.contentWindow?.postMessage({ ...message, channel }, location.origin);
+  const appearance = () => {
+    const computed = getComputedStyle(host);
+    return {
+      theme: document.documentElement.dataset.mode || 'dark',
+      lang: document.documentElement.lang, dir: document.documentElement.dir,
+      variables: Object.fromEntries([...computed].filter(key => key.startsWith('--')).map(key => [key, computed.getPropertyValue(key)])),
+      translations: translations(),
+    };
+  };
+  function shell(csp, styles) {
+    // The data editor must allow its own srcdoc canvas. Network permissions
+    // otherwise match the server's policy for this exact deck source.
+    csp = csp.replace("frame-ancestors 'self'; ", "").replace(/frame-src (?:'none')?/,  "frame-src data: blob: 'self' ");
+    const script = `const Icons = ${JSON.stringify(Icons)}; Object.assign(Icons, {${['resolveIcon', 'createSvgElement', 'withSvgAttributes'].map(key => Icons[key].toString()).join(',')}});\n` +
+      `(${isolatedEditorBridge.toString()})(${JSON.stringify(channel)}, ${JSON.stringify(styles)});\n(${editorSource})();`;
+    const escape = value => value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    return '<!doctype html><html><head><meta charset="utf-8">' +
+      `<meta http-equiv="Content-Security-Policy" content="${escape(csp)}">` +
+      '<style>html,body{margin:0;width:100%;height:100%;overflow:hidden}#slide-presentation-EditorHost{width:100%;height:100%}</style></head>' +
+      '<body><div id="slide-presentation-EditorHost"></div>' +
+      `<script>${script.replace(/<\/script/gi, '<\\/script')}</script></body></html>`;
+  }
+  async function mount(nextOptions) {
+    const token = ++generation;
+    stylesPromise ||= Promise.all([...document.querySelectorAll('link[data-slide-presentation-editor-stylesheet]')].map(async link => {
+      const response = await fetch(link.href);
+      if (!response.ok) throw new Error(window.getTranslation('slide_presentation_editor_load_failed', 'Failed to open the presentation editor.'));
+      return response.text();
+    })).catch(error => { stylesPromise = null; throw error; });
+    const [prepared, styles] = await Promise.all([nextOptions.prepare({ html: nextOptions.payload.html }), stylesPromise]);
+    if (token !== generation) return;
+    options = nextOptions;
+    channel = crypto.randomUUID();
+    nextOptions.payload = { ...nextOptions.payload, html: prepared.html, runtime: prepared.runtime, csp: prepared.csp };
+    const next = document.createElement('iframe');
+    next.className = 'slide-presentation-editor-frame';
+    next.title = window.getTranslation?.('slide_presentation_editor_loading', 'Opening presentation editor…');
+    next.referrerPolicy = 'no-referrer';
+    view?.remove();
+    view = next;
+    const html = shell(prepared.csp, styles);
+    next._editorShell = html;
+    next.src = '/api/v1/presentations/editor/proxy';
+    host.replaceChildren(next);
+  }
+  addEventListener('message', async event => {
+    if (event.source !== view?.contentWindow || event.origin !== location.origin) return;
+    const message = event.data;
+    if (message?.type === 'omlorix-editor-proxy-ready') {
+      send({ type: 'omlorix-editor-mount', html: view._editorShell, title: view.title });
+      delete view._editorShell;
+      return;
+    }
+    if (message?.channel !== channel) return;
+    if (message.type === 'omlorix-editor-ready') {
+      send({ type: 'omlorix-editor-open', payload: options.payload, exportFormat: options.exportFormat, resume: options.resume, appearance: appearance() });
+      return;
+    }
+    if (message.type !== 'omlorix-editor-request' || typeof message.id !== 'string') return;
+    const active = options, activeChannel = channel;
+    let result, error;
+    try {
+      const payload = message.payload;
+      switch (message.action) {
+        case 'save': result = await active.save(payload); break;
+        case 'render': {
+          // Reuse a render across a script restart; the editor drains revisions.
+          if (!renderInFlight) {
+            const task = Promise.resolve(active.render(payload)).finally(() => { if (renderInFlight === task) renderInFlight = null; });
+            renderInFlight = task;
+          }
+          result = await renderInFlight; break;
+        }
+        case 'present':
+          result = await active.present({ ...payload, refreshContext: { ...payload?.refreshContext, renderPromise: renderInFlight } }); break;
+        case 'export':
+          if (!['html', 'pptx', 'pdf', 'slides_zip'].includes(payload?.format)) return;
+          result = await active.export(payload); break;
+        case 'onReady': active.onReady?.(); break;
+        case 'onClose': active.onClose?.({ ...payload, renderPromise: renderInFlight }); break;
+        case 'confirmDiscard':
+          result = await window.showWarningConfirm({
+            title: window.getTranslation('modal_discard_changes_title', 'Discard changes?'),
+            message: window.getTranslation('modal_discard_changes_desc', 'You have unsaved changes. Are you sure you want to leave without saving?'),
+            confirmLabel: window.getTranslation('modal_discard_btn', 'Discard changes'), danger: true,
+          }); break;
+        case 'reload':
+          await mount({ ...active, payload: { ...active.payload, ...payload.payload }, resume: payload.resume }); break;
+        default: return;
+      }
+    } catch (failure) { error = { message: failure?.message, status: failure?.status }; }
+    if (activeChannel === channel) send({ type: 'omlorix-editor-response', id: message.id, result, error });
+  });
+  const updateAppearance = () => send({ type: 'omlorix-editor-appearance', appearance: appearance() });
+  new MutationObserver(updateAppearance).observe(document.documentElement, { attributes: true, attributeFilter: ['data-mode', 'lang', 'dir'] });
+  document.addEventListener('i18n:updated', updateAppearance);
+  window.slidePresentationNativeEditor = Object.freeze({
+    open: mount,
+    requestClose() { send({ type: 'omlorix-editor-close' }); },
+    focus() { send({ type: 'omlorix-editor-focus' }); },
+    cancel() { generation += 1; options = null; channel = null; view?.remove(); view = null; renderInFlight = null; },
+  });
 })();
+
+function isolatedEditorBridge(channel, styles) {
+  const pending = new Map();
+  let sequence = 0, labels = {};
+  window.slideEditorStyles = styles;
+  window.getTranslation = (key, fallback) => labels[key] || fallback;
+  const send = message => parent.postMessage({ ...message, channel }, '*');
+  const request = (action, payload) => new Promise((resolve, reject) => {
+    const id = String(++sequence);
+    pending.set(id, { resolve, reject });
+    // Promises stay in the authenticated host; message payloads are plain data.
+    const serialized = JSON.parse(JSON.stringify(payload || {}, (key, value) => key === 'renderPromise' ? undefined : value));
+    send({ type: 'omlorix-editor-request', id, action, payload: serialized });
+  });
+  function appearance(value) {
+    if (!value) return;
+    labels = value.translations || {};
+    document.documentElement.dataset.mode = value.theme;
+    document.documentElement.lang = value.lang || 'en';
+    document.documentElement.dir = value.dir || 'ltr';
+    Object.entries(value.variables || {}).forEach(([key, val]) => document.documentElement.style.setProperty(key, val));
+    document.dispatchEvent(new Event('i18n:updated'));
+  }
+  window.showWarningConfirm = () => request('confirmDiscard');
+  addEventListener('message', event => {
+    if (event.source !== parent || event.data?.channel !== channel) return;
+    const message = event.data;
+    if (message.type === 'omlorix-editor-open') {
+      appearance(message.appearance);
+      window.slidePresentationNativeEditor.open({
+        payload: message.payload, exportFormat: message.exportFormat, resume: message.resume,
+        ...Object.fromEntries(['save', 'render', 'present', 'export', 'onReady', 'onClose', 'reload'].map(action => [action, payload => request(action, payload)])),
+      });
+    } else if (message.type === 'omlorix-editor-response') {
+      const task = pending.get(message.id);
+      pending.delete(message.id);
+      if (message.error) task?.reject(Object.assign(new Error(message.error.message), { status: message.error.status }));
+      else task?.resolve(message.result);
+    } else if (message.type === 'omlorix-editor-appearance') appearance(message.appearance);
+    else if (message.type === 'omlorix-editor-close') window.slidePresentationNativeEditor.requestClose();
+    else if (message.type === 'omlorix-editor-focus') window.slidePresentationNativeEditor.focus();
+  });
+  // The host waits for this handshake before sending any source or callbacks.
+  queueMicrotask(() => send({ type: 'omlorix-editor-ready' }));
+}

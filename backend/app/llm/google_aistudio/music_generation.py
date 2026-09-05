@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from io import BytesIO
+import base64
 import logging
 from typing import Any
 
@@ -152,7 +153,7 @@ def get_google_aistudio_music_generation_models(provider: LLMProvider) -> list[d
     for model in raw_models:
         model_name = str(getattr(model, "name", "") or "").strip()
         model_id = _normalize_model_id(model_name)
-        if not model_id.startswith("lyria-3-"):
+        if not (model_id.startswith("lyria-3-") or _resolve_model_definition(model_id)):
             continue
         static_definition = _resolve_model_definition(model_id)
         if static_definition:
@@ -381,18 +382,45 @@ def generate_music_google_aistudio(
 
     requested_format = str(settings.get("response_format") or "mp3").strip().lower() or "mp3"
     response_mime_type = _coerce_response_mime_type(requested_format)
-    generation_config = build_aistudio_generate_content_config(
-        settings,
-        response_modalities=["AUDIO", "TEXT"],
-        response_mime_type=response_mime_type,
-    )
-
     try:
-        response = client.models.generate_content(
-            model=normalized_model,
-            contents=contents,
-            config=generation_config,
-        )
+        if normalized_model == "lyria-3.5":
+            interaction_input = [{"type": "text", "text": prompt}]
+            for image in contents[1:11]:
+                buffer = BytesIO()
+                image.save(buffer, format="PNG")
+                interaction_input.append({
+                    "type": "image",
+                    "mime_type": "image/png",
+                    "data": base64.b64encode(buffer.getvalue()).decode("ascii"),
+                })
+            response = client.interactions.create(
+                model=normalized_model,
+                input=interaction_input,
+                store=False,
+            )
+            parts = []
+            for step in response.steps or []:
+                if step.type != "model_output":
+                    continue
+                for block in step.content or []:
+                    if block.type == "text":
+                        parts.append(types.Part(text=block.text))
+                    elif block.type == "audio" and block.data:
+                        parts.append(types.Part.from_bytes(
+                            data=base64.b64decode(block.data, validate=True),
+                            mime_type=block.mime_type or "audio/mpeg",
+                        ))
+        else:
+            response = client.models.generate_content(
+                model=normalized_model,
+                contents=contents,
+                config=build_aistudio_generate_content_config(
+                    settings,
+                    response_modalities=["AUDIO", "TEXT"],
+                    response_mime_type=response_mime_type,
+                ),
+            )
+            parts = _iter_response_parts(response)
     except genai_errors.ClientError as exc:
         message = getattr(exc, "message", str(exc))
         raise RuntimeError(f"Google AI Studio music generation failed: {message}") from exc
@@ -403,7 +431,7 @@ def generate_music_google_aistudio(
     audio_bytes: bytes | None = None
     audio_mime_type: str | None = None
 
-    for part in _iter_response_parts(response):
+    for part in parts:
         text_value = _extract_text_part(part)
         if text_value:
             text_blocks.append(text_value)

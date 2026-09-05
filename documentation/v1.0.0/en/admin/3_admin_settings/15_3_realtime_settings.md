@@ -11,7 +11,7 @@
 
 An empty **Realtime tools** selection disables tool use for realtime sessions. For a selected tool to work, the user must also have access to the realtime feature, the model, the tool, and any group or service connection involved.
 
-**Input transcription** and **Output transcription** control speech transcript updates. Other providers can expose **Realtime temperature**, **Realtime max output tokens**, **Speech language code**, **Session resumption**, **Context compression**, turn and activity handling, sensitivity, silence timing, **Affective dialog**, or **Proactive audio**. Only use the options displayed for the selected provider, and test how interruption, transcription, and long-session context behave together.
+**Input transcription** and **Output transcription** control speech transcript updates. Other providers can expose **Realtime temperature**, **Speech language code**, **Session resumption**, **Context compression**, turn and activity handling, sensitivity, silence timing, **Affective dialog**, or **Proactive audio**. Only use the options displayed for the selected provider, and test how interruption, transcription, and long-session context behave together.
 
 ## Safety and Capacity
 

@@ -1,4 +1,11 @@
 {
+  "assistant_tool_error_canvas_file": "Para ver o editar se necesita un archivo Canvas existente. Para crearlo, proporciona contenido y establece edits en null.",
+  "assistant_tool_error_canvas_revision": "Para editar se necesita la revisión actual del Canvas. Lee el archivo y vuelve a intentarlo.",
+  "assistant_tool_error_canvas_content": "Para crear o reemplazar un Canvas se necesita contenido.",
+  "assistant_tool_error_canvas_inputs": "Revisa los datos para crear, ver o editar el Canvas y vuelve a intentarlo.",
+  "chat_openai_safety_stop": "OpenAI ha detenido esta conversación para una revisión de seguridad. Revisa las acciones ya realizadas con la persona responsable. Este flujo de trabajo no se puede reintentar.",
+  "chat_openai_tools_require_responses": "Este modelo requiere el proveedor OpenAI Responses para usar herramientas. Cambia de proveedor antes de continuar esta conversación.",
+  "llm.openai.tools_require_responses": "Usa el proveedor OpenAI Responses para habilitar herramientas en este modelo.",
     "chat_context_budget_exceeded": "Esta solicitud supera el límite de contexto del modelo. Elimina archivos adjuntos, acorta la solicitud o elige un modelo con un contexto más amplio.",
   "us_personal_info_email_verification_sent": "Se enviaron los enlaces de verificación. Tu correo actual seguirá activo hasta que se verifique el nuevo.",
   "us_personal_info_email_change_unavailable": "No se pudo iniciar el cambio de correo. Comprueba la dirección o pide a un administrador que revise la configuración de envío.",

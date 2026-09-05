@@ -78,22 +78,6 @@ def output_transcription_field() -> FieldSchema:
     )
 
 
-def max_output_tokens_field() -> FieldSchema:
-    """Build the bounded response-token control."""
-
-    return FieldSchema(
-        key="realtime_max_output_tokens",
-        label="Realtime max output tokens",
-        description="Cap the size of each generated realtime response when supported.",
-        type="number",
-        input_type="int",
-        placeholder="Leave empty for provider default",
-        dependency="realtime_enabled",
-        dependency_value=True,
-        attributes=FieldAttributes(min=1, max=4096, step=1),
-    )
-
-
 def language_code_field(
     *,
     description: str,

@@ -73,10 +73,36 @@ def can_send_messages_to_chat(chat, *, allow_archived: bool = False) -> bool:
 
 
 def ensure_chat_sendable(chat, *, allow_archived: bool = False, detail: str = "Chat not found!"):
-    """Raise HTTPException 404 when a chat cannot accept new messages."""
+    """Reject unavailable chats or conversations stopped for safety review."""
     if not can_send_messages_to_chat(chat, allow_archived=allow_archived):
         raise HTTPException(status_code=404, detail=detail)
+    safety_meta = _meta_to_dict(getattr(chat, "meta", None)).get("openai_safety_stop")
+    if isinstance(safety_meta, dict):
+        from app.llm.openai.safety import OpenAISafetyStop
+
+        stop = OpenAISafetyStop(
+            request_id=safety_meta.get("request_id"),
+            response_id=safety_meta.get("response_id"),
+        )
+        raise HTTPException(
+            status_code=403,
+            detail={"code": stop.code, "message": str(stop), **stop.metadata()},
+        )
     return chat
+
+
+def mark_chat_openai_safety_stop(db, chat_id: str, stop_meta: dict):
+    """Persist a conversation stop even when retry history omits the failed turn."""
+    chat = (
+        db.query(Chats)
+        .filter(Chats.id == chat_id)
+        .populate_existing()
+        .with_for_update()
+        .first()
+    )
+    if chat:
+        chat.meta = {**_meta_to_dict(chat.meta), "openai_safety_stop": dict(stop_meta)}
+        db.commit()
 
 
 def is_chat_hidden_from_default_list(chat, include_temp: bool = False) -> bool:

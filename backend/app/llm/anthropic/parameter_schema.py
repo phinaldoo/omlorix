@@ -59,6 +59,10 @@ def get_anthropic_model_schema_parameter(
         model_settings=model_settings,
     )
     parameter_schema = get_parameters_schema_filled(model_settings)
+    for section in parameter_schema.sections or []:
+        section.fields = [
+            field for field in section.fields or [] if field.key != "settings.max_tokens"
+        ]
     thinking_sections: list[Section] = []
     if thinking_capabilities.get("thinking") or has_existing_thinking_values:
         thinking_schema = ANTHROPIC_MODEL_SCHEMA_THINKING_SECTION.model_copy(deep=True)

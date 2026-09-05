@@ -110,7 +110,6 @@ class ContextBuilder:
         history = payload.get(history_key)
         if not isinstance(history, list):
             return
-        config = _data(payload.get("config", {})) or {}
         window = _positive(
             settings.get("input_token_limit"),
             settings.get("input_tokens_limit"),
@@ -125,34 +124,18 @@ class ContextBuilder:
                     default=window,
                 ),
             )
-        output = _positive(
-            payload.get("max_output_tokens"),
-            payload.get("max_completion_tokens"),
-            payload.get("max_tokens"),
-            config.get("max_output_tokens"),
-            (payload.get("options") or {}).get("num_predict"),
-            default=min(4096, window // 4),
-        )
-        output = min(
-            output, _positive(settings.get("output_token_limit"), default=output)
+        # Context accounting must never invent or clamp a generation limit.
+        # Only Anthropic requires a limit, supplied from the saved model settings.
+        output = (
+            _positive(payload.get("max_tokens"), default=0)
+            if protocol == "anthropic"
+            else 0
         )
         if output >= window:
             raise ContextBudgetExceeded("context_budget_exceeded")
-        if protocol == "anthropic":
-            payload["max_tokens"] = output
-        elif protocol == "google_aistudio":
-            if isinstance(payload.get("config"), dict):
-                payload["config"]["max_output_tokens"] = output
-            elif payload.get("config") is not None:
-                payload["config"].max_output_tokens = output
-        elif protocol == "ollama":
+        if protocol == "ollama":
             payload["options"] = dict(payload.get("options") or {})
-            payload["options"].update(num_predict=output, num_ctx=window)
-        elif protocol == "openai_chat_completions":
-            key = "max_tokens" if "max_tokens" in payload else "max_completion_tokens"
-            payload[key] = output
-        else:
-            payload["max_output_tokens"] = output
+            payload["options"]["num_ctx"] = window
         budget = max(0, window - output - min(1024, window // 20))
         fixed = {
             key: value

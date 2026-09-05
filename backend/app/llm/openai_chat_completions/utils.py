@@ -130,15 +130,6 @@ def _apply_openai_chat_completion_simple_settings(
         value = settings.get(param)
         if value is not None:
             request_kwargs[param] = value
-    # Omlorix uses ``max_output_tokens`` as its provider-neutral saved and
-    # per-request key. Chat Completions calls the corresponding wire field
-    # ``max_completion_tokens``. Retain a direct max_completion_tokens fallback
-    # for older manually-created settings payloads.
-    max_completion_tokens = settings.get("max_completion_tokens")
-    if max_completion_tokens is None:
-        max_completion_tokens = settings.get("max_output_tokens")
-    if max_completion_tokens is not None:
-        request_kwargs["max_completion_tokens"] = max_completion_tokens
     _apply_openai_chat_completions_reasoning_effort(request_kwargs, settings)
     _apply_openai_prompt_cache_settings(
         request_kwargs,

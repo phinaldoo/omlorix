@@ -137,6 +137,9 @@ def anthropic_chat(
         getattr(AnthropicModelSettings, "model_fields", None),
         getattr(db_model, "tools", None) if db_model else None,
     )
+    saved_settings = getattr(db_model, "settings", None)
+    if isinstance(saved_settings, dict):
+        settings["max_tokens"] = saved_settings.get("max_tokens")
     settings = remove_deprecated_anthropic_request_settings(settings)
 
     # -------------------

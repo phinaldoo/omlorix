@@ -2609,11 +2609,12 @@ def test_canvas_save_route_accepts_html_content_type(monkeypatch):
 
 
 def test_canvas_tool_schema_advertises_html_content_type():
-    canvas_type_schema = tool_schemas["canvas"]["parameters"]["properties"]["type"]
+    branches = tool_schemas["canvas"]["parameters"]["anyOf"]
+    canvas_type_schema = branches[0]["properties"]["type"]
 
     assert "html" in canvas_type_schema["enum"]
     assert "latex" in canvas_type_schema["enum"]
-    assert "view" in canvas_type_schema["enum"]
+    assert branches[1]["properties"]["type"]["enum"] == ["view"]
     assert "HTML" in tool_schemas["canvas"]["description"]
     assert "view" in tool_schemas["canvas"]["description"]
     assert "proofreading" in tool_schemas["canvas"]["description"]
@@ -2621,7 +2622,7 @@ def test_canvas_tool_schema_advertises_html_content_type():
         "do not send the complete article again"
         in tool_schemas["canvas"]["description"]
     )
-    assert "file_ids" in tool_schemas["canvas"]["parameters"]["properties"]
+    assert "file_ids" in branches[0]["properties"]
 
 
 def test_canvas_save_creates_latex_source_with_render_metadata(monkeypatch):
@@ -2679,7 +2680,7 @@ def test_canvas_save_creates_latex_source_with_render_metadata(monkeypatch):
     ]
     assert result["canvas_revision"] == 1
     assert result["pdf_file_id"] == ""
-    content_description = tool_schemas["canvas"]["parameters"]["properties"]["content"][
+    content_description = tool_schemas["canvas"]["parameters"]["anyOf"][0]["properties"]["content"][
         "description"
     ]
     assert "isolated Canvas preview" in content_description
@@ -2688,18 +2689,16 @@ def test_canvas_save_creates_latex_source_with_render_metadata(monkeypatch):
 
 
 def test_canvas_tool_schema_lists_file_metadata_before_content():
-    property_names = list(tool_schemas["canvas"]["parameters"]["properties"].keys())
-
-    assert property_names[:7] == [
-        "type",
-        "filename",
-        "file_id",
-        "id",
-        "start_snippet",
-        "end_snippet",
-        "content",
-    ]
-    assert tool_schemas["canvas"]["parameters"]["required"] == []
+    branches = tool_schemas["canvas"]["parameters"]["anyOf"]
+    for branch in branches:
+        property_names = list(branch["properties"])
+        if "content" in property_names:
+            assert property_names.index("type") < property_names.index("content")
+            assert property_names.index("filename") < property_names.index("content")
+        if "expected_revision" in branch["properties"]:
+            assert {"file_id", "expected_revision"} <= set(branch["required"])
+    assert "content" in branches[0]["required"]
+    assert set(branches[1]["required"]) == {"type", "file_id"}
 
 
 def test_notes_tool_schema_advertises_view_snippet_edits_and_file_refs():

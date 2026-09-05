@@ -860,7 +860,7 @@ def test_openai_session_config_applies_supported_shared_controls():
     provider_config = realtime_service.build_realtime_session_config(runtime)
 
     assert "transcription" not in provider_config["audio"]["input"]
-    assert provider_config["max_output_tokens"] == 1024
+    assert "max_output_tokens" not in provider_config
 
 
 def test_realtime_documents_use_extracted_text_instead_of_input_file_parts():

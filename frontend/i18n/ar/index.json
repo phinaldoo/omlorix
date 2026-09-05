@@ -1,4 +1,11 @@
 {
+  "assistant_tool_error_canvas_file": "يلزم ملف Canvas موجود للعرض أو التحرير. لإنشاء ملف، قدّم المحتوى واضبط edits على null.",
+  "assistant_tool_error_canvas_revision": "يلزم رقم المراجعة الحالي لملف Canvas لتحريره. اقرأ الملف وحاول مجددًا.",
+  "assistant_tool_error_canvas_content": "يلزم توفير المحتوى لإنشاء Canvas أو استبداله.",
+  "assistant_tool_error_canvas_inputs": "تحقق من مدخلات إنشاء Canvas أو عرضه أو تحريره وحاول مجددًا.",
+  "chat_openai_safety_stop": "أوقفت OpenAI هذه المحادثة لإجراء مراجعة أمنية. راجع الإجراءات التي نُفذت بالفعل مع المشغّل المسؤول. لا يمكن إعادة محاولة سير العمل هذا.",
+  "chat_openai_tools_require_responses": "يتطلب هذا النموذج موفّر OpenAI Responses لاستخدام الأدوات. غيّر الموفّر قبل متابعة هذه المحادثة.",
+  "llm.openai.tools_require_responses": "استخدم موفّر OpenAI Responses لتفعيل الأدوات لهذا النموذج.",
     "chat_context_budget_exceeded": "يتجاوز هذا الطلب حد السياق للنموذج. أزل المرفقات أو اختصر الطلب أو اختر نموذجًا يدعم سياقًا أكبر.",
   "us_personal_info_email_verification_sent": "أُرسلت روابط التحقق. يبقى بريدك الحالي نشطًا حتى التحقق من العنوان الجديد.",
   "us_personal_info_email_change_unavailable": "تعذّر بدء تغيير البريد الإلكتروني. تحقّق من العنوان أو اطلب من مسؤول التحقق من إعدادات إرسال البريد.",

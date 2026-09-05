@@ -318,7 +318,7 @@ def test_memory_dispatch_is_tool_free_and_forwards_schema_options(monkeypatch):
     assert captured["args"][4] == "concrete-provider"
     assert captured["kwargs"]["generation_category"] == "memory_consolidation"
     assert captured["kwargs"]["output_char_limit"] is None
-    assert captured["kwargs"]["max_output_tokens"] == 4096
+    assert "max_output_tokens" not in captured["kwargs"]
     assert captured["kwargs"]["response_schema"] == response_schema
     assert captured["kwargs"]["raise_on_error"] is True
     assert "tools" not in captured["kwargs"]

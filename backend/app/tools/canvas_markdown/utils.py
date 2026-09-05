@@ -37,7 +37,7 @@ from app.files.utils import (
     validate_spreadsheet_archive,
     validate_file_type,
 )
-from app.tools.errors import SafeToolExecutionError
+from app.tools.canvas_markdown.schemas import CanvasValidationError, CANVAS_FILE_REQUIRED
 from app.tools.text_edits import (
     apply_atomic_text_edits,
     apply_single_text_edit,
@@ -102,10 +102,6 @@ _SPREADSHEET_FORMATS = {
     "xls": (".xls", "application/vnd.ms-excel"),
 }
 _SPREADSHEET_MIME_TYPES = frozenset(item[1] for item in _SPREADSHEET_FORMATS.values())
-
-
-class CanvasValidationError(SafeToolExecutionError):
-    """Expected Canvas rejection with a safe model-facing diagnostic."""
 
 
 class CanvasSpreadsheetInputError(ValueError):
@@ -1336,7 +1332,7 @@ def save_canvas_markdown(
         return result
 
     if edits is not None or start_snippet is not None or end_snippet is not None:
-        raise ValueError("Text edits require file_id for the existing canvas file.")
+        raise CanvasValidationError(code="canvas_file_required", safe_message=CANVAS_FILE_REQUIRED)
 
     content_type = _normalize_content_type(content_type, fallback="markdown")
     content_text = str(content if content is not None else "")

@@ -636,6 +636,31 @@ def create_widget_frame_payload(
     }
 
 
+def store_isolated_frame_document(*, user_id: str, html: str, csp: str, widget_type: str) -> dict[str, str]:
+    """Store an immutable presentation document; cache only its expiring reference.
+
+    Only trusted backend builders choose the CSP; no HTTP request accepts it.
+    Documents are transient derivatives and do not belong in account archives.
+    """
+    from app.tools.slide_presentation.frame_storage import discard_document, store_document
+
+    frame_id = secrets.token_urlsafe(32)
+    owner_hash = _widget_frame_owner_hash(user_id)
+    document = store_document(
+        frame_id=frame_id, owner_hash=owner_hash, html=html, ttl=_WIDGET_FRAME_TTL_SECONDS,
+    )
+    try:
+        _store_widget_frame(owner_hash, frame_id, {
+            "document": document, "owner_hash": owner_hash,
+            "expires_at": time.time() + _WIDGET_FRAME_TTL_SECONDS,
+            "csp": csp, "widget_type": widget_type,
+        })
+    except Exception:
+        discard_document(frame_id)
+        raise
+    return {"frame_id": frame_id, "frame_url": f"/api/v1/llm/widgets/frame/{frame_id}"}
+
+
 def get_widget_frame_payload(frame_id: str) -> dict[str, Any]:
     """Return a stored widget frame document and its security headers."""
 
@@ -644,9 +669,10 @@ def get_widget_frame_payload(frame_id: str) -> dict[str, Any]:
         raise HTTPException(status_code=404, detail="Widget frame expired.")
     html = str(frame.get("html") or "")
     csp = str(frame.get("csp") or "").strip()
-    if not html or not csp:
+    document = frame.get("document")
+    if (not html and not isinstance(document, dict)) or not csp:
         raise HTTPException(status_code=404, detail="Widget frame expired.")
-    return {
+    payload = {
         "html": html,
         "headers": {
             "Content-Security-Policy": csp,
@@ -660,3 +686,14 @@ def get_widget_frame_payload(frame_id: str) -> dict[str, Any]:
             "Cross-Origin-Resource-Policy": "same-origin",
         },
     }
+    if isinstance(document, dict):
+        from app.tools.slide_presentation.frame_storage import materialize_document
+
+        if float(frame.get("expires_at") or 0) <= time.time():
+            raise HTTPException(status_code=404, detail="Widget frame expired.")
+        try:
+            payload["path"] = materialize_document(document)
+        except Exception as exc:
+            raise HTTPException(status_code=404, detail="Widget frame expired.") from exc
+        payload.pop("html")
+    return payload

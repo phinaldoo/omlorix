@@ -409,7 +409,6 @@ def test_responses_settings_translate_wire_names_and_drop_chat_only_fields():
         "model": "test/model",
         "input": [],
         "temperature": 0.25,
-        "max_output_tokens": 321,
         "text": {
             "format": {
                 "type": "json_schema",

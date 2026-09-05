@@ -2407,6 +2407,10 @@ test('every locale translates the generic tool failure label', () => {
         );
         [
             'assistant_tool_error_generic',
+            'assistant_tool_error_canvas_file',
+            'assistant_tool_error_canvas_revision',
+            'assistant_tool_error_canvas_content',
+            'assistant_tool_error_canvas_inputs',
             'assistant_tool_error_automations_disabled',
             'assistant_tool_error_automations_operation',
             'assistant_tool_error_automations_webhook',
@@ -2421,6 +2425,22 @@ test('every locale translates the generic tool failure label', () => {
             assert.ok(translations[key].trim(), `${locale} has an empty ${key}`);
         });
     });
+});
+
+test('Canvas argument errors use translated labels instead of raw tool diagnostics', () => {
+    const resolveMessage = vm.runInNewContext(
+        extractFunction(streamMessagesSource, 'resolveToolErrorDisplayMessage') + '\nresolveToolErrorDisplayMessage;',
+        { getStreamText: (key) => `localized:${key}` },
+    );
+    const keys = {
+        canvas_file_required: 'assistant_tool_error_canvas_file',
+        canvas_revision_required: 'assistant_tool_error_canvas_revision',
+        canvas_content_required: 'assistant_tool_error_canvas_content',
+        canvas_invalid_arguments: 'assistant_tool_error_canvas_inputs',
+    };
+    for (const [code, key] of Object.entries(keys)) {
+        assert.equal(resolveMessage({ error_code: code, error: 'private diagnostic' }), `localized:${key}`);
+    }
 });
 
 test('tool errors show safe details on the matching activity and survive finalization', () => {
@@ -2785,6 +2805,29 @@ test('appendAssistantError renders streamed provider errors as text', () => {
     assert.deepEqual(errorBlock.innerHtmlAssignments, []);
     assert.equal(errorBlock.querySelector('img'), null);
     assert.equal(assistantMessage.children[1].className, 'assistant-message-list');
+});
+
+test('safety stops mark the response as non-retryable and remain accessible', () => {
+    const { appendAssistantError, assistantMessage } = createHarness();
+    appendAssistantError('message-1', 'Review required', '', {
+        code: 'misalignment_policy_violation', retryable: false, response_id: 'resp-1',
+    });
+    assert.equal(assistantMessage.dataset.retryable, 'false');
+    assert.equal(assistantMessage.children[0].textContent, 'Review required');
+    assert.equal(assistantMessage.children[0].attributes.role, 'alert');
+    const canRegenerate = vm.runInNewContext(
+        `${extractFunction(streamMessagesSource, 'canRegenerateAssistantMessage')}\ncanRegenerateAssistantMessage;`,
+    );
+    assert.equal(canRegenerate(assistantMessage), false);
+    const serialize = vm.runInNewContext(
+        `${extractFunction(readSendMessageSource(), 'collectAssistantBlocksFromDom')}\ncollectAssistantBlocksFromDom;`,
+    );
+    assistantMessage.children.forEach((child) => { child.matches = () => false; });
+    assert.deepEqual(JSON.parse(JSON.stringify(serialize(assistantMessage))), [{
+        type: 'content', content: '', meta: {
+            error_code: 'misalignment_policy_violation', response_id: 'resp-1', retryable: false,
+        },
+    }]);
 });
 
 test('only explicit arbitrary HTML widgets use opaque iframe rendering', () => {

@@ -11,6 +11,8 @@ from __future__ import annotations
 # ruff: noqa: F821, F841, F541
 
 from app.llm.openai import utils as _compat_source
+from app.llm.openai.request_policy import apply_openai_request_policy
+from app.llm.openai.safety import get_openai_safety_stop
 from app.llm.provider_request import release_db_session_before_provider_io
 
 _COMPAT_DEPENDENCIES = {
@@ -162,8 +164,6 @@ def _impl_openai_title_generation(
             user_id=user_id,
             openai_provider_type=openai_provider_type,
         )
-        if max_output_tokens is not None:
-            request_kwargs["max_output_tokens"] = max(1, int(max_output_tokens))
         if isinstance(response_schema, dict) and openai_provider_type in {
             "openai",
             "openai_responses",
@@ -182,9 +182,16 @@ def _impl_openai_title_generation(
             }
             request_kwargs["text"] = text_config
         release_db_session_before_provider_io(db)
+        apply_openai_request_policy(
+            request_kwargs,
+            provider_type=openai_provider_type,
+        )
         response = client.responses.create(
             **_merge_openai_request_options(request_kwargs, request_options)
         )
+        safety_stop = get_openai_safety_stop(response)
+        if safety_stop:
+            raise safety_stop
         meta["service_tier"] = getattr(response, "service_tier", None) or "standard"
         usage = response.usage
         if usage:
@@ -237,6 +244,14 @@ def _impl_openai_title_generation(
         meta_error_status_code = exc.status_code
         raise
     except Exception as exc:
+        safety_stop = get_openai_safety_stop(exc)
+        if safety_stop:
+            meta_error = True
+            meta_error_type = safety_stop.code
+            meta_error_message = str(safety_stop)
+            meta_error_status_code = 403
+            meta.update(safety_stop.metadata())
+            raise HTTPException(status_code=403, detail=safety_stop.event()) from exc
         meta_error = True
         meta_error_type = exc.__class__.__name__
         meta_error_message = str(exc)

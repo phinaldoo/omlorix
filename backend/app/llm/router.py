@@ -2051,6 +2051,15 @@ def create_widget_frame_route(
 @llm_router.get("/widgets/frame/{frame_id}")
 def get_widget_frame_route(frame_id: str):
     frame = get_widget_frame_payload(frame_id)
+    if "path" in frame:
+        from fastapi.responses import FileResponse
+        from starlette.background import BackgroundTask
+
+        path = frame["path"]
+        return FileResponse(
+            path, media_type="text/html; charset=utf-8", headers=frame["headers"],
+            background=BackgroundTask(path.unlink, missing_ok=True),
+        )
     return Response(
         content=frame["html"],
         media_type="text/html; charset=utf-8",

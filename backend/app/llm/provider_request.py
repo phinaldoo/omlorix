@@ -457,14 +457,9 @@ def call_provider_memory_consolidation(request: ProviderRequest) -> str | None:
     """Run schema-constrained extraction without exposing any model tool."""
 
     response_schema = request.extra.get("response_schema")
-    try:
-        max_output_tokens = int(request.extra.get("max_output_tokens") or 8_192)
-    except (TypeError, ValueError):
-        max_output_tokens = 8_192
     request.extra["simple_generation_options"] = {
         "generation_category": REQUEST_TYPE_MEMORY_CONSOLIDATION,
         "output_char_limit": None,
-        "max_output_tokens": max(256, min(max_output_tokens, 32_768)),
         "response_schema": response_schema if isinstance(response_schema, dict) else None,
         "raise_on_error": True,
     }

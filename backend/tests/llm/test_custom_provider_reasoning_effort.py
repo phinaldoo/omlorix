@@ -72,7 +72,7 @@ def test_custom_openai_chat_completions_sends_every_reasoning_effort(effort):
     assert request_kwargs == {"reasoning_effort": effort}
 
 
-def test_chat_completions_translates_shared_output_token_limit_to_wire_key():
+def test_chat_completions_ignores_legacy_output_token_limit():
     request_kwargs = {"model": "custom-chat-completions-model"}
 
     _apply_openai_chat_completion_simple_settings(
@@ -80,7 +80,7 @@ def test_chat_completions_translates_shared_output_token_limit_to_wire_key():
         {"max_output_tokens": 321},
     )
 
-    assert request_kwargs["max_completion_tokens"] == 321
+    assert "max_completion_tokens" not in request_kwargs
     assert "max_output_tokens" not in request_kwargs
 
 

@@ -22,3 +22,14 @@ Optional features are configured independently:
 A listed model is not proof that every modality is available to your account. Preview models and API versions can change; keep **Auto-delete missing models** off unless you want the discovered catalog to control saved models.
 
 Prompts, attachments, audio, and media references may be sent to Google. Review current regional processing, retention, safety settings, and billing before enabling access.
+
+## September 2026 model update
+
+The catalog was checked against Google's [release notes](https://ai.google.dev/gemini-api/docs/changelog), [model deprecations](https://ai.google.dev/gemini-api/docs/deprecations), and [pricing](https://ai.google.dev/gemini-api/docs/pricing) on September 5, 2026.
+
+- **Gemini 3.8 Flash** is recognized for chat, native search, multimodal input, and cost estimates. Model discovery supplies its 1,048,576 input and 65,536 output token limits. Its supported thinking levels are low, medium (Google's default), and high. Saved minimal effort is normalized to low for 3.7 and 3.8 Flash.
+- Gemini 3 chat and auxiliary generation use `thinking_level` instead of a numeric thinking budget. Deprecated temperature, top-p, top-k, and candidate-count parameters are omitted from requests; sampling fields are hidden for these models. Existing Gemini 2.5 controls remain available.
+- The standard token estimates for Gemini 3.6, 3.7, and 3.8 Flash use Google's introductory rates: $0.75 input, $0.075 cached input, and $3.75 output per million tokens through December 31, 2026. Review estimates before the announced January 2027 price change; catalog prices are static.
+- **Lyria 3.5** is available under Music Generation, using the Interactions API. It is excluded from normal chat discovery. Existing image, Veo video, realtime voice, and embedding catalogs remain available. Specialized Omni video, Robotics, and Transcribe endpoints are not normal chat models and remain excluded from chat discovery.
+
+Existing saved models keep their IDs. Refresh discovery and select the new model explicitly; no database migration is needed.

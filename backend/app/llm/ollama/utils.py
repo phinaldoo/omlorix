@@ -157,7 +157,6 @@ def _ollama_images_allowed(input_formats_allowed: Any) -> bool:
 _OLLAMA_SIMPLE_OPTION_KEYS = {
     "num_keep",
     "seed",
-    "num_predict",
     "top_k",
     "top_p",
     "min_p",

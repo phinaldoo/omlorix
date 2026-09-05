@@ -439,7 +439,6 @@ def _impl_ollama_chat(
         for key in [
             "num_keep",
             "seed",
-            "num_predict",
             "top_k",
             "top_p",
             "min_p",

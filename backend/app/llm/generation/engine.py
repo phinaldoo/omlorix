@@ -43,6 +43,7 @@ class GenerationEngine:
         self.resources = []
         self.tool_calls = 0
         self.context_error = False
+        self.chat_history = None
 
     def persist_message(self, *args, **kwargs):
         from app.chats.models import create_chat_message
@@ -131,6 +132,13 @@ class GenerationEngine:
         """
         result, error = None, None
         try:
+            from app.llm.openai.safety import get_conversation_safety_stop
+
+            safety_stop = get_conversation_safety_stop(self.chat_history)
+            if safety_stop:
+                yield json.dumps(safety_stop.event()) + "\n"
+                yield json.dumps({"t": "d", "d": "c", "c": {"status": "error"}}) + "\n"
+                return False
             while True:
                 try:
                     effect = (
@@ -194,6 +202,7 @@ def chat_adapter(function):
         engine = GenerationEngine(
             db=arguments.get("db"), generation_id=arguments.get("generation_id")
         )
+        engine.chat_history = arguments.get("chat_history")
         kwargs["engine"] = engine
         return engine.run(function(*args, **kwargs))
 

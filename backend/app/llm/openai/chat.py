@@ -13,6 +13,8 @@ from app.llm.generation.engine import chat_adapter, ProviderCall, stream_tool_ca
 # ruff: noqa: F821, F841, F541
 
 from app.llm.openai import utils as _compat_source
+from app.llm.openai.request_policy import apply_openai_request_policy
+from app.llm.openai.safety import get_openai_safety_stop
 from app.llm.helper import sanitize_tool_call_arguments_for_persistence
 from app.llm.provider_request import release_db_session_before_provider_io
 
@@ -196,6 +198,10 @@ def _validated_openai_responses_stream(iterable):
     completed = False
     for event in iterable:
         event_type = str(getattr(event, "type", "") or "")
+        if event_type in {"error", "response.failed", "response.incomplete"}:
+            safety_stop = get_openai_safety_stop(event)
+            if safety_stop:
+                raise safety_stop
         if event_type in {"response.failed", "response.incomplete"}:
             raise _OpenAIResponsesStreamProtocolError(
                 f"OpenAI Responses stream reported {event_type}."
@@ -1070,9 +1076,6 @@ def _impl_openai_chat(
                 if param_value is not None:
                     response_kwargs[param_key] = param_value
 
-            max_output_tokens = _coerce_int(settings.get("max_output_tokens"))
-            if max_output_tokens is not None and max_output_tokens > 0:
-                response_kwargs["max_output_tokens"] = max_output_tokens
 
             input_tokens_limit = _coerce_int(settings.get("input_tokens_limit"))
             if input_tokens_limit is None:
@@ -1131,6 +1134,10 @@ def _impl_openai_chat(
                     provider_type=openai_provider_type,
                 )
             request_start_time = datetime.now(timezone.utc)
+            apply_openai_request_policy(
+                response_kwargs,
+                provider_type=openai_provider_type,
+            )
             # Setup above may perform many synchronous lookups. Return its clean
             # transaction to the pool before the potentially multi-minute
             # upstream request; this Session is reset and remains reusable for
@@ -1145,6 +1152,9 @@ def _impl_openai_chat(
                     args=(),
                 )
             except BadRequestError as exc:
+                safety_stop = get_openai_safety_stop(exc)
+                if safety_stop:
+                    raise safety_stop from exc
                 if response_kwargs.get(
                     "context_management"
                 ) and _should_retry_without_compaction(exc):
@@ -2275,6 +2285,27 @@ def _impl_openai_chat(
         yield json.dumps({"t": "e", "d": error_message}) + "\n"
         yield json.dumps({"t": "d", "d": "c", "c": {"status": "error"}}) + "\n"
     except Exception as exc:
+        safety_stop = get_openai_safety_stop(exc)
+        if safety_stop:
+            meta_generation_error = True
+            meta_error_status_code = 403
+            meta_error_type = safety_stop.code
+            meta_error_message = str(safety_stop)
+            safety_stop.response_id = safety_stop.response_id or meta_response_id or None
+            stop_meta = {"status": "error", **safety_stop.metadata()}
+            if chat_id and not temp_request_flag:
+                from app.chats.models import mark_chat_openai_safety_stop
+
+                mark_chat_openai_safety_stop(db, chat_id, stop_meta)
+            # Save even a pre-stream stop with no output. Existing message
+            # backup/export paths preserve this metadata with the transcript.
+            messages_to_save.append({"type": "content", "content": "", "meta": stop_meta})
+            saved_id = _finalize_pending_assistant_message(stop_meta)
+            if saved_id:
+                yield json.dumps({"t": "a_id", "d": saved_id}) + "\n"
+            yield json.dumps(safety_stop.event()) + "\n"
+            yield json.dumps({"t": "d", "d": "c", "c": {"status": "error"}}) + "\n"
+            return False
         logger.error("Failed to generate response: exc_type=%s", type(exc).__name__)
         meta_generation_error = True
         meta_error_message = str(exc)

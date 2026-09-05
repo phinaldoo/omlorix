@@ -135,8 +135,8 @@ def _impl_google_aistudio_title_generation(
             contents=prompt,
             config=build_aistudio_generate_content_config(
                 model_settings,
+                model_name=model,
                 system_instruction=system_instruction,
-                max_output_tokens=max_output_tokens,
                 response_mime_type=(
                     "application/json" if isinstance(response_schema, dict) else None
                 ),

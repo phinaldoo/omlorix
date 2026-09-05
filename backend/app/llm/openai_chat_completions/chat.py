@@ -13,6 +13,7 @@ from app.llm.generation.engine import chat_adapter, ProviderCall, stream_tool_ca
 # ruff: noqa: F821, F841, F541
 
 from app.llm.openai_chat_completions import utils as _compat_source
+from app.llm.openai.request_policy import OpenAIRequestPolicyError, apply_openai_request_policy
 from app.llm.helper import sanitize_tool_call_arguments_for_persistence
 from app.llm.tool_call_budget import MAX_TOOL_CALLS_PER_GENERATION
 
@@ -741,6 +742,10 @@ def _impl_openai_chat_completions_chat(
             )
             if tools_flag and tool_schemas and not suppress_tools:
                 request_kwargs["tools"] = tool_schemas
+            apply_openai_request_policy(
+                request_kwargs,
+                provider_type="openai_chat_completions",
+            )
             try:
                 request_start_time = datetime.now(timezone.utc)
                 response = yield ProviderCall(
@@ -1610,7 +1615,10 @@ def _impl_openai_chat_completions_chat(
             if is_admin
             else "An error occurred during generation. Please try again."
         )
-        yield json.dumps({"t": "e", "d": error_message}) + "\n"
+        error_payload = {"t": "e", "d": error_message}
+        if isinstance(exc, OpenAIRequestPolicyError):
+            error_payload.update(d=str(exc), code=exc.code, i18n_key=exc.i18n_key, retryable=False)
+        yield json.dumps(error_payload) + "\n"
         yield json.dumps({"t": "d", "d": "c", "c": {"status": "error"}}) + "\n"
     finally:
         if (

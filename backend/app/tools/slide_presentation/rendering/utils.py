@@ -555,8 +555,10 @@ def render_slide_presentation(
                 file_ids=input_file_ids,
             )
 
+            from app.tools.slide_presentation.playback import build_slide_render_document
+
             payload: dict[str, Any] = {
-                "html": html,
+                "html": build_slide_render_document(html),
             }
             if input_files_payload:
                 payload["input_files"] = input_files_payload

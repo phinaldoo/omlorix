@@ -185,7 +185,7 @@ test('markdown canvas streaming keeps rendered blocks stable and preserves user 
     assert.match(source, /function restoreCanvasScrollForToolEdit\(draftKey, fileId\)/);
     assert.match(source, /restoreOnNextRender: true/);
     assert.match(source, /streamingScrollState\?\.restoreOnNextRender[\s\S]*getStoredMarkdownScrollTop\(streamingScrollState\)/);
-    assert.match(source, /state\.restoreOnNextRender = false/);
+    assert.match(source, /scrollState\.restoreOnNextRender = false/);
     assert.match(source, /activeMarkdownEditorInstance\?\.getScrollState\?\.\(\) \|\| null/);
     assert.match(source, /activeMarkdownEditorInstance\?\.restoreScrollState\?\.\(\{/);
     assert.match(source, /previewTrack\.addEventListener\('pointerdown', handlePreviewTrackPointerDown/);
@@ -462,7 +462,7 @@ test('html canvas streaming infers content-first HTML and throttles live renders
     const applyScrollStateEnd = source.indexOf('    function restoreScrollAfterMarkdownStream', applyScrollStateStart);
     const applyScrollStateSource = source.slice(applyScrollStateStart, applyScrollStateEnd);
     const autoFollowStart = applyScrollStateSource.indexOf('        if (shouldAuto)');
-    const autoFollowEnd = applyScrollStateSource.indexOf('        if (state.userInterrupted)', autoFollowStart);
+    const autoFollowEnd = applyScrollStateSource.indexOf('        if (scrollState.userInterrupted)', autoFollowStart);
     const autoFollowSource = applyScrollStateSource.slice(autoFollowStart, autoFollowEnd);
 
     assert.match(source, /function inferCanvasContentType\(\{ explicitType = '', currentType = '', fileName = '', content = '' \} = \{\}\)/);

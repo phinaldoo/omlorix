@@ -666,11 +666,11 @@ def _impl_aistudio_chat(
                     "contents": formatted_history,
                     "config": build_aistudio_generate_content_config(
                         settings,
+                        model_name=model_name,
                         system_instruction=system_instruction,
                         temperature=settings.get("temperature", None),
                         top_p=settings.get("top_p", None),
                         top_k=settings.get("top_k", None),
-                        max_output_tokens=settings.get("max_output_tokens", None),
                         stop_sequences=settings.get("stop_sequences", None),
                         presence_penalty=settings.get("presence_penalty", None),
                         frequency_penalty=settings.get("frequency_penalty", None),

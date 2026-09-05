@@ -114,14 +114,6 @@ def _impl_get_parameters_schema_filled(
                         required=False,
                     ),
                     FieldSchema(
-                        key="settings.max_output_tokens",
-                        label="Max output tokens",
-                        description="Maximum number of tokens allowed in the generated output.",
-                        type="string",
-                        input_type="int",
-                        required=False,
-                    ),
-                    FieldSchema(
                         key="settings.store",
                         label="Store responses",
                         description="Store response data for at least 30 days.",
@@ -217,7 +209,6 @@ def _impl_get_parameters_schema_filled(
         "top_p",
         "frequency_penalty",
         "presence_penalty",
-        "max_output_tokens",
         "store",
         "send_user_identifier",
         "verbosity",

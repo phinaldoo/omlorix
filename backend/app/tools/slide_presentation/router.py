@@ -11,7 +11,7 @@ import tempfile
 import zipfile
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from reportlab.pdfgen import canvas as pdf_canvas
 from sqlalchemy.orm import Session
 from starlette.background import BackgroundTask
@@ -45,9 +45,13 @@ from app.tools.slide_presentation.sanitizer import (
     validate_slide_presentation_html,
 )
 from app.tools.slide_presentation.schemas import (
+    SlidePresentationEditorPrepareRequest,
+    SlidePresentationEditorPrepareResponse,
     SlidePresentationEditorRenderRequest,
     SlidePresentationEditorRenderResponse,
     SlidePresentationEditorResponse,
+    SlidePresentationPlaybackRequest,
+    SlidePresentationPlaybackResponse,
     SlidePresentationEditorSaveRequest,
     SlidePresentationEditorSaveResponse,
 )
@@ -452,6 +456,61 @@ def get_presentation_editor_source(
     )
 
 
+@presentations_router.get("/editor/proxy", response_class=HTMLResponse)
+def get_presentation_editor_proxy():
+    """Static trusted relay; contains no user data or authenticated API bridge."""
+    from app.tools.slide_presentation.editor_frame import EDITOR_PROXY_CSP, EDITOR_PROXY_HTML
+
+    return HTMLResponse(EDITOR_PROXY_HTML, headers={
+        "Content-Security-Policy": EDITOR_PROXY_CSP,
+        "Cache-Control": "no-store, private", "Referrer-Policy": "no-referrer",
+        "X-Frame-Options": "SAMEORIGIN", "Cross-Origin-Resource-Policy": "same-origin",
+    })
+
+
+@presentations_router.post("/{presentation_id}/editor/prepare", response_model=SlidePresentationEditorPrepareResponse)
+def prepare_presentation_editor(
+    presentation_id: str,
+    payload: SlidePresentationEditorPrepareRequest,
+    request: Request,
+    user=Depends(verified_user),
+    db: Session = Depends(get_db),
+):
+    """Prepare owned, possibly unsaved source for isolated visual editing."""
+    from app.tools.slide_presentation.playback import prepare_presentation_document
+
+    presentation_id = _validate_presentation_id(presentation_id)
+    _owned_editor_records(db, str(user.id), presentation_id)
+    try:
+        document = prepare_presentation_document(payload.html, mode="editor", app_origin=str(request.base_url))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="The edited presentation is not a valid 1920 by 1080 slide deck.") from exc
+    return SlidePresentationEditorPrepareResponse(html=document["source"], csp=document["csp"], runtime=document["runtime"])
+
+
+@presentations_router.post("/{presentation_id}/playback", response_model=SlidePresentationPlaybackResponse)
+def create_presentation_playback(
+    presentation_id: str,
+    payload: SlidePresentationPlaybackRequest,
+    request: Request,
+    user=Depends(verified_user),
+    db: Session = Depends(get_db),
+    db_log: Session = Depends(get_db_log),
+):
+    """Create a short-lived, origin-isolated frame for an owned source revision."""
+    from app.tools.slide_presentation.playback import create_playback_frame
+
+    presentation_id = _validate_presentation_id(presentation_id)
+    presentation, source, _ = _owned_editor_records(db, str(user.id), presentation_id)
+    html = _read_editor_source(source, str(user.id), presentation_id,
+                               str(presentation.storage_provider or "local"), str(presentation.storage_prefix or ""))
+    result = create_playback_frame(user_id=str(user.id), html=html,
+                                   app_origin=str(request.base_url), slide_index=payload.slide_index)
+    _audit_editor_event(db_log, request, str(user.id), "PRESENTATION_PLAYBACK_CREATED",
+                        {"presentation_id": presentation_id, "slide_count": result["slide_count"]})
+    return result
+
+
 @presentations_router.put(
     "/{presentation_id}/editor",
     response_model=SlidePresentationEditorSaveResponse,
@@ -478,8 +537,8 @@ def save_presentation_editor_source(
             detail="The presentation changed in another editor. Reload before saving.",
         )
 
-    # Generated decks are static by contract. Re-sanitize browser output so a
-    # source-mode edit cannot add scripts, event handlers, or remote requests.
+    # Reapply the source contract after edits. Opted-in code remains inert here;
+    # isolated playback, visual editing and the external renderer enable it.
     sanitized_html = sanitize_slide_presentation_html(payload.html)
     try:
         slide_count = validate_slide_presentation_html(sanitized_html)
@@ -697,6 +756,10 @@ def render_presentation_editor_source(
             detail="The presentation was saved, but refreshed previews could not be rendered.",
         ) from exc
 
+    if rendering_is_external:
+        # The worker publishes through another SQLAlchemy session. Discard the
+        # source loaded before enqueueing so its old revision cannot mask success.
+        db.expire_all()
     refreshed_source = get_file(db, presentation_id, user_id)
     refreshed_meta = (
         refreshed_source.meta

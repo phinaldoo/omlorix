@@ -104,7 +104,7 @@ def anthropic_title_generation(
             model=model_name,
             prompt=prompt,
             system_instruction=system_instruction,
-            max_tokens=max(1, int(max_output_tokens or 100)),
+            max_tokens=settings.get("max_tokens"),
             settings=settings,
         )
 

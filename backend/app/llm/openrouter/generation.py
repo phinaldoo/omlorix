@@ -192,8 +192,6 @@ def _impl_openrouter_title_generation(
         }
         settings = _merge_openrouter_simple_settings(model_settings, settings_override)
         _apply_openrouter_simple_settings(payload, settings)
-        if max_output_tokens is not None:
-            payload["max_output_tokens"] = max(1, int(max_output_tokens))
         if isinstance(response_schema, dict):
             text_config = (
                 dict(payload.get("text")) if isinstance(payload.get("text"), dict) else {}

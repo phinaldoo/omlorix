@@ -3,8 +3,8 @@ from datetime import datetime
 
 
 # Verified against Google's model, pricing, release-note, and deprecation
-# documentation on 2026-09-01.
-GOOGLE_AISTUDIO_CATALOG_LAST_VERIFIED = "2026-09-01"
+# documentation on 2026-09-05.
+GOOGLE_AISTUDIO_CATALOG_LAST_VERIFIED = "2026-09-05"
 GOOGLE_AISTUDIO_MODELS_DOCS_URL = "https://ai.google.dev/gemini-api/docs/models"
 GOOGLE_AISTUDIO_PRICING_DOCS_URL = "https://ai.google.dev/gemini-api/docs/pricing"
 
@@ -556,15 +556,24 @@ AISTUDIO_MODEL_DICT = {
 }
 
 
-# Gemini 3.7 Flash currently shares Gemini 3.6 Flash's promotional standard
-# rates, but its documented thinking levels do not include ``minimal``.
+# Gemini 3.7 and 3.8 Flash share Gemini 3.6 Flash's promotional standard
+# rates, but their documented thinking levels do not include ``minimal``.
 _gemini_37_flash = deepcopy(AISTUDIO_MODEL_DICT["gemini-3.6-flash"])
 _gemini_37_flash["ids"] = ["gemini-3.7-flash"]
 _gemini_37_flash["thinking"]["reasoning_effort"] = ["low", "medium", "high"]
 AISTUDIO_MODEL_DICT = {"gemini-3.7-flash": _gemini_37_flash, **AISTUDIO_MODEL_DICT}
 
+_gemini_38_flash = deepcopy(_gemini_37_flash)
+_gemini_38_flash["ids"] = ["gemini-3.8-flash"]
+AISTUDIO_MODEL_DICT = {"gemini-3.8-flash": _gemini_38_flash, **AISTUDIO_MODEL_DICT}
 
 
+def get_aistudio_model_capabilities(model_name: str | None) -> dict:
+    identifier = str(model_name or "").strip().removeprefix("models/")
+    for name, capabilities in AISTUDIO_MODEL_DICT.items():
+        if identifier == name or identifier in capabilities.get("ids", []):
+            return capabilities
+    return {}
 AISTUDIO_MODELS_NOT_SUPPORTED = [
     # Shut down endpoints are ignored if an API/account still returns stale
     # discovery metadata for them.
@@ -608,6 +617,7 @@ AISTUDIO_MODELS_NOT_SUPPORTED = [
     "gemini-3.1-flash-lite-image",
     "lyria-3-clip-preview",
     "lyria-3-pro-preview",
+    "lyria-3.5",
     "deep-research-pro-preview-12-2025",
     "aqa",
     "gemini-3-pro-preview",
@@ -679,9 +689,23 @@ GOOGLE_AISTUDIO_VIDEO_PRICING_DOCS_LAST_UPDATED = "2026-09-01"
 
 
 GOOGLE_AISTUDIO_LYRIA_PRICING_DOCS_URL = "https://ai.google.dev/gemini-api/docs/pricing"
-GOOGLE_AISTUDIO_LYRIA_PRICING_DOCS_LAST_UPDATED = "2026-09-01"
+GOOGLE_AISTUDIO_LYRIA_PRICING_DOCS_LAST_UPDATED = "2026-09-05"
 
 GOOGLE_AISTUDIO_MUSIC_GENERATION_MODELS = [
+    {
+        "name": "Lyria 3.5",
+        "ids": ["lyria-3.5"],
+        "response_formats": ["mp3"],
+        "supports_reference_images": True,
+        "max_reference_images": 10,
+        "pricing": {
+            "request": 0.08,
+            "currency": "USD",
+            "unit": "song",
+            "source_url": GOOGLE_AISTUDIO_LYRIA_PRICING_DOCS_URL,
+            "source_last_updated": GOOGLE_AISTUDIO_LYRIA_PRICING_DOCS_LAST_UPDATED,
+        },
+    },
     {
         "name": "Lyria 3 Clip",
         "ids": ["lyria-3-clip-preview"],

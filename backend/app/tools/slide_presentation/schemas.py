@@ -56,3 +56,24 @@ class SlidePresentationEditorRenderResponse(BaseModel):
     canvas_revision: int = Field(ge=1)
     render_revision: int = Field(ge=1)
     render_status: str
+
+
+class SlidePresentationPlaybackRequest(BaseModel):
+    slide_index: int = Field(default=0, ge=0, le=49)
+
+
+class SlidePresentationPlaybackResponse(BaseModel):
+    frame_id: str
+    frame_url: str
+    channel_id: str
+    slide_count: int = Field(ge=1, le=50)
+
+
+class SlidePresentationEditorPrepareRequest(BaseModel):
+    html: str = Field(min_length=1, max_length=MAX_FILE_SIZE)
+
+
+class SlidePresentationEditorPrepareResponse(BaseModel):
+    html: str
+    csp: str
+    runtime: str

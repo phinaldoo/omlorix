@@ -9,6 +9,16 @@ from sqlalchemy.exc import IntegrityError
 from app.database import Base
 
 
+class PresentationPlaybackDocument(Base):
+    """Content-free cleanup ledger; playback derivatives are not account data."""
+
+    __tablename__ = "presentation_playback_documents"
+    id = Column(String(64), primary_key=True)
+    storage_provider = Column(String(16), nullable=False)
+    storage_key = Column(String, nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False, index=True)
+
+
 class SlidePresentations(Base):
     __tablename__ = "slide_presentations"
     __table_args__ = (

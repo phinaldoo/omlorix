@@ -1013,7 +1013,7 @@ async function sendMessage(message="", attaching=false, attachGenerationId=null,
                     });
                     continue;
                 }
-                appendAssistantError(messageId, detail, last_appended_message_type);
+                appendAssistantError(messageId, detail, last_appended_message_type, obj);
                 appendAssistantDone(messageId, "");
             } else if (obj.t === "w") {
                 const warningFallback = obj.c ?? obj.d ?? obj.message ?? '';

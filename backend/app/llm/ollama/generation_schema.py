@@ -72,14 +72,6 @@ def _impl_get_parameters_schema_filled(model_settings):
                         required=False,
                     ),
                     FieldSchema(
-                        key="settings.num_predict",
-                        label="Num predict",
-                        description="Optional number of tokens to predict.",
-                        type="string",
-                        input_type="int",
-                        required=False,
-                    ),
-                    FieldSchema(
                         key="settings.top_k",
                         label="Top K",
                         description="This limits the model’s choice of tokens at each step, making it choose from a smaller set. A value of 1 means the model always picks the most likely next token, leading to predictable results. By default this setting is disabled, letting the model consider all choices.",
@@ -248,7 +240,6 @@ def _impl_get_parameters_schema_filled(model_settings):
 
     _set_if_present("num_keep")
     _set_if_present("seed")
-    _set_if_present("num_predict")
     _set_if_present("top_k")
     _set_if_present("top_p")
     _set_if_present("min_p")

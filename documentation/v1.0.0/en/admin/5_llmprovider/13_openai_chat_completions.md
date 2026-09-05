@@ -1,5 +1,7 @@
 # OpenAI Chat Completions API
 
+For GPT-6 Astra (`gpt-6-astra`), this provider supports conversations without tools. Tools and conversations containing tool calls/results require **OpenAI** or **OpenAI Responses API**. Astra always uses reasoning, and unsupported sampling settings are removed before requests are sent. See [GPT-6 Astra configuration and safety stops](12_openai.md#gpt-6-astra).
+
 Use **OpenAI Chat Completions API** for a gateway or service that implements OpenAI-compatible Chat Completions. Prefer a native provider when one matches the service; use [OpenAI Responses API](14_openai_responses.md) for a Responses-compatible endpoint.
 
 Apply [Common Provider Settings](2_provider_settings.md) for shared fields and lifecycle rules.

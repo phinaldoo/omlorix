@@ -2004,9 +2004,6 @@ def build_realtime_session_config(runtime: RealtimeSessionRuntime) -> dict[str, 
             },
         },
     }
-    max_output_tokens = runtime.settings.get("max_output_tokens")
-    if isinstance(max_output_tokens, int) and 1 <= max_output_tokens <= 4096:
-        session["max_output_tokens"] = max_output_tokens
     if runtime.tool_schemas:
         session["tools"] = runtime.tool_schemas
         session["tool_choice"] = "auto"

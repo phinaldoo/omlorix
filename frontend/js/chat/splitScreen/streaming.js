@@ -720,7 +720,7 @@ async function splitScreenInternalProcessStream(res, side, message, container, a
                     continue;
                 }
                 if (typeof appendAssistantError === 'function') {
-                    appendAssistantError(messageId, detail, last_appended_message_type);
+                    appendAssistantError(messageId, detail, last_appended_message_type, obj);
                 }
                 if (typeof clearMediaGenPlaceholderForNonFileEvent === 'function') {
                     clearMediaGenPlaceholderForNonFileEvent(messageId);

@@ -242,8 +242,8 @@ test('native full-site editor uses revisioned save and render APIs', () => {
         ],
     );
     assert.match(editor, /querySelectorAll\('link\[data-slide-presentation-editor-stylesheet\]'\)/);
-    assert.match(editor, /sourceStylesheet\.cloneNode\(false\)/);
-    assert.match(editor, /root\.prepend\(\.\.\.sharedStylesheets\)/);
+    assert.match(editor, /fetch\(link\.href\)/);
+    assert.match(editor, /window\.slideEditorStyles/);
     assert.doesNotMatch(
         editor,
         /href="\/css\/common\/(?:animations|elementsNew|searchModal)\.css"/,
@@ -251,8 +251,8 @@ test('native full-site editor uses revisioned save and render APIs', () => {
     assert.match(widget, /slidePresentationNativeEditor/);
     assert.match(widget, /method: 'PUT'/);
     assert.match(widget, /\/editor\/render/);
-    assert.doesNotMatch(widget, /postMessage/);
-    assert.doesNotMatch(widget, /addEventListener\('message'/);
+    assert.match(widget, /event.source !== ssRuntimeFrame.contentWindow/);
+    assert.match(widget, /event.data\?\.channel !== ssRuntimeChannel/);
     assert.doesNotMatch(widget, /editorOverlay\.requestFullscreen/);
     assert.doesNotMatch(widget, /fullscreenElement === editorOverlay/);
     assert.match(editor, /attachShadow\(\{ mode: 'open' \}\)/);
@@ -280,9 +280,11 @@ test('native full-site editor uses revisioned save and render APIs', () => {
         /function openNativeEditor\(options = \{\}\) \{[\s\S]*localizeEmbeddedChrome\(\);[\s\S]*editorController = \{/,
     );
     assert.doesNotMatch(editor, /sandbox="allow-same-origin"/);
-    assert.match(editor, /default-src 'none'/);
+    assert.match(editor, /payload\.csp/);
     assert.doesNotMatch(editor, /allow-same-origin allow-scripts/);
-    assert.match(editor, /\$\$\('script, noscript, iframe, frame, object, embed', clone\)/);
+    assert.doesNotMatch(editor, /neutralizeDeckContent|application\/x-omlorix-inert/);
+    assert.match(editor, /editorRuntime/);
+    assert.match(editor, /event.source !== view\?\.contentWindow/);
     assert.match(widget, /function _sanitizeSlideFrameHtml\(bodyHtml\)/);
     assert.match(widget, /_fetchSlideImageWithRetry\(endpoint, loadToken\)/);
     assert.match(widget, /slidePresentationSlideImages = nextImageUrls/);
@@ -393,7 +395,7 @@ test('edited presentation cards resolve current server metadata before opening',
     assert.match(widget, /fileId: payload\.file_id \|\| fallback\.fileId/);
     assert.match(widget, /slideCount: payload\.slide_count \?\? fallback\.slideCount/);
     assert.match(widget, /_getCompletionCardContext\(card\) \|\| options/);
-    assert.match(widget, /_fetchSlideCountAndLoad\(presentationId, 0\)/);
+    assert.match(widget, /const slideCount = slides\.length/);
     assert.match(widget, /_refreshStoredPresentationContext\(\{ \.\.\.context, slideCount \}\)/);
     assert.ok(
         (widget.match(/_isEditorPreviewRefreshCurrent\(refreshToken, presentationId\)/g) || []).length >= 4,
@@ -415,14 +417,10 @@ test('native presentation editor delegates present and export and keeps status c
     assert.doesNotMatch(editor, /class="logo"/);
     assert.match(editor, /<header id="topbar">[\s\S]*id="zoomOut"[\s\S]*id="zoomLabel"[\s\S]*id="zoomIn"[\s\S]*id="saveState"/);
     assert.doesNotMatch(editor, /id="statusbar"/);
-    assert.match(editor, /const renderPromise = requestServerRender\(\);[\s\S]*editorController\.present\(\{[\s\S]*slideIndex: state\.active,[\s\S]*renderPromise/);
-    assert.match(editor, /editorController\.export\(\{ format: \$\('#editorExportFormat'\)\.value \}\)/);
-    assert.match(widget, /present: async \(\{ slideIndex, renderPromise \} = \{\}\) =>/);
-    assert.match(widget, /closePresentationEditor\(\{ preserveNativeSession: true \}\);[\s\S]*openSlideshow\(\{ deferContent: true, slideIndex \}\)/);
-    assert.match(widget, /const rendered = await Promise\.resolve\(renderPromise\)/);
-    assert.match(widget, /if \(!rendered\) \{[\s\S]*closeSlideshow\(\);[\s\S]*return;[\s\S]*\}/);
-    assert.match(widget, /_showSlideshowContent\(slideIndex\)/);
-    assert.match(widget, /openSlideshow\(\{ deferContent: true, slideIndex \}\)/);
+    assert.match(editor, /editorController\.present\(\{[\s\S]*slideIndex: state\.active,[\s\S]*refreshContext:/);
+    assert.match(editor, /editorController\.export\(\{ format \}\)/);
+    assert.match(widget, /present: async \(\{ slideIndex, refreshContext \} = \{\}\) =>/);
+    assert.match(widget, /closePresentationEditor\(\{ presentationId, refreshContext \}\);[\s\S]*await openSlideshow\(\{ slideIndex, returnFocus: previewPresent \}\)/);
     assert.match(widget, /export: async \(\{ format \} = \{\}\) =>/);
     assert.match(widget, /await downloadPresentation\(format\)/);
     assert.equal((widget.match(/downloadBlobFromUrl\(/g) || []).length, 1);
@@ -470,39 +468,26 @@ test('presentation export waits for every saved edit and its newest rendered rev
     assert.match(saveSource, /const rendered = await requestServerRender\(\)/);
     assert.match(saveSource, /if \(server\.dirty \|\| server\.saveInFlight\) continue;/);
     assert.match(saveSource, /if \(server\.renderRevision < server\.revision\) continue;/);
-    assert.match(exportSource, /await flushServerSave\(\{ renderAfter: true \}\)/);
+    assert.match(exportSource, /await flushServerSave\(\{ renderAfter: format !== 'html' \}\)/);
     assert.match(exportSource, /if \(!saved\) return;[\s\S]*await editorController\.export/);
 
-    // Keep last-good imagery visible after a failed refresh, but never allow
-    // that stale derivative to be presented or downloaded.
-    assert.match(refreshStateSource, /previewPresent\.disabled = isError \|\| !hasPreview/);
+    // Failed derivatives block exports, while presenting the saved HTML remains available.
+    assert.match(refreshStateSource, /previewPresent\.disabled = !hasPreview/);
     assert.match(refreshStateSource, /_setPreviewDownloadEnabled\(!isError && Boolean\(slidePresentationFileId\)\)/);
     assert.match(refreshStateSource, /_setPreviewEditEnabled\(Boolean\(slidePresentationPresentationId\)\)/);
 });
 
-test('editor preview opens its loader before waiting for the updated render', () => {
+test('editor presentation saves source without waiting for rendered derivatives', () => {
     const editor = readFrontendSource(path.join(ROOT, 'js/chat/slide-presentation-editor.js'), 'utf8');
     const widget = readFrontendSource(path.join(ROOT, 'js/chat/slide-presentation-widget.js'), 'utf8');
-    const slideCss = readFrontendSource(path.join(ROOT, 'css/chat/slide-presentation-widget.css'), 'utf8');
     const presentStart = editor.indexOf('async function requestSharedPresent()');
     const presentEnd = editor.indexOf('async function requestSharedExport()', presentStart);
-    const editorPresentSource = editor.slice(presentStart, presentEnd);
-    const parentPresentStart = widget.indexOf('present: async ({ slideIndex, renderPromise } = {}) =>');
-    const parentPresentEnd = widget.indexOf('export: async', parentPresentStart);
-    const parentPresentSource = widget.slice(parentPresentStart, parentPresentEnd);
+    const present = editor.slice(presentStart, presentEnd);
 
-    assert.match(editorPresentSource, /const saved = await flushServerSave\(\);/);
-    assert.doesNotMatch(editorPresentSource, /flushServerSave\(\{ renderAfter: true \}\)/);
-    assert.match(editorPresentSource, /const renderPromise = requestServerRender\(\)/);
-    assert.match(editorPresentSource, /editorController\.present\(\{[\s\S]*renderPromise/);
-
-    const openIndex = parentPresentSource.indexOf('openSlideshow({ deferContent: true, slideIndex })');
-    const waitIndex = parentPresentSource.indexOf('await Promise.resolve(renderPromise)');
-    const contentIndex = parentPresentSource.indexOf('_showSlideshowContent(slideIndex)');
-    assert.ok(openIndex >= 0 && openIndex < waitIndex, 'slideshow shell opens before the render wait');
-    assert.ok(waitIndex < contentIndex, 'new slide content appears only after rendering finishes');
-    assert.match(widget, /function _showSlideshowContent\(requestedIndex = ssIndex\)/);
-    assert.match(widget, /ssLoaderText\.textContent = t\('slide_presentation_editor_rendering', 'Updating preview…'\)/);
-    assert.match(slideCss, /\.slide-presentation-slideshow-overlay\.is-rerendering \.slide-presentation-slideshow-loader-progress/);
-    assert.match(slideCss, /\.slide-presentation-slideshow-overlay\.is-rerendering \.slide-presentation-slideshow-loader-spinner[\s\S]*width: 30px/);
+    assert.match(present, /const saved = await flushServerSave\(\);/);
+    assert.doesNotMatch(present, /requestServerRender\(|renderAfter: true/);
+    assert.match(present, /renderPromise: server\.renderInFlight/);
+    assert.doesNotMatch(widget, /_ssUseImages|ssImages|slide-presentation-ss-img-real/);
+    assert.match(widget, /frame\.setAttribute\('sandbox', ''\)/);
+    assert.match(widget, /ssViewport\?\.replaceChildren\(\)/);
 });

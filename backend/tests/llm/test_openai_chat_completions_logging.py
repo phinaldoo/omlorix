@@ -94,7 +94,7 @@ def test_memory_generation_uses_native_chat_completions_json_schema(monkeypatch)
     )
 
     assert result == '{"candidates":[]}'
-    assert requests[0]["max_completion_tokens"] == 4096
+    assert "max_completion_tokens" not in requests[0]
     assert requests[0]["response_format"] == {
         "type": "json_schema",
         "json_schema": {

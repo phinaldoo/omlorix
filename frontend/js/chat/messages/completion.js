@@ -781,11 +781,22 @@ if (typeof window !== 'undefined') {
 
 
 
-function appendAssistantError(messageId, error, last_appended_message_type) {
+function appendAssistantError(messageId, error, last_appended_message_type, metadata = null) {
     const assistantMessageContainer = document.getElementById('a-' + messageId);
     if (!assistantMessageContainer) return;
 
     assistantMessageContainer.dataset.hasError = 'true';
+    if (metadata?.retryable === false) {
+        assistantMessageContainer.dataset.retryable = 'false';
+    }
+    if ((metadata?.code || metadata?.error_code) === 'misalignment_policy_violation') {
+        assistantMessageContainer.dataset.providerSafetyStop = JSON.stringify({
+            error_code: 'misalignment_policy_violation',
+            request_id: metadata.request_id,
+            response_id: metadata.response_id,
+            retryable: false,
+        });
+    }
     assistantMessageContainer.dataset.announceStreaming = 'false';
     delete assistantMessageContainer.dataset.isStreaming;
 

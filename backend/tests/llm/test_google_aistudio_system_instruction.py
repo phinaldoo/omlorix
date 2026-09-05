@@ -1,13 +1,17 @@
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
+import pytest
+
 import app.chats.models as chat_models
 from app.llm.google_aistudio import utils as aistudio_utils
 from app.llm.system_instruction import chat as system_instruction_utils
 
 
+@pytest.mark.parametrize("byok_enabled", [False, True])
 def test_custom_system_instruction_resolves_placeholders_before_runtime_sections(
     monkeypatch,
+    byok_enabled,
 ) -> None:
     """Google custom prompts must use the shared resolver before appending context."""
     usage = SimpleNamespace(
@@ -45,6 +49,10 @@ def test_custom_system_instruction_resolves_placeholders_before_runtime_sections
     captured: dict[str, object] = {}
 
     monkeypatch.setattr(
+        "app.llm.provider_groups.resolve_provider_for_request",
+        lambda *_args, **_kwargs: SimpleNamespace(id="provider-1"),
+    )
+    monkeypatch.setattr(
         aistudio_utils,
         "get_aistudio_client",
         lambda *_args, **_kwargs: client,
@@ -70,8 +78,15 @@ def test_custom_system_instruction_resolves_placeholders_before_runtime_sections
         lambda *_args, **_kwargs: None,
     )
 
+    build_config = aistudio_utils.build_aistudio_generate_content_config
+
     def _build_config(_settings, *, system_instruction, **_kwargs):
         captured["final_system_instruction"] = system_instruction
+        config = build_config(
+            _settings, system_instruction=system_instruction, **_kwargs
+        )
+        captured["config"] = config
+        return config
 
     monkeypatch.setattr(
         aistudio_utils,
@@ -92,11 +107,13 @@ def test_custom_system_instruction_resolves_placeholders_before_runtime_sections
     custom_instruction = "Cutoff {knowledge_cutoff}; timezone {tz_display}."
     db_model = SimpleNamespace(
         id="model-1",
-        model_name="gemini-3.5-flash-lite",
+        model_name="gemini-3.8-flash",
         provider_id="provider-1",
         settings={
             "knowledge_cutoff": "June 2024",
             "system_instruction": custom_instruction,
+            "reasoning_effort": "low",
+            "temperature": 0.5,
         },
         tools=[],
         capabilities=[],
@@ -111,9 +128,11 @@ def test_custom_system_instruction_resolves_placeholders_before_runtime_sections
             user_id="user-1",
             byok={
                 "api_key": "test-key",
-                "model_name": "gemini-3.5-flash-lite",
+                "model_name": "gemini-3.8-flash",
                 "capabilities": [],
-            },
+            }
+            if byok_enabled
+            else None,
             system_instruction_sections=[
                 {"title": "Runtime Context", "content": "Request-specific rules."}
             ],
@@ -121,6 +140,9 @@ def test_custom_system_instruction_resolves_placeholders_before_runtime_sections
     )
 
     assert events
+    assert captured["config"].thinking_config.thinking_level == "LOW"
+    assert captured["config"].thinking_config.thinking_budget is None
+    assert captured["config"].temperature is None
     assert captured["final_system_instruction"] == (
         "Cutoff June 2024; timezone UTC."
         "\n\n---\n\n## Runtime Context\n\nRequest-specific rules."

@@ -231,7 +231,7 @@ def _impl_get_aistudio_model_schema(
         deep=True
     )
     tools_schema = get_model_schema_tools_section(db)
-    provider_schema = get_parameters_schema_filled(model_settings)
+    provider_schema = get_parameters_schema_filled(model_settings, model_name=model_name)
     combined_schema = combine_model_schema_sections(
         info_schema,
         access_schema,

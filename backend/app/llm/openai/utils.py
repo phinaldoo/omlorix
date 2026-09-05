@@ -59,6 +59,7 @@ from app.llm.openai.catalog import (
     get_responses_model_capabilities,
     get_responses_unsupported_models,
 )
+from app.llm.openai.request_policy import normalize_required_reasoning_effort
 from app.llm.openai.provider_types import (
     XAI_PROVIDER_TYPE,
     allows_manual_openai_model_entry,
@@ -987,7 +988,10 @@ def _build_openai_reasoning_payload(
         return None
 
     reasoning_enabled = settings.get("reasoning")
-    reasoning_effort = _resolve_openai_reasoning_effort(settings)
+    caps = _get_openai_model_caps(model_name, provider_type=provider_type)
+    reasoning_effort = normalize_required_reasoning_effort(
+        _resolve_openai_reasoning_effort(settings), caps
+    )
     if is_lmstudio_provider_type(provider_type):
         # LM Studio's native model list can advertise "on"/"off", but its
         # OpenAI-compatible Responses endpoint accepts only OpenAI effort enum
@@ -1008,7 +1012,6 @@ def _build_openai_reasoning_payload(
     if reasoning_summary and str(reasoning_effort or "").lower() != "none":
         reasoning_payload["summary"] = reasoning_summary
 
-    caps = _get_openai_model_caps(model_name, provider_type=provider_type)
     is_responses_api = is_openai_responses_provider_type(provider_type)
     if caps and is_responses_api and caps.get("supports_reasoning_mode"):
         reasoning_mode = (
@@ -1215,10 +1218,6 @@ def _apply_openai_simple_generation_settings(
         value = _coerce_optional_float(settings.get(key))
         if value is not None:
             request_kwargs[key] = value
-
-    max_output_tokens = _coerce_optional_int(settings.get("max_output_tokens"))
-    if max_output_tokens is not None and max_output_tokens > 0:
-        request_kwargs["max_output_tokens"] = max_output_tokens
 
     # Title generation uses the Responses API too. Honor an explicit storage
     # preference on those calls,

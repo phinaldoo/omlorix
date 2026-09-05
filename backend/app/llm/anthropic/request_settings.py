@@ -18,6 +18,8 @@ def _merge_anthropic_simple_settings(
         settings_override,
         getattr(AnthropicModelSettings, "model_fields", None),
     )
+    if model_settings is not None:
+        settings["max_tokens"] = model_settings.get("max_tokens")
     return remove_deprecated_anthropic_request_settings(settings)
 
 

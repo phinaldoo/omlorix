@@ -13,6 +13,20 @@ Complete the shared [Tool Rollout Checklist](0_tool_rollout.md), then verify eve
 
 For each model-created Canvas format, test create, open, edit, concurrent edit, download, delete, storage quota, and an invalid or oversized file. For HTML, test external-content consent and public sharing. Open each supported spreadsheet format and verify saved values and formulas in another viewer. For LaTeX and Slides, test the configured renderer as well as source editing.
 
+## Tool arguments and recovery
+
+Canvas exposes separate argument structures for these operations:
+
+- **Create:** `{"type":"markdown","filename":"notes.md","content":"# Notes","edits":null}`. Content is required, including an empty string for an intentionally empty file. Omit `file_id`; do not invent edits for a new file.
+- **View:** `{"type":"view","file_id":"FILE_ID","max_chars":20000}`. Returns bounded source and `canvas_revision`. Optional heading, query, and line-range fields belong only to view requests.
+- **Edit:** `{"file_id":"FILE_ID","expected_revision":1,"edits":[{"start_snippet":"old","end_snippet":"old","content":"new"}],"content":null}`. Copy the revision from the latest view or save receipt. Use either a non-empty atomic edits array, full replacement content, or replacement content with both boundary snippets. Do not combine these edit modes.
+
+During edits, omitted or null `type` preserves the stored format. Omitted or null `file_ids` preserves the asset bundle; `[]` explicitly clears it. Legacy `markdown` content and `type="view"` with an `id` alias remain accepted by the backend.
+
+The model schema and backend validation use the same Pydantic argument definitions. The OpenAI function explicitly sets `strict: false` to preserve the operation-specific schema branches and prevent automatic conversion of optional fields into required inputs. Backend validation remains authoritative and runs before file access; ownership and revision checks still run when accessing or saving the file.
+
+Expected argument errors return a stable code, corrective instructions, and `retry_allowed: true`. The existing safe-error tracker permits one correction for the same error code; a repeated failure sets `retry_allowed: false` and stops further tool calls in that response. Unexpected storage or database errors remain generic. Error labels in the chat activity are translated.
+
 ## Files and sharing
 
 Canvas content, source, assets, previews, and generated downloads are user files and count toward storage limits. Referenced files must remain accessible to the user; deleting or moving them can affect later previews.

@@ -85,7 +85,6 @@ def get_realtime_settings_schema(*, tool_options: list[dict] | None = None):
 
     from app.llm.realtime_schema import (
         input_transcription_field,
-        max_output_tokens_field,
         tools_field,
         voice_field,
     )
@@ -109,7 +108,6 @@ def get_realtime_settings_schema(*, tool_options: list[dict] | None = None):
                         ),
                     ),
                     tools_field(tool_options or []),
-                    max_output_tokens_field(),
                     input_transcription_field(),
                 ],
             )

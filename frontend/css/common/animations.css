@@ -491,21 +491,6 @@
     50%      { opacity: 0.12; }
 }
 
-@keyframes slide-presentation-slideshow-crossfade-in {
-    0% {
-        opacity: 0;
-        filter: blur(4px);
-    }
-    45% {
-        opacity: 0.78;
-        filter: blur(1px);
-    }
-    100% {
-        opacity: 1;
-        filter: blur(0);
-    }
-}
-
 @keyframes slideDownIn {
     from {
         opacity: 0;

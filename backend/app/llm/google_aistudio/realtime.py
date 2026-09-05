@@ -132,7 +132,6 @@ def get_realtime_settings_schema(
     from app.llm.realtime_schema import (
         input_transcription_field,
         language_code_field,
-        max_output_tokens_field,
         output_transcription_field,
         prefix_padding_field,
         silence_duration_field,
@@ -168,7 +167,6 @@ def get_realtime_settings_schema(
             dependency_value=True,
             attributes=FieldAttributes(min=0, max=2, step=0.1),
         ),
-        max_output_tokens_field(),
         input_transcription_field(),
         output_transcription_field(),
         language_code_field(
@@ -498,9 +496,6 @@ def build_google_aistudio_live_connect_config(
     if isinstance(temperature, (int, float)):
         config.temperature = float(temperature)
 
-    max_output_tokens = realtime_settings.get("max_output_tokens")
-    if isinstance(max_output_tokens, int) and max_output_tokens > 0:
-        config.max_output_tokens = max_output_tokens
 
     supports_native_audio_dialog_features = (
         _supports_google_native_audio_dialog_features(model_name)

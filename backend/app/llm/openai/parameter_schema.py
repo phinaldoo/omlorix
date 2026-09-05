@@ -212,11 +212,11 @@ def _impl_get_openai_model_schema_parameter(
                 combined_schema, "Model Context", "settings.enabled_tools"
             ),
         )
-    _apply_openai_model_caps_to_schema(
-        combined_schema, model_caps, openai_provider_type=openai_provider_type
-    )
     populate_sections_with_values(
         combined_schema, _build_settings_payload(model_settings)
+    )
+    _apply_openai_model_caps_to_schema(
+        combined_schema, model_caps, openai_provider_type=openai_provider_type
     )
 
     if allows_manual_openai_model_entry(openai_provider_type):

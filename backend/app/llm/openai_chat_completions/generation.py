@@ -11,6 +11,7 @@ from __future__ import annotations
 # ruff: noqa: F821, F841, F541
 
 from app.llm.openai_chat_completions import utils as _compat_source
+from app.llm.openai.request_policy import apply_openai_request_policy
 
 _COMPAT_DEPENDENCIES = {
     "openai_chat_completions_title_generation": (
@@ -141,8 +142,6 @@ def _impl_openai_chat_completions_title_generation(
             ],
         }
         _apply_openai_chat_completion_simple_settings(request_kwargs, settings)
-        if max_output_tokens is not None:
-            request_kwargs["max_completion_tokens"] = max(1, int(max_output_tokens))
         if isinstance(response_schema, dict):
             request_kwargs["response_format"] = {
                 "type": "json_schema",
@@ -152,6 +151,10 @@ def _impl_openai_chat_completions_title_generation(
                     "schema": response_schema,
                 },
             }
+        apply_openai_request_policy(
+            request_kwargs,
+            provider_type="openai_chat_completions",
+        )
         response = client.chat.completions.create(
             **_merge_openai_request_options(request_kwargs, request_options)
         )

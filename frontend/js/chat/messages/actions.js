@@ -542,6 +542,7 @@ function getMaxAssistantRegenerations() {
 
 function canRegenerateAssistantMessage(container) {
     if (!container) return false;
+    if (container.dataset.retryable === 'false') return false;
     if (container.dataset.isStreaming === 'true') return false;
     if (container.dataset.isLatestVersion !== 'true') return false;
     if (container.dataset.hidden === 'true') return false;

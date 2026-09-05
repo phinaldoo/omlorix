@@ -96,7 +96,7 @@ def test_canvas_update_requires_a_revision_before_saving(monkeypatch):
     )
 
     try:
-        next(stream)
+        list(stream)
     except ValueError as exc:
         assert "expected_revision is required" in str(exc)
     else:

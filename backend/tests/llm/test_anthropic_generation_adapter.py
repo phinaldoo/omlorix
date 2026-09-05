@@ -103,6 +103,8 @@ def test_anthropic_title_generation_uses_shared_one_shot_lifecycle(monkeypatch):
         anthropic_provider_id="provider-1",
         user_id="user-1",
         model_settings={"max_tokens": 77},
+        settings_override={"max_tokens": 10},
+        max_output_tokens=5,
     )
 
     assert title == "A useful title"

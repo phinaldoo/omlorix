@@ -20,3 +20,17 @@ Optional features require separate configuration: [Dictation](../3_admin_setting
 - Prompt caching, service tiers, reasoning, media, and native tools can change latency and cost. Test them deliberately.
 
 Model access and capabilities vary by project, region, and rollout. Use OpenAI billing as the cost authority and document all enabled data transfers under the relevant compliance pages. Test provider-native tools separately from Omlorix tools because they have different configuration and data flows.
+
+## GPT-6 Astra
+
+Select `gpt-6-astra` from the discovered models after your OpenAI project receives access. Omlorix supplies its image/document input capabilities, April 30, 2026 knowledge cutoff, 922,000-token input limit and 128,000-token output limit (within the 1,050,000-token context window). Existing models and defaults are unchanged.
+
+- Reasoning is always enabled. Supported efforts are **Low**, **Medium**, **High**, **Extra high**, and **Maximum**. Medium is the default. Old saved or per-request `none`/`minimal` efforts are sent as `low`; other unsupported efforts use the default. Temperature, Top P, and log probabilities are excluded from requests.
+- Tools require the **OpenAI** or **OpenAI Responses API** provider. Astra can use **OpenAI Chat Completions API** for conversations without tools; Omlorix rejects tool requests and tool history on that endpoint. Change the provider before using tools.
+- Pro reasoning, persisted reasoning, tool search, and 30-minute prompt caching reuse the existing Responses controls. Catalog cost estimates include cache writes, Flex/Fast rates, and the full-request long-context surcharge above 272,000 input tokens. Standard rates per million tokens are $10 input, $1 cache read, $12.50 cache write, and $50 output; above the threshold they are $20, $2, $25, and $75 respectively. Regional processing surcharges are not included in Omlorix's catalog estimates.
+
+OpenAI can stop an Astra conversation with `misalignment_policy_violation`. Omlorix stops processing, shows a translated review message, hides the failed response's retry action, and records the available request/response IDs. Review already executed actions with the responsible operator; the stop does not undo them. Stored chats retain the stop in chat and message metadata, including through backup/import/export, and reject later sends and regeneration. Temporary conversations retain the stop in their in-browser transcript without adding persistent history. There is no automatic retry or resume of a stopped workflow.
+
+Async tool calling, mid-turn WebSocket steering, and cache-preserving reasoning configuration updates are optional upstream features; this compatibility update does not enable them.
+
+Sources: [Astra model details](https://developers.openai.com/api/docs/models/gpt-6-astra), [migration guidance](https://developers.openai.com/api/docs/guides/latest-model), [pricing](https://developers.openai.com/api/docs/pricing), [safety stops](https://developers.openai.com/api/docs/guides/safety-checks/misalignment-monitoring).

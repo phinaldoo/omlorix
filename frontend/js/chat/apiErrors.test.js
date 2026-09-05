@@ -154,6 +154,13 @@ test('missing-model API errors use translated user-facing copy', () => {
     );
 });
 
+test('a blocked conversation uses the safety review translation on HTTP errors', () => {
+    const { resolveApiErrorMessage } = loadApiErrors({ chat_openai_safety_stop: 'Sicherheitsprüfung erforderlich' });
+    assert.equal(resolveApiErrorMessage({ detail: {
+        code: 'misalignment_policy_violation', message: 'English fallback', retryable: false,
+    } }, 'Try again'), 'Sicherheitsprüfung erforderlich');
+});
+
 test('disabled transcription API errors use translated user-facing copy', () => {
     const translatedMessage = 'Die Transkription ist nicht aktiviert.';
     const { formatTranscriptionErrorMessage } = loadApiErrors({

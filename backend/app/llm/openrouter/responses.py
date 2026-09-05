@@ -130,19 +130,6 @@ def apply_openrouter_responses_settings(
         if tool_choice is not None:
             payload["tool_choice"] = tool_choice
 
-    # OpenRouter's model catalog calls this capability ``max_tokens`` while the
-    # Responses request schema calls the actual field ``max_output_tokens``.
-    max_tokens = settings.get("max_output_tokens")
-    if max_tokens is None:
-        max_tokens = settings.get("max_tokens")
-    if max_tokens is not None and _parameter_allowed("max_tokens", supported):
-        try:
-            normalized_max_tokens = int(max_tokens)
-        except (TypeError, ValueError):
-            normalized_max_tokens = 0
-        if normalized_max_tokens > 0:
-            payload["max_output_tokens"] = normalized_max_tokens
-
     text_config = copy.deepcopy(payload.get("text")) if isinstance(payload.get("text"), dict) else {}
     if _parameter_allowed("response_format", supported):
         normalized_format = _normalize_text_format(settings.get("response_format"))

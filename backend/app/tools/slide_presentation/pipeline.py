@@ -116,6 +116,8 @@ def _review_message(html: str, images_dir: Path) -> dict[str, Any]:
     content: list[dict[str, Any]] = [{
         "type": "content",
         "content": (
+            "These images capture the live HTML rendered with JavaScript and internet access. "
+            "Preserve all interaction scripts, lifecycle handlers, network declarations. "
             "Review every rendered slide for clipping, overlap, tiny text, weak hierarchy, "
             "inconsistent spacing, and poor visual balance. If the deck is excellent, reply only DONE. "
             "Otherwise return the complete corrected HTML document and nothing else. Preserve every "
