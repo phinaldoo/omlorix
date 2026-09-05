@@ -28,6 +28,10 @@ Memory behavior is group-managed. An Owner, Admin, or authorized group manager c
 
 The memory request receives the complete current atomic fact set and the new user message, returns schema-validated create/update/confirm/forget candidates, and never receives tools. Passwords, API keys, payment credentials, and similar secrets are rejected rather than stored. A provider failure does not fail the chat; Omlorix retries background work and exposes the last status on the profile card.
 
+Automatic memory focuses on lasting personal facts, recurring preferences and workflows, and clearly ongoing goals or constraints that are useful across conversations. One-off requests and their specifications stay in chat history: asking for a Tesla presentation with a quiz should not become a personal memory, while stating that you use Canva for presentations or own a particular car can. Instructions such as “keep this answer short” do not establish or refresh a general preference for concise answers. A message can contain both useful personal facts and task details; only the eligible facts are saved.
+
+You can explicitly ask Omlorix to remember temporary information for next time, or add it manually under **New Memory**. Automatic selection does not retroactively remove existing memories; delete unwanted entries in the Workspace.
+
 Facts receive a stability class. Stable facts are reviewed after 365 days and expire after 1,095; slow-changing facts after 180 and 540; changing facts after 45 and 180; and short-lived facts after 7 and 30. A new supporting message, manual edit, or **Confirm** action restarts those dates. Reads alone do not keep a fact alive. Expired facts are excluded immediately and removed by lifecycle maintenance. An explicit retraction can remove a fact sooner, and a high-value new fact can replace the weakest fact only when the 100-fact collection is full.
 
 A model can ignore, misapply, duplicate, or create an inaccurate Memory. Repeat critical requirements in the current request and review entries regularly. Deleting a Memory does not remove the same information from an earlier chat, Note, export, or external service.

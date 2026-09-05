@@ -82,22 +82,28 @@ def _candidate(
     target_memory_id: str = "",
     importance: int = 4,
     sensitivity: str = "normal",
+    eligibility: str = "durable_fact",
+    kind: str = "preference",
+    stability: str = "slow",
+    confidence: float = 0.95,
+    evidence: str = "I prefer concise answers",
 ) -> MemoryCandidate:
     return MemoryCandidate(
         action=action,
         target_memory_id=target_memory_id,
         key=key,
         content=content,
-        kind="preference",
-        stability="slow",
+        kind=kind,
+        stability=stability,
         importance=importance,
-        confidence=0.95,
-        evidence="I prefer concise answers",
+        confidence=confidence,
+        evidence=evidence,
         sensitivity=sensitivity,
+        eligibility=eligibility,
     )
 
 
-def test_processes_each_message_into_atomic_facts_and_full_profile(monkeypatch):
+def test_mixed_message_saves_reusable_facts_but_not_the_deliverable(monkeypatch):
     db = _session()
     monkeypatch.setattr(
         memory_consolidation,
@@ -113,7 +119,27 @@ def test_processes_each_message_into_atomic_facts_and_full_profile(monkeypatch):
 
     def provider_call(request):
         provider_calls.append(request)
-        return json.dumps({"candidates": [_candidate().model_dump()]})
+        candidates = [
+            _candidate(
+                key="goal.presentation",
+                content="The user wants a small Tesla presentation with a final quiz.",
+                eligibility="transient_task",
+                importance=5,
+                kind="goal", stability="ephemeral", confidence=1.0,
+                evidence="Make a small Tesla presentation with a final quiz",
+            ),
+            _candidate(
+                key="other.car",
+                content="The user owns a Porsche 911 Turbo S.",
+                kind="other", evidence="I own a Porsche 911 Turbo S",
+            ),
+            _candidate(
+                key="preference.presentation_tool",
+                content="The user uses Canva for presentations.",
+                evidence="I use Canva for my presentations",
+            ),
+        ]
+        return json.dumps({"candidates": [candidate.model_dump() for candidate in candidates]})
 
     monkeypatch.setattr(
         memory_consolidation,
@@ -131,7 +157,10 @@ def test_processes_each_message_into_atomic_facts_and_full_profile(monkeypatch):
         user_id="user-1",
         source_message_id="message-1",
         source_at=source_at,
-        source_text="I prefer concise answers",
+        source_text=(
+            "I own a Porsche 911 Turbo S. I use Canva for my presentations. "
+            "Make a small Tesla presentation with a final quiz."
+        ),
         current_model_id="chat-model",
     )
 
@@ -141,14 +170,95 @@ def test_processes_each_message_into_atomic_facts_and_full_profile(monkeypatch):
     ]["items"]
     assert "value" not in candidate_schema["properties"]
     assert candidate_schema["additionalProperties"] is False
-    assert result["created_count"] == 1
+    assert "eligibility" in candidate_schema["required"]
+    assert result["created_count"] == 2
+    assert result["skipped_count"] == 1
     facts = list_memories(db, MemoryScope.personal("user-1"))
-    assert [fact.memory_key for fact in facts] == ["preference.answer_length"]
+    assert {fact.memory_key for fact in facts} == {"other.car", "preference.presentation_tool"}
     profile = db.query(MemoryProfile).filter_by(user_id="user-1").one()
-    assert "The user prefers concise answers." in profile.content
-    assert profile.active_fact_count == 1
+    assert "The user owns a Porsche 911 Turbo S." in profile.content
+    assert "The user uses Canva for presentations." in profile.content
+    assert "Tesla" not in profile.content
+    assert profile.active_fact_count == 2
     assert db.get(MemoryState, "user-1").last_processed_message_id == "message-1"
     assert db.get(MemoryState, "user-1").last_run_status == "updated"
+
+
+@pytest.mark.parametrize("eligibility", ["transient_task", None])
+def test_transient_or_unclassified_evidence_cannot_write_or_refresh_but_can_forget(
+    monkeypatch, eligibility,
+):
+    db = _session()
+    monkeypatch.setattr("app.logging.models.stage_audit_log_event", lambda *a, **k: None)
+    now = datetime.now(timezone.utc)
+
+    def apply(candidates, index, source_text):
+        return apply_memory_consolidation(
+            db, user_id="user-1", source_message_id=f"message-{index}",
+            source_at=now + timedelta(seconds=index),
+            source_text=source_text, candidates=candidates,
+        )
+
+    apply([_candidate()], 0, "I prefer concise answers")
+    fact = db.query(Memory).one()
+    original = (fact.content, fact.version, fact.last_confirmed_at, fact.expires_at)
+    profile_version = db.query(MemoryProfile).one().version
+    for index, action in enumerate(("create", "update", "confirm", "forget"), 1):
+        source_text = "Forget my answer length preference" if action == "forget" else "Keep this answer short"
+        # A create matching existing content also must not refresh by deduplication.
+        payload = _candidate(
+            action=action,
+            key="preference.local_length" if action == "create" else fact.memory_key,
+            target_memory_id="" if action == "create" else fact.id,
+            evidence=source_text,
+        ).model_dump()
+        if eligibility is None:
+            del payload["eligibility"]  # Provider fallback without strict JSON schema.
+        else:
+            payload["eligibility"] = eligibility
+        candidates = memory_consolidation.parse_memory_consolidation_output(
+            json.dumps({"candidates": [payload]})
+        ).candidates
+        result = apply(candidates, index, source_text)
+        if action == "forget":
+            assert result["deleted_count"] == 1
+            assert db.query(Memory).count() == 0
+            assert db.query(MemoryProfile).one().content == ""
+        else:
+            assert result["skipped_count"] == 1
+            assert result["status"] == "unchanged"
+            db.refresh(fact)
+            assert (fact.content, fact.version, fact.last_confirmed_at, fact.expires_at) == original
+            assert db.query(MemoryProfile).one().version == profile_version
+
+
+def test_ongoing_context_and_explicit_temporary_memories_remain_eligible(monkeypatch):
+    db = _session()
+    monkeypatch.setattr("app.logging.models.stage_audit_log_event", lambda *a, **k: None)
+    candidates = [
+        _candidate(
+            key="goal.learn_german", content="The user is learning German over the next year.",
+            eligibility="ongoing_context", kind="goal",
+            evidence="I am learning German over the next year",
+        ),
+        _candidate(
+            key="goal.presentation", content="The user's Tesla presentation needs a final quiz.",
+            eligibility="explicit_request", kind="goal", stability="ephemeral",
+            evidence="Remember for next time that my Tesla presentation needs a final quiz",
+        ),
+    ]
+    result = apply_memory_consolidation(
+        db, user_id="user-1", source_message_id="message-1",
+        source_at=datetime.now(timezone.utc),
+        source_text=("I am learning German over the next year. "
+                     "Remember for next time that my Tesla presentation needs a final quiz."),
+        candidates=candidates,
+    )
+    assert result["created_count"] == 2
+    facts = {fact.memory_key: fact for fact in list_memories(db, MemoryScope.personal("user-1"))}
+    assert set(facts) == {"goal.learn_german", "goal.presentation"}
+    assert facts["goal.presentation"].stability == "ephemeral"
+    assert facts["goal.presentation"].expires_at is not None
 
 
 def test_group_selected_memory_model_resolves_to_a_concrete_provider(monkeypatch):
@@ -307,6 +417,7 @@ def test_secret_candidates_are_never_stored(monkeypatch):
                 key="identity.api_key",
                 content="The user's API key is secret.",
                 sensitivity="secret",
+                eligibility="explicit_request",
             )
         ],
     )

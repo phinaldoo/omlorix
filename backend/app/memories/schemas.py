@@ -25,6 +25,9 @@ MemoryKind = Literal[
 MemoryStability = Literal["stable", "slow", "changing", "ephemeral"]
 MemorySensitivity = Literal["normal", "sensitive", "secret"]
 MemoryAction = Literal["create", "update", "confirm", "forget"]
+MemoryEligibility = Literal[
+    "durable_fact", "ongoing_context", "explicit_request", "transient_task"
+]
 
 
 class MemoryCreate(BaseModel):
@@ -100,6 +103,8 @@ class MemoryCandidate(BaseModel):
     confidence: float = Field(ge=0.0, le=1.0)
     evidence: str = Field(min_length=1, max_length=500)
     sensitivity: MemorySensitivity = "normal"
+    # Missing classification from a schema-less provider must not authorize a write.
+    eligibility: MemoryEligibility = "transient_task"
 
 
 class MemoryConsolidation(BaseModel):

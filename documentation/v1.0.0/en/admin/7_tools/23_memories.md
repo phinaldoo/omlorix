@@ -4,6 +4,10 @@ Memory is not a model tool. The chat model cannot read or write memory through a
 
 Atomic facts are capped at 100 per user. They remain the source of truth, while a materialized full profile makes chat attachment a single indexed lookup. Every later chat receives the whole active personal profile; an enabled project-memory scope is added alongside it. No embeddings or similarity lookup are used.
 
+The extractor classifies each candidate as `durable_fact`, `ongoing_context`, `explicit_request`, or `transient_task`. The first three can be retained, subject to the usual validation and secret checks. Transient tasks are rejected before creating, updating, deduplicating, or confirming a fact, even when confidence or importance is high and the collection has free space. Providers without strict schema support that omit eligibility default to rejection for those candidates. Explicit forgetting remains available regardless of eligibility. The classification is part of the existing extraction request, not a second model call; semantic accuracy still depends on the selected model.
+
+Check selection with a mixed message: “I use Canva for my presentations. Make a small Tesla presentation with a final quiz.” Only the Canva workflow should be saved. “Use Canva for this presentation” should not create a lasting preference. Clearly ongoing goals and explicit requests to remember temporary information remain eligible. Manual memories and imports keep their existing behavior, and existing facts are not automatically purged by this policy.
+
 ## Enable and test
 
 1. Under **Admin Settings > Groups > Memories**, enable Memories for the intended group.

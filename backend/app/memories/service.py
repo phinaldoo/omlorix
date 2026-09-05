@@ -829,6 +829,11 @@ def apply_memory_consolidation(
         row.updated_at = current
 
     for candidate in candidates[:MAX_MEMORIES_PER_SCOPE]:
+        # Eligibility is separate from accuracy and retention priority. Apply it
+        # before deduplication/refresh as well as creates; retractions stay valid.
+        if candidate.action != "forget" and candidate.eligibility == "transient_task":
+            skipped_count += 1
+            continue
         if float(candidate.confidence) < 0.45:
             skipped_count += 1
             continue

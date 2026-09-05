@@ -24,6 +24,8 @@ Persisted diagnostics contain segment source, priority, content revision hash, t
 
 ## Memory consistency and delivery
 
+Automatic extraction makes an explicit eligibility decision within its existing model request. `MemoryCandidate.eligibility` distinguishes durable personal facts, ongoing context, explicit retention requests, and transient tasks. The service rejects transient or unclassified candidates before any create, update, deduplication, or confirmation; forgetting is exempt. This is an admission decision, separate from confidence, importance, and lifecycle duration. Eligibility is not persisted or exposed in user-facing schemas, so it requires no migration or portable import/export format change. Manual creation and import do not use this automatic admission check.
+
 `memories` is the authoritative fact store. `memory_states` contains fact revision and processing status. `memory_profiles` is a derived projection, valid only when its source revision matches and its next lifecycle transition has not elapsed. Failed runs update status without materializing profiles. Reads fall back to facts when a profile is missing or invalid. Fact writes and profile rebuilds serialize against the owner lock.
 
 The durable memory job is an outbox record in the existing worker table, inserted in the same transaction as the persisted chat/realtime user message. Its idempotency key identifies the source message. Both inline and external modes pull from the dedicated `memory` queue with their own concurrency budget, renewable leases, retries, and 24-hour source expiry. No provider I/O occurs in the source transaction. Temporary requests without a persisted source do not create extraction jobs.
