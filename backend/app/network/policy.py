@@ -238,7 +238,7 @@ def is_private_network_target(target: str | None) -> bool:
         return True
     if any(hostname.endswith(suffix) for suffix in LOCAL_HOST_SUFFIXES):
         return True
-    if "." not in hostname:
+    if "." not in hostname and ":" not in hostname:
         return True
     if _is_private_ip_address(hostname):
         return True
@@ -392,6 +392,7 @@ def assert_outbound_peer_ip_allowed(
     ip_address: str,
     port: int | None = None,
     feature: str,
+    require_private_allowlist: bool = False,
 ) -> None:
     """Re-apply the active outbound policy to a pinned connection peer.
 
@@ -404,7 +405,27 @@ def assert_outbound_peer_ip_allowed(
     snapshot = get_outbound_policy_snapshot(db)
     target = f"{host}:{port} ({ip_address})" if port is not None else f"{host} ({ip_address})"
 
+    peer_is_public = _is_public_ip_address(ip_address)
+    peer_is_private = _is_private_ip_address(ip_address)
+
+    def peer_ip_is_allowlisted() -> bool:
+        return any(
+            _ip_matches_allowlist_entry(ip_address, entry)
+            for entry in snapshot.allowlist
+        )
+
     if snapshot.mode == OutboundAccessMode.allow_all:
+        if (
+            require_private_allowlist
+            and not peer_is_public
+            and not peer_ip_is_allowlisted()
+        ):
+            raise OutboundRequestBlockedError(
+                target=target,
+                feature=feature,
+                policy_mode=snapshot.mode,
+                reason="local and private network peers must be explicitly allowlisted",
+            )
         return
     if snapshot.mode == OutboundAccessMode.deny_all:
         raise OutboundRequestBlockedError(
@@ -414,7 +435,14 @@ def assert_outbound_peer_ip_allowed(
             reason="all outbound network access is disabled",
         )
     if snapshot.mode == OutboundAccessMode.private_only:
-        if is_private_network_target(ip_address):
+        if peer_is_private:
+            if require_private_allowlist and not peer_ip_is_allowlisted():
+                raise OutboundRequestBlockedError(
+                    target=target,
+                    feature=feature,
+                    policy_mode=snapshot.mode,
+                    reason="local and private network peers must be explicitly allowlisted",
+                )
             return
         raise OutboundRequestBlockedError(
             target=target,
@@ -428,15 +456,11 @@ def assert_outbound_peer_ip_allowed(
         _hostname_matches_allowlist_entry(normalized_host, entry)
         for entry in snapshot.allowlist
     )
-    peer_ip_allowed = any(
-        _ip_matches_allowlist_entry(ip_address, entry)
-        for entry in snapshot.allowlist
-    )
     # A hostname allowlist entry authorizes its public peers. Private, local,
     # link-local, and otherwise non-public peers require an explicit IP/CIDR
     # entry; otherwise an allowlisted attacker-controlled hostname could rebind
     # to an internal service after the hostname check.
-    if peer_ip_allowed or (hostname_allowed and _is_public_ip_address(ip_address)):
+    if peer_ip_is_allowlisted() or (hostname_allowed and peer_is_public):
         return
     raise OutboundRequestBlockedError(
         target=target,
@@ -548,11 +572,28 @@ def assert_public_resolved_ip_allowed(db, *, ip_address: str | None, feature: st
         )
 
 
-def assert_url_allowed(db, *, url: str | None, feature: str) -> None:
-    assert_outbound_target_allowed(db, target=url, feature=feature)
+def assert_url_allowed(
+    db,
+    *,
+    url: str | None,
+    feature: str,
+    require_private_allowlist: bool = False,
+) -> None:
+    assert_outbound_target_allowed(
+        db,
+        target=url,
+        feature=feature,
+        require_private_allowlist=require_private_allowlist,
+    )
 
 
-def assert_http_url_allowed(db, *, url: str | None, feature: str) -> None:
+def assert_http_url_allowed(
+    db,
+    *,
+    url: str | None,
+    feature: str,
+    require_private_allowlist: bool = False,
+) -> None:
     """Require an HTTP(S) URL and apply the configured outbound policy."""
 
     text = str(url or "").strip()
@@ -564,7 +605,12 @@ def assert_http_url_allowed(db, *, url: str | None, feature: str) -> None:
             policy_mode=get_outbound_policy_snapshot(db).mode,
             reason="URL must use http or https and include a hostname",
         )
-    assert_url_allowed(db, url=text, feature=feature)
+    assert_url_allowed(
+        db,
+        url=text,
+        feature=feature,
+        require_private_allowlist=require_private_allowlist,
+    )
 
 
 def assert_public_http_url_allowed(db, *, url: str | None, feature: str) -> None:

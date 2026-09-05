@@ -31,6 +31,7 @@ from app.files.utils import (
     extract_text_from_file_info,
 )
 from app.groups.init import get_user_group_setting_value
+from app.network.outbound_http import outbound_policy_httpx2_client
 from app.users.init import get_user_setting_value
 from app.users.roles import is_admin_role
 from app.llm.capabilities import determine_model_capabilities
@@ -1611,6 +1612,23 @@ def _resolve_openai_sdk_api_key(value: Any, *, provider_type: str | None) -> str
     return "lmstudio"
 
 
+def _close_openai_client(
+    client: Any | None,
+    client_kwargs: dict[str, Any] | None = None,
+) -> None:
+    """Close an SDK client without masking the request result or exception."""
+    close_target = client
+    if close_target is None and isinstance(client_kwargs, dict):
+        close_target = client_kwargs.get("http_client")
+    close = getattr(close_target, "close", None)
+    if not callable(close):
+        return
+    try:
+        close()
+    except Exception:
+        logger.warning("Failed to close OpenAI client", exc_info=True)
+
+
 # -------------------
 # Resolve OpenAI Client Kwargs
 # -------------------
@@ -1722,6 +1740,11 @@ def _resolve_openai_client_context(
             "custom_headers": byok.get("custom_headers"),
         }
         context = _build_context(credentials)
+        context["client_kwargs"]["http_client"] = outbound_policy_httpx2_client(
+            db,
+            feature="BYOK LLM provider request",
+            require_private_allowlist=True,
+        )
         context["requested_provider_id"] = byok.get("provider_id")
         context["selected_provider_id"] = byok.get("provider_id")
         context["selected_provider_name"] = byok.get("provider_name") or byok.get(
@@ -1754,9 +1777,13 @@ def _resolve_openai_request_options(
     openai_provider_type: str = "openai",
 ) -> dict:
     """Resolve OpenAI request options."""
-    return _resolve_openai_client_context(
+    context = _resolve_openai_client_context(
         db, openai_provider_id, byok, openai_provider_type
-    )["request_options"]
+    )
+    try:
+        return context["request_options"]
+    finally:
+        _close_openai_client(None, context.get("client_kwargs"))
 
 
 # -------------------

@@ -21,6 +21,7 @@ _COMPAT_DEPENDENCIES = {
         "HTTPException",
         "OpenAI",
         "OpenAIModelSettings",
+        "_close_openai_client",
         "_apply_openai_chat_completion_simple_settings",
         "_merge_openai_request_options",
         "_parse_openai_exception",
@@ -49,6 +50,7 @@ for _dependency_name in (
     "HTTPException",
     "OpenAI",
     "OpenAIModelSettings",
+    "_close_openai_client",
     "_apply_openai_chat_completion_simple_settings",
     "_merge_openai_request_options",
     "_parse_openai_exception",
@@ -119,6 +121,8 @@ def _impl_openai_chat_completions_title_generation(
             is_byok=bool(byok),
         )
 
+    client = None
+    client_kwargs = {}
     try:
         client_context = _resolve_openai_client_context(
             db,
@@ -237,4 +241,5 @@ def _impl_openai_chat_completions_title_generation(
         meta_error_status_code = getattr(exc, "status_code", 0) or 400
         raise HTTPException(status_code=400, detail=f"Failed to generate title: {exc}")
     finally:
+        _close_openai_client(client, client_kwargs)
         _record_stat()

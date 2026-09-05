@@ -29,6 +29,7 @@ _COMPAT_DEPENDENCIES = {
         "HTTPException",
         "OpenAI",
         "XAI_PROVIDER_TYPE",
+        "_close_openai_client",
         "_merge_openai_request_options",
         "_parse_openai_exception",
         "_resolve_openai_client_context",
@@ -70,6 +71,7 @@ for _dependency_name in (
     "OpenAI",
     "ProviderEnum",
     "XAI_PROVIDER_TYPE",
+    "_close_openai_client",
     "_merge_openai_request_options",
     "_parse_openai_exception",
     "_resolve_openai_client_context",
@@ -156,10 +158,13 @@ def _impl_list_models_openai(
     )
     client_kwargs = client_context["client_kwargs"]
     request_options = client_context["request_options"]
-    client = OpenAI(**client_kwargs)
+    client = None
     try:
-        models = client.models.list(
-            **_merge_openai_request_options(request_options=request_options)
+        client = OpenAI(**client_kwargs)
+        models = list(
+            client.models.list(
+                **_merge_openai_request_options(request_options=request_options)
+            )
         )
     except (AuthenticationError, BadRequestError, APIConnectionError) as exc:
         status, message, _, _ = _parse_openai_exception(exc)
@@ -177,6 +182,8 @@ def _impl_list_models_openai(
         raise HTTPException(
             status_code=424, detail=f"Failed to list OpenAI models: {exc}"
         )
+    finally:
+        _close_openai_client(client, client_kwargs)
 
     unsupported_ids = get_responses_unsupported_models(openai_provider_type)
     items = []

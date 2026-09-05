@@ -6,7 +6,7 @@ from app.llm.openai.model_list import (
     OPENAI_DEPRECATED_MODELS,
     OPENAI_REALTIME_TRANSCRIPTION_ONLY_MODELS,
 )
-from app.llm.openai.utils import _resolve_openai_client_kwargs
+from app.llm.openai.utils import _close_openai_client, _resolve_openai_client_kwargs
 from app.llm.schemas import ProviderEnum
 from fastapi import HTTPException
 from openai import Client
@@ -51,12 +51,13 @@ def get_openai_realtime_models(
         byok=byok,
         openai_provider_type=openai_provider_type,
     )
-    client = Client(**client_kwargs)
+    client = None
 
     deprecated_models = set(OPENAI_DEPRECATED_MODELS)
     transcription_only_models = set(OPENAI_REALTIME_TRANSCRIPTION_ONLY_MODELS)
     discovered: list[str] = []
     try:
+        client = Client(**client_kwargs)
         models = client.models.list()
         for model in models or []:
             model_id = str(getattr(model, "id", "") or "").strip()
@@ -76,6 +77,8 @@ def get_openai_realtime_models(
     except Exception as exc:
         logger.exception("Failed to list OpenAI realtime models")
         raise HTTPException(status_code=424, detail=f"Failed to list OpenAI realtime models: {exc}") from exc
+    finally:
+        _close_openai_client(client, client_kwargs)
 
     return discovered
 

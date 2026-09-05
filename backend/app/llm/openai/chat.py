@@ -34,6 +34,7 @@ _COMPAT_DEPENDENCIES = {
         "_OpenAIFunctionCallAccumulator",
         "_OpenAIReasoningTimer",
         "_OpenAIToolCallBudget",
+        "_close_openai_client",
         "_apply_openai_prompt_cache_settings",
         "_apply_openai_store_setting",
         "_build_native_websearch_user_context",
@@ -123,6 +124,7 @@ for _dependency_name in (
     "_OpenAIFunctionCallAccumulator",
     "_OpenAIReasoningTimer",
     "_OpenAIToolCallBudget",
+    "_close_openai_client",
     "_apply_openai_prompt_cache_settings",
     "_apply_openai_store_setting",
     "_build_native_websearch_user_context",
@@ -261,6 +263,8 @@ def _impl_openai_chat(
         assistant_metadata if isinstance(assistant_metadata, dict) else {}
     )
     normalized_user_role = str(user_role or "").strip().lower()
+    client = None
+    client_kwargs = {}
     try:
         create_chat_message = engine.persist_message
 
@@ -2327,6 +2331,7 @@ def _impl_openai_chat(
         yield json.dumps(error_payload) + "\n"
         yield json.dumps({"t": "d", "d": "c", "c": {"status": "error"}}) + "\n"
     finally:
+        _close_openai_client(client, client_kwargs)
         if (
             not assistant_message_saved
             and not temp_request_flag

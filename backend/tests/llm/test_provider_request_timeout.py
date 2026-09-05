@@ -6,6 +6,7 @@ from app.llm.base_settings import LLM_PROVIDER_REQUEST_TIMEOUT_SECONDS
 from app.llm.elevenlabs.schemas import ElevenlabsSettings
 from app.llm.openai.schemas import OpenaiSettings
 from app.llm.openai.utils import _resolve_openai_client_context
+from app.network.outbound_http import PolicySyncNetworkBackend
 from app.llm.openai_responses.schemas import OpenaiResponsesSettings
 from app.llm.schemas import PROVIDER_SETTINGS_SCHEMAS
 from app.llm.speech import _generate_via_elevenlabs
@@ -68,7 +69,32 @@ def test_openai_compatible_clients_ignore_custom_timeout(provider_type, byok):
         openai_provider_type=provider_type,
     )
 
-    assert context["client_kwargs"]["timeout"] == LLM_PROVIDER_REQUEST_TIMEOUT_SECONDS
+    http_client = context["client_kwargs"]["http_client"]
+    try:
+        assert context["client_kwargs"]["timeout"] == LLM_PROVIDER_REQUEST_TIMEOUT_SECONDS
+    finally:
+        http_client.close()
+
+
+def test_byok_openai_clients_use_policy_pinned_httpx2_transport():
+    context = _resolve_openai_client_context(
+        None,
+        byok={
+            "api_key": "sk-test",
+            "base_url": "https://attacker.example/v1",
+        },
+    )
+    http_client = context["client_kwargs"]["http_client"]
+    try:
+        assert isinstance(
+            http_client._transport._pool._network_backend,
+            PolicySyncNetworkBackend,
+        )
+        assert http_client.trust_env is False
+        assert http_client.follow_redirects is True
+        assert len(http_client.event_hooks["request"]) == 1
+    finally:
+        http_client.close()
 
 
 def test_native_xai_and_elevenlabs_adapters_use_fixed_timeout(monkeypatch):

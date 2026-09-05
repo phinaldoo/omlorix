@@ -488,10 +488,14 @@ def test_secret_retraction_can_still_remove_an_existing_fact(monkeypatch):
     assert list_memories(db, MemoryScope.personal("user-1")) == []
 
 
-def test_expired_facts_disappear_immediately_and_lifecycle_sweep_repairs_profile(
+def test_chat_evidence_refreshes_aging_facts_and_expiry_needs_no_user_action(
     monkeypatch,
 ):
+    from app.memories import service
+
     db = _session()
+    now = datetime.now(timezone.utc)
+    monkeypatch.setattr(service, "utcnow", lambda: now)
     monkeypatch.setattr(
         "app.logging.models.stage_audit_log_event",
         lambda *_args, **_kwargs: None,
@@ -500,13 +504,29 @@ def test_expired_facts_disappear_immediately_and_lifecycle_sweep_repairs_profile
         db,
         user_id="user-1",
         source_message_id="message-1",
-        source_at=datetime.now(timezone.utc),
+        source_at=now,
         source_text="I prefer concise answers",
         candidates=[_candidate()],
     )
     fact = db.query(Memory).filter_by(user_id="user-1").one()
-    fact.expires_at = datetime.now(timezone.utc) - timedelta(seconds=1)
-    db.commit()
+    original_expiry = fact.expires_at
+    now += timedelta(days=181)
+    assert get_memory_profile(db, "user-1").review_fact_count == 1
+
+    # The extractor can confirm from ordinary chat evidence without a manual
+    # confirmation endpoint, UI action, or a special "remember" request.
+    result = apply_memory_consolidation(
+        db, user_id="user-1", source_message_id="message-2", source_at=now,
+        source_text="I prefer concise answers",
+        candidates=[_candidate(action="confirm", target_memory_id=fact.id)],
+    )
+    assert result["confirmed_count"] == 1
+    assert fact.expires_at > original_expiry
+    assert get_memory_profile(db, "user-1").review_fact_count == 0
+
+    # Without further supporting messages, reads exclude the fact and the
+    # normal lifecycle sweep removes it; no user maintenance is required.
+    now += timedelta(days=541)
 
     assert list_memories(db, MemoryScope.personal("user-1")) == []
     assert get_memory_profile(db, "user-1").active_fact_count == 0

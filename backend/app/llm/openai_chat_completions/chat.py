@@ -26,6 +26,7 @@ _COMPAT_DEPENDENCIES = {
         "OpenAI",
         "OpenAIModelSettings",
         "ToolErrorTracker",
+        "_close_openai_client",
         "_apply_openai_chat_completion_simple_settings",
         "_build_native_websearch_user_context",
         "_merge_openai_request_options",
@@ -86,6 +87,7 @@ for _dependency_name in (
     "OpenAI",
     "OpenAIModelSettings",
     "ToolErrorTracker",
+    "_close_openai_client",
     "_apply_openai_chat_completion_simple_settings",
     "_build_native_websearch_user_context",
     "_merge_openai_request_options",
@@ -157,6 +159,8 @@ def _impl_openai_chat_completions_chat(
     assistant_metadata = (
         assistant_metadata if isinstance(assistant_metadata, dict) else {}
     )
+    client = None
+    client_kwargs = {}
     try:
         create_chat_message = engine.persist_message
 
@@ -1621,6 +1625,7 @@ def _impl_openai_chat_completions_chat(
         yield json.dumps(error_payload) + "\n"
         yield json.dumps({"t": "d", "d": "c", "c": {"status": "error"}}) + "\n"
     finally:
+        _close_openai_client(client, client_kwargs)
         if (
             not assistant_message_saved
             and not temp_request_flag

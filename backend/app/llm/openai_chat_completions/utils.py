@@ -33,6 +33,7 @@ from app.groups.init import get_user_group_setting_value
 from app.chats.streaming import interruptible_provider_stream
 from app.users.roles import is_admin_role
 from app.llm.openai.utils import (
+    _close_openai_client,
     _merge_openai_request_options,
     _parse_openai_exception,
     _record_openai_stat_with_costs,

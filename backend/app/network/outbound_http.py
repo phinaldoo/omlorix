@@ -199,9 +199,10 @@ def _stream_peer_ip(stream: Any) -> str | None:
     if not callable(get_extra_info):
         return None
 
-    peername = get_extra_info("peername")
-    if isinstance(peername, tuple) and peername:
-        return str(peername[0])
+    for key in ("peername", "server_addr"):
+        peername = get_extra_info(key)
+        if isinstance(peername, tuple) and peername:
+            return str(peername[0])
 
     sock = get_extra_info("socket")
     getpeername = getattr(sock, "getpeername", None)
@@ -329,6 +330,133 @@ class PublicAsyncNetworkBackend:
 
     async def sleep(self, seconds: float) -> None:
         await self._network_backend().sleep(seconds)
+
+
+class PolicySyncNetworkBackend:
+    """Sync httpcore2 backend that pins policy-approved connection peers."""
+
+    def __init__(
+        self,
+        *,
+        feature: str,
+        peer_ip_validator: PeerIPValidator,
+        backend: Any | None = None,
+    ) -> None:
+        self._feature = feature
+        self._peer_ip_validator = peer_ip_validator
+        self._backend = backend
+
+    def _network_backend(self) -> Any:
+        if self._backend is None:
+            from httpcore2._backends.sync import SyncBackend
+
+            self._backend = SyncBackend()
+        return self._backend
+
+    def connect_tcp(
+        self,
+        host: str,
+        port: int,
+        timeout: float | None = None,
+        local_address: str | None = None,
+        socket_options: Any | None = None,
+    ) -> Any:
+        err: Exception | None = None
+        for _af, _socktype, _proto, _canonname, sockaddr in _resolve_tcp_addresses(
+            host,
+            port,
+            feature=self._feature,
+            peer_ip_validator=self._peer_ip_validator,
+        ):
+            ip_address = str(sockaddr[0])
+            stream = None
+            try:
+                stream = self._network_backend().connect_tcp(
+                    ip_address,
+                    port,
+                    timeout=timeout,
+                    local_address=local_address,
+                    socket_options=socket_options,
+                )
+                peer_ip = _stream_peer_ip(stream)
+                if peer_ip is None:
+                    raise OutboundRequestBlockedError(
+                        target=_target_label(host.strip("[]"), port),
+                        feature=self._feature,
+                        policy_mode=OutboundAccessMode.allow_all,
+                        reason="connected peer IP could not be verified",
+                    )
+                self._peer_ip_validator(peer_ip, host.strip("[]"), port)
+                return stream
+            except OutboundRequestBlockedError:
+                if stream is not None:
+                    stream.close()
+                raise
+            except Exception as exc:
+                err = exc
+                if stream is not None:
+                    stream.close()
+
+        if err is not None:
+            raise err
+        raise OSError("getaddrinfo returns an empty list")
+
+    def connect_unix_socket(
+        self,
+        path: str,
+        timeout: float | None = None,
+        socket_options: Any | None = None,
+    ) -> Any:
+        raise OutboundRequestBlockedError(
+            target=path,
+            feature=self._feature,
+            policy_mode=OutboundAccessMode.allow_all,
+            reason="Unix socket connections are not allowed for LLM provider requests",
+        )
+
+    def sleep(self, seconds: float) -> None:
+        self._network_backend().sleep(seconds)
+
+
+def outbound_policy_httpx2_client(
+    db,
+    *,
+    feature: str,
+    require_private_allowlist: bool = False,
+) -> Any:
+    """Build a sync HTTPX2 client that validates every URL and actual peer."""
+    import httpx2
+
+    def validate_request(request: Any) -> None:
+        # HTTPX2 invokes request hooks for the initial request and every redirect.
+        assert_http_url_allowed(
+            db,
+            url=str(request.url),
+            feature=feature,
+            require_private_allowlist=require_private_allowlist,
+        )
+
+    def validate_peer(ip_address: str, host: str, port: int | None) -> None:
+        assert_outbound_peer_ip_allowed(
+            db,
+            host=host,
+            ip_address=ip_address,
+            port=port,
+            feature=feature,
+            require_private_allowlist=require_private_allowlist,
+        )
+
+    transport = httpx2.HTTPTransport(trust_env=False)
+    transport._pool._network_backend = PolicySyncNetworkBackend(
+        feature=feature,
+        peer_ip_validator=validate_peer,
+    )
+    return httpx2.Client(
+        transport=transport,
+        trust_env=False,
+        follow_redirects=True,
+        event_hooks={"request": [validate_request]},
+    )
 
 
 def public_async_httpx_transport(*, feature: str, **kwargs: Any) -> Any:

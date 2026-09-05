@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.llm.openai.custom_headers import custom_headers_to_dict
 from app.utils.async_cleanup import close_async_resource
-from app.llm.openai.utils import _resolve_openai_client_kwargs
+from app.llm.openai.utils import _close_openai_client, _resolve_openai_client_kwargs
 from app.llm.openai.model_list import OPENAI_UNSUPPORTED_TRANSCRIPTION_MODELS
 from app.llm.schemas import ProviderEnum
 
@@ -65,12 +65,15 @@ def get_openai_transcription_models(
         byok=byok,
         openai_provider_type=openai_provider_type,
     )
-    client = Client(**client_kwargs)
+    client = None
     try:
-        models = client.models.list()
+        client = Client(**client_kwargs)
+        models = list(client.models.list())
     except Exception as exc:
         logger.exception("Failed to list OpenAI transcription models")
         raise HTTPException(status_code=424, detail=f"Failed to list OpenAI models: {exc}") from exc
+    finally:
+        _close_openai_client(client, client_kwargs)
 
     return [model.id for model in models if model.id not in OPENAI_UNSUPPORTED_TRANSCRIPTION_MODELS]
 

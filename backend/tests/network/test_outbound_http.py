@@ -3,8 +3,12 @@ import socket
 
 import pytest
 
-from app.network import outbound_http
-from app.network.policy import OutboundRequestBlockedError
+from app.network import outbound_http, policy as outbound_policy
+from app.network.policy import (
+    OutboundAccessMode,
+    OutboundPolicySnapshot,
+    OutboundRequestBlockedError,
+)
 
 
 def test_resolve_public_tcp_addresses_blocks_connect_time_private_dns(monkeypatch):
@@ -232,6 +236,104 @@ def test_policy_connection_rechecks_the_connected_peer(monkeypatch):
         )
 
     assert sock.closed is True
+
+
+@pytest.mark.parametrize(
+    "mode",
+    (OutboundAccessMode.allow_all, OutboundAccessMode.private_only),
+)
+def test_byok_peer_guard_requires_explicit_private_ip_allowlist(monkeypatch, mode):
+    """BYOK cannot use a private peer merely because its hostname was public."""
+
+    def set_policy(allowlist):
+        monkeypatch.setattr(
+            outbound_policy,
+            "get_outbound_policy_snapshot",
+            lambda _db: OutboundPolicySnapshot(
+                offline_mode=mode == OutboundAccessMode.private_only,
+                mode=mode,
+                allowlist=allowlist,
+            ),
+        )
+
+    set_policy(())
+    with pytest.raises(OutboundRequestBlockedError, match="explicitly allowlisted"):
+        outbound_policy.assert_outbound_peer_ip_allowed(
+            object(),
+            host="provider.example",
+            ip_address="10.0.0.8",
+            port=443,
+            feature="BYOK LLM provider request",
+            require_private_allowlist=True,
+        )
+
+    set_policy(("10.0.0.0/8",))
+    outbound_policy.assert_outbound_peer_ip_allowed(
+        object(),
+        host="provider.example",
+        ip_address="10.0.0.8",
+        port=443,
+        feature="BYOK LLM provider request",
+        require_private_allowlist=True,
+    )
+
+
+def test_policy_sync_network_backend_revalidates_connected_peer(monkeypatch):
+    class _Stream:
+        def __init__(self):
+            self.closed = False
+
+        def get_extra_info(self, name):
+            if name == "server_addr":
+                return ("127.0.0.1", 443)
+            return None
+
+        def close(self):
+            self.closed = True
+
+    class _Backend:
+        def __init__(self, stream):
+            self.stream = stream
+            self.connect_calls = []
+
+        def connect_tcp(self, host, port, **kwargs):
+            self.connect_calls.append((host, port, kwargs))
+            return self.stream
+
+    def fake_resolve(host, port, *, feature, peer_ip_validator, **_kwargs):
+        peer_ip_validator("93.184.216.34", host, port)
+        return [
+            (
+                socket.AF_INET,
+                socket.SOCK_STREAM,
+                socket.IPPROTO_TCP,
+                "",
+                ("93.184.216.34", port),
+            )
+        ]
+
+    def validate_peer(ip_address, _host, _port):
+        if ip_address == "127.0.0.1":
+            raise OutboundRequestBlockedError(
+                target=ip_address,
+                feature="BYOK LLM provider request",
+                policy_mode=OutboundAccessMode.allow_all,
+                reason="private peer",
+            )
+
+    stream = _Stream()
+    backend = _Backend(stream)
+    monkeypatch.setattr(outbound_http, "_resolve_tcp_addresses", fake_resolve)
+
+    with pytest.raises(OutboundRequestBlockedError, match="private peer"):
+        outbound_http.PolicySyncNetworkBackend(
+            feature="BYOK LLM provider request",
+            peer_ip_validator=validate_peer,
+            backend=backend,
+        ).connect_tcp("attacker.example", 443)
+
+    assert backend.connect_calls[0][0] == "93.184.216.34"
+    assert stream.closed is True
 
 
 class _FakeAsyncStream:

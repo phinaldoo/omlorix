@@ -232,13 +232,6 @@ const MemoriesAPI = {
         });
     },
 
-    async confirmMemory(scope, memoryId) {
-        return this.send(this.getScopeUrl(scope, `/${encodeURIComponent(memoryId)}/confirm`), {
-            method: 'POST',
-            fallback: t('workspace_memories_error_confirm', 'Failed to confirm memory'),
-        });
-    },
-
     async fetchProfile() {
         return this.send('/api/v1/memories/profile', {
             fallback: t('workspace_memories_error_load_profile', 'Failed to load memory profile'),
@@ -275,12 +268,6 @@ const MemoriesDOM = {
     get emptyText() { return document.getElementById('memoriesEmptyText'); },
     get createBtn() { return document.getElementById('memoriesCreateBtn'); },
     get importBtn() { return document.getElementById('memoriesImportBtn'); },
-    get profilePanel() { return document.getElementById('memoriesProfilePanel'); },
-    get profileStatus() { return document.getElementById('memoriesProfileStatus'); },
-    get profileFactCount() { return document.getElementById('memoriesProfileFactCount'); },
-    get profileReviewCount() { return document.getElementById('memoriesProfileReviewCount'); },
-    get profileVersion() { return document.getElementById('memoriesProfileVersion'); },
-    get profileContent() { return document.getElementById('memoriesProfileContent'); },
 
     get editorOverlay() { return document.getElementById('memoriesEditorOverlay'); },
     get editorCloseBtn() { return document.getElementById('memoriesEditorCloseBtn'); },
@@ -358,10 +345,6 @@ const MemoriesManager = {
                 this.openEditorForMemory(memoryId);
                 return;
             }
-            if (button.dataset.memoryAction === 'confirm') {
-                await this.confirmMemoryFromCard(memoryId, button);
-                return;
-            }
             if (button.dataset.memoryAction !== 'delete' || typeof window.showDeleteConfirm !== 'function') return;
             const confirmed = await window.showDeleteConfirm({
                 confirmLabel: t('workspace_memories_delete', 'Delete'),
@@ -380,7 +363,6 @@ const MemoriesManager = {
         });
         document.addEventListener('i18n:updated', () => {
             this.renderScopeOptions();
-            this.renderProfile();
             this.renderMemories();
             if (MemoriesDOM.importPromptText) {
                 MemoriesDOM.importPromptText.textContent = this.getImportPrompt();
@@ -459,8 +441,11 @@ const MemoriesManager = {
     },
 
     scheduleProfilePoll() {
+        if (this.getScope().type !== 'personal' || MemoriesState.profile?.last_run_status !== 'processing') {
+            this.stopProfilePolling();
+            return;
+        }
         if (MemoriesState.profilePollTimer !== null) return;
-        if (this.getScope().type !== 'personal' || MemoriesState.profile?.last_run_status !== 'processing') return;
         if (!MemoriesState.profilePollDeadline) {
             MemoriesState.profilePollDeadline = Date.now() + 120000;
         }
@@ -477,7 +462,7 @@ const MemoriesManager = {
                     MemoriesState.memories = await MemoriesAPI.fetchMemories(this.getScope());
                     this.renderMemories();
                 }
-                this.renderProfile();
+                this.scheduleProfilePoll();
             } catch (error) {
                 this.scheduleProfilePoll();
             }
@@ -619,7 +604,6 @@ const MemoriesManager = {
         if (MemoriesDOM.scopeDescription) {
             MemoriesDOM.scopeDescription.textContent = this.getScopeDescription();
         }
-        this.renderProfile();
         this.updateActionAvailability();
     },
 
@@ -676,6 +660,7 @@ const MemoriesManager = {
             ]);
             MemoriesState.memories = memories;
             MemoriesState.profile = profile;
+            this.scheduleProfilePoll();
             const selectedExists = MemoriesState.memories.some((memory) => memory.id === MemoriesState.selectedMemoryId);
             if (!selectedExists) {
                 MemoriesState.selectedMemoryId = null;
@@ -702,58 +687,6 @@ const MemoriesManager = {
         });
     },
 
-    renderProfile() {
-        const panel = MemoriesDOM.profilePanel;
-        if (!panel) return;
-        const isPersonal = this.getScope().type === 'personal';
-        panel.hidden = !isPersonal;
-        if (!isPersonal) return;
-
-        const profile = MemoriesState.profile || {};
-        const factCount = Number(profile.active_fact_count || 0);
-        const maxFactCount = Number(profile.max_fact_count || 100);
-        if (MemoriesDOM.profileFactCount) {
-            MemoriesDOM.profileFactCount.textContent = `${factCount} / ${maxFactCount}`;
-        }
-        if (MemoriesDOM.profileReviewCount) {
-            MemoriesDOM.profileReviewCount.textContent = String(Number(profile.review_fact_count || 0));
-        }
-        if (MemoriesDOM.profileVersion) {
-            MemoriesDOM.profileVersion.textContent = String(Number(profile.version || 0));
-        }
-        if (MemoriesDOM.profileContent) {
-            const content = String(profile.content || '').trim();
-            MemoriesDOM.profileContent.textContent = content || t(
-                'workspace_memories_profile_empty',
-                'Your profile will appear after a message contains reusable information about you.',
-            );
-            MemoriesDOM.profileContent.classList.toggle('is-empty', !content);
-        }
-
-        const statuses = {
-            processing: ['workspace_memories_profile_status_processing', 'Updating…'],
-            updated: ['workspace_memories_profile_status_updated', 'Updated'],
-            unchanged: ['workspace_memories_profile_status_unchanged', 'Checked — no changes'],
-            failed: ['workspace_memories_profile_status_failed', 'Last update failed'],
-        };
-        const statusEntry = statuses[profile.last_run_status];
-        if (MemoriesDOM.profileStatus) {
-            MemoriesDOM.profileStatus.textContent = statusEntry
-                ? t(statusEntry[0], statusEntry[1])
-                : t('workspace_memories_profile_status_waiting', 'Waiting for your first memory update');
-            MemoriesDOM.profileStatus.dataset.status = profile.last_run_status || 'waiting';
-            MemoriesDOM.profileStatus.title = profile.last_run_status === 'failed'
-                ? t('workspace_memories_profile_status_failed_help', 'The memory provider could not complete the last update. A later message will try again.')
-                : '';
-        }
-        if (profile.last_run_status === 'processing') {
-            this.scheduleProfilePoll();
-        } else if (MemoriesState.profilePollTimer !== null) {
-            clearTimeout(MemoriesState.profilePollTimer);
-            MemoriesState.profilePollTimer = null;
-        }
-    },
-
     renderMemories() {
         const list = MemoriesDOM.list;
         const empty = MemoriesDOM.emptyState;
@@ -776,14 +709,11 @@ const MemoriesManager = {
             const sourceDateLabel = memory.source_date ? this.getSourceDateLabel(memory.source_date) : '';
             const editLabel = t('workspace_memories_form_edit_title', 'Edit memory');
             const deleteLabel = t('workspace_memories_delete', 'Delete');
-            const confirmLabel = t('workspace_memories_confirm', 'Confirm');
             const editIcon = window.Icons?.edit || '';
             const deleteIcon = window.Icons?.trash || '';
-            const confirmIcon = window.Icons?.check || '';
             const disabledAttribute = this.isScopeWritable() ? '' : ' disabled';
             const kindEntry = MEMORY_KIND_LABELS[memory.kind] || MEMORY_KIND_LABELS.other;
             const stabilityEntry = MEMORY_STABILITY_LABELS[memory.stability] || MEMORY_STABILITY_LABELS.slow;
-            const needsReview = memory.lifecycle_state === 'review';
             const expiryLabel = memory.expires_at
                 ? formatT(
                     'workspace_memories_expires',
@@ -797,7 +727,6 @@ const MemoriesManager = {
                     <div class="memory-item-badges">
                         <span>${this.escapeHtml(t(kindEntry[0], kindEntry[1]))}</span>
                         <span>${this.escapeHtml(t(stabilityEntry[0], stabilityEntry[1]))}</span>
-                        ${needsReview ? `<span class="needs-review">${this.escapeHtml(t('workspace_memories_needs_review', 'Needs review'))}</span>` : ''}
                     </div>
                     <div class="memory-item-footer">
                         ${sourceDateLabel ? `<span class="memory-item-date">${this.escapeHtml(sourceDateLabel)}</span>` : ''}
@@ -805,10 +734,6 @@ const MemoriesManager = {
                         ${expiryLabel ? `<span class="memory-item-expiry">${this.escapeHtml(expiryLabel)}</span>` : ''}
                     </div>
                     <div class="memory-item-actions" role="group" aria-label="${this.escapeHtml(t('workspace_memories_actions_aria', 'Memory actions'))}">
-                        ${needsReview ? `<button type="button" class="memory-item-action memory-item-confirm" data-memory-action="confirm" title="${this.escapeHtml(confirmLabel)}" aria-label="${this.escapeHtml(confirmLabel)}"${disabledAttribute}>
-                            <span aria-hidden="true">${confirmIcon}</span>
-                            <span>${this.escapeHtml(confirmLabel)}</span>
-                        </button>` : ''}
                         <button type="button" class="memory-item-action memory-item-edit" data-memory-action="edit" title="${this.escapeHtml(editLabel)}" aria-label="${this.escapeHtml(editLabel)}"${disabledAttribute}>
                             <span aria-hidden="true">${editIcon}</span>
                             <span>${this.escapeHtml(editLabel)}</span>
@@ -822,25 +747,6 @@ const MemoriesManager = {
             `;
         }).join('');
 
-    },
-
-    async confirmMemoryFromCard(memoryId, triggerButton = null) {
-        const targetId = String(memoryId || '').trim();
-        if (!targetId || !this.isScopeWritable()) return;
-        if (triggerButton) triggerButton.disabled = true;
-        try {
-            await MemoriesAPI.confirmMemory(this.getScope(), targetId);
-            await this.loadMemories();
-            if (typeof notifySuccess === 'function') {
-                notifySuccess(t('workspace_memories_success_confirmed', 'Memory confirmed'));
-            }
-        } catch (error) {
-            if (typeof notifyError === 'function') {
-                notifyError(error.message || t('workspace_memories_error_confirm', 'Failed to confirm memory'));
-            }
-        } finally {
-            if (triggerButton?.isConnected) triggerButton.disabled = false;
-        }
     },
 
     renderEmptyState(hasAnyMemories) {

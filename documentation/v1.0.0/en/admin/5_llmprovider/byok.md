@@ -24,7 +24,7 @@ Start with no tools. Add only those the group needs; tools can read files, conta
 - Personal provider and model definitions are stored in that browser profile's local storage and do not sync as account data. Raw API keys are not stored with those definitions. Do not share browser profiles between users.
 - When a key is entered, Omlorix exchanges it for a server-sealed credential token bound to the signed-in user, provider type, and local provider record. Only that opaque token is kept in the current tab's session storage, for at most 30 days.
 - Closing the tab, signing out, changing accounts, clearing browser storage, token expiry, or rotating the server encryption key can require key entry again. Other tabs do not inherit the token.
-- A user-supplied local or private endpoint must be explicitly permitted by [Outbound Network Access](../3_admin_settings/3_1_outbound_network_access.md). Omlorix cannot reach a service running only on the user's computer unless it is network-accessible to the application service.
+- A user-supplied local or private endpoint must be explicitly permitted by [Outbound Network Access](../3_admin_settings/3_1_outbound_network_access.md). OpenAI-compatible BYOK requests recheck every redirect and validate both resolved and connected peer addresses. Permit the endpoint's actual IP address or narrow CIDR range; a hostname-only entry does not authorize a private peer. Omlorix cannot reach a service running only on the user's computer unless it is network-accessible to the application service.
 - Disabling BYOK blocks its use but does not erase browser-local provider definitions or existing usage records.
 - Exported user data and administrator provider exports do not back up personal provider definitions or keys.
 

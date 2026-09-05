@@ -23,6 +23,7 @@ _COMPAT_DEPENDENCIES = {
         "HTTPException",
         "OpenAI",
         "OpenAIModelSettings",
+        "_close_openai_client",
         "_apply_openai_simple_generation_settings",
         "_apply_provider_reported_cost_meta",
         "_merge_openai_request_options",
@@ -52,6 +53,7 @@ for _dependency_name in (
     "HTTPException",
     "OpenAI",
     "OpenAIModelSettings",
+    "_close_openai_client",
     "_apply_openai_simple_generation_settings",
     "_apply_provider_reported_cost_meta",
     "_merge_openai_request_options",
@@ -124,6 +126,8 @@ def _impl_openai_title_generation(
             is_byok=bool(byok),
         )
 
+    client = None
+    client_kwargs = {}
     try:
         client_context = _resolve_openai_client_context(
             db,
@@ -258,4 +262,5 @@ def _impl_openai_title_generation(
         meta_error_status_code = getattr(exc, "status_code", 0) or 400
         raise HTTPException(status_code=400, detail=f"Failed to generate title: {exc}")
     finally:
+        _close_openai_client(client, client_kwargs)
         _record_stat()
