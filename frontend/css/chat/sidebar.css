@@ -929,6 +929,16 @@ body.sidebar-overlay-mode .sidebar-profile-dropdown {
     z-index: 2305;
 }
 
+/* Fixed chat menus use the transformed sidebar as their containing block. */
+body.sidebar-overlay-mode .sidebar-container .sidebar-element > .select-dropdown {
+    min-width: 0;
+    max-width: calc(100% - 16px);
+}
+
+body.sidebar-overlay-mode .sidebar-container .sidebar-element > .select-dropdown .select-dropdown-button svg {
+    flex-shrink: 0;
+}
+
 /* Show the toggle button in the main header when in overlay mode */
 body.sidebar-overlay-mode .main-container-header #mainContainerSidebarCloseButton {
     display: flex;
