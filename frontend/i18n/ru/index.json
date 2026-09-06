@@ -3424,7 +3424,7 @@
   "slide_presentation_phase_finalizing": "Завершение",
   "slide_presentation_preparing": "Подготовка презентации…",
   "slide_presentation_preparing_styles": "Подготовка стилей",
-  "slide_presentation_draft_ready_rendering": "Черновик готов · создаются точные предпросмотры…",
+  "slide_presentation_draft_ready_rendering": "Черновик готов · подготовка файлов для скачивания…",
   "slide_presentation_polishing_warning": "Черновик готов · автоматическая доработка остановлена",
   "slide_presentation_present": "Показать",
   "slide_presentation_previous_slide_aria": "Предыдущий слайд",
@@ -3437,7 +3437,7 @@
   "slide_presentation_default_title": "Презентация",
   "slide_presentation_complete": "Готово",
   "slide_presentation_reviewing": "Проверка визуального качества…",
-  "slide_presentation_rendering": "Создание предпросмотра слайдов…",
+  "slide_presentation_rendering": "Подготовка файлов для скачивания…",
   "slide_presentation_generating_slide": "Создание слайда {number}…",
   "slide_presentation_go_to_slide": "Перейти к слайду {number}",
   "slide_presentation_slideshow_dialog_aria": "Показ презентации",
@@ -4777,5 +4777,12 @@
   "workspace_memories_stability_changing": "Меняется",
   "workspace_memories_stability_ephemeral": "Краткосрочное",
   "workspace_memories_expires": "Истекает {date}",
-  "workspace_memories_error_load_profile": "Не удалось загрузить профиль памяти"
+  "workspace_memories_error_load_profile": "Не удалось загрузить профиль памяти",
+  "chat_workspace_title": "Подробности чата",
+  "chat_workspace_tabs": "Открытые представления",
+  "chat_workspace_resize": "Изменить размер панели подробностей",
+  "chat_workspace_back": "Вернуться в чат",
+  "chat_workspace_close": "Скрыть панель подробностей",
+  "chat_workspace_hide": "Скрыть",
+  "subagent_tab_label": "{name} · {number}"
 }

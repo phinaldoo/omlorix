@@ -243,7 +243,9 @@ def test_subagent_schema_is_compact_and_has_no_system_prompt_or_model_enum():
     schema = tool_schemas["subagent"]
     properties = schema["parameters"]["properties"]
 
-    assert "action" in properties
+    assert properties["action"]["enum"] == ["list_targets", "run"]
+    assert "query" not in properties
+    assert "target_type" not in properties
     assert "system_prompt" not in properties
     assert "enum" not in properties["model_id"]
 
@@ -349,7 +351,7 @@ def test_list_models_returns_only_models_the_user_can_access(monkeypatch):
     assert all("model_name" in item for item in payload["result"]["models"])
 
 
-def test_list_targets_searches_authorized_agents_without_exposing_private_configuration(monkeypatch):
+def test_list_targets_lists_models_and_agents_without_exposing_private_configuration(monkeypatch):
     db = _session([Models.__table__])
     db.add(_model("base-model", name="Base Model", access={"everyone": True, "users": [], "groups": []}))
     db.commit()
@@ -403,8 +405,9 @@ def test_list_targets_searches_authorized_agents_without_exposing_private_config
     )
     payload = tool_payload["result"]
 
-    assert payload["count"] == 1
-    assert payload["targets"] == [
+    assert payload["count"] == 3
+    assert [target["id"] for target in payload["targets"]] == ["base-model", "agent-2", "agent-1"]
+    assert payload["targets"][-1:] == [
         {
             "type": "agent",
             "id": "agent-1",
@@ -436,6 +439,46 @@ def test_list_targets_searches_authorized_agents_without_exposing_private_config
         )
     )
     assert [target["id"] for target in restricted_payload["result"]["targets"]] == ["agent-1"]
+
+
+def test_list_targets_pages_authorized_models_and_ignores_historical_search_filters(monkeypatch):
+    import app.tools.subagents.runtime as runtime
+    from fastapi import HTTPException
+
+    db = _session([Models.__table__])
+    public = {"everyone": True, "users": [], "groups": []}
+    db.add_all([
+        _model("terra", name="GPT-5.6 Terra", access=public),
+        _model("astra", name="GPT-6 Astra", access=public),
+        _model("private", name="Private", access=public),
+        _model("media", name="Media", access=public, capabilities=["image_generation"]),
+    ])
+    db.commit()
+    def check_access(_user_id, model_id, _db):
+        if model_id == "private":
+            raise HTTPException(status_code=403)
+    monkeypatch.setattr(runtime, "ensure_user_access_to_model", check_access)
+    monkeypatch.setattr(runtime, "_agents_enabled_for_user", lambda *_args: False)
+
+    def discover(**arguments):
+        return _drain_return(execute_subagent_tool(
+            db, tool_arguments={"action": "list_targets", **arguments},
+            user_id="user-1", group_id="group-1", project_id=None,
+            model_settings={}, chat_id="chat-1", chat_history=[],
+            generation_id="gen-1", user_role="user",
+        ))["result"]
+
+    for historical_query in ("GPT 5.6 Terra", "testing"):
+        result = discover(query=historical_query, target_type="agent")
+        assert [target["id"] for target in result["targets"]] == ["terra", "astra"]
+        assert result["next_cursor"] is None
+    first = discover(limit=1)
+    second = discover(limit=1, cursor=first["next_cursor"])
+    assert first["total"] == second["total"] == 2
+    assert [target["id"] for target in first["targets"] + second["targets"]] == ["terra", "astra"]
+    assert second["next_cursor"] is None
+    assert discover(limit=51)["code"] == "invalid_arguments"
+    assert discover(cursor="invalid")["code"] == "invalid_arguments"
 
 
 def test_run_rejects_target_outside_the_user_selected_allowlist():

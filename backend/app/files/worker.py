@@ -10,6 +10,7 @@ from app.database import SessionLocal
 from app.files.sharing import delete_expired_artifact_shares
 from app.utils.background import start_named_worker, stop_named_worker
 from app.files.storage import get_local_user_files_base_dir
+from app.files.temp_workspaces import workspace_is_active
 
 
 
@@ -40,32 +41,43 @@ logger = logging.getLogger(__name__)
 # Cleanup temp files
 # -------------------
 def cleanup_temp_files():
-    """Remove stale temporary files and prune empty temp subdirectories."""
+    """Remove stale files/directories, never descending into a leased workspace."""
     try:
         current_time = datetime.now(timezone.utc)
-        for file_path in TEMP_DIR.rglob("*"):
-            if not file_path.is_file():
+        expired_directories = []
+        for directory, children, filenames in os.walk(TEMP_DIR):
+            dir_path = Path(directory)
+            if workspace_is_active(dir_path):
+                children[:] = []
                 continue
-
             max_age_seconds = TEMP_FILE_MAX_AGE_SECONDS
-            try:
-                relative_parts = file_path.relative_to(TEMP_DIR).parts
-            except ValueError:
-                relative_parts = ()
+            relative_parts = dir_path.relative_to(TEMP_DIR).parts
             if relative_parts and relative_parts[0] == "materialized":
                 max_age_seconds = MATERIALIZED_FILE_MAX_AGE_SECONDS
-
-            file_mtime = datetime.fromtimestamp(
-                file_path.stat().st_mtime,
-                tz=timezone.utc,
-            )
-            if (current_time - file_mtime).total_seconds() > max_age_seconds:
-                file_path.unlink()
-
-        # Remove empty directories under temp (keep the root and materialized dir).
-        for dir_path in sorted((p for p in TEMP_DIR.rglob("*") if p.is_dir()), reverse=True):
-            if dir_path in {TEMP_DIR, MATERIALIZED_TEMP_DIR}:
+            try:
+                # The age check also protects newly created directories during
+                # the short interval before their owner acquires the lease.
+                if (
+                    dir_path not in {TEMP_DIR, MATERIALIZED_TEMP_DIR}
+                    and current_time.timestamp() - dir_path.stat().st_mtime
+                    > max_age_seconds
+                ):
+                    expired_directories.append(dir_path)
+            except FileNotFoundError:
                 continue
+            for filename in filenames:
+                file_path = dir_path / filename
+                try:
+                    if (
+                        file_path.is_file()
+                        and current_time.timestamp() - file_path.stat().st_mtime
+                        > max_age_seconds
+                    ):
+                        file_path.unlink()
+                except FileNotFoundError:
+                    continue
+
+        for dir_path in reversed(expired_directories):
             try:
                 dir_path.rmdir()
             except OSError:

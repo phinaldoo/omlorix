@@ -3419,7 +3419,7 @@
   "slide_presentation_phase_finalizing": "جارٍ الإنهاء",
   "slide_presentation_preparing": "جارٍ تجهيز العرض التقديمي…",
   "slide_presentation_preparing_styles": "جارٍ تجهيز الأنماط",
-  "slide_presentation_draft_ready_rendering": "المسودة جاهزة · جارٍ إنشاء معاينات دقيقة…",
+  "slide_presentation_draft_ready_rendering": "المسودة جاهزة · جارٍ تجهيز التنزيلات…",
   "slide_presentation_polishing_warning": "المسودة جاهزة · توقف التحسين التلقائي",
   "slide_presentation_present": "عرض",
   "slide_presentation_previous_slide_aria": "الشريحة السابقة",
@@ -3432,7 +3432,7 @@
   "slide_presentation_default_title": "عرض تقديمي",
   "slide_presentation_complete": "مكتمل",
   "slide_presentation_reviewing": "جارٍ مراجعة الجودة المرئية…",
-  "slide_presentation_rendering": "جارٍ عرض معاينات الشرائح…",
+  "slide_presentation_rendering": "جارٍ تجهيز التنزيلات…",
   "slide_presentation_generating_slide": "جارٍ إنشاء الشريحة {number}…",
   "slide_presentation_go_to_slide": "الانتقال إلى الشريحة {number}",
   "slide_presentation_slideshow_dialog_aria": "عرض شرائح التقديم",
@@ -4782,5 +4782,12 @@
   "workspace_memories_stability_changing": "متغيّرة",
   "workspace_memories_stability_ephemeral": "قصيرة الأجل",
   "workspace_memories_expires": "تنتهي في {date}",
-  "workspace_memories_error_load_profile": "تعذّر تحميل ملف الذاكرة"
+  "workspace_memories_error_load_profile": "تعذّر تحميل ملف الذاكرة",
+  "chat_workspace_title": "تفاصيل المحادثة",
+  "chat_workspace_tabs": "طرق العرض المفتوحة",
+  "chat_workspace_resize": "تغيير حجم لوحة التفاصيل",
+  "chat_workspace_back": "العودة إلى المحادثة",
+  "chat_workspace_close": "إخفاء لوحة التفاصيل",
+  "chat_workspace_hide": "إخفاء",
+  "subagent_tab_label": "{name} · {number}"
 }

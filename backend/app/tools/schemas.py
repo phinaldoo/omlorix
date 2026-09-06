@@ -247,8 +247,9 @@ tool_schemas: dict[str, dict] = {
       "type": "function",
       "description": (
           "Delegate work to another accessible chat model or saved Agent. "
-          "Call action='list_targets' before delegation to search the user's authorized model and Agent targets. "
-          "The legacy action='list_models' returns accessible models only. "
+          "Call action='list_targets' to list the user's authorized models and saved Agents, then choose a returned ID. "
+          "Discovery has no name or task search filter. Follow next_cursor to inspect further pages before declaring a target unavailable. "
+          "For a generic testing request, choose an available target and run a small test task. "
           "Use action='run' with either model_id and prompt, or agent_id and task. "
           "When the user selected explicit targets, discovery and run are restricted to that exact allowlist. "
           "Subagents receive the full parent chat context up to the call point. "
@@ -260,8 +261,8 @@ tool_schemas: dict[str, dict] = {
           "properties": {
               "action": {
                   "type": "string",
-                  "enum": ["list_targets", "list_models", "run"],
-                  "description": "Use list_targets to search authorized models and Agents; list_models preserves legacy model-only discovery; run starts one subagent.",
+                  "enum": ["list_targets", "run"],
+                  "description": "Use list_targets to list available models and saved Agents; run starts one subagent using a returned ID.",
               },
               "model_id": {
                   "type": "string",
@@ -285,15 +286,6 @@ tool_schemas: dict[str, dict] = {
               "context": {
                   "type": "string",
                   "description": "Optional extra context for action='run'. The full parent chat context is already included.",
-              },
-              "query": {
-                  "type": "string",
-                  "description": "Optional display-name, description, provider, or base-model search for action='list_targets'.",
-              },
-              "target_type": {
-                  "type": "string",
-                  "enum": ["all", "model", "agent"],
-                  "description": "Optional target-kind filter for action='list_targets'. Defaults to all.",
               },
               "limit": {
                   "type": "integer",

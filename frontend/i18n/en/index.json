@@ -3415,7 +3415,7 @@
   "slide_presentation_phase_finalizing": "Finalizing",
   "slide_presentation_preparing": "Preparing presentation…",
   "slide_presentation_preparing_styles": "Preparing styles",
-  "slide_presentation_draft_ready_rendering": "Draft ready · rendering accurate previews…",
+  "slide_presentation_draft_ready_rendering": "Draft ready · preparing downloads…",
   "slide_presentation_polishing_warning": "Draft ready · automatic polishing stopped",
   "slide_presentation_present": "Present",
   "slide_presentation_previous_slide_aria": "Previous slide",
@@ -3428,7 +3428,7 @@
   "slide_presentation_default_title": "Presentation",
   "slide_presentation_complete": "Complete",
   "slide_presentation_reviewing": "Reviewing visual quality…",
-  "slide_presentation_rendering": "Rendering slide previews…",
+  "slide_presentation_rendering": "Preparing downloads…",
   "slide_presentation_generating_slide": "Generating slide {number}…",
   "slide_presentation_go_to_slide": "Go to slide {number}",
   "slide_presentation_slideshow_dialog_aria": "Presentation slideshow",
@@ -4762,5 +4762,12 @@
   "workspace_memories_stability_changing": "Changing",
   "workspace_memories_stability_ephemeral": "Short-lived",
   "workspace_memories_expires": "Expires {date}",
-  "workspace_memories_error_load_profile": "Failed to load memory profile"
+  "workspace_memories_error_load_profile": "Failed to load memory profile",
+  "chat_workspace_title": "Chat details",
+  "chat_workspace_tabs": "Open views",
+  "chat_workspace_resize": "Resize details panel",
+  "chat_workspace_back": "Back to chat",
+  "chat_workspace_close": "Hide details panel",
+  "chat_workspace_hide": "Hide",
+  "subagent_tab_label": "{name} · {number}"
 }

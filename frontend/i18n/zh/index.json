@@ -3415,7 +3415,7 @@
   "slide_presentation_phase_finalizing": "正在完成",
   "slide_presentation_preparing": "正在准备演示文稿…",
   "slide_presentation_preparing_styles": "正在准备样式",
-  "slide_presentation_draft_ready_rendering": "草稿已就绪 · 正在渲染精确预览…",
+  "slide_presentation_draft_ready_rendering": "草稿已就绪 · 正在准备下载文件…",
   "slide_presentation_polishing_warning": "草稿已就绪 · 自动优化已停止",
   "slide_presentation_present": "放映",
   "slide_presentation_previous_slide_aria": "上一张幻灯片",
@@ -3428,7 +3428,7 @@
   "slide_presentation_default_title": "演示文稿",
   "slide_presentation_complete": "已完成",
   "slide_presentation_reviewing": "正在检查视觉质量…",
-  "slide_presentation_rendering": "正在渲染幻灯片预览…",
+  "slide_presentation_rendering": "正在准备下载文件…",
   "slide_presentation_generating_slide": "正在生成第 {number} 张幻灯片…",
   "slide_presentation_go_to_slide": "转到第 {number} 张幻灯片",
   "slide_presentation_slideshow_dialog_aria": "演示文稿幻灯片放映",
@@ -4762,5 +4762,12 @@
   "workspace_memories_stability_changing": "变化中",
   "workspace_memories_stability_ephemeral": "短期",
   "workspace_memories_expires": "将于 {date} 过期",
-  "workspace_memories_error_load_profile": "无法加载记忆档案"
+  "workspace_memories_error_load_profile": "无法加载记忆档案",
+  "chat_workspace_title": "聊天详情",
+  "chat_workspace_tabs": "已打开的视图",
+  "chat_workspace_resize": "调整详情面板大小",
+  "chat_workspace_back": "返回聊天",
+  "chat_workspace_close": "隐藏详情面板",
+  "chat_workspace_hide": "隐藏",
+  "subagent_tab_label": "{name} · {number}"
 }

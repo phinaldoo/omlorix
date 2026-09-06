@@ -713,6 +713,11 @@ def create_tool_call_statistic(
 ):
     """Create a tool call statistic record."""
     meta = dict(meta) if isinstance(meta, dict) else {}
+    # Scoped tools return safe error receipts so their budgets remain visible.
+    # A returned receipt is not evidence that the underlying operation worked.
+    if meta.get("scoped_tool_error") is True:
+        success = False
+        error_message = str(meta.get("error_code") or "internal")
     resolved_cost = resolve_tool_call_cost(meta)
     if resolved_cost > 0:
         meta["cost"] = round(resolved_cost, 6)

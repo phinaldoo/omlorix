@@ -142,6 +142,7 @@
     <link rel="stylesheet" href="/css/chat/splitScreen.css">
     <!-- Keep the shared modal shell last so feature styles only provide
          content/layout modifiers and cannot accidentally restyle the frame. -->
+    <link rel="stylesheet" href="/css/chat/chatWorkspace.css">
     <link rel="stylesheet" href="/css/common/searchModal.css" data-slide-presentation-editor-stylesheet>
     <script src="/js/common/pwaVersionGuard.js" defer></script>
     <script src="/js/vendor/markdown/markdown-it.min.js" defer></script>
@@ -261,6 +262,8 @@
     <script src="/js/chat/native-tool-widgets.js" defer></script>
     <script src="/js/chat/messages/shared.js" defer></script>
     <script src="/js/chat/messages/tool-config.js" defer></script>
+    <script src="/js/chat/resultCard.js" defer></script>
+    <script src="/js/chat/chatWorkspace.js" defer></script>
     <script src="/js/chat/messages/subagents.js" defer></script>
     <script src="/js/chat/messages/accessibility.js" defer></script>
     <script src="/js/chat/messages/file-handling.js" defer></script>
@@ -1911,7 +1914,10 @@
                     </button>
                 </div>
             </div>
-            <div class="right-sidebar-area" id="modelSettingsArea"></div>
+            <div class="right-sidebar-area">
+                <div id="modelSettingsArea"></div>
+                <div id="subagentTargetsSettings"></div>
+            </div>
             </div><!-- /.right-sidebar -->
         </div>
         <div class="right-sidebar-backdrop" id="modelSettingsSidebarBackdrop" aria-hidden="true"></div>

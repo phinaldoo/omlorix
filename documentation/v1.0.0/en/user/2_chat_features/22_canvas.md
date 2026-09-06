@@ -2,6 +2,8 @@
 
 Canvas creates and edits longer content in a focused panel beside the chat. A model with Canvas can create **Markdown**, **Mermaid diagram**, **CSV table**, **HTML website**, and **LaTeX PDF** or **LaTeX document** artifacts. Canvas can also open and edit compatible existing **CSV**, **TSV**, **XLS**, and **XLSX** spreadsheet files, including files created through Code Execution or added to Workspace.
 
+Canvas keeps its document toolbar and close button; the tab bar is exclusive to [Subagent transcripts](6_subagent_delegation.md). Switching between Canvas and a Subagent preserves the current document view and transcript reading position. Background Canvas updates do not switch away from an open Subagent tab or reopen a panel you have hidden. Use the corresponding result card to switch between previews. On narrow screens the panel fills the screen; use the close button in the Canvas toolbar to return to chat.
+
 ## Create and revise
 
 Choose a model that lists **Canvas** and ask for the format, filename, audience, structure, and content you need. Select **Open Canvas** when the result card appears.

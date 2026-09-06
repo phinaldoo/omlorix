@@ -112,3 +112,24 @@ def create_playback_frame(*, user_id: str, html: str, app_origin: str, slide_ind
 def build_slide_render_document(html: str) -> str:
     """Supply live HTML and the presentation API to the JavaScript-capable renderer."""
     return prepare_presentation_document(html)["html"]
+
+
+def prepare_preview_source(html: str) -> str:
+    """Close streamed markup, but never execute an unfinished script/style."""
+    from app.tools.slide_presentation.sanitizer import MAX_PRESENTATION_HTML_BYTES
+
+    if len(html.encode('utf-8')) > MAX_PRESENTATION_HTML_BYTES:
+        raise ValueError('presentation_html_too_large')
+    # Streaming can stop anywhere in a raw-text element. Discard that unfinished
+    # tail until its closing tag arrives; BeautifulSoup repairs other markup.
+    for tag in ("script", "style"):
+        starts = list(re.finditer(rf"<{tag}\b[^>]*>", html, re.I))
+        if starts and not re.search(rf"</{tag}\s*>", html[starts[-1].end():], re.I):
+            html = html[:starts[-1].start()]
+    soup = BeautifulSoup(html, "html.parser")
+    # The last slide's opening attributes may still be incomplete. Only expose
+    # a valid sequential prefix; later chunks fill in the missing slide.
+    for index, slide in enumerate(soup.select("section.slide"), 1):
+        if str(slide.get("data-slide-index")) != str(index) or not slide.get("data-slide-title"):
+            slide.decompose()
+    return "<!DOCTYPE html>" + re.sub(r"^\s*(?:<!DOCTYPE[^>]*>\s*)+", "", str(soup), flags=re.I)

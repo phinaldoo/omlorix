@@ -26,7 +26,7 @@ function playbackContext(fetchSource) {
         ssLoaderBar: null, ssLoaderCount: null, ssLoaderText: null,
         document: { activeElement: null }, window: {},
         t: (_, fallback) => fallback, _editorFetchJson: fetchSource,
-        _buildProgressDots() {}, _ssUpdateCounter() {}, _hideSlideshowControlsImmediately() {},
+        _buildProgressDots() {}, _ssUpdateCounter() {}, _hideSlideshowControlsImmediately() {}, _setInteractivePreviewVisibility() {},
         _prepareSlideshowDocument(html) { displayed.push(html); }, _ssGoTo() {},
         _mountInteractiveSlideshow(payload) { displayed.push(payload.html); },
     });

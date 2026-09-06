@@ -66,6 +66,7 @@ function downloadContext() {
         previewTitle: { textContent: 'Quarterly report' },
         t: (_, fallback) => fallback, tf: (_, fallback) => fallback,
         console,
+        _editorFetchJson: async () => ({ canvas_revision: 1, render_revision: 1, file_id: 'pptx-id' }),
         window: { chatDownloadControls: {
             setDownloadBusy: options => controls.push(options), syncDownloadFormatSelect() {},
             getSelectedDownloadFormat: select => select.value,
@@ -97,4 +98,20 @@ test('HTML remains selectable and downloads the canonical source while previews 
     context._setPreviewDownloadBusy(true);
     await context.downloadPresentation('html');
     assert.equal(requests.length, 2, 'a second download cannot start while busy');
+});
+
+test('raster downloads render a stale saved revision without delaying HTML preview', async () => {
+    const { context, requests } = downloadContext();
+    const calls = [];
+    context._editorFetchJson = async (url, options) => {
+        calls.push({ url, options });
+        return options
+            ? { file_id: 'fresh-pptx', canvas_revision: 2, render_revision: 2 }
+            : { file_id: 'old-pptx', canvas_revision: 2, render_revision: 1 };
+    };
+    context._setPreviewDownloadEnabled(true);
+    await context.downloadPresentation('pptx');
+    assert.equal(calls.length, 2);
+    assert.equal(calls[1].options.body, JSON.stringify({ expected_revision: 2 }));
+    assert.equal(requests[0].url, '/api/v1/files/download?file_id=fresh-pptx');
 });

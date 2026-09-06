@@ -3415,7 +3415,7 @@
   "slide_presentation_phase_finalizing": "अंतिम रूप दिया जा रहा है",
   "slide_presentation_preparing": "प्रस्तुति तैयार की जा रही है…",
   "slide_presentation_preparing_styles": "शैलियाँ तैयार की जा रही हैं",
-  "slide_presentation_draft_ready_rendering": "ड्राफ़्ट तैयार · सटीक पूर्वावलोकन रेंडर हो रहे हैं…",
+  "slide_presentation_draft_ready_rendering": "प्रारूप तैयार है · डाउनलोड तैयार किए जा रहे हैं…",
   "slide_presentation_polishing_warning": "ड्राफ़्ट तैयार · स्वचालित परिष्करण रुक गया",
   "slide_presentation_present": "प्रस्तुत करें",
   "slide_presentation_previous_slide_aria": "पिछली स्लाइड",
@@ -3428,7 +3428,7 @@
   "slide_presentation_default_title": "प्रस्तुति",
   "slide_presentation_complete": "पूर्ण",
   "slide_presentation_reviewing": "दृश्य गुणवत्ता की समीक्षा की जा रही है…",
-  "slide_presentation_rendering": "स्लाइड पूर्वावलोकन रेंडर किए जा रहे हैं…",
+  "slide_presentation_rendering": "डाउनलोड तैयार किए जा रहे हैं…",
   "slide_presentation_generating_slide": "स्लाइड {number} बनाई जा रही है…",
   "slide_presentation_go_to_slide": "स्लाइड {number} पर जाएँ",
   "slide_presentation_slideshow_dialog_aria": "प्रस्तुति स्लाइड शो",
@@ -4762,5 +4762,12 @@
   "workspace_memories_stability_changing": "बदलने वाली",
   "workspace_memories_stability_ephemeral": "अल्पकालिक",
   "workspace_memories_expires": "{date} को समाप्त",
-  "workspace_memories_error_load_profile": "मेमोरी प्रोफ़ाइल लोड नहीं हो सकी"
+  "workspace_memories_error_load_profile": "मेमोरी प्रोफ़ाइल लोड नहीं हो सकी",
+  "chat_workspace_title": "चैट का विवरण",
+  "chat_workspace_tabs": "खुले हुए दृश्य",
+  "chat_workspace_resize": "विवरण पैनल का आकार बदलें",
+  "chat_workspace_back": "चैट पर वापस जाएँ",
+  "chat_workspace_close": "विवरण पैनल छिपाएँ",
+  "chat_workspace_hide": "छिपाएँ",
+  "subagent_tab_label": "{name} · {number}"
 }

@@ -1,4 +1,4 @@
-const MODEL_SETTINGS_SIDEBAR_SELECTOR = '#modelSettingsSidebar .right-sidebar-area';
+const MODEL_SETTINGS_SIDEBAR_SELECTOR = '#modelSettingsArea';
 const MODEL_SETTINGS_LOADING_CLASS = 'model-settings-loading';
 let modelFileFormatCatalogPromise = null;
 

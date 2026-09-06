@@ -23,9 +23,10 @@ async function runtime(mode = "present", initialize = () => {}) {
     });
     const motion = Object.assign(new EventTarget(), { matches: false });
     const frames = new Map(); let frameId = 0;
+    const listeners = {};
     const context = vm.createContext({
         window: { fetch }, parent: { postMessage() {} }, document, matchMedia: () => motion,
-        addEventListener() {}, Event, CustomEvent, AbortController, URL, Promise,
+        addEventListener(type, handler) { listeners[type] = handler; }, Event, CustomEvent, AbortController, URL, Promise,
         setTimeout, clearTimeout, setInterval, clearInterval, queueMicrotask,
         requestAnimationFrame(fn) { frames.set(++frameId, fn); return frameId; },
         cancelAnimationFrame(id) { frames.delete(id); },
@@ -36,8 +37,20 @@ async function runtime(mode = "present", initialize = () => {}) {
     document.dispatchEvent(new Event('DOMContentLoaded'));
     await context.window.OmlorixPresentation.ready;
     await Promise.resolve();
-    return { api: context.window.OmlorixPresentation, slides, document, frames, motion };
+    return { api: context.window.OmlorixPresentation, slides, document, frames, motion,
+        message: data => listeners.message({ source: context.parent, data: { channel: 'test', ...data } }) };
 }
+
+test('hiding the sidebar aborts managed work until it becomes visible again', async () => {
+    const { api, message } = await runtime();
+    const initial = api.signal;
+    message({ type: 'omlorix-presentation:visibility', visible: false });
+    assert.equal(initial.aborted, true);
+    api.goTo(1);
+    assert.equal(api.signal.aborted, true);
+    message({ type: 'omlorix-presentation:visibility', visible: true });
+    assert.equal(api.signal.aborted, false);
+});
 
 test('navigation is immediate without authored motion and awaits cancellable authored transitions', async () => {
     const { api, slides, document, motion } = await runtime();

@@ -1873,21 +1873,27 @@ def _resolve_tool_call(
             if isinstance(completed.value, dict):
                 presentation_result = completed.value
         except Exception as exc:
-            safe_quota_error = _safe_file_quota_tool_error(exc)
-            if safe_quota_error is not None:
+            safe_tool_error = (
+                exc
+                if isinstance(exc, SafeToolExecutionError)
+                else _safe_file_quota_tool_error(exc)
+            )
+            if safe_tool_error is not None:
                 yield json.dumps(
                     {
                         "t": "slide_presentation_evt",
                         "event": "error",
                         "data": {
                             "phase": pipeline_phase,
-                            "code": safe_quota_error.code,
-                            "message": safe_quota_error.safe_message,
+                            "code": safe_tool_error.code,
+                            "message": safe_tool_error.safe_message,
                         },
                     },
                     ensure_ascii=False,
                 ) + "\n"
-                raise safe_quota_error from exc
+                if safe_tool_error is exc:
+                    raise
+                raise safe_tool_error from exc
             phase_labels = {
                 "generating": "slide presentation HTML generation",
                 "rendering": "slide presentation rendering",

@@ -3415,7 +3415,7 @@
   "slide_presentation_phase_finalizing": "Wird fertiggestellt",
   "slide_presentation_preparing": "Präsentation wird vorbereitet …",
   "slide_presentation_preparing_styles": "Stile werden vorbereitet",
-  "slide_presentation_draft_ready_rendering": "Entwurf fertig · genaue Vorschauen werden gerendert…",
+  "slide_presentation_draft_ready_rendering": "Entwurf fertig · Downloads werden vorbereitet…",
   "slide_presentation_polishing_warning": "Entwurf fertig · automatische Optimierung wurde beendet",
   "slide_presentation_present": "Präsentieren",
   "slide_presentation_previous_slide_aria": "Vorherige Folie",
@@ -3428,7 +3428,7 @@
   "slide_presentation_default_title": "Präsentation",
   "slide_presentation_complete": "Fertig",
   "slide_presentation_reviewing": "Visuelle Qualität wird geprüft…",
-  "slide_presentation_rendering": "Folienvorschauen werden gerendert…",
+  "slide_presentation_rendering": "Downloads werden vorbereitet…",
   "slide_presentation_generating_slide": "Folie {number} wird erstellt…",
   "slide_presentation_go_to_slide": "Zu Folie {number} wechseln",
   "slide_presentation_slideshow_dialog_aria": "Präsentationsmodus",
@@ -4762,5 +4762,12 @@
   "workspace_memories_stability_changing": "Veränderlich",
   "workspace_memories_stability_ephemeral": "Kurzlebig",
   "workspace_memories_expires": "Läuft am {date} ab",
-  "workspace_memories_error_load_profile": "Erinnerungsprofil konnte nicht geladen werden"
+  "workspace_memories_error_load_profile": "Erinnerungsprofil konnte nicht geladen werden",
+  "chat_workspace_title": "Chatdetails",
+  "chat_workspace_tabs": "Geöffnete Ansichten",
+  "chat_workspace_resize": "Größe des Detailbereichs ändern",
+  "chat_workspace_back": "Zurück zum Chat",
+  "chat_workspace_close": "Detailbereich ausblenden",
+  "chat_workspace_hide": "Ausblenden",
+  "subagent_tab_label": "{name} · {number}"
 }

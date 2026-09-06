@@ -62,6 +62,10 @@ class SlidePresentationPlaybackRequest(BaseModel):
     slide_index: int = Field(default=0, ge=0, le=49)
 
 
+class SlidePresentationPreviewRequest(SlidePresentationPlaybackRequest):
+    html: str = Field(min_length=1, max_length=MAX_FILE_SIZE)
+
+
 class SlidePresentationPlaybackResponse(BaseModel):
     frame_id: str
     frame_url: str

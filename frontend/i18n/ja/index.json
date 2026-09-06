@@ -3415,7 +3415,7 @@
   "slide_presentation_phase_finalizing": "仕上げ中",
   "slide_presentation_preparing": "プレゼンテーションを準備中…",
   "slide_presentation_preparing_styles": "スタイルを準備中",
-  "slide_presentation_draft_ready_rendering": "下書きが完成 · 正確なプレビューをレンダリング中…",
+  "slide_presentation_draft_ready_rendering": "下書きが完成しました · ダウンロードを準備中…",
   "slide_presentation_polishing_warning": "下書きが完成 · 自動仕上げが停止しました",
   "slide_presentation_present": "プレゼンテーションを開始",
   "slide_presentation_previous_slide_aria": "前のスライド",
@@ -3428,7 +3428,7 @@
   "slide_presentation_default_title": "プレゼンテーション",
   "slide_presentation_complete": "完了",
   "slide_presentation_reviewing": "視覚的な品質を確認中…",
-  "slide_presentation_rendering": "スライドのプレビューを生成中…",
+  "slide_presentation_rendering": "ダウンロードを準備中…",
   "slide_presentation_generating_slide": "スライド {number} を生成中…",
   "slide_presentation_go_to_slide": "スライド {number} に移動",
   "slide_presentation_slideshow_dialog_aria": "プレゼンテーションのスライドショー",
@@ -4762,5 +4762,12 @@
   "workspace_memories_stability_changing": "変化しやすい",
   "workspace_memories_stability_ephemeral": "短期",
   "workspace_memories_expires": "{date} に期限切れ",
-  "workspace_memories_error_load_profile": "メモリプロファイルを読み込めませんでした"
+  "workspace_memories_error_load_profile": "メモリプロファイルを読み込めませんでした",
+  "chat_workspace_title": "チャットの詳細",
+  "chat_workspace_tabs": "開いているビュー",
+  "chat_workspace_resize": "詳細パネルのサイズを変更",
+  "chat_workspace_back": "チャットに戻る",
+  "chat_workspace_close": "詳細パネルを非表示",
+  "chat_workspace_hide": "非表示",
+  "subagent_tab_label": "{name} · {number}"
 }

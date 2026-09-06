@@ -11,16 +11,6 @@
     function ensureCanvasPreviewHeader(panel) {
         if (!panel || panel.querySelector('.canvas-markdown-preview-header')) return;
 
-        const resizer = document.createElement('div');
-        resizer.className = 'canvas-markdown-preview-resizer';
-        resizer.id = 'canvas-markdown-PreviewResizer';
-        resizer.setAttribute('role', 'separator');
-        resizer.setAttribute('tabindex', '0');
-        resizer.setAttribute('aria-orientation', 'vertical');
-        resizer.setAttribute('aria-label', 'Resize canvas preview');
-        resizer.setAttribute('title', 'Resize canvas preview');
-        resizer.setAttribute('data-i18n-attr', 'aria-label:canvas_resize_preview_aria;title:canvas_resize_preview_aria');
-
         const header = document.createElement('div');
         header.className = 'canvas-markdown-preview-header';
         header.innerHTML = `
@@ -104,7 +94,6 @@
         `;
 
         const previewTrack = panel.querySelector('#canvas-markdown-PreviewTrack');
-        panel.insertBefore(resizer, previewTrack || panel.firstChild);
         panel.insertBefore(header, previewTrack || panel.firstChild);
     }
 

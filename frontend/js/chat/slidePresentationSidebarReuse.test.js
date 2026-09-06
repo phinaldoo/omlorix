@@ -42,14 +42,13 @@ test('slide presentation scrolling stays local and keeps one accessible selectio
     const animationsCss = readFrontendSource(path.join(ROOT, 'css/common/animations.css'), 'utf8');
 
     assert.doesNotMatch(widget, /\.scrollIntoView\s*\(/);
-    assert.match(widget, /previewSlidesTrack\.scrollTo\(\{ top: targetTop, behavior: resolvedBehavior \}\)/);
-    assert.match(widget, /item\.classList\.toggle\('active', idx === slidePresentationCurrentIndex\)/);
+    assert.match(widget, /type: 'omlorix-presentation:goto', channel: _previewRuntimeChannel, index/);
+    assert.match(widget, /item\.classList\.toggle\('active', Boolean\(_previewRuntimeFrame\)/);
     assert.match(widget, /thumb\.setAttribute\('aria-current', 'true'\)/);
     assert.match(widget, /document\.createElement\('button'\)/);
     assert.match(widget, /_previewAutoFollowGeneration = false/);
-    assert.match(widget, /addEventListener\('wheel', _handleManualPreviewScrollIntent/);
-    assert.match(widget, /_SLIDE_SELECTION_HYSTERESIS_RATIO/);
-    assert.match(widget, /currentDistance - closestDistance >= hysteresisPx/);
+    assert.match(widget, /event.source !== _previewRuntimeFrame.contentWindow/);
+    assert.doesNotMatch(widget, /_getFocusedSlideIndexFromScroll/);
     assert.doesNotMatch(widget, /_playPreviewSlideSwitchAnimation/);
     assert.doesNotMatch(widget, /entry\.target\.classList\.toggle\('active'/);
     assert.match(slideCss, /\.slide-presentation-preview-slides-track\s*\{[\s\S]*overscroll-behavior: contain/);
@@ -112,7 +111,9 @@ test('chat navigation resets detached live-presentation state before reattachmen
     const resetSource = widget.slice(resetStart, resetEnd);
 
     assert.match(chats, /slidePresentationWidget\.reset\(\)/);
-    assert.match(resetSource, /slidePresentationImageLoadToken \+= 1/);
+    assert.match(resetSource, /_discardFailedGenerationPreview\(\)/);
+    assert.match(widget, /_previewLoadToken \+= 1/);
+    assert.match(widget, /_previewController\?\.abort\(\)/);
     assert.match(resetSource, /_removeGeneratingCard\(_activeMessageId\)/);
     assert.match(resetSource, /_finishGenerationTracking\(\)/);
     assert.match(widget, /reset: reset/);
@@ -192,29 +193,15 @@ test('failed editor close dialog uses localized authenticated-page copy', () => 
     }
 });
 
-test('slide presentation generation progressively upgrades live HTML to rendered revisions', () => {
-    const index = readFrontendSource(path.join(ROOT, 'index.html'), 'utf8');
+test('slide presentation generation uses live HTML without image requests', () => {
     const widget = readFrontendSource(path.join(ROOT, 'js/chat/slide-presentation-widget.js'), 'utf8');
-    const slideCss = readFrontendSource(path.join(ROOT, 'css/chat/slide-presentation-widget.css'), 'utf8');
-
-    assert.match(widget, /case 'html_delta':[\s\S]*_queueHtmlDelta\(data\.delta \|\| ''\)/);
-    assert.match(widget, /case 'draft_complete'/);
-    assert.match(widget, /case 'revision_ready'/);
-    assert.match(widget, /\{ draft: true \}/);
-    assert.match(widget, /const endpointCollection = options\.draft \? 'draft-slides' : 'slides'/);
-    assert.match(widget, /revision > slidePresentationRenderedRevision/);
-    assert.doesNotMatch(widget, /revision >= slidePresentationRenderedRevision/);
-    assert.match(widget, /first-pass draft writes directly into the live image[\s\S]*return 404[\s\S]*setTimeout/);
-    assert.match(widget, /requestAnimationFrame\(\(\) => \{[\s\S]*appendHtmlDelta\(pending\)/);
-    assert.match(widget, /existingImg\.src = imgUrl/);
-    assert.match(widget, /previousRevokers\.forEach\(revoke => revoke\(\)\)/);
-    assert.match(index, /id="slide-presentation-PreviewStatus" role="status" aria-live="polite"/);
-    assert.match(index, /id="slide-presentation-PreviewMain" aria-busy="false"/);
-    assert.doesNotMatch(index, /slide-presentation-gen-steps/);
-    assert.match(slideCss, /\.slide-presentation-preview-slide-item\.revision-updated/);
-    assert.match(slideCss, /\.slide-presentation-preview-slide-item img \{[\s\S]*?width: 100%;[\s\S]*?height: 100%;[\s\S]*?transform: none;/);
-    assert.doesNotMatch(widget, /\bimg\.style\.transform\s*=/);
-    assert.match(slideCss, /prefers-reduced-motion: reduce[\s\S]*\.slide-presentation-gen-icon/);
+    assert.match(widget, /case 'html_snapshot'/);
+    assert.match(widget, /_queueInteractivePreview\(data.html/);
+    assert.match(widget, /frame.setAttribute\('sandbox', 'allow-scripts'\)/);
+    assert.match(widget, /event.source !== _previewRuntimeFrame.contentWindow/);
+    assert.match(widget, /event.origin !== 'null'/);
+    assert.match(widget, /_previewQueuedHtml/);
+    assert.doesNotMatch(widget, /_loadSlideImages|_fetchSlideImage|_restorePreviewFromImages|createElement\('img'\)/);
 });
 
 test('native full-site editor uses revisioned save and render APIs', () => {
@@ -286,8 +273,8 @@ test('native full-site editor uses revisioned save and render APIs', () => {
     assert.match(editor, /editorRuntime/);
     assert.match(editor, /event.source !== view\?\.contentWindow/);
     assert.match(widget, /function _sanitizeSlideFrameHtml\(bodyHtml\)/);
-    assert.match(widget, /_fetchSlideImageWithRetry\(endpoint, loadToken\)/);
-    assert.match(widget, /slidePresentationSlideImages = nextImageUrls/);
+    assert.match(widget, /_renderInteractivePreview\(html\)/);
+    assert.match(widget, /_previewSourceHtml = html/);
     assert.match(widget, /!element\.contains\(editorOverlay\)/);
     assert.doesNotMatch(dockerfile, /slide_presentation_demo/);
     assert.doesNotMatch(cacheBuster, /slide_presentation_demo/);
@@ -346,44 +333,16 @@ test('native full-site editor uses revisioned save and render APIs', () => {
     }
 });
 
-test('closing the editor reconciles and atomically refreshes the latest preview revision', () => {
-    const index = readFrontendSource(path.join(ROOT, 'index.html'), 'utf8');
+test('closing the editor refreshes HTML without waiting for image rendering', () => {
     const widget = readFrontendSource(path.join(ROOT, 'js/chat/slide-presentation-widget.js'), 'utf8');
-    const editor = readFrontendSource(path.join(ROOT, 'js/chat/slide-presentation-editor.js'), 'utf8');
-    const slideCss = readFrontendSource(path.join(ROOT, 'css/chat/slide-presentation-widget.css'), 'utf8');
-    const refreshStart = widget.indexOf('async function _refreshPreviewAfterEditorRender');
-    const refreshEnd = widget.indexOf('// ── Shared Canvas split-panel sizing', refreshStart);
-    assertSourceMarkers({ refreshStart, refreshEnd });
-    const refreshSource = widget.slice(refreshStart, refreshEnd);
-
-    assert.match(index, /id="slide-presentation-PreviewUpdating" role="status" aria-live="polite" aria-hidden="true" hidden/);
-    assert.match(widget, /previewUpdating\?\.setAttribute\('aria-hidden', state === 'idle' \? 'true' : 'false'\)/);
-    assert.match(widget, /previewUpdating\.hidden = state === 'idle'/);
-    assert.match(index, /id="slide-presentation-PreviewUpdateRetry"[\s\S]*data-i18n="chat_load_retry"/);
-    assert.match(editor, /renderRequestedRevision: 0/);
-    assert.match(editor, /editorController\?\.onClose\?\.\(\{[\s\S]*canvasRevision: server\.revision/);
-    assert.match(editor, /sourceChanged: server\.revision !== server\.openedRevision/);
-    assert.match(editor, /renderPromise: server\.renderInFlight/);
-    assert.doesNotMatch(editor, /Begin refreshing derivatives before closing/);
-    assert.match(widget, /function _queueEditorClosePreviewRefresh\(presentationId, closeContext = \{\}\)/);
-    assert.match(widget, /await Promise\.resolve\(closeContext\.renderPromise\)/);
-    assert.match(widget, /\/editor`[\s\S]*render_revision/);
-    assert.match(widget, /\/editor\/render`[\s\S]*expected_revision: canvasRevision/);
-    assert.match(widget, /_isEditorPreviewRefreshCurrent\(refreshToken, presentationId\)/);
-    assert.match(widget, /async function _preloadSlideImageUrls\(urls, loadToken\)/);
-    assert.match(widget, /const _SLIDE_IMAGE_DECODE_TIMEOUT_MS = 15000/);
-    assert.match(widget, /setTimeout\(\(\) => finish\(false\), _SLIDE_IMAGE_DECODE_TIMEOUT_MS\)/);
-    assert.match(widget, /clearTimeout\(timeoutId\)/);
-    assert.match(widget, /typeof image\.decode === 'function'/);
-    assert.match(widget, /forceRebuild: requiresRebuild/);
-    assert.match(widget, /preserveIndex: previousIndex/);
-    assert.doesNotMatch(refreshSource, /_revokeSlideImages\(\)/);
-    assert.doesNotMatch(refreshSource, /previewSlidesTrack\.innerHTML = ''/);
-    assert.match(widget, /const refreshed = await _refreshPreviewAfterEditorRender\(renderPayload, refreshToken\);[\s\S]*if \(!refreshed\) return;/);
-    assert.match(slideCss, /\.slide-presentation-preview-main\.is-updating[\s\S]*opacity: 0\.58/);
-    assert.match(slideCss, /\.slide-presentation-preview-updating[\s\S]*position: absolute/);
-    assert.match(slideCss, /\.slide-presentation-preview-updating[\s\S]*flex-direction: column/);
-    assert.match(slideCss, /\.slide-presentation-preview-updating \.slide-presentation-preview-spinner[\s\S]*width: 30px/);
+    const start = widget.indexOf('function _queueEditorClosePreviewRefresh(');
+    const end = widget.indexOf('function closePresentationEditor(', start);
+    const refresh = widget.slice(start, end);
+    assert.match(refresh, /_refreshPreviewSource\(presentationId, token\)/);
+    assert.doesNotMatch(refresh, /renderPromise|editor\/render|_loadSlideImages/);
+    assert.match(refresh, /_isEditorPreviewRefreshCurrent\(token, presentationId\)/);
+    assert.match(refresh, /_setEditorPreviewRefreshState\('error'/);
+    assert.match(widget, /loadToken !== _previewLoadToken/);
 });
 
 test('edited presentation cards resolve current server metadata before opening', () => {
@@ -395,16 +354,10 @@ test('edited presentation cards resolve current server metadata before opening',
     assert.match(widget, /fileId: payload\.file_id \|\| fallback\.fileId/);
     assert.match(widget, /slideCount: payload\.slide_count \?\? fallback\.slideCount/);
     assert.match(widget, /_getCompletionCardContext\(card\) \|\| options/);
-    assert.match(widget, /const slideCount = slides\.length/);
+    assert.match(widget, /const slideCount = slidePresentationSlides\.length/);
     assert.match(widget, /_refreshStoredPresentationContext\(\{ \.\.\.context, slideCount \}\)/);
-    assert.ok(
-        (widget.match(/_isEditorPreviewRefreshCurrent\(refreshToken, presentationId\)/g) || []).length >= 4,
-        'late save, render, and error callbacks stay scoped to their original presentation',
-    );
-    assert.ok(
-        (widget.match(/String\(slidePresentationPresentationId \|\| ''\) !== presentationId/g) || []).length >= 2,
-        'preview refresh checks presentation ownership before and after image loading',
-    );
+    assert.match(widget, /_isEditorPreviewRefreshCurrent\(token, presentationId\)/);
+    assert.match(widget, /loadToken !== _previewLoadToken/);
 });
 
 test('native presentation editor delegates present and export and keeps status controls in the top bar', () => {

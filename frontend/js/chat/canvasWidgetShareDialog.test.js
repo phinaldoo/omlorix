@@ -141,10 +141,10 @@ test('canvas preview is closed by reset and empty tool-call starts do not flash 
     assert.match(source, /function reset\(\)[\s\S]*setPanelVisible\(false\)/);
     assert.match(source, /id: 'canvas-preview',[\s\S]*isActive: \(\) => state\.previewVisible,[\s\S]*hidePreviewPanel\(\)/);
     assert.match(source, /filePreviewLoadTokens\.delete\(activeDraftKey\);[\s\S]*setPanelVisible\(false\)/);
-    assert.match(source, /previewPanel\.toggleAttribute\('inert', !previewVisible\)/);
+    assert.match(source, /window\.ChatWorkspace\.show\('canvas'/);
     assert.match(readFrontendSource(INDEX_HTML_PATH, 'utf8'), /id="canvas-markdown-PreviewPanel" aria-hidden="true" inert/);
     assert.match(source, /const hasRenderableInitialArgs = Boolean\(/);
-    assert.match(source, /if \(resultKind === 'view' \|\| !hasRenderableInitialArgs\) \{[\s\S]*return;[\s\S]*\}[\s\S]*setPanelVisible\(true\)/);
+    assert.match(source, /if \(resultKind === 'view' \|\| !hasRenderableInitialArgs\) \{[\s\S]*return;[\s\S]*\}[\s\S]*setPanelVisible\(true, \{ automatic: true \}\)/);
 });
 
 test('canvas tool deltas open the live sidebar in normal, regenerated, and split-screen chats', () => {
@@ -157,7 +157,7 @@ test('canvas tool deltas open the live sidebar in normal, regenerated, and split
     assert.match(source, /getLatestCanvasToolCallForMessage\(toolMessageId\)/);
     assert.match(source, /extractCanvasArgsFromBuffer\(buffer\)/);
     assert.match(source, /if \(!updated\.content && !updated\.fileId && !updated\.hasExplicitContentType\) \{[\s\S]*syncInlineWidgetForResultKind\(toolMessageId, updated\);[\s\S]*return;/);
-    assert.match(source, /setPanelVisible\(true\)/);
+    assert.match(source, /setPanelVisible\(true, \{ automatic: true \}\)/);
     assert.match(source, /const existingDraft = draftMap\.get\(draftKey\);[\s\S]*getScrollState\(draftKey\)/);
     assert.equal((sendSource.match(/canvasMarkdownWidget\.handleToolCallDeltaEvent/g) || []).length, 4);
     assert.match(splitSource, /canvasMarkdownWidget\.handleToolCallEvent\(obj, messageId\)/);
@@ -206,7 +206,7 @@ test('canvas stream creates a chat file box only after arguments prove it is new
     const widgetSource = source.slice(widgetStart, widgetEnd);
 
     assert.match(handlerSource, /classifyCanvasResultKind\(parsedArgs, extracted\)/);
-    assert.match(handlerSource, /syncInlineWidgetForResultKind\(toolMessageId, updated\);[\s\S]*setPanelVisible\(true\)/);
+    assert.match(handlerSource, /syncInlineWidgetForResultKind\(toolMessageId, updated\);[\s\S]*setPanelVisible\(true, \{ automatic: true \}\)/);
     assert.doesNotMatch(handlerSource, /injectInlineWidget\(lastActiveMessageId, current\)/);
     assert.match(widgetSource, /if \(existing\) \{\s*updateInlineWidget\(messageId, draft\);\s*return existing;/);
     assert.doesNotMatch(widgetSource, /finalizeThinkingForMessage/);
@@ -308,7 +308,7 @@ test('saved canvas file boxes finalize thinking without changing expansion state
 });
 
 test('canvas preview sidebar can be resized from its border', () => {
-    const source = readFrontendSource(CANVAS_WIDGET_PATH, 'utf8');
+    const source = fs.readFileSync(path.join(__dirname, 'chatWorkspace.js'), 'utf8');
     const css = readFrontendSource(CANVAS_WIDGET_CSS_PATH, 'utf8');
 
     assert.match(source, /id = 'canvas-markdown-PreviewResizer'/);
@@ -430,12 +430,11 @@ test('open Markdown, HTML, and PDF previews give the remaining Workspace and Fil
     const filesCss = readFrontendSource(FILES_CSS_PATH, 'utf8');
     const workspaceCss = readFrontendSource(WORKSPACE_CSS_PATH, 'utf8');
 
-    // All document preview types use the compact layout while the preview is
-    // visible, so keep this source contract aligned with the shared condition.
-    assert.match(canvasSource, /previewVisible\s*&&\s*\['markdown',\s*'html',\s*'pdf'\]\.includes\(\s*previewPanel\?\.dataset\.contentType\s*\)/);
-    assert.match(canvasSource, /classList\.toggle\(\s*'canvas-markdown-compact-main-layout'/);
-    assert.match(canvasSource, /setMainSidebarCompactLayout\('canvas-markdown-preview', shouldUseCompactLayout\)/);
-    assert.match(canvasSource, /new CustomEvent\('canvasMarkdownCompactLayoutChange'/);
+    const panelSource = fs.readFileSync(path.join(__dirname, 'chatWorkspace.js'), 'utf8');
+    assert.match(canvasSource, /window\.ChatWorkspace\.syncLayout\(\)/);
+    assert.match(panelSource, /classList\.toggle\('canvas-markdown-compact-main-layout', compact\)/);
+    assert.match(panelSource, /setMainSidebarCompactLayout\?\.\('canvas-markdown-preview', compact\)/);
+    assert.match(panelSource, /new CustomEvent\('canvasMarkdownCompactLayoutChange'/);
     assert.match(sidebarSource, /const _sidebarCompactLayoutSources = new Set\(\)/);
     assert.match(sidebarSource, /if \(compactLayoutRequested\) \{\s*shouldOverlay = true;/);
     assert.match(canvasCss, /--canvas-markdown-compact-main-width:/);

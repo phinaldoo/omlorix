@@ -11,6 +11,12 @@ import json
 import logging
 
 from app.tools.results import ToolResult
+from app.tools.errors import (
+    GENERIC_TOOL_ERROR_MESSAGE,
+    SafeToolExecutionError,
+    SubagentToolExecutionError,
+    ToolErrorTracker,
+)
 
 
 _active_session = ContextVar("subagent_session", default=None)
@@ -36,9 +42,17 @@ class SubagentSession:
     handlers: dict = field(default_factory=dict)
     attachments: dict = field(default_factory=dict)
     latest_attachment_ids: set = field(default_factory=set)
+    pruned_attachment_ids: set = field(default_factory=set)
     max_calls: int = 12
     calls: int = 0
     final_request_started: bool = False
+    fatal_error: bool = False
+    disabled_tools: set[str] = field(default_factory=set)
+    error_tracker: ToolErrorTracker = field(default_factory=ToolErrorTracker)
+
+    def raise_if_failed(self):
+        if self.fatal_error:
+            raise SubagentToolExecutionError()
 
     def budget(self):
         return {"calls_remaining": max(0, self.max_calls - self.calls)}
@@ -56,41 +70,69 @@ class SubagentSession:
         if cancel_registry.is_cancelled(self.generation_id):
             raise RuntimeError("Generation cancelled")
 
-    def prepare_request(self, kwargs):
+    def prune_obsolete_attachments(self, kwargs):
+        """Context-pressure fallback; never reintroduce images on later turns."""
+        obsolete = self.attachments.keys() - self.latest_attachment_ids
+        newly_pruned = obsolete - self.pruned_attachment_ids
+        if not newly_pruned:
+            return False
+        self.pruned_attachment_ids.update(newly_pruned)
+        self._prune_history(kwargs)
+        return True
+
+    def _prune_history(self, kwargs):
+        payload = kwargs.get("json", kwargs)
+        if self.pruned_attachment_ids:
+            for key in ("messages", "input", "contents"):
+                if key in payload:
+                    payload[key] = _prune_obsolete_images(
+                        payload[key], self.pruned_attachment_ids
+                    )
+
+    def prepare_request(self, kwargs, *, protocol="openai"):
         self.check_cancellation()
+        self.raise_if_failed()
+        # Retain historical screenshots for prefix reuse unless an earlier
+        # request needed to prune them to fit the configured context budget.
+        self._prune_history(kwargs)
         # OpenRouter's HTTP adapter wraps its provider payload in json.
         kwargs = kwargs.get("json", kwargs)
-        obsolete = self.attachments.keys() - self.latest_attachment_ids
-        if obsolete:
-            for key in ("messages", "input", "contents"):
-                if key in kwargs:
-                    kwargs[key] = _prune_obsolete_images(kwargs[key], obsolete)
         if self.calls < self.max_calls:
             return
         if self.final_request_started:
             raise RuntimeError("Subagent tool budget exhausted")
         self.final_request_started = True
-        # The last result still reaches the model, with tools disabled. Gemini
-        # stores its tool configuration inside GenerateContentConfig.
-        if "config" in kwargs:
+        # Preserve tool schemas/order in the final request's cacheable prefix.
+        if protocol == "google_aistudio":
+            from google.genai import types
+
             config = kwargs["config"]
+            tool_config = types.ToolConfig(
+                function_calling_config=types.FunctionCallingConfig(mode="NONE")
+            )
             if isinstance(config, dict):
-                kwargs["config"] = {**config, "tools": None, "tool_config": None}
+                kwargs["config"] = {
+                    **config,
+                    "tool_config": tool_config.model_dump(exclude_none=True),
+                }
             else:
                 kwargs["config"] = config.model_copy(
-                    update={"tools": None, "tool_config": None}
+                    update={"tool_config": tool_config}
                 )
-        for key in (
-            "tools",
-            "tool_choice",
-            "parallel_tool_calls",
-            "functions",
-            "function_call",
-        ):
-            kwargs.pop(key, None)
+        elif protocol == "ollama":
+            # Native Ollama has no tool-choice control. Removing tools remains
+            # necessary there; never send unsupported SDK parameters.
+            kwargs.pop("tools", None)
+        elif protocol == "anthropic":
+            kwargs["tool_choice"] = {"type": "none"}
+        else:
+            kwargs["tool_choice"] = "none"
+            if "functions" in kwargs:
+                kwargs["function_call"] = "none"
 
     def execute(self, effect):
         self.check_cancellation()
+        self.raise_if_failed()
         arguments = (
             inspect.signature(effect.execute)
             .bind(*effect.args, **effect.kwargs)
@@ -102,24 +144,44 @@ class SubagentSession:
                 name, {"content": "Tool unavailable or call budget exhausted."}
             )
         self.calls += 1
+        if name in self.disabled_tools:
+            return self.receipt(
+                name,
+                {
+                    "content": GENERIC_TOOL_ERROR_MESSAGE,
+                    "tool_meta": {
+                        "scoped_tool_error": True,
+                        "error_code": "tool_unavailable",
+                        "retry_allowed": False,
+                    },
+                },
+            )
         handler = self.handlers.get(name)
-        stream = (
-            handler(arguments.get("tool_arguments") or {})
-            if handler
-            else effect.execute(*effect.args, **effect.kwargs)
-        )
+        stream = None
         try:
+            stream = (
+                handler(arguments.get("tool_arguments") or {})
+                if handler
+                else effect.execute(*effect.args, **effect.kwargs)
+            )
             payload = yield from stream
         except Exception as exc:
-            from app.tools.errors import SafeToolExecutionError
-
             logger.warning("Scoped subagent tool failed: %s", name, exc_info=True)
-            # Do not expose provider, storage or execution internals. The model
-            # can correct its next call or finish using a previous valid result.
+            error = self.error_tracker.record(name, exc)
+            if not isinstance(exc, SafeToolExecutionError):
+                # Infrastructure/programming failures cannot be repaired by
+                # regenerating model output. Deliver one failed receipt for
+                # statistics, then stop before any further provider request.
+                self.fatal_error = True
+            elif error.stop_tool_calls:
+                self.disabled_tools.add(name)
             payload = {
-                "content": exc.safe_message
-                if isinstance(exc, SafeToolExecutionError)
-                else "Tool execution failed. Use the last successful result or correct the request."
+                "content": error.model_output,
+                "tool_meta": {
+                    "scoped_tool_error": True,
+                    "error_code": error.error_code or "internal",
+                    "retry_allowed": error.retry_allowed,
+                },
             }
         finally:
             close = getattr(stream, "close", None)

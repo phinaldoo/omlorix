@@ -79,7 +79,8 @@ test('composer, queue, and regeneration payloads carry the strict selection', ()
 
     assert.doesNotMatch(moduleSource, /\/api\/v1\/subagents\/targets/);
     assert.match(moduleSource, /\/api\/v1\/llm\/models\/user/);
-    assert.match(moduleSource, /menu\.classList\.add\('open'\)/);
+    assert.match(moduleSource, /document\.getElementById\('subagentTargetsSettings'\)/);
+    assert.doesNotMatch(moduleSource, /#chatBox|aria-haspopup|role', 'dialog'/);
     assert.match(moduleSource, /MAX_SELECTED_TARGETS\s*=\s*20/);
     assert.match(sendSource, /subagent_targets:\s*Array\.isArray\(payloadSubagentTargets\)/);
     assert.match(sendSource, /payload\.subagent_targets\s*=\s*Array\.isArray\(subagentTargets\)/);

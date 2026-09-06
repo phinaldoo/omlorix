@@ -127,7 +127,8 @@ function loadOpenPreviewRuntime({ loadContentFromFile, loadCanvasFileRecord, fai
             openPreviewForFile,
             activeDraftKey: () => activeDraftKey,
             draft: (key) => draftMap.get(key),
-            close: () => setPanelVisible(false),
+            switchTab: () => setPanelVisible(false),
+            close: () => { filePreviewLoadTokens.delete(activeDraftKey); setPanelVisible(false); },
             rendered,
         };`,
     )(
@@ -437,4 +438,20 @@ test('dismissing a loading preview prevents its late response from rendering', a
 
     assert.equal(runtime.rendered.length, renderedBeforeClose);
     assert.equal(runtime.draft('file-markdown').content, '');
+});
+
+
+test('switching to a Subagent while Canvas loads retains the completed document', async () => {
+    let resolveLoad;
+    const pendingLoad = new Promise((resolve) => { resolveLoad = resolve; });
+    const runtime = loadOpenPreviewRuntime({
+        loadContentFromFile: async () => pendingLoad,
+        loadCanvasFileRecord: async () => null,
+    });
+    const opening = runtime.openPreviewForFile('file-markdown', 'document.md', 'markdown');
+    runtime.switchTab();
+    resolveLoad('# Loaded in the background');
+    await opening;
+    assert.equal(runtime.draft('file-markdown').content, '# Loaded in the background');
+    assert.equal(runtime.rendered.at(-1).statusKind, 'saved');
 });

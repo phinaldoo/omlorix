@@ -20,6 +20,7 @@ from app.tools.slide_presentation import pipeline as p, specialist as s
 from app.tools.subagents import runtime
 from app.tools.subagents.session import SubagentSession, current_session, scoped_stream
 from app.tools.utils import resolve_enabled_tools
+from app.tools.errors import SafeToolExecutionError, SubagentToolExecutionError
 
 
 HTML = """<!DOCTYPE html><html><head><style>
@@ -34,6 +35,31 @@ def drain(stream):
             events.append(next(stream))
         except StopIteration as done:
             return events, done.value
+
+
+def test_specialist_streams_html_before_rendering(workspace, monkeypatch):
+    clock = iter(range(1, 100))
+    monkeypatch.setattr(s, 'time', SimpleNamespace(monotonic=lambda: next(clock)))
+
+    def provider(request):
+        encoded = json.dumps({'type': 'html', 'content': HTML})
+        split = encoded.index('One') + 1
+        for delta in (encoded[:split], encoded[split:]):
+            yield json.dumps({'t': 't_cd', 'd': {'id': 'create', 'name': 'update_presentation', 'delta': delta}})
+        session = current_session(request.generation_id)
+        yield from session.update({'type': 'html', 'content': HTML})
+        yield json.dumps({'t': 'd', 'd': 'f'})
+
+    monkeypatch.setattr(runtime, 'call_provider_chat', provider)
+    events, result = drain(p.run_presentation_pipeline(user_id='u', markdown_file_id='brief', db=workspace.db))
+    events = [json.loads(event) for event in events]
+    first_preview = next(i for i, event in enumerate(events) if event['event'] == 'html_snapshot')
+    rendering = next(i for i, event in enumerate(events) if event['event'] == 'status' and event['data']['phase'] == 'rendering')
+    assert first_preview < rendering
+    assert any(event['event'] == 'html_snapshot' and event['data']['html'] == HTML for event in events)
+    assert any(event['event'] == 'revision_ready' for event in events)
+    assert not any(event['event'] == 'slide_images' for event in events)
+    assert result['review_status'] == 'completed'
 
 
 @pytest.fixture
@@ -179,6 +205,12 @@ def test_specialist_uses_one_conversation_optional_code_images_and_targeted_edit
         requests.append(request)
         assert "brief must remain" in request.chat_history[0]["content"][0]["content"]
         session = current_session(request.generation_id)
+        from app.files import worker
+
+        monkeypatch.setattr(worker, "TEMP_DIR", w.root)
+        monkeypatch.setattr(worker, "MATERIALIZED_TEMP_DIR", w.root)
+        worker.cleanup_temp_files()
+        assert session.review_dir.is_dir()
         assert set(resolve_enabled_tools(session.tools)["tool_list"]) == {
             "update_presentation",
             "code_execution",
@@ -240,7 +272,7 @@ def test_specialist_uses_one_conversation_optional_code_images_and_targeted_edit
             receipts.append(edited)
             request_images = {"messages": [{"role": "user", "content": parts}]}
             session.prepare_request(request_images)
-            assert not any(
+            assert any(
                 part.get("type") == "image"
                 for part in request_images["messages"][0]["content"]
             )
@@ -308,7 +340,11 @@ def test_scope_budget_failed_calls_final_turn_and_isolation():
 
     def fail(tool_name, tool_arguments):
         yield "working"
-        raise RuntimeError("secret diagnostic")
+        raise SafeToolExecutionError(
+            code="invalid_input",
+            safe_message="Correct the input.",
+            detail="secret diagnostic",
+        )
 
     def body():
         assert current_session("nested") is session
@@ -322,7 +358,11 @@ def test_scope_budget_failed_calls_final_turn_and_isolation():
             "messages": ["last tool result"],
         }
         session.prepare_request(request)
-        assert request == {"messages": ["last tool result"]}
+        assert request == {
+            "tools": ["calculate"],
+            "tool_choice": "none",
+            "messages": ["last tool result"],
+        }
         with pytest.raises(RuntimeError, match="budget exhausted"):
             session.prepare_request({})
 
@@ -352,6 +392,167 @@ def test_workspace_rejects_other_files_unapproved_assets_and_exhausted_renders(
     _, result = drain(session.update({"type": "html", "content": HTML}))
     assert "budget exhausted" in result["content"]
     assert not workspace.renders
+
+
+@pytest.mark.parametrize("has_deck", [False, True])
+def test_infrastructure_failure_stops_run_and_is_recorded_as_failed(
+    workspace, monkeypatch, has_deck
+):
+    from app.llmstats.models import ToolCallStatistic, create_tool_call_statistic
+    from app.llm.generation.engine import ProviderCall
+
+    w = workspace
+    ToolCallStatistic.__table__.create(w.db.get_bind())
+    requests, receipts = [], []
+
+    def execute(tool_name, tool_arguments):
+        raise AssertionError("Scoped handler must be used")
+
+    def provider(request):
+        engine = GenerationEngine(db=w.db, generation_id=request.generation_id)
+
+        def turn():
+            if has_deck:
+                yield ToolCall(
+                    execute,
+                    ("update_presentation", {"type": "html", "content": HTML}),
+                    {},
+                )
+            w.fail["render"] = True
+            args = {"content": HTML, "type": "html"}
+            if has_deck:
+                args.update(file_id="deck", expected_revision=1)
+            receipt = yield ToolCall(execute, ("update_presentation", args), {})
+            receipts.append(receipt)
+            create_tool_call_statistic(
+                w.db, "update_presentation", success=True, meta=receipt["tool_meta"]
+            )
+            with pytest.raises(SubagentToolExecutionError):
+                yield ProviderCall(
+                    lambda **kwargs: requests.append(kwargs), {}, {}, "openai"
+                )
+            with pytest.raises(SubagentToolExecutionError):
+                yield ToolCall(execute, ("update_presentation", args), {})
+            # Even an adapter that finishes normally must not claim a full review.
+            yield json.dumps({"t": "d", "d": "f"})
+
+        yield from engine.run(turn())
+
+    monkeypatch.setattr(runtime, "call_provider_chat", provider)
+    stream = p.run_presentation_pipeline(user_id="u", markdown_file_id="brief", db=w.db)
+    if has_deck:
+        _, result = drain(stream)
+        assert result["revision"] == 1
+        assert result["review_status"] == "incomplete"
+    else:
+        with pytest.raises(SubagentToolExecutionError) as error:
+            drain(stream)
+        assert not error.value.allow_same_response_retry
+    assert len(receipts) == 1 and not requests
+    assert "private renderer" not in receipts[0]["content"]
+    record = w.db.query(ToolCallStatistic).one()
+    assert record.success is False
+    assert record.meta["error_code"] == "internal"
+    assert record.meta["retry_allowed"] is False
+    assert not list(w.root.glob("presentation-review-*"))
+
+
+def test_disabled_optional_code_tool_does_not_block_presentation_tool():
+    session = SubagentSession("run", ("code_execution", "update_presentation"))
+    called = []
+
+    def execute(tool_name, tool_arguments):
+        called.append(tool_name)
+        if tool_name == "code_execution":
+            raise SafeToolExecutionError(
+                code="capacity",
+                safe_message="Unavailable.",
+                allow_same_response_retry=False,
+            )
+        if False:
+            yield
+        return {"content": "ready"}
+
+    for name in ("code_execution", "code_execution", "update_presentation"):
+        _, receipt = drain(session.execute(ToolCall(execute, (name, {}), {})))
+        assert "calls_remaining" in receipt["content"]
+    assert called == ["code_execution", "update_presentation"]
+    assert not session.fatal_error
+
+
+def test_terminal_failure_survives_parent_tool_and_durable_worker(monkeypatch):
+    from app.tools import helper
+    from app.tools.errors import ToolErrorTracker
+    from app.workers import tool_jobs
+    from app.workers.runtime import FatalJobError
+
+    def failed_pipeline(**kwargs):
+        yield p._sse("status", {"phase": "rendering"})
+        raise SubagentToolExecutionError()
+
+    monkeypatch.setattr(p, "run_presentation_pipeline", failed_pipeline)
+    # Exercise the real outer slide tool: its error must remain non-retryable.
+    with pytest.raises(SubagentToolExecutionError) as failure:
+        drain(
+            helper.resolve_tool_call(
+                None,
+                "slide_presentation",
+                {"file_id": "brief"},
+                "u",
+                "g",
+                None,
+                _skip_rate_limit=True,
+                _execution_queue="rendering",
+            )
+        )
+    assert (
+        ToolErrorTracker().record("slide_presentation", failure.value).stop_tool_calls
+    )
+
+    row = SimpleNamespace(id="job", status=tool_jobs.JOB_FAILED, error_code=None)
+
+    class Session:
+        def query(self, *args):
+            return self
+
+        def filter(self, *args):
+            return self
+
+        def first(self):
+            return row
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(tool_jobs, "SessionLocal", Session)
+    monkeypatch.setattr(
+        tool_jobs,
+        "_active_user",
+        lambda *args: SimpleNamespace(id="u", group_id="g", role="user"),
+    )
+    monkeypatch.setattr(
+        tool_jobs, "_validate_current_tool_policy", lambda *args, **kwargs: None
+    )
+    monkeypatch.setattr(tool_jobs, "redis_enabled", lambda: False)
+    job = SimpleNamespace(
+        user_id="u",
+        queue="rendering",
+        payload={
+            "tool_name": "slide_presentation",
+            "tool_arguments": {"file_id": "brief"},
+        },
+    )
+    context = SimpleNamespace(raise_if_cancelled=lambda: None)
+    with pytest.raises(FatalJobError) as terminal:
+        tool_jobs.execute_tool_job(job, context)
+    row.error_code = terminal.value.code
+    with pytest.raises(SubagentToolExecutionError) as transported:
+        tool_jobs._wait_for_tool_job(row, generation_id=None, timeout_seconds=1)
+    assert (
+        ToolErrorTracker()
+        .record("slide_presentation", transported.value)
+        .stop_tool_calls
+    )
 
 
 def test_cancellation_during_render_does_not_publish(workspace, monkeypatch):
@@ -429,8 +630,12 @@ def test_native_image_pruning_preserves_tool_pairs_reasoning_and_current_assets(
     assert len(messages[2]["content"]) == 4
     session = SubagentSession("run", (), max_calls=0)
     config = {"config": {"tools": ["tool"], "temperature": 0.5}}
-    session.prepare_request(config)
-    assert config["config"] == {"tools": None, "tool_config": None, "temperature": 0.5}
+    session.prepare_request(config, protocol="google_aistudio")
+    assert config["config"] == {
+        "tools": ["tool"],
+        "tool_config": {"function_calling_config": {"mode": "NONE"}},
+        "temperature": 0.5,
+    }
     metadata = "\n".join(
         "Metadata of the file: "
         + json.dumps(
@@ -449,9 +654,9 @@ def test_native_image_pruning_preserves_tool_pairs_reasoning_and_current_assets(
         "json": {"tools": ["tool"], "messages": ["last result"]},
         "headers": {"keep": "unchanged"},
     }
-    session.prepare_request(request)
+    session.prepare_request(request, protocol="openrouter")
     assert request == {
-        "json": {"messages": ["last result"]},
+        "json": {"tools": ["tool"], "tool_choice": "none", "messages": ["last result"]},
         "headers": {"keep": "unchanged"},
     }
 

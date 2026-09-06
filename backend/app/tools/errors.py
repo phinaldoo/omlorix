@@ -50,6 +50,17 @@ class SafeToolExecutionError(ValueError):
         super().__init__(str(detail or normalized_message))
 
 
+class SubagentToolExecutionError(SafeToolExecutionError):
+    """A failed specialist cannot be repaired by retrying the parent tool."""
+
+    def __init__(self):
+        super().__init__(
+            code="subagent_tool_failed",
+            safe_message=GENERIC_TOOL_ERROR_MESSAGE,
+            allow_same_response_retry=False,
+        )
+
+
 class ToolExecutionDiagnosticError(RuntimeError):
     """Internal tool failure carrying non-sensitive statistics context.
 

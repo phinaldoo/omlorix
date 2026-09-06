@@ -25,6 +25,7 @@ function startPresentation(config) {
     const ready = new Promise(resolve => { resolveReady = resolve; });
     const state = Object.create(null);
     let transitionController = new AbortController();
+    let hostVisible = true;
 
     function finishTransition() {
         clearTimeout(transitionTimer);
@@ -44,6 +45,7 @@ function startPresentation(config) {
     }
 
     function enterCurrent(previousIndex) {
+        if (!rendering && (!hostVisible || document.hidden)) return;
         const slide = slides[index];
         if (!slide) return;
         if (controller.signal.aborted || rendering) controller = new AbortController();
@@ -186,6 +188,18 @@ function startPresentation(config) {
         if (event.source !== parent || event.data?.channel !== channel) return;
         if (event.data.type === 'omlorix-presentation:goto') goTo(event.data.index);
         if (event.data.type === 'omlorix-presentation:focus') slides[index]?.focus();
+        if (event.data.type === 'omlorix-presentation:visibility' && typeof event.data.visible === 'boolean') {
+            const visible = event.data.visible;
+            if (visible === hostVisible) return;
+            hostVisible = visible;
+            controller.abort();
+            if (visible && !document.hidden) enterCurrent(index);
+            else {
+                slides[index]?.getAnimations({ subtree: true }).forEach(animation => animation.pause());
+                slides[index]?.querySelectorAll('audio,video').forEach(media => media.pause());
+                slides[index]?.querySelectorAll('iframe').forEach(frame => frame.removeAttribute('src'));
+            }
+        }
     });
     document.addEventListener('keydown', event => {
         if (mode !== 'present') return;
@@ -222,7 +236,7 @@ function startPresentation(config) {
         if (document.hidden) {
             slides[index]?.getAnimations({ subtree: true }).forEach(animation => animation.pause());
             slides[index]?.querySelectorAll('audio,video').forEach(media => media.pause());
-        } else enterCurrent(index);
+        } else if (hostVisible) enterCurrent(index);
     });
     reducedMotion.addEventListener('change', () => {
         if (reducedMotion.matches && !rendering) finishTransition();

@@ -5,11 +5,13 @@ import json
 from pathlib import Path
 import shutil
 import tempfile
+import time
 import uuid
 
 from PIL import Image, ImageDraw
 
 from app.files.models import Files, get_file
+from app.files.temp_workspaces import temporary_workspace
 from app.files.utils import MATERIALIZED_TEMP_DIR, materialize_file_record
 from app.llm.models import Models
 from app.settings.models import get_settings_page_data
@@ -19,7 +21,7 @@ from app.tools.canvas_markdown.schemas import (
     canvas_parameters_schema,
     parse_canvas_tool_arguments,
 )
-from app.tools.slide_presentation.sanitizer import prepare_slide_presentation_html
+from app.tools.slide_presentation.sanitizer import MAX_PRESENTATION_HTML_BYTES, prepare_slide_presentation_html
 from app.tools.slide_presentation.system_instructions import (
     get_sys_instruct_generate_html,
 )
@@ -174,6 +176,11 @@ class PresentationSession(SubagentSession):
             count = p.validate_slide_presentation_html(candidate)
         except ValueError as exc:
             return {
+                "tool_meta": {
+                    "scoped_tool_error": True,
+                    "error_code": getattr(exc, "code", "presentation_invalid"),
+                    "retry_allowed": True,
+                },
                 "content": json.dumps(
                     {
                         "status": "invalid",
@@ -184,6 +191,9 @@ class PresentationSession(SubagentSession):
                 )
             }
 
+        # Display the complete, embedded candidate before waiting for the
+        # external renderer. Publication still remains atomic after rendering.
+        yield p._sse("html_snapshot", {"html": candidate})
         yield p._sse("status", {"phase": "rendering", **self.budget()})
         return (yield from self.render_candidate(candidate, count, asset_ids))
 
@@ -353,13 +363,8 @@ class PresentationSession(SubagentSession):
                     storage_prefix=old_storage[1],
                     slide_count=old_storage[2],
                 )
-            if not previous:
-                for start in range(0, len(self.source), 8192):
-                    yield p._sse(
-                        "html_delta", {"delta": self.source[start : start + 8192]}
-                    )
             yield p._sse(
-                "slide_images",
+                "revision_ready",
                 {
                     "presentation_id": presentation_id,
                     "count": count,
@@ -507,8 +512,8 @@ def run_specialist(
     runtime_model.settings.update(overrides)
     generation_id = f"slide-specialist:{uuid.uuid4()}"
     MATERIALIZED_TEMP_DIR.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(
-        prefix="presentation-review-", dir=MATERIALIZED_TEMP_DIR
+    with temporary_workspace(
+        prefix="presentation-review-", parent=MATERIALIZED_TEMP_DIR
     ) as directory:
         session = PresentationSession(
             generation_id=generation_id,
@@ -558,6 +563,9 @@ def run_specialist(
         )
         completed = False
         assessment = ""
+        preview_call_id = None
+        preview_arguments = ""
+        preview_sent_at = 0.0
         try:
             for line in stream:
                 if parent_generation_id and cancel_registry.is_cancelled(
@@ -574,6 +582,31 @@ def run_specialist(
                     and event.get("t") == "slide_presentation_evt"
                 ):
                     yield line
+                elif isinstance(event, dict) and event.get("t") == "t_cd":
+                    data = event.get("d") or {}
+                    if not isinstance(data, dict) or data.get("name") != "update_presentation":
+                        continue
+                    call_id = data.get("id")
+                    if call_id != preview_call_id:
+                        preview_call_id, preview_arguments = call_id, ""
+                    preview_arguments += str(data.get("delta") or "")
+                    if len(preview_arguments) > 2 * MAX_PRESENTATION_HTML_BYTES:
+                        preview_arguments = ""
+                        continue
+                    if time.monotonic() - preview_sent_at < 1:
+                        continue
+                    preview_sent_at = time.monotonic()
+                    from pydantic_core import from_json
+
+                    try:
+                        args = from_json(preview_arguments, allow_partial="trailing-strings")
+                    except ValueError:
+                        continue
+                    # Exact edits are applied atomically by update(); never
+                    # pretend a partial replacement snippet is a complete deck.
+                    html = args.get("content") if isinstance(args, dict) else None
+                    if isinstance(html, str) and "<section" in html and not args.get("edits") and not args.get("start_snippet"):
+                        yield p._sse("html_snapshot", {"html": html})
                 elif isinstance(event, dict) and event.get("t") == "e":
                     raise RuntimeError("Presentation specialist generation failed.")
                 elif isinstance(event, dict) and event.get("t") == "d":
@@ -583,6 +616,7 @@ def run_specialist(
                 elif isinstance(event, dict) and event.get("t") == "c":
                     assessment = (assessment + str(event.get("d") or ""))[:4000]
             session.check_cancellation()
+            session.raise_if_failed()
             if not completed:
                 raise RuntimeError(
                     "Presentation specialist stream ended before completion."
@@ -594,6 +628,7 @@ def run_specialist(
             ):
                 return None
             if not session.result:
+                session.raise_if_failed()
                 raise
             p.logger.warning(
                 "Presentation specialist stopped; retaining its last rendered revision",

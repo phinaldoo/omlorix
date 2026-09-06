@@ -252,31 +252,15 @@ def _serialize_agent_target(agent_payload: dict[str, Any], base_model: Models) -
     }
 
 
-def _target_matches_query(target: dict[str, Any], query: str) -> bool:
-    normalized_query = str(query or "").strip().casefold()
-    if not normalized_query:
-        return True
-    searchable = " ".join(
-        str(target.get(field) or "")
-        for field in ("name", "description", "provider", "base_model_name")
-    ).casefold()
-    return normalized_query in searchable
-
-
 def list_accessible_subagent_targets(
     db,
     *,
     user_id: str,
-    query: str = "",
-    target_type: str = "all",
     limit: int = SUBAGENT_TARGET_PAGE_MAX,
     cursor: str | None = None,
     allowed_targets: set[tuple[str, str]] | None = None,
 ) -> dict[str, Any]:
-    """Search authorized model and Agent targets using one safe result contract."""
-    normalized_type = str(target_type or "all").strip().lower()
-    if normalized_type not in {"all", "model", "agent"}:
-        raise ValueError("target_type must be 'all', 'model', or 'agent'")
+    """List all authorized model and Agent targets in bounded, stable pages."""
     normalized_limit = int(limit)
     if normalized_limit < 1 or normalized_limit > SUBAGENT_TARGET_PAGE_MAX:
         raise ValueError(f"limit must be between 1 and {SUBAGENT_TARGET_PAGE_MAX}")
@@ -297,10 +281,9 @@ def list_accessible_subagent_targets(
         except HTTPException:
             continue
         accessible_models[str(model.id)] = model
-        if normalized_type in {"all", "model"}:
-            targets.append(_serialize_model_target(model))
+        targets.append(_serialize_model_target(model))
 
-    if normalized_type in {"all", "agent"} and _agents_enabled_for_user(db, user_id):
+    if _agents_enabled_for_user(db, user_id):
         for agent_payload in list_accessible_agents(
             db,
             user_id,
@@ -319,7 +302,6 @@ def list_accessible_subagent_targets(
             for target in targets
             if (str(target.get("type") or ""), str(target.get("id") or "")) in allowed_targets
         ]
-    targets = [target for target in targets if _target_matches_query(target, query)]
     targets.sort(
         key=lambda target: (
             str(target.get("name") or "").casefold(),
@@ -735,11 +717,11 @@ def _execute_subagent_tool_inline(
                     ]
                     payload["count"] = len(payload["models"])
             else:
+                # Old conversation tool calls may still contain query/type
+                # filters. Ignore them so discovery cannot hide eligible targets.
                 payload = list_accessible_subagent_targets(
                     db,
                     user_id=user_id,
-                    query=_normalize_text(args.get("query"), max_chars=200, field_name="query"),
-                    target_type=str(args.get("target_type") or "all"),
                     limit=(
                         SUBAGENT_TARGET_PAGE_MAX
                         if args.get("limit") is None
@@ -765,7 +747,7 @@ def _execute_subagent_tool_inline(
     if action != "run":
         return _structured_error(
             "invalid_action",
-            "subagent action must be 'list_targets', 'list_models', or 'run'.",
+            "subagent action must be 'list_targets' or 'run'.",
         )
 
     model_id = str(args.get("model_id") or "").strip()

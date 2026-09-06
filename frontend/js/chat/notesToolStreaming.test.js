@@ -622,7 +622,7 @@ test('notes preview follows the Canvas lifecycle across chat and app navigation'
 
     // Both sidebars delegate exclusive handoff to the shared preview manager.
     assert.match(notesSource, /closeOtherArtifactPreviews\?\.\('notes-preview'\)/);
-    assert.match(canvasSource, /closeOtherArtifactPreviews\('canvas-preview'\)/);
+    assert.match(canvasSource, /window\.ChatWorkspace\.show\('canvas'/);
 
     // Chat switches first close stale sidebars and then reset artifact state
     // before rendering the replacement transcript.

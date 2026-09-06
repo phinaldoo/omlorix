@@ -52,6 +52,7 @@ from app.tools.slide_presentation.schemas import (
     SlidePresentationEditorResponse,
     SlidePresentationPlaybackRequest,
     SlidePresentationPlaybackResponse,
+    SlidePresentationPreviewRequest,
     SlidePresentationEditorSaveRequest,
     SlidePresentationEditorSaveResponse,
 )
@@ -486,6 +487,28 @@ def prepare_presentation_editor(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="The edited presentation is not a valid 1920 by 1080 slide deck.") from exc
     return SlidePresentationEditorPrepareResponse(html=document["source"], csp=document["csp"], runtime=document["runtime"])
+
+
+@presentations_router.post("/preview", response_model=SlidePresentationPlaybackResponse)
+def create_presentation_preview(
+    payload: SlidePresentationPreviewRequest,
+    request: Request,
+    user=Depends(verified_user),
+):
+    """Ephemeral, quota-accounted preview of the caller's unsaved draft.
+
+    No file IDs are accepted or resolved, and no canonical source is modified.
+    The ordinary frame store supplies expiry, isolation and storage cleanup.
+    """
+    from app.tools.slide_presentation.playback import create_playback_frame, prepare_preview_source
+
+    try:
+        return create_playback_frame(
+            user_id=str(user.id), html=prepare_preview_source(payload.html),
+            app_origin=str(request.base_url), slide_index=payload.slide_index,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="The edited presentation is not a valid 1920 by 1080 slide deck.") from exc
 
 
 @presentations_router.post("/{presentation_id}/playback", response_model=SlidePresentationPlaybackResponse)

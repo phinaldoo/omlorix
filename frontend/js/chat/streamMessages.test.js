@@ -30,6 +30,8 @@ test('message renderer scripts load completely and in dependency order', () => {
         });
 
         assert.deepEqual(scriptIndexes, [...scriptIndexes].sort((left, right) => left - right), pageName);
+        const resultCardIndex = scriptSources.indexOf('/js/chat/resultCard.js');
+        assert.ok(resultCardIndex >= 0 && resultCardIndex < scriptSources.indexOf('/js/chat/messages/subagents.js'), pageName);
     }
 });
 
@@ -511,29 +513,27 @@ test('chat references remain message context and never render as transcript atta
     assert.doesNotMatch(chatBoxCss, /\.inline-chat-reference-element(?::hover)?\s*\{/);
 });
 
-test('subagent launcher omits event counts and its transcript modal keeps a stable large size', () => {
+test('subagent launcher reuses the Canvas card and opens the shared panel', () => {
     const source = streamMessagesSource;
     const chatCss = readFrontendSource(path.join(__dirname, '..', '..', 'css', 'chat', 'chat.css'), 'utf8');
     const launcherBody = extractFunction(source, 'ensureSubagentLauncher');
     const launcherUpdateBody = extractFunction(source, 'updateSubagentLauncher');
-    const launcherRule = chatCss.match(/\.subagent-launcher\s*\{[^}]*\}/)?.[0] || '';
 
     // Streaming volume is an implementation detail and should not compete
     // with the model name and status in the compact chat launcher.
     assert.doesNotMatch(launcherBody, /subagent-launcher-count|subagent_event_count/);
     assert.doesNotMatch(launcherUpdateBody, /subagent-launcher-count|subagent_event_count/);
 
-    // The launcher is intentionally substantial, while the dialog opts into
-    // the shared large, fixed-size shell so incoming content cannot resize it.
-    assert.match(launcherRule, /width:\s*min\(100%, 560px\)/);
-    assert.match(launcherRule, /min-height:\s*70px/);
-    assert.match(source, /dialog\.className = 'subagent-modal shared-modal shared-modal--large shared-modal--fixed'/);
+    // Subagents use the same card component as Canvas, without a second design.
+    assert.match(launcherBody, /window\.ChatResultCard\.create\(/);
+    assert.doesNotMatch(chatCss, /\.subagent-launcher/);
+    assert.match(source, /window\.ChatWorkspace\.register\(/);
     assert.doesNotMatch(chatCss, /\.subagent-modal\s*\{[^}]*\b(?:width|height|max-height)\s*:/);
 });
 
 test('live subagent events accept the nested subagent run identifier', () => {
     const source = streamMessagesSource;
-    const state = { events: [], modalChat: null };
+    const state = { events: [], transcriptChat: null };
     let resolvedRunId = null;
     const context = {
         getSubagentState(_messageId, runId) {
@@ -546,11 +546,10 @@ test('live subagent events accept the nested subagent run identifier', () => {
             return { eventName, data };
         },
         updateSubagentLauncher() {},
-        updateSubagentModalHeader() {},
-        renderSubagentModalTranscript() {},
+        renderSubagentTranscript() {},
         renderSubagentEventAsChat() {},
         refreshAssistantStatsForMessage() {},
-        window: {},
+        window: { ChatWorkspace: { update() {} } },
     };
     const handleSubagentStreamEvent = vm.runInNewContext(
         `${extractFunction(source, 'handleSubagentStreamEvent')}\nhandleSubagentStreamEvent;`,
@@ -576,6 +575,7 @@ test('persisted subagent replay rebinds a detached optimistic message state', ()
     const persistedReplayBody = extractFunction(source, 'renderPersistedSubagentBlock');
     const optimisticBindingBody = extractFunction(source, 'bindOptimisticMessageToServerMessage');
     const context = {
+        window: {},
         document: {
             querySelector() {
                 return null;
@@ -589,7 +589,6 @@ test('persisted subagent replay rebinds a detached optimistic message state', ()
     };
     const helpers = vm.runInNewContext(
         `const subagentRunStates = new Map();
-let activeSubagentModalState = null;
 ${extractFunction(source, 'releaseSubagentStateView')}
 ${extractFunction(source, 'rebindDetachedSubagentState')}
 ${extractFunction(source, 'registerSubagentParentMessageAlias')}
@@ -2892,11 +2891,11 @@ test('visualization widgets use the shared static-first renderer and keep large 
     );
 });
 
-test('subagent widgets auto-open only for live stream events', () => {
+test('subagent widgets preserve the selected transcript until explicitly opened', () => {
     const source = streamMessagesSource;
 
     assert.match(source, /function renderSubagentEventAsChat\(state, event, isLive = false\)/);
-    assert.match(source, /\{ autoOpen: isLive \}/);
+    assert.match(source, /\{ autoOpen: false \}/);
     assert.match(source, /renderSubagentEventAsChat\(state, event, false\)/);
     assert.match(source, /renderSubagentEventAsChat\(state, state\.events\[state\.events\.length - 1\], true\)/);
 });

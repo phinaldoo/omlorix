@@ -796,6 +796,13 @@ body.slide-presentation-editor-open {
     display: block;
 }
 
+.slide-presentation-preview-slide-item iframe.interactive {
+    position: absolute;
+    inset: 0;
+    pointer-events: auto;
+    background: var(--slide-presentation-card-bg);
+}
+
 /* Keep the rounded clip on the slide wrapper, but make the rendered image a
    full-size, untransformed layer. This prevents the image's former white
    background from being blended into the rounded edge by the compositor. */

@@ -75,10 +75,6 @@
     let slidePresentationFileId = null;
     let slidePresentationPresentationId = null;
     let _slideItems = [];         // DOM .slide-presentation-preview-slide-item elements
-    let _programmaticScrollActive = false;
-    let _programmaticScrollClearTimer = null;
-    let _previewTrackScrollRafId = null;
-    let _previewTrackScrollHandlerAttached = false;
     let _previewAutoFollowGeneration = true;
     let _previewResizeActive = false;
     let _previewResizePointerId = null;
@@ -104,18 +100,13 @@
     // Layout/scale retry tuning
     const _IFRAME_SCALE_RETRY_MAX = 12;
     const _IFRAME_SCALE_RETRY_DELAY_MS = 50;
-    const _SLIDE_IMAGE_DECODE_TIMEOUT_MS = 15000;
     const _SLIDE_PREVIEW_CSP = "default-src 'none'; img-src data: blob:; style-src 'unsafe-inline'; font-src data:; base-uri 'none'; form-action 'none'; frame-src 'none'; object-src 'none'; script-src 'none'";
-    const _SLIDE_SELECTION_HYSTERESIS_RATIO = 0.035;
-    const _SLIDE_SELECTION_HYSTERESIS_MIN_PX = 16;
-    const _SLIDE_SELECTION_HYSTERESIS_MAX_PX = 40;
     const _PREVIEW_DESKTOP_BREAKPOINT = 900;
     const _PREVIEW_RESIZE_STEP = 16;
     const _PREVIEW_RESIZE_LARGE_STEP = 48;
 
     // Slideshow state
     let ssIndex = 0;
-    let ssDocument = null; // Sanitized source snapshot, independent of raster revisions
     let ssSlideCount = 0;
     let ssLoadToken = 0;
     let ssSourceController = null;
@@ -128,10 +119,17 @@
     let ssPreviouslyFocused = null;
     let _ssHideTimer = null;
 
-    // Rendered slide images (from backend after export)
-    let slidePresentationSlideImages = [];  // array of blob URLs generated from authenticated fetches
-    let slidePresentationSlideImageRevokers = [];
-    let slidePresentationImageLoadToken = 0;
+    // One live deck; raster artifacts are used only by download endpoints.
+    let _previewRuntimeFrame = null;
+    let _previewRuntimeChannel = null;
+    let _previewSourceHtml = '';
+    let _previewQueuedHtml = '';
+    let _previewTimer = null;
+    let _previewController = null;
+    let _previewRequestRunning = false;
+    let _previewLoadToken = 0;
+
+    // Export revision metadata (independent of the live HTML preview)
     let slidePresentationRenderedRevision = 0;
 
     // Generating card tracking
@@ -371,7 +369,7 @@
         if (_isActivePresentationContext(context)) {
             if (slidePresentationPreviewVisible) {
                 hidePreviewPanel();
-            } else if (_slideItems.length > 0 || slidePresentationSlideImages.length > 0 || (_generationInProgress && _generationPreviewInitialized)) {
+            } else if (_slideItems.length > 0 || (_generationInProgress && _generationPreviewInitialized)) {
                 _setPanelVisible(true);
             } else if (context.presentationId) {
                 await openExistingPresentationPreview(context);
@@ -631,8 +629,8 @@
 
     /**
      * Present close-time editor rendering as a non-destructive overlay. The
-     * last complete slide revision stays visible until every replacement image
-     * has loaded, while export of stale derivatives is temporarily disabled.
+     * last complete slide revision stays visible until its replacement HTML
+     * runtime is ready, while export of stale derivatives is temporarily disabled.
      */
     function _setEditorPreviewRefreshState(state = 'idle', message = '') {
         const isBusy = state === 'busy';
@@ -732,11 +730,9 @@
         slidePresentationFileId = null;
         slidePresentationPresentationId = null;
         slidePresentationRenderedRevision = 0;
-        slidePresentationImageLoadToken += 1;
-        _revokeSlideImages();
+        _resetInteractivePreview();
         _disconnectScaleObservers();
         _slideItems = [];
-        _destroySlideObserver();
         _previewSidebarUserInteracted = false;
         _previewSidebarAutoOpened = false;
         _previewAutoFollowGeneration = true;
@@ -848,9 +844,8 @@
     function _discardFailedGenerationPreview() {
         hidePreviewPanel();
         if (ssOpen) closeSlideshow();
-        _revokeSlideImages();
+        _resetInteractivePreview();
         _disconnectScaleObservers();
-        _destroySlideObserver();
         slidePresentationSlides = [];
         slidePresentationStyles = '';
         slidePresentationHtmlBuffer = '';
@@ -874,11 +869,10 @@
 
     /**
      * Clear every chat-scoped presentation reference before another transcript
-     * is mounted. In-flight image loads use a generation token, so advancing it
+     * is mounted. In-flight HTML loads use a generation token, so advancing it
      * also prevents a late response from repopulating the new chat's sidebar.
      */
     function reset() {
-        slidePresentationImageLoadToken += 1;
         _editorPreviewRefreshToken += 1;
         _editorPreviewRetry = null;
         closePresentationEditor();
@@ -899,6 +893,7 @@
 
     function _setPanelVisible(visible) {
         slidePresentationPreviewVisible = visible;
+        _setInteractivePreviewVisibility(visible && !ssOpen);
         if (visible) {
             // All artifact panels share Canvas' persisted split width. Applying
             // it before the panel becomes visible avoids a one-frame width jump.
@@ -948,11 +943,6 @@
         }
     }
 
-    function _extractStylesFromHtml(html) {
-        const styleMatch = html.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
-        return styleMatch ? styleMatch[1] : '';
-    }
-
     /**
      * Remove active content before a generated or partially generated slide is
      * placed in a same-origin preview document. The server performs the same
@@ -968,7 +958,7 @@
 
     function _sanitizeSlideFrameContent(root) {
         root.querySelectorAll(
-            'script, noscript, iframe, frame, frameset, object, embed, form, input, button, select, textarea, audio, video, source, track, link, meta, base'
+            'script, noscript, iframe, frame, frameset, object, embed, form, audio, video, source, track, link, meta, base'
         ).forEach(element => element.remove());
         root.querySelectorAll('*').forEach(element => {
             [...element.attributes].forEach(attribute => {
@@ -1084,7 +1074,7 @@
             if (iframe) _scaleIframeWithRetry(iframe, item);
         });
 
-        // Thumbnails (only if still iframes; images are handled elsewhere)
+        // Noninteractive HTML thumbnails share the same scaling helpers.
         if (previewThumbnails) {
             Array.from(previewThumbnails.children).forEach(thumb => {
                 const iframe = thumb.querySelector('iframe');
@@ -1095,11 +1085,6 @@
     }
 
     // ── Track-local scrolling and single-slide selection ───────────────────
-    function _destroySlideObserver() {
-        _detachPreviewTrackScrollHandler();
-        _clearProgrammaticScrollLock();
-    }
-
     function _ensureSelectedThumbnailVisible() {
         if (!previewSidebar || !previewThumbnails) return;
         const thumb = previewThumbnails.children[slidePresentationCurrentIndex];
@@ -1126,7 +1111,7 @@
 
     function _syncSelectedSlideState({ ensureThumbnailVisible = true } = {}) {
         _slideItems.forEach((item, idx) => {
-            item.classList.toggle('active', idx === slidePresentationCurrentIndex);
+            item.classList.toggle('active', Boolean(_previewRuntimeFrame) || idx === slidePresentationCurrentIndex);
         });
         if (previewThumbnails) {
             Array.from(previewThumbnails.children).forEach((thumb, idx) => {
@@ -1142,499 +1127,191 @@
     function _setCurrentSlideIndex(nextIndex, options = {}) {
         const idx = Number(nextIndex);
         if (!Number.isFinite(idx)) return;
-        if (idx < 0 || idx >= _slideItems.length) return;
+        if (idx < 0 || idx >= slidePresentationSlides.length) return;
         slidePresentationCurrentIndex = idx;
         _updateCounter();
         _syncSelectedSlideState(options);
     }
 
-    function _getFocusedSlideIndexFromScroll() {
-        if (!previewSlidesTrack || !_slideItems.length) return slidePresentationCurrentIndex;
-
-        const maxScrollTop = Math.max(0, previewSlidesTrack.scrollHeight - previewSlidesTrack.clientHeight);
-        const scrollTop = previewSlidesTrack.scrollTop;
-
-        // Edge cases: first/last slide can never be fully centered; treat the boundaries
-        // as explicit focus states.
-        if (scrollTop <= 2) return 0;
-        if (maxScrollTop > 0 && scrollTop >= maxScrollTop - 2) return _slideItems.length - 1;
-
-        const trackRect = previewSlidesTrack.getBoundingClientRect();
-        const focusY = trackRect.top + trackRect.height / 2;
-        const currentItem = _slideItems[slidePresentationCurrentIndex];
-        const currentRect = currentItem?.getBoundingClientRect();
-        const currentDistance = currentRect
-            ? Math.abs((currentRect.top + currentRect.height / 2) - focusY)
-            : Infinity;
-        let closestIndex = slidePresentationCurrentIndex;
-        let closestDistance = currentDistance;
-
-        // Compare slide centers instead of switching whenever the track center
-        // merely touches a slide. A small hysteresis band makes the current
-        // selection sticky around the midpoint between two slides, preventing
-        // touch inertia and scroll-snap corrections from toggling it repeatedly.
-        _slideItems.forEach((item, index) => {
-            const rect = item.getBoundingClientRect();
-            const distance = Math.abs((rect.top + rect.height / 2) - focusY);
-            if (distance < closestDistance) {
-                closestDistance = distance;
-                closestIndex = index;
-            }
-        });
-
-        if (closestIndex === slidePresentationCurrentIndex) return closestIndex;
-
-        const hysteresisPx = Math.min(
-            _SLIDE_SELECTION_HYSTERESIS_MAX_PX,
-            Math.max(
-                _SLIDE_SELECTION_HYSTERESIS_MIN_PX,
-                trackRect.height * _SLIDE_SELECTION_HYSTERESIS_RATIO,
-            ),
-        );
-        return currentDistance - closestDistance >= hysteresisPx
-            ? closestIndex
-            : slidePresentationCurrentIndex;
-    }
-
-    function _clearProgrammaticScrollLock() {
-        _programmaticScrollActive = false;
-        if (_programmaticScrollClearTimer) {
-            clearTimeout(_programmaticScrollClearTimer);
-            _programmaticScrollClearTimer = null;
+    function _resetInteractivePreview({ keepFrame = false } = {}) {
+        _previewLoadToken += 1;
+        clearTimeout(_previewTimer);
+        _previewTimer = null;
+        _previewController?.abort();
+        _previewController = null;
+        _previewQueuedHtml = '';
+        if (!keepFrame) {
+            _previewSourceHtml = '';
+            _previewRuntimeFrame = null;
+            _previewRuntimeChannel = null;
         }
+        _previewRequestRunning = false;
     }
 
-    function _scheduleProgrammaticScrollSettled() {
-        if (!previewSlidesTrack) {
-            _clearProgrammaticScrollLock();
-            return;
-        }
-        if (_programmaticScrollClearTimer) clearTimeout(_programmaticScrollClearTimer);
-        // Native smooth-scroll duration varies by browser. Settle after the
-        // final scroll event instead of guessing from a few animation frames.
-        _programmaticScrollClearTimer = setTimeout(() => {
-            if (!_programmaticScrollActive) return;
-            const closestIdx = _getFocusedSlideIndexFromScroll();
-            _clearProgrammaticScrollLock();
-            if (closestIdx !== slidePresentationCurrentIndex) {
-                _setCurrentSlideIndex(closestIdx);
-            }
-        }, 160);
-    }
-
-    function _onPreviewTrackScroll() {
-        if (!previewSlidesTrack) return;
-        if (_programmaticScrollActive) {
-            _scheduleProgrammaticScrollSettled();
-            return;
-        }
-        if (_previewTrackScrollRafId) return;
-
-        _previewTrackScrollRafId = requestAnimationFrame(() => {
-            _previewTrackScrollRafId = null;
-            if (_programmaticScrollActive) return;
-            const closestIdx = _getFocusedSlideIndexFromScroll();
-            if (closestIdx !== slidePresentationCurrentIndex) {
-                _setCurrentSlideIndex(closestIdx);
-            }
-        });
-    }
-
-    function _handleManualPreviewScrollIntent() {
-        // Once the reader moves the deck themselves, live generation must not
-        // keep pulling them to newly appended slides.
-        _previewAutoFollowGeneration = false;
-        if (_programmaticScrollActive) _clearProgrammaticScrollLock();
-    }
-
-    function _attachPreviewTrackScrollHandler() {
-        if (!previewSlidesTrack) return;
-        if (_previewTrackScrollHandlerAttached) return;
-        previewSlidesTrack.addEventListener('scroll', _onPreviewTrackScroll, { passive: true });
-        previewSlidesTrack.addEventListener('wheel', _handleManualPreviewScrollIntent, { passive: true });
-        previewSlidesTrack.addEventListener('touchstart', _handleManualPreviewScrollIntent, { passive: true });
-        previewSlidesTrack.addEventListener('pointerdown', _handleManualPreviewScrollIntent, { passive: true });
-        _previewTrackScrollHandlerAttached = true;
-
-        // Ensure the outline is synced immediately (e.g., after restore/open)
-        // even before the user scrolls.
-        _onPreviewTrackScroll();
-    }
-
-    function _detachPreviewTrackScrollHandler() {
-        if (!previewSlidesTrack) return;
-        if (!_previewTrackScrollHandlerAttached) return;
-        previewSlidesTrack.removeEventListener('scroll', _onPreviewTrackScroll);
-        previewSlidesTrack.removeEventListener('wheel', _handleManualPreviewScrollIntent);
-        previewSlidesTrack.removeEventListener('touchstart', _handleManualPreviewScrollIntent);
-        previewSlidesTrack.removeEventListener('pointerdown', _handleManualPreviewScrollIntent);
-        _previewTrackScrollHandlerAttached = false;
-        if (_previewTrackScrollRafId) {
-            cancelAnimationFrame(_previewTrackScrollRafId);
-            _previewTrackScrollRafId = null;
-        }
-    }
-
-    function _buildSlideObserver() {
-        _destroySlideObserver();
-        if (!previewSlidesTrack) return;
-        _attachPreviewTrackScrollHandler();
-        _syncSelectedSlideState({ ensureThumbnailVisible: false });
-    }
-
-    // ── Core: append a new completed slide item to the track ───────────────
-    function _appendSlideItem(slideHtml, idx) {
-        if (!previewSlidesTrack) return;
-
-        const item = document.createElement('div');
-        item.className = 'slide-presentation-preview-slide-item';
-        item.dataset.slideIndex = idx;
-
-        const iframe = document.createElement('iframe');
-        iframe.setAttribute('scrolling', 'no');
-        item.appendChild(iframe);
-        previewSlidesTrack.appendChild(item);
-        _slideItems.push(item);
-        _syncSelectedSlideState({ ensureThumbnailVisible: false });
-
-        // Scale iframe after layout
-        requestAnimationFrame(() => {
-            _observeMainIframeScale(iframe, item);
-            _writeIframe(iframe, slideHtml);
-        });
-
-        return item;
-    }
-
-    // ── Live update: write partial HTML into the last (in-progress) slide ──
-    function _updateLastSlideItem(partialHtml) {
-        if (!_slideItems.length) return;
-        const lastItem = _slideItems[_slideItems.length - 1];
-        const iframe = lastItem.querySelector('iframe');
-        if (iframe) _writeIframe(iframe, partialHtml);
-    }
-
-    // ── Replace iframes with <img> tags once real images are available ──────
-    function _replaceIframesWithImages() {
-        if (!slidePresentationSlideImages.length) return;
-
-        const markRevisionUpdated = (element) => {
-            if (!element) return;
-            element.classList.remove('revision-updated');
-            // Force a new transition even when two refinement revisions arrive
-            // close together.
-            void element.offsetWidth;
-            element.classList.add('revision-updated');
-            setTimeout(() => element.classList.remove('revision-updated'), 650);
-        };
-
-        // Replace live HTML frames on the first render, then update existing
-        // image elements in place for later refinement revisions.  Keeping the
-        // DOM nodes stable preserves scroll position and selected-slide state.
-        _slideItems.forEach((item, idx) => {
-            const imgUrl = slidePresentationSlideImages[idx];
-            if (!imgUrl) return;
-            const existingImg = item.querySelector('img');
-            if (existingImg) {
-                existingImg.src = imgUrl;
-                markRevisionUpdated(item);
-                return;
-            }
-            const iframe = item.querySelector('iframe');
-            if (!iframe) return;
-            const img = document.createElement('img');
-            img.src = imgUrl;
-            img.alt = tf('slide_presentation_slide_number', 'Slide {number}', { number: idx + 1 });
-            iframe.replaceWith(img);
-            markRevisionUpdated(item);
-        });
-
-        // Replace thumbnail iframes
-        if (previewThumbnails) {
-            Array.from(previewThumbnails.children).forEach((thumb, idx) => {
-                const imgUrl = slidePresentationSlideImages[idx];
-                if (!imgUrl) return;
-                const existingImg = thumb.querySelector('img');
-                if (existingImg) {
-                    existingImg.src = imgUrl;
-                    markRevisionUpdated(thumb);
-                    return;
-                }
-                const iframe = thumb.querySelector('iframe');
-                if (!iframe) return;
-                const img = document.createElement('img');
-                img.src = imgUrl;
-                img.alt = tf('slide_presentation_slide_number', 'Slide {number}', { number: idx + 1 });
-                iframe.replaceWith(img);
-                markRevisionUpdated(thumb);
+    function _queueInteractivePreview(html) {
+        if (typeof html !== 'string' || !html.includes('<section')) return;
+        _previewQueuedHtml = html;
+        if (_previewTimer || _previewRequestRunning) return;
+        // Coalesce fast argument streams. Keep at most one frame request in
+        // flight and one newest snapshot, not a backlog of every token.
+        _previewTimer = setTimeout(() => {
+            _previewTimer = null;
+            const next = _previewQueuedHtml;
+            _previewQueuedHtml = '';
+            _renderInteractivePreview(next).catch(error => {
+                if (error.name !== 'AbortError') console.debug('[slide-presentation] Draft not ready', error);
             });
-        }
+        }, 1000);
     }
 
-    // ── Load slide images from backend and replace iframes ──────────────────
-    async function _fetchSlideImageWithRetry(endpoint, loadToken, maxAttempts = 5) {
-        let lastError = null;
-        for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-            if (loadToken !== slidePresentationImageLoadToken) return null;
+    async function _renderInteractivePreview(html) {
+        if (!html || html === _previewSourceHtml) return;
+        const token = _previewLoadToken;
+        const controller = new AbortController();
+        _previewController = controller;
+        _previewRequestRunning = true;
+        try {
+            const payload = await _editorFetchJson('/api/v1/presentations/preview', {
+                method: 'POST',
+                body: JSON.stringify({ html, slide_index: Math.min(slidePresentationCurrentIndex, 49) }),
+                signal: controller.signal,
+            });
+            if (token !== _previewLoadToken) return;
+            const url = new URL(String(payload.frame_url || ''), window.location.origin);
+            if (url.origin !== window.location.origin || !/^\/api\/v1\/llm\/widgets\/frame\/[A-Za-z0-9_-]+$/.test(url.pathname)) {
+                throw new Error('invalid_presentation_frame');
+            }
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            const slides = [...doc.querySelectorAll('section.slide')].slice(0, payload.slide_count);
+            if (!slides.length) return;
+            const frame = document.createElement('iframe');
+            frame.title = t('slide_presentation_slideshow_dialog_aria', 'Presentation slideshow');
+            frame.setAttribute('sandbox', 'allow-scripts');
+            frame.setAttribute('referrerpolicy', 'no-referrer');
+            frame.className = 'interactive';
+            frame.style.visibility = 'hidden';
+            const item = _slideItems[0] || document.createElement('div');
+            item.className = 'slide-presentation-preview-slide-item active';
+            if (!item.isConnected) previewSlidesTrack.appendChild(item);
+            item.appendChild(frame);
+            _scaleIframe(frame, item);
             try {
-                return await window.fetchAuthedBlobUrl(endpoint);
+                await new Promise((resolve, reject) => {
+                    const cleanup = () => {
+                        clearTimeout(timer);
+                        window.removeEventListener('message', ready);
+                        controller.signal.removeEventListener('abort', abort);
+                    };
+                    const abort = () => { cleanup(); reject(new DOMException('Aborted', 'AbortError')); };
+                    const ready = event => {
+                        if (event.source !== frame.contentWindow || event.origin !== 'null'
+                            || event.data?.channel !== payload.channel_id
+                            || event.data?.type !== 'omlorix-presentation:ready') return;
+                        cleanup(); resolve();
+                    };
+                    const timer = setTimeout(() => {
+                        cleanup(); reject(new Error('presentation_preview_timeout'));
+                    }, 15000);
+                    window.addEventListener('message', ready);
+                    controller.signal.addEventListener('abort', abort, { once: true });
+                    frame.src = url.href;
+                });
+                if (token !== _previewLoadToken) { frame.remove(); return; }
+                _disconnectScaleObservers();
+                item.querySelectorAll('iframe').forEach(other => { if (other !== frame) other.remove(); });
+                _previewRuntimeFrame = frame;
+                _previewRuntimeChannel = payload.channel_id;
+                _previewSourceHtml = html;
+                slidePresentationHtmlBuffer = html;
+                slidePresentationStyles = [...doc.querySelectorAll('style')].map(style => style.textContent).join('\n');
+                slidePresentationSlides = slides.map(slide => slide.outerHTML);
+                _slideItems = [item];
+                frame.style.visibility = '';
+                _observeMainIframeScale(frame, item);
+                previewThumbnails?.replaceChildren();
+                slidePresentationSlides.forEach((slide, index) => _appendThumbnail(slide, index));
+                const next = _generationInProgress && _previewAutoFollowGeneration
+                    ? slides.length - 1 : Math.min(slidePresentationCurrentIndex, slides.length - 1);
+                _goToSlide(next, { preserveAutoFollow: true });
+                previewGenerating?.classList.add('hidden');
+                previewNav?.classList.add('visible');
+                if (previewSidebarToggle) previewSidebarToggle.disabled = false;
+                if (previewPresent) previewPresent.disabled = false;
+                if (!_previewSidebarAutoOpened && !_previewSidebarUserInteracted) {
+                    _setPreviewSidebarCollapsed(false);
+                    _previewSidebarAutoOpened = true;
+                }
+                _setInteractivePreviewVisibility(slidePresentationPreviewVisible && !ssOpen);
             } catch (error) {
-                lastError = error;
-                if (attempt + 1 < maxAttempts) {
-                    // A first-pass draft writes directly into the live image
-                    // directory, so a draft slide can legitimately return 404
-                    // until that individual file exists. Refinements swap a
-                    // complete directory, while remote stores can also lag.
-                    // Treat every transient fetch failure as not-ready here;
-                    // revision_ready never converts it into a permanent error.
-                    await new Promise(resolve => setTimeout(resolve, 250 * (2 ** attempt)));
-                }
+                frame.remove();
+                if (!_slideItems.length) item.remove();
+                throw error;
+            }
+        } finally {
+            if (token === _previewLoadToken) {
+                _previewRequestRunning = false;
+                _previewController = null;
+                if (_previewQueuedHtml) _queueInteractivePreview(_previewQueuedHtml);
             }
         }
-        console.error('Failed to fetch slide image after retries', endpoint, lastError);
-        return null;
     }
 
-    /**
-     * Decode the complete raster revision before touching visible slide nodes.
-     * A fetched blob URL can still require an expensive first decode, which
-     * would otherwise expose a blank frame immediately after the swap.
-     */
-    async function _preloadSlideImageUrls(urls, loadToken) {
-        const decoded = await Promise.all(urls.map(url => new Promise(resolve => {
-            const image = new Image();
-            let settled = false;
-            const finish = (loaded) => {
-                if (settled) return;
-                settled = true;
-                clearTimeout(timeoutId);
-                image.onload = null;
-                image.onerror = null;
-                resolve(loaded);
-            };
-            const timeoutId = setTimeout(() => finish(false), _SLIDE_IMAGE_DECODE_TIMEOUT_MS);
-            image.onload = async () => {
-                try {
-                    if (typeof image.decode === 'function') await image.decode();
-                    finish(true);
-                } catch (_) {
-                    finish(image.complete && image.naturalWidth > 0);
-                }
-            };
-            image.onerror = () => finish(false);
-            image.src = url;
-        })));
-        return loadToken === slidePresentationImageLoadToken && decoded.every(Boolean);
+    function _setInteractivePreviewVisibility(visible) {
+        _previewRuntimeFrame?.contentWindow.postMessage({
+            type: 'omlorix-presentation:visibility', channel: _previewRuntimeChannel, visible,
+        }, '*');
     }
 
-    async function _loadSlideImages(presentationId, count, revision = 0, options = {}) {
-        if (typeof window.fetchAuthedBlobUrl !== 'function') {
-            console.warn('Slide image export requires fetchAuthedBlobUrl helper');
-            return false;
+    window.addEventListener('message', event => {
+        if (!_previewRuntimeFrame || event.source !== _previewRuntimeFrame.contentWindow
+            || event.origin !== 'null' || event.data?.channel !== _previewRuntimeChannel) return;
+        const data = event.data;
+        if (data.type === 'omlorix-presentation:state' && Number.isInteger(data.index)) {
+            _setCurrentSlideIndex(data.index);
         }
-
-        const boundedCount = Math.max(0, Math.min(Number(count) || 0, 50));
-        if (!boundedCount) return false;
-        slidePresentationPresentationId = presentationId;
-        const loadToken = ++slidePresentationImageLoadToken;
-        const results = new Array(boundedCount).fill(null);
-        const endpointCollection = options.draft ? 'draft-slides' : 'slides';
-        let nextSlide = 1;
-        const worker = async () => {
-            while (nextSlide <= boundedCount) {
-                const slideNumber = nextSlide++;
-                const endpoint = `/api/v1/presentations/${encodeURIComponent(presentationId)}/${endpointCollection}/${slideNumber}?revision=${encodeURIComponent(revision || Date.now())}`;
-                results[slideNumber - 1] = await _fetchSlideImageWithRetry(endpoint, loadToken);
-            }
-        };
-        await Promise.all(Array.from({ length: Math.min(4, boundedCount) }, worker));
-        if (loadToken !== slidePresentationImageLoadToken) {
-            results.filter(Boolean).forEach((result) => result.revoke?.());
-            return false;
+        if (data.type === 'omlorix-presentation:close') { hidePreviewPanel(); document.getElementById('canvas-toggle-btn')?.focus(); }
+        if (data.type === 'omlorix-presentation:fullscreen') openSlideshow();
+        if (data.type === 'omlorix-presentation:focus-host') {
+            (data.backwards ? previewSidebarToggle : previewPresent)?.focus();
         }
-        const valid = results.filter(Boolean);
-        if (valid.length !== boundedCount) {
-            valid.forEach((result) => result.revoke?.());
-            console.warn('The complete slide image set could not be loaded');
-            return false;
-        }
+    });
 
-        const nextImageUrls = results.map(result => result.url);
-        if (!await _preloadSlideImageUrls(nextImageUrls, loadToken)) {
-            valid.forEach((result) => result.revoke?.());
-            return false;
-        }
-
-        const previousRevokers = slidePresentationSlideImageRevokers;
-        slidePresentationSlideImages = nextImageUrls;
-        slidePresentationSlideImageRevokers = valid.map(res => res.revoke);
-        slidePresentationRenderedRevision = Math.max(
-            slidePresentationRenderedRevision,
-            Number(revision) || 0
-        );
-
-        // If slide items already exist (live generation), replace their iframes.
-        // If not (history reload), build the preview panel from scratch.
-        if (options.forceRebuild) {
-            _restorePreviewFromImages(false, {
-                preserveIndex: options.preserveIndex,
-            });
-        } else if (_slideItems.length > 0) {
-            _replaceIframesWithImages();
-        } else {
-            _restorePreviewFromImages();
-        }
-        previousRevokers.forEach(revoke => revoke());
-        return true;
-    }
-
-    async function _fetchSlideCountAndLoad(presentationId, knownCount) {
-        if (typeof window.authedFetch !== 'function') return 0;
-        let count = knownCount || 0;
-        if (!count) {
-            try {
-                const res = await window.authedFetch(
-                    `/api/v1/presentations/${encodeURIComponent(presentationId)}/slides/count`
-                );
-                if (res && res.ok) {
-                    const json = await res.json();
-                    count = json.count || 0;
-                }
-            } catch (err) {
-                console.warn('Could not fetch slide count', err);
+    async function _refreshPreviewSource(presentationId, token = _editorPreviewRefreshToken) {
+        if (!_isEditorPreviewRefreshCurrent(token, presentationId)) return false;
+        _resetInteractivePreview({ keepFrame: true });
+        const loadToken = _previewLoadToken;
+        const controller = new AbortController();
+        _previewController = controller;
+        _previewRequestRunning = true;
+        try {
+            const payload = await _editorFetchJson(
+                `/api/v1/presentations/${encodeURIComponent(presentationId)}/editor`,
+                { signal: controller.signal }
+            );
+            if (loadToken !== _previewLoadToken || !_isEditorPreviewRefreshCurrent(token, presentationId)) return false;
+            await _renderInteractivePreview(String(payload.html || ''));
+            return loadToken === _previewLoadToken && _isEditorPreviewRefreshCurrent(token, presentationId);
+        } finally {
+            if (loadToken === _previewLoadToken && _previewController === controller) {
+                _previewController = null;
+                _previewRequestRunning = false;
+                if (_previewQueuedHtml) _queueInteractivePreview(_previewQueuedHtml);
             }
         }
-        if (count > 0) {
-            await _loadSlideImages(presentationId, count);
-        }
-        return count;
     }
 
     function appendHtmlDelta(delta) {
         slidePresentationHtmlBuffer += delta;
-
-        // Extract styles as they arrive
-        if (slidePresentationHtmlBuffer.includes('</style>') && !slidePresentationStyles) {
-            slidePresentationStyles = _extractStylesFromHtml(slidePresentationHtmlBuffer);
-            if (slidePresentationStyles && _genPhase === 'styles') {
-                _setGenPhase('slides');
-            }
-        }
-
-        // ── Find all COMPLETED slides ──────────────────────────────────────
-        const slideRegex = /<section[^>]*class\s*=\s*["'][^"']*slide[^"']*["'][^>]*>[\s\S]*?<\/section>/gi;
-        const completedSlides = [];
-        let m;
-        while ((m = slideRegex.exec(slidePresentationHtmlBuffer)) !== null) {
-            completedSlides.push(m[0]);
-        }
-
-        // ── Ensure panel is visible once we have any HTML ──────────────────
-        if (completedSlides.length > 0 || slidePresentationHtmlBuffer.includes('<section')) {
-            if (previewGenerating) previewGenerating.classList.add('hidden');
-            if (previewNav) previewNav.classList.add('visible');
-            if (previewSidebarToggle) previewSidebarToggle.disabled = false;
-            if (!_previewSidebarAutoOpened && !_previewSidebarUserInteracted) {
-                _setPreviewSidebarCollapsed(false);
-                _previewSidebarAutoOpened = true;
-            }
-            if (!_previewTrackScrollHandlerAttached) _buildSlideObserver();
-        }
-
-        // ── Handle newly completed slides ──────────────────────────────────
-        if (completedSlides.length > slidePresentationSlides.length) {
-            for (let i = slidePresentationSlides.length; i < completedSlides.length; i++) {
-                slidePresentationSlides.push(completedSlides[i]);
-
-                if (i < _slideItems.length) {
-                    // A partial item already exists for this index — update it with final HTML
-                    const item = _slideItems[i];
-                    item.dataset.slideIndex = i;
-                    const iframe = item.querySelector('iframe');
-                    if (iframe) _writeIframe(iframe, completedSlides[i]);
-                    // Update thumbnail too
-                    const thumb = previewThumbnails ? previewThumbnails.children[i] : null;
-                    if (thumb) {
-                        const tIframe = thumb.querySelector('iframe');
-                        if (tIframe) _writeIframe(tIframe, completedSlides[i]);
-                    }
-                } else {
-                    // No item yet — create fresh
-                    _appendSlideItem(completedSlides[i], i);
-                    _appendThumbnail(completedSlides[i], i);
-                    if (_previewAutoFollowGeneration) {
-                        _goToSlide(i, { preserveAutoFollow: true });
-                    }
-                }
-            }
-
-            updatePreviewStatus(tf(
-                'slide_presentation_generating_slide',
-                'Generating slide {number}…',
-                { number: slidePresentationSlides.length + 1 }
-            ));
-            _updateCounter();
-        }
-
-        // ── Live-update the PARTIAL slide being generated ──────────────────
-        const lastSectionStart = slidePresentationHtmlBuffer.lastIndexOf('<section');
-        if (lastSectionStart !== -1) {
-            const afterLast = slidePresentationHtmlBuffer.slice(lastSectionStart);
-            // Only treat as partial if it has no closing tag yet
-            if (!afterLast.includes('</section>') && afterLast.includes('class=')) {
-                const partialHtml = afterLast + '</section>';
-                const partialIdx = slidePresentationSlides.length; // index of the in-progress slide
-
-                if (_slideItems.length <= partialIdx) {
-                    // Create a new item for this partial slide
-                    _appendSlideItem(partialHtml, partialIdx);
-                    _appendThumbnail(partialHtml, partialIdx);
-                    _updateCounter();
-                    if (_previewAutoFollowGeneration) {
-                        _goToSlide(partialIdx, { preserveAutoFollow: true });
-                    }
-                } else {
-                    // Update the existing partial slide item live
-                    _updateLastSlideItem(partialHtml);
-                    _updateLastThumbnail(partialHtml);
-                }
-            }
-        }
+        _queueInteractivePreview(slidePresentationHtmlBuffer);
     }
 
-    function _scrollTrackToSlide(index, behavior = 'smooth') {
-        if (!previewSlidesTrack || !_slideItems[index]) return;
-        const item = _slideItems[index];
-        const maxScrollTop = Math.max(0, previewSlidesTrack.scrollHeight - previewSlidesTrack.clientHeight);
-        const trackRect = previewSlidesTrack.getBoundingClientRect();
-        const itemRect = item.getBoundingClientRect();
-        const centeredTop = previewSlidesTrack.scrollTop
-            + (itemRect.top - trackRect.top)
-            - ((previewSlidesTrack.clientHeight - itemRect.height) / 2);
-        const targetTop = Math.min(maxScrollTop, Math.max(0, centeredTop));
-        const resolvedBehavior = _shouldReduceMotion() ? 'auto' : behavior;
-
-        if (typeof previewSlidesTrack.scrollTo === 'function') {
-            previewSlidesTrack.scrollTo({ top: targetTop, behavior: resolvedBehavior });
-        } else {
-            previewSlidesTrack.scrollTop = targetTop;
-        }
-    }
-
-    function _goToSlide(index, { preserveAutoFollow = false, behavior = 'smooth' } = {}) {
-        if (index < 0 || index >= _slideItems.length) return;
+    function _goToSlide(index, { preserveAutoFollow = false } = {}) {
+        if (!_previewRuntimeFrame || index < 0 || index >= slidePresentationSlides.length) return;
         if (!preserveAutoFollow) _previewAutoFollowGeneration = false;
-
-        _programmaticScrollActive = true;
-        if (_programmaticScrollClearTimer) {
-            clearTimeout(_programmaticScrollClearTimer);
-            _programmaticScrollClearTimer = null;
-        }
-
-        // Update outline immediately to reflect the user's selection.
         _setCurrentSlideIndex(index);
-        _scrollTrackToSlide(index, behavior);
-        _scheduleProgrammaticScrollSettled();
+        _previewRuntimeFrame.contentWindow.postMessage({
+            type: 'omlorix-presentation:goto', channel: _previewRuntimeChannel, index,
+        }, '*');
     }
 
     function _updateCounter() {
@@ -1658,6 +1335,8 @@
 
         const iframe = thumb.querySelector('iframe');
         if (iframe) {
+            iframe.setAttribute('tabindex', '-1');
+            iframe.setAttribute('aria-hidden', 'true');
             requestAnimationFrame(() => {
                 _observeThumbIframeScale(iframe, thumb);
                 _writeIframe(iframe, slideHtml);
@@ -1665,38 +1344,11 @@
         }
     }
 
-    function _updateLastThumbnail(slideHtml) {
-        if (!previewThumbnails || !previewThumbnails.lastElementChild) return;
-        const thumb = previewThumbnails.lastElementChild;
-        const iframe = thumb.querySelector('iframe');
-        if (iframe) {
-            _scaleThumbnailIframeWithRetry(iframe, thumb);
-            _writeIframe(iframe, slideHtml);
-        }
-    }
-
     function _updateThumbnails() {
         if (!previewThumbnails) return;
-        slidePresentationSlides.forEach((slideHtml, idx) => {
-            const thumb = previewThumbnails.children[idx];
-            if (!thumb) return;
-            // If we already have a real image, update src; otherwise update iframe
-            const img = thumb.querySelector('img');
-            const imageUrl = slidePresentationSlideImages[idx];
-            if (img && imageUrl) {
-                img.hidden = false;
-                img.src = imageUrl;
-                return;
-            }
-            if (img && imageUrl === null) {
-                img.removeAttribute('src');
-                img.hidden = true;
-            }
+        [...previewThumbnails.children].forEach(thumb => {
             const iframe = thumb.querySelector('iframe');
-            if (iframe) {
-                _scaleThumbnailIframeWithRetry(iframe, thumb);
-                _writeIframe(iframe, slideHtml);
-            }
+            if (iframe) _scaleThumbnailIframeWithRetry(iframe, thumb);
         });
         _selectThumbnail();
     }
@@ -1761,9 +1413,7 @@
                 });
             });
         }
-        if (!_slideItems.length && slidePresentationSlideImages.length) {
-            _restorePreviewFromImages(true);
-        }
+
     }
 
     // ── Native full-site editor integration ──────────────────────────────
@@ -1812,76 +1462,19 @@
      * the sidebar on a stale revision.
      */
     function _queueEditorClosePreviewRefresh(presentationId, closeContext = {}) {
-        const expectedRevision = Math.max(0, Number(closeContext.canvasRevision) || 0);
-        if (!presentationId || closeContext.discardedUnsavedChanges) {
-            _setEditorPreviewRefreshState('idle');
-            return;
-        }
-        if (
-            expectedRevision > 0
-            && Number(closeContext.renderRevision) >= expectedRevision
-            && (
-                closeContext.sourceChanged === false
-                || slidePresentationRenderedRevision >= expectedRevision
-            )
-        ) {
-            _setEditorPreviewRefreshState('idle');
-            return;
-        }
-
-        const refreshToken = ++_editorPreviewRefreshToken;
-        const retry = () => _queueEditorClosePreviewRefresh(presentationId, {
-            ...closeContext,
-            renderPromise: null,
-        });
-        _editorPreviewRetry = retry;
+        if (!presentationId || closeContext.discardedUnsavedChanges || closeContext.sourceChanged === false) return;
+        const token = ++_editorPreviewRefreshToken;
+        _editorPreviewRetry = () => _queueEditorClosePreviewRefresh(presentationId, closeContext);
         _setEditorPreviewRefreshState('busy');
-
-        Promise.resolve().then(async () => {
-            // The promise belongs to the editor session that just closed. It
-            // remains safe to await after cancel() resets that session because
-            // the parent render request and its authenticated fetch are already
-            // independently owned by this widget.
-            if (closeContext.renderPromise) {
-                await Promise.resolve(closeContext.renderPromise).catch(() => false);
-            }
-            if (!_isEditorPreviewRefreshCurrent(refreshToken, presentationId)) return;
-
-            const editorState = await _editorFetchJson(
-                `/api/v1/presentations/${encodeURIComponent(presentationId)}/editor`
-            );
-            if (!_isEditorPreviewRefreshCurrent(refreshToken, presentationId)) return;
-
-            const canvasRevision = Math.max(0, Number(editorState.canvas_revision) || expectedRevision);
-            let renderPayload = editorState;
-            if (Number(editorState.render_revision) < canvasRevision) {
-                renderPayload = await _editorFetchJson(
-                    `/api/v1/presentations/${encodeURIComponent(presentationId)}/editor/render`,
-                    { method: 'POST', body: JSON.stringify({ expected_revision: canvasRevision }) }
-                );
-            }
-            if (!_isEditorPreviewRefreshCurrent(refreshToken, presentationId)) return;
-            if (Number(renderPayload.render_revision) < canvasRevision) {
-                throw new Error(t(
-                    'slide_presentation_editor_render_failed',
-                    'Preview update failed'
-                ));
-            }
-
-            if (slidePresentationRenderedRevision < Number(renderPayload.render_revision)) {
-                const refreshed = await _refreshPreviewAfterEditorRender(renderPayload, refreshToken);
-                if (!refreshed) return;
-            }
-            if (!_isEditorPreviewRefreshCurrent(refreshToken, presentationId)) return;
+        // Source refresh never waits for image rendering or starts a render job.
+        _refreshPreviewSource(presentationId, token).then(current => {
+            if (!current) return;
             _editorPreviewRetry = null;
             _setEditorPreviewRefreshState('idle');
-        }).catch((error) => {
-            if (!_isEditorPreviewRefreshCurrent(refreshToken, presentationId)) return;
-            console.error('[slide-presentation] Failed to refresh edited preview', error);
-            _setEditorPreviewRefreshState(
-                'error',
-                t('slide_presentation_editor_render_failed', 'Preview update failed')
-            );
+        }).catch(() => {
+            if (_isEditorPreviewRefreshCurrent(token, presentationId)) {
+                _setEditorPreviewRefreshState('error', t('slide_presentation_editor_render_failed', 'Preview update failed'));
+            }
         });
     }
 
@@ -2053,54 +1646,16 @@
         }
     }
 
-    async function _refreshPreviewAfterEditorRender(payload, refreshToken = 0) {
-        const presentationId = String(payload.presentation_id || slidePresentationPresentationId || '');
-        const slideCount = Number(payload.slide_count) || 0;
-        if (!presentationId || slideCount <= 0) return;
-        if (String(slidePresentationPresentationId || '') !== presentationId) return;
-        if (refreshToken && !_isEditorPreviewRefreshCurrent(refreshToken, presentationId)) return;
-
-        const previousIndex = slidePresentationCurrentIndex;
-        slidePresentationFileId = String(payload.file_id || slidePresentationFileId || '') || null;
-        slidePresentationPresentationId = presentationId;
-        if (previewTitle && payload.title) previewTitle.textContent = payload.title;
-        const requiresRebuild = _slideItems.length !== slideCount
-            || Number(previewThumbnails?.children.length || 0) !== slideCount;
-        const imagesLoaded = await _loadSlideImages(
-            presentationId,
-            slideCount,
-            Number(payload.render_revision) || Date.now(),
-            {
-                forceRebuild: requiresRebuild,
-                preserveIndex: previousIndex,
-            }
-        );
-        // Loading the derivative images is asynchronous. Recheck ownership in
-        // case another deck opened while those requests were in flight.
-        if (String(slidePresentationPresentationId || '') !== presentationId) return;
-        if (refreshToken && !_isEditorPreviewRefreshCurrent(refreshToken, presentationId)) return;
-        if (!imagesLoaded) {
-            throw new Error(t('slide_presentation_editor_render_failed', 'Preview update failed'));
-        }
-        if (_slideItems.length && !requiresRebuild) {
-            _setCurrentSlideIndex(Math.min(previousIndex, _slideItems.length - 1), {
-                ensureThumbnailVisible: false,
-            });
-            requestAnimationFrame(() => _scrollTrackToSlide(slidePresentationCurrentIndex, 'auto'));
-        }
-        completePreview(
-            slidePresentationFileId,
-            presentationId,
-            String(payload.title || previewTitle?.textContent || ''),
-            slideCount,
-            'updated'
-        );
+    async function _refreshPreviewAfterEditorRender(payload, refreshToken = _editorPreviewRefreshToken) {
+        const presentationId = String(payload.presentation_id || '');
+        if (!_isEditorPreviewRefreshCurrent(refreshToken, presentationId)) return false;
+        slidePresentationRenderedRevision = Number(payload.render_revision) || 0;
+        slidePresentationFileId = payload.file_id || slidePresentationFileId;
+        if (!await _refreshPreviewSource(presentationId, refreshToken)) return false;
+        completePreview(slidePresentationFileId, presentationId, payload.title, payload.slide_count, 'updated');
         _refreshStoredPresentationContext({
-            fileId: slidePresentationFileId,
-            presentationId,
-            title: String(payload.title || previewTitle?.textContent || ''),
-            slideCount,
-            operation: 'updated',
+            fileId: slidePresentationFileId, presentationId, title: payload.title,
+            slideCount: payload.slide_count, operation: 'updated',
         });
         return true;
     }
@@ -2129,7 +1684,7 @@
             _updateThumbnails();
             // Slide height changes with the panel width; keep the selected
             // slide centered while the user drags the shared split handle.
-            _scrollTrackToSlide(slidePresentationCurrentIndex, 'auto');
+            _goToSlide(slidePresentationCurrentIndex, { preserveAutoFollow: true });
         });
     }
 
@@ -2269,7 +1824,7 @@
 
     /** Download through the single sidebar export implementation. */
     async function downloadPresentation(formatOverride = '') {
-            const fileId = previewDownloadBtn.getAttribute('data-file-id');
+            let fileId = previewDownloadBtn.getAttribute('data-file-id');
             const presentationId = previewDownloadBtn.getAttribute('data-presentation-id') || slidePresentationPresentationId;
             const format = String(formatOverride || '').trim() || (window.chatDownloadControls
                     ? window.chatDownloadControls.getSelectedDownloadFormat(previewDownloadFormat, 'pptx')
@@ -2278,6 +1833,24 @@
 
             try {
                 _setPreviewDownloadBusy(true);
+                if (format !== 'html' && presentationId) {
+                    // Live preview does not wait for raster artifacts. Ensure
+                    // downloads represent the saved revision at request time.
+                    let saved = await _editorFetchJson(
+                        `/api/v1/presentations/${encodeURIComponent(presentationId)}/editor`
+                    );
+                    const revision = Number(saved.canvas_revision) || 0;
+                    if (Number(saved.render_revision) < revision) {
+                        saved = await _editorFetchJson(
+                            `/api/v1/presentations/${encodeURIComponent(presentationId)}/editor/render`,
+                            { method: 'POST', body: JSON.stringify({ expected_revision: revision }) }
+                        );
+                    }
+                    if (Number(saved.render_revision) < revision) {
+                        throw new Error(t('slide_presentation_editor_render_failed', 'Preview update failed'));
+                    }
+                    fileId = saved.file_id || fileId;
+                }
                 const presentationTitle = (previewTitle && previewTitle.textContent) ? previewTitle.textContent : 'presentation';
                 
                 // Sanitize filename: remove special characters and limit length
@@ -2361,18 +1934,6 @@
         });
     }
 
-    function _revokeSlideImages() {
-        slidePresentationSlideImageRevokers.forEach(revoke => {
-            try {
-                revoke?.();
-            } catch (err) {
-                console.warn('Failed to revoke slide image URL', err);
-            }
-        });
-        slidePresentationSlideImageRevokers = [];
-        slidePresentationSlideImages = [];
-    }
-
     // ── Slideshow functions ────────────────────────────────────────────────
     function _ssUpdateCounter() {
         if (ssCurrent) ssCurrent.textContent = ssSlideCount ? ssIndex + 1 : 0;
@@ -2408,43 +1969,6 @@
             _ssUpdateCounter();
             return;
         }
-        if (!ssOpen || !ssDocument || !ssSlideCount || !ssViewport) return;
-        ssIndex = Math.max(0, Math.min(index, ssSlideCount - 1));
-        const navigationToken = ++ssNavigationToken;
-        const doc = ssDocument.cloneNode(true);
-        // Retain the slide shells so nth-child selectors keep their meaning,
-        // but load assets and render content only for the active slide.
-        doc.querySelectorAll('section.slide').forEach((slide, i) => {
-            if (i !== ssIndex) {
-                slide.replaceChildren();
-                slide.style.setProperty('display', 'none', 'important');
-            }
-        });
-        const frame = document.createElement('iframe');
-        frame.className = 'slide-presentation-ss-iframe pending';
-        frame.setAttribute('sandbox', '');
-        frame.setAttribute('scrolling', 'no');
-        frame.setAttribute('tabindex', '-1');
-        frame.title = tf('slide_presentation_slide_number', 'Slide {number}', { number: ssIndex + 1 });
-        frame.setAttribute('aria-hidden', 'true');
-        // Keep the last loaded slide visible until its replacement is ready.
-        // Rapid navigation leaves at most one visible and one pending frame.
-        ssViewport.querySelectorAll('.pending').forEach(pending => pending.remove());
-        frame.addEventListener('load', () => {
-            if (!ssOpen || navigationToken !== ssNavigationToken) return;
-            ssViewport.querySelectorAll('iframe').forEach(other => {
-                if (other !== frame) other.remove();
-            });
-            frame.classList.remove('pending');
-            frame.removeAttribute('aria-hidden');
-            ssOverlay.classList.remove('is-loading');
-            ssLoader?.classList.add('hidden');
-            ssStage?.classList.add('visible');
-        }, { once: true });
-        frame.srcdoc = '<!DOCTYPE html>' + doc.documentElement.outerHTML;
-        ssViewport.appendChild(frame);
-        _scaleSlideshow();
-        _ssUpdateCounter();
     }
 
     function _buildProgressDots() {
@@ -2471,33 +1995,6 @@
                 prog.appendChild(dot);
             }
         }
-    }
-
-    function _prepareSlideshowDocument(html) {
-        const doc = new DOMParser().parseFromString(String(html || ''), 'text/html');
-        _sanitizeSlideFrameContent(doc);
-        // Only local, inline deck styling belongs in the generated document.
-        [...doc.head.children].forEach(element => {
-            if (element.tagName !== 'STYLE') element.remove();
-        });
-        const csp = doc.createElement('meta');
-        csp.httpEquiv = 'Content-Security-Policy';
-        csp.content = _SLIDE_PREVIEW_CSP;
-        doc.head.prepend(csp);
-        const layout = doc.createElement('style');
-        layout.textContent = `
-            html, body { width:1920px!important; height:1080px!important; margin:0!important; padding:0!important; overflow:hidden!important; }
-            body { display:block!important; }
-            section.slide { width:1920px!important; height:1080px!important; margin:0!important; position:relative; overflow:hidden; box-sizing:border-box; }
-            @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation:none!important; transition:none!important; scroll-behavior:auto!important; } }
-        `;
-        doc.head.appendChild(layout);
-        const count = doc.querySelectorAll('section.slide').length;
-        if (!count || count > 50) {
-            throw new Error(t('slide_presentation_preview_unavailable_for_file', 'Presentation preview is not available for this file.'));
-        }
-        ssDocument = doc;
-        ssSlideCount = count;
     }
 
     function _showSlideshowControls() {
@@ -2583,8 +2080,8 @@
         ssSourceController = controller;
         if (!ssOpen) ssPreviouslyFocused = options.returnFocus || document.activeElement;
         ssOpen = true;
+        _setInteractivePreviewVisibility(false);
         ssNavigationToken += 1;
-        ssDocument = null;
         ssSlideCount = 0;
         ssIndex = Math.max(0, Number(options.slideIndex ?? slidePresentationCurrentIndex) || 0);
         clearTimeout(ssRuntimeReadyTimer);
@@ -2618,13 +2115,12 @@
                 _mountInteractiveSlideshow(payload, loadToken);
                 return;
             }
-            const html = _slideHtmlDoc(slidePresentationSlides.filter(Boolean).join(''));
-            _prepareSlideshowDocument(html);
-            if (ssLoaderBar) ssLoaderBar.style.width = '100%';
-            if (ssLoaderCount) ssLoaderCount.textContent = `${ssSlideCount} / ${ssSlideCount}`;
-            _buildProgressDots();
-            _ssGoTo(ssIndex);
-            _hideSlideshowControlsImmediately();
+            const payload = await _editorFetchJson('/api/v1/presentations/preview', {
+                method: 'POST', body: JSON.stringify({ html: _previewSourceHtml, slide_index: Math.min(ssIndex, 49) }),
+                signal: controller.signal,
+            });
+            if (!ssOpen || loadToken !== ssLoadToken) return;
+            _mountInteractiveSlideshow(payload, loadToken);
         } catch (error) {
             if (!ssOpen || loadToken !== ssLoadToken) return;
             closeSlideshow();
@@ -2636,6 +2132,7 @@
 
     function closeSlideshow() {
         ssOpen = false;
+        _setInteractivePreviewVisibility(slidePresentationPreviewVisible);
         ssNavigationToken += 1;
         if (ssOverlay) {
             ssOverlay.classList.remove('open');
@@ -2654,7 +2151,6 @@
         ssRuntimeFrame = null;
         ssRuntimeChannel = null;
         ssViewport?.replaceChildren();
-        ssDocument = null;
         ssSlideCount = 0;
         _hideSlideshowControlsImmediately();
         if (ssOverlay && document.fullscreenElement === ssOverlay) document.exitFullscreen().catch(() => {});
@@ -2768,14 +2264,14 @@
                     updatePreviewStatus(
                         phase === 'refining'
                             ? t('slide_presentation_reviewing', 'Reviewing visual quality…')
-                            : t('slide_presentation_rendering', 'Rendering slide previews…'),
+                            : t('slide_presentation_rendering', 'Preparing downloads…'),
                         false,
                         phase === 'refining' ? 'refining' : 'rendering'
                     );
                     _updateGeneratingCard({
                         subtitle: phase === 'refining'
                             ? t('slide_presentation_reviewing', 'Reviewing visual quality…')
-                            : t('slide_presentation_rendering', 'Rendering slide previews…'),
+                            : t('slide_presentation_rendering', 'Preparing downloads…'),
                     });
                 }
                 break;
@@ -2799,58 +2295,38 @@
                 if (data.title && previewTitle) previewTitle.textContent = data.title;
                 _setGenPhase('finalizing');
                 updatePreviewStatus(
-                    t('slide_presentation_draft_ready_rendering', 'Draft ready · rendering accurate previews…'),
+                    t('slide_presentation_draft_ready_rendering', 'Draft ready · preparing downloads…'),
                     false,
                     'rendering'
                 );
                 _updateGeneratingCard({
                     title: data.title,
-                    subtitle: t('slide_presentation_draft_ready_rendering', 'Draft ready · rendering accurate previews…'),
+                    subtitle: t('slide_presentation_draft_ready_rendering', 'Draft ready · preparing downloads…'),
                 });
                 break;
             }
 
-            case 'revision_ready': {
-                const presId = data.presentation_id;
-                const count = data.count || 0;
-                const revision = Number(data.revision) || 0;
-                if (presId && count > 0 && revision > slidePresentationRenderedRevision) {
-                    slidePresentationPresentationId = presId;
-                    _loadSlideImages(presId, count, revision, { draft: true })
-                        .catch(err => console.warn('Could not load provisional slide revision', err));
-                }
+            case 'html_snapshot':
+                _beginGenerationPreview(data.title || t('slide_presentation_default_title', 'Presentation'));
+                _queueInteractivePreview(data.html || '');
                 break;
-            }
 
-            case 'slide_images': {
+            case 'revision_ready':
+            case 'slide_images': { // Compatibility with older worker events; never fetch images.
                 const presId = data.presentation_id;
-                const count = data.count || 0;
-                if (presId && count > 0) {
+                if (presId) {
                     slidePresentationPresentationId = presId;
-                    _loadSlideImages(presId, count, Number(data.revision) || 0, {
-                        forceRebuild: _slideItems.length !== count,
-                        preserveIndex: slidePresentationCurrentIndex,
-                    })
-                        .then((loaded) => {
-                            if (loaded || String(slidePresentationPresentationId || '') !== String(presId)) return;
-                            updatePreviewStatus(
-                                t('slide_presentation_rendering_failed', 'Rendering failed'),
-                                false
-                            );
-                        })
-                        .catch(err => {
-                            if (String(slidePresentationPresentationId || '') !== String(presId)) return;
-                            updatePreviewStatus(
-                                t('slide_presentation_rendering_failed', 'Rendering failed'),
-                                false
-                            );
-                            console.error('Failed to load slide images', err);
-                        });
+                    slidePresentationRenderedRevision = Number(data.revision) || 0;
+                    _refreshPreviewSource(presId).catch(error => console.warn('Could not refresh presentation HTML', error));
                 }
                 break;
             }
 
             case 'complete':
+                if (data.presentation_id) {
+                    slidePresentationPresentationId = data.presentation_id;
+                    _refreshPreviewSource(data.presentation_id).catch(error => console.warn('Could not refresh presentation HTML', error));
+                }
                 completePreview(data.file_id, data.presentation_id, data.title, data.slide_count, data.operation || 'created');
                 _addCompletionCard(messageId, data);
                 _setAssistantMessageListVisible(_activeMessageId || messageId, true);
@@ -2897,102 +2373,12 @@
                 _rescaleAllSlideItems();
                 _updateThumbnails();
             });
-        } else if (slidePresentationSlideImages.length > 0) {
-            _restorePreviewFromImages(true);
         }
     }
 
     // ══════════════════════════════════════════════════════════════════════
     // History Restore — render slide_presentation_result block saved in DB
     // ══════════════════════════════════════════════════════════════════════
-
-    /**
-     * Populate the preview panel with image-only slide items (no HTML needed).
-     * Used when restoring from history where only images are available.
-     */
-    function _restorePreviewFromImages(autoShow = false, options = {}) {
-        if (!slidePresentationSlideImages.length) return;
-        
-        // Only restore if we have a valid presentation context
-        if (!slidePresentationFileId && !slidePresentationPresentationId) {
-            console.warn('Attempting to restore slide images without presentation context');
-            return;
-        }
-
-        slidePresentationSlides = slidePresentationSlideImages.map(() => '');
-        const preservedIndex = Math.max(0, Math.min(
-            Number(options.preserveIndex) || 0,
-            slidePresentationSlideImages.length - 1,
-        ));
-        slidePresentationCurrentIndex = preservedIndex;
-        _slideItems = [];
-        _destroySlideObserver();
-
-        if (previewThumbnails) previewThumbnails.innerHTML = '';
-        if (previewSlidesTrack) previewSlidesTrack.innerHTML = '';
-        if (previewGenerating) previewGenerating.classList.add('hidden');
-        if (previewNav) previewNav.classList.add('visible');
-        if (previewSidebarToggle) previewSidebarToggle.disabled = false;
-        _syncPreviewSidebarToggleState();
-        if (previewPresent) previewPresent.disabled = false;
-
-        slidePresentationSlideImages.forEach((url, idx) => {
-            // Main track item
-            const item = document.createElement('div');
-            item.className = 'slide-presentation-preview-slide-item';
-            item.dataset.slideIndex = idx;
-
-            const img = url ? document.createElement('img') : null;
-            if (img) {
-                img.src = url;
-                img.alt = tf('slide_presentation_slide_number', 'Slide {number}', { number: idx + 1 });
-                item.appendChild(img);
-            } else {
-                const placeholder = document.createElement('div');
-                placeholder.className = 'slide-presentation-preview-image-placeholder';
-                placeholder.textContent = tf('slide_presentation_slide_number', 'Slide {number}', { number: idx + 1 });
-                item.appendChild(placeholder);
-            }
-            previewSlidesTrack.appendChild(item);
-            _slideItems.push(item);
-
-            // Thumbnail
-            if (previewThumbnails) {
-                const thumb = document.createElement('button');
-                thumb.type = 'button';
-                thumb.className = 'slide-presentation-preview-thumbnail';
-                thumb.dataset.slideIndex = idx;
-                thumb.setAttribute('aria-label', tf('slide_presentation_slide_number', 'Slide {number}', { number: idx + 1 }));
-                if (url) {
-                    const tImg = document.createElement('img');
-                    tImg.src = url;
-                    tImg.alt = tf('slide_presentation_slide_number', 'Slide {number}', { number: idx + 1 });
-                    thumb.appendChild(tImg);
-                } else {
-                    const placeholder = document.createElement('div');
-                    placeholder.className = 'slide-presentation-preview-image-placeholder';
-                    placeholder.textContent = String(idx + 1);
-                    thumb.appendChild(placeholder);
-                }
-                thumb.addEventListener('click', () => {
-                    _goToSlide(idx);
-                });
-                previewThumbnails.appendChild(thumb);
-            }
-        });
-
-        _buildSlideObserver();
-        _setCurrentSlideIndex(preservedIndex, { ensureThumbnailVisible: false });
-        requestAnimationFrame(() => _scrollTrackToSlide(preservedIndex, 'auto'));
-
-        if (autoShow || slidePresentationPreviewVisible) {
-            _setPanelVisible(true);
-            requestAnimationFrame(() => {
-                _rescaleAllSlideItems();
-                _updateThumbnails();
-            });
-        }
-    }
 
     /**
      * Called from chats.js when rendering a saved slide_presentation_result block.
@@ -3067,30 +2453,12 @@
                 `/api/v1/presentations/${encodeURIComponent(presentationId)}/editor`
             );
             if (!_isEditorPreviewRefreshCurrent(contextToken, presentationId)) return;
-            const doc = new DOMParser().parseFromString(String(payload.html || ''), 'text/html');
-            const slides = [...doc.querySelectorAll('section.slide')];
-            if (!slides.length || slides.length > 50) {
-                throw new Error(t('slide_presentation_preview_unavailable_for_file', 'Presentation preview is not available for this file.'));
-            }
-            slidePresentationStyles = [...doc.querySelectorAll('style')].map(style => style.textContent).join('\n');
-            slidePresentationSlides = slides.map(slide => slide.outerHTML);
-            slidePresentationSlides.forEach((html, index) => {
-                _appendSlideItem(html, index);
-                _appendThumbnail(html, index);
-            });
-            previewGenerating?.classList.add('hidden');
-            previewNav?.classList.add('visible');
-            if (previewSidebarToggle) previewSidebarToggle.disabled = false;
-            _buildSlideObserver();
-            _setCurrentSlideIndex(0);
-            const slideCount = slides.length;
+            await _renderInteractivePreview(String(payload.html || ''));
+            if (!_isEditorPreviewRefreshCurrent(contextToken, presentationId)) return;
+            const slideCount = slidePresentationSlides.length;
+            slidePresentationRenderedRevision = Number(payload.render_revision) || 0;
             completePreview(payload.file_id || fileId || null, presentationId, payload.title || title, slideCount, context.operation || 'created');
             _refreshStoredPresentationContext({ ...context, slideCount });
-
-            // Images improve the sidebar and thumbnails, but are not a prerequisite
-            // for opening a saved presentation or presenting its HTML.
-            _loadSlideImages(presentationId, slideCount, Number(payload.render_revision) || 0)
-                .catch(error => console.warn('[slide-presentation] Could not refresh preview images', error));
         } catch (error) {
             if (!_isEditorPreviewRefreshCurrent(contextToken, presentationId)) return;
             hidePreviewPanel();

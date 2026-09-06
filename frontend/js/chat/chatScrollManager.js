@@ -8,8 +8,8 @@
  * soon as direct user intent is detected.
  */
 const ChatScrollManager = (() => {
-    const VIEWPORT_SELECTOR = '.chat-area, .split-chat-area, .subagent-modal-scroll';
-    const CONTAINER_SELECTOR = '.chat-area-container, .split-chat-area-container, .subagent-modal-chat';
+    const VIEWPORT_SELECTOR = '.chat-area, .split-chat-area, .subagent-transcript-scroll';
+    const CONTAINER_SELECTOR = '.chat-area-container, .split-chat-area-container, .subagent-transcript-chat';
     const PRESERVE_THRESHOLD = 80;
     const AUTO_FOLLOW_THRESHOLD = 100;
     const AUTO_FOLLOW_RESUME_THRESHOLD = 2;

@@ -14,6 +14,8 @@ Complete the shared [Tool Rollout Checklist](0_tool_rollout.md), then apply the 
 
 Delegation is an additional generation with its own provider, cost, context, instructions, tools, and data destinations. The delegated target must not gain access merely because the parent can use it. Review both targets' group access and tools.
 
+The model-facing tool exposes two actions: `list_targets` lists all authorized chat models and saved Agents, and `run` starts a selected target by its returned ID. Discovery has no name, task, or target-kind filter. It returns at most 50 targets per page; follow `next_cursor` until it is null to inspect the complete catalog. User-selected target restrictions and model/Agent access checks apply to every page and to execution. The legacy `list_models` action remains accepted for older conversations but is no longer advertised to models. Historical discovery query/type fields are ignored.
+
 At most six Subagent calls can run concurrently for one parent generation. A direct-model prompt or saved-Agent task is limited to 50,000 characters, as is the optional extra context. The full parent chat up to the call point is already supplied, so do not duplicate it in the context field.
 
 The delegated model uses its own saved tools, not the parent's runtime tool overrides. Its **Subagent** tool is always removed, which prevents recursive delegation. A saved Agent also receives its own instructions, Skills, and accessible reference assets. If no targets appear, check target access, active status, the 20-target user selection, allowlists, and the user's effective groups.

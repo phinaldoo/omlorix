@@ -64,11 +64,22 @@ class GenerationEngine:
         from app.llm.provider_request import release_db_session_before_provider_io
 
         if self.session:
-            self.session.prepare_request(effect.kwargs)
+            self.session.prepare_request(effect.kwargs, protocol=effect.protocol)
         try:
-            self.context.prepare(
-                effect.kwargs, settings=effect.settings, protocol=effect.protocol
-            )
+            try:
+                self.context.prepare(
+                    effect.kwargs, settings=effect.settings, protocol=effect.protocol
+                )
+            except ContextBudgetExceeded:
+                if not self.session or not self.session.prune_obsolete_attachments(
+                    effect.kwargs
+                ):
+                    raise
+                # Retry local budgeting only, not the provider or final-turn
+                # guard. Brief, tool pairs and current images remain required.
+                self.context.prepare(
+                    effect.kwargs, settings=effect.settings, protocol=effect.protocol
+                )
         except ContextBudgetExceeded:
             self.context_error = True
             raise

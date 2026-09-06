@@ -322,7 +322,8 @@ test('all space-reserving artifact previews use the shared temporary-collapse li
         'utf8',
     );
 
-    assert.match(canvasSource, /setMainSidebarAutoCollapsed\('canvas-preview', previewVisible\)/);
+    const panelSource = fs.readFileSync(path.join(__dirname, 'chatWorkspace.js'), 'utf8');
+    assert.match(panelSource, /setMainSidebarAutoCollapsed\?\.\('canvas-preview', visible\)/);
     assert.match(notesSource, /setMainSidebarAutoCollapsed\('notes-preview', state\.isVisible\)/);
     assert.match(presentationSource, /setMainSidebarAutoCollapsed\('slide-presentation-preview', visible\)/);
     assert.match(
@@ -335,7 +336,7 @@ test('all space-reserving artifact previews use the shared temporary-collapse li
     );
     assert.match(sidebarSource, /function closeOtherArtifactPreviews\(activeSource\)/);
     assert.match(sidebarSource, /\['canvas-preview',[\s\S]*\['slide-presentation-preview'/);
-    assert.match(canvasSource, /closeOtherArtifactPreviews\('canvas-preview'\)/);
+    assert.match(panelSource, /closeOtherArtifactPreviews\?\.\('canvas-preview'\)/);
     assert.match(presentationSource, /closeOtherArtifactPreviews\('slide-presentation-preview'\)/);
 
     const exitOverlayStart = sidebarSource.indexOf('    } else {', sidebarSource.indexOf('function updateSidebarMode()'));

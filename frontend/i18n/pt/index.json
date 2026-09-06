@@ -3416,7 +3416,7 @@
   "slide_presentation_phase_finalizing": "A finalizar",
   "slide_presentation_preparing": "A preparar a apresentação…",
   "slide_presentation_preparing_styles": "A preparar estilos",
-  "slide_presentation_draft_ready_rendering": "Rascunho pronto · a renderizar pré-visualizações precisas…",
+  "slide_presentation_draft_ready_rendering": "Rascunho pronto · preparando os downloads…",
   "slide_presentation_polishing_warning": "Rascunho pronto · o aperfeiçoamento automático parou",
   "slide_presentation_present": "Apresentar",
   "slide_presentation_previous_slide_aria": "Diapositivo anterior",
@@ -3429,7 +3429,7 @@
   "slide_presentation_default_title": "Apresentação",
   "slide_presentation_complete": "Concluído",
   "slide_presentation_reviewing": "A rever",
-  "slide_presentation_rendering": "A renderizar pré-visualizações dos diapositivos",
+  "slide_presentation_rendering": "Preparando os downloads…",
   "slide_presentation_generating_slide": "A gerar o diapositivo {number}",
   "slide_presentation_go_to_slide": "Ir para o diapositivo {number}",
   "slide_presentation_slideshow_dialog_aria": "Apresentação de diapositivos",
@@ -4767,5 +4767,12 @@
   "workspace_memories_stability_changing": "Variável",
   "workspace_memories_stability_ephemeral": "Curta duração",
   "workspace_memories_expires": "Expira em {date}",
-  "workspace_memories_error_load_profile": "Não foi possível carregar o perfil de memória"
+  "workspace_memories_error_load_profile": "Não foi possível carregar o perfil de memória",
+  "chat_workspace_title": "Detalhes da conversa",
+  "chat_workspace_tabs": "Visualizações abertas",
+  "chat_workspace_resize": "Redimensionar o painel de detalhes",
+  "chat_workspace_back": "Voltar à conversa",
+  "chat_workspace_close": "Ocultar painel de detalhes",
+  "chat_workspace_hide": "Ocultar",
+  "subagent_tab_label": "{name} · {number}"
 }

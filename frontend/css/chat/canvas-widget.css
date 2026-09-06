@@ -824,6 +824,17 @@ body.canvas-markdown-preview-resizing .canvas-pdf-document-viewer {
     font-family: inherit;
 }
 
+.canvas-markdown-result-open-btn:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .canvas-markdown-result-open-btn {
+        transition: none;
+    }
+}
+
 @media (hover: hover) and (pointer: fine) {
     .canvas-markdown-result-open-btn:hover {
         opacity: 0.85;

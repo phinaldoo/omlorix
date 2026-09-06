@@ -17,6 +17,7 @@ from app.tools.slide_presentation.models import PresentationPlaybackDocument
 from app.files.storage.local import LocalUserFileStorageAdapter
 from app.tools.slide_presentation.sanitizer import sanitize_slide_presentation_html, validate_slide_presentation_html
 from app.tools.slide_presentation.schemas import SlidePresentationPlaybackRequest
+from app.tools.slide_presentation.schemas import SlidePresentationPreviewRequest
 
 DECK = '''<!DOCTYPE html><html lang="en" data-omlorix-interactive="1"><head>
 <meta name="omlorix-connect-src" content="https://api.example.org https://127.0.0.1 https://app.example.org">
@@ -27,6 +28,34 @@ DECK = '''<!DOCTYPE html><html lang="en" data-omlorix-interactive="1"><head>
 <iframe title="Example" src="https://embed.example.org/page" sandbox="allow-same-origin allow-scripts"></iframe>
 <template data-slide-snapshot><h1>Quiz summary</h1><p>The answer is 42.</p></template>
 </section><script>window.quizValue = 42;</script></body></html>'''
+
+
+def test_streamed_preview_is_isolated_and_drops_unfinished_scripts():
+    partial = DECK.split('<script>')[0] + '<script>window.unfinished = '
+    result = router.create_presentation_preview(
+        SlidePresentationPreviewRequest(html=partial),
+        SimpleNamespace(base_url='https://app.example.org/'),
+        user=SimpleNamespace(id='preview-owner'),
+    )
+    frame = widget_frames.get_widget_frame_payload(result['frame_id'])
+    html = frame['path'].read_text()
+    assert 'window.unfinished' not in html
+    assert '<button' in html and 'startPresentation' in html
+    assert result['slide_count'] == 1
+    assert 'sandbox allow-scripts' in frame['headers']['Content-Security-Policy']
+    assert 'allow-same-origin' not in frame['headers']['Content-Security-Policy']
+    assert playback.prepare_preview_source(DECK).count('<!DOCTYPE html>') == 1
+
+
+def test_empty_streamed_preview_rejects_without_creating_artifacts(monkeypatch):
+    monkeypatch.setattr(playback, 'store_isolated_frame_document', lambda **_: pytest.fail('Invalid drafts must not be stored'))
+    with pytest.raises(HTTPException) as exc:
+        router.create_presentation_preview(
+            SlidePresentationPreviewRequest(html='<html><head>'),
+            SimpleNamespace(base_url='https://app.example.org/'),
+            user=SimpleNamespace(id='preview-owner'),
+        )
+    assert exc.value.status_code == 400
 
 
 @pytest.fixture(autouse=True)

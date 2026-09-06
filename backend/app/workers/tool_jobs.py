@@ -27,6 +27,7 @@ from app.workers.models import (
     utcnow,
 )
 from app.workers.runtime import FatalJobError, JobCancelled, WorkerContext
+from app.tools.errors import SubagentToolExecutionError
 
 
 MEDIA_TOOL_NAMES = frozenset(
@@ -161,6 +162,8 @@ def _wait_for_tool_job(
             if row.status in (JOB_FAILED, JOB_CANCELLED):
                 if row.status == JOB_CANCELLED:
                     raise JobCancelled()
+                if row.error_code == "subagent_tool_failed":
+                    raise SubagentToolExecutionError()
                 raise WorkerJobFailed(str(row.error_code or "tool_execution_failed"), status=row.status)
             if generation_id and cancel_registry.is_cancelled(generation_id):
                 request_worker_job_cancellation(session, job_id=job.id, commit=True)
@@ -323,5 +326,7 @@ def execute_tool_job(job: WorkerJobSnapshot, context: WorkerContext) -> dict[str
             "events": events,
             "streamed": publish_live,
         }
+    except SubagentToolExecutionError as exc:
+        raise FatalJobError(exc.code) from exc
     finally:
         session.close()

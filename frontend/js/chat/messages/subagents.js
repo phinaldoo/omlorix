@@ -12,7 +12,6 @@ function getSubagentText(key, fallback, vars = null) {
 }
 
 const subagentRunStates = new Map();
-let activeSubagentModalState = null;
 
 function getSubagentStatusText(status) {
     const rawStatus = String(status || '').toLowerCase();
@@ -30,26 +29,13 @@ function getSubagentStatusText(status) {
 function releaseSubagentStateView(state) {
     if (!state) return;
 
-    const overlay = state.modalOverlay;
-    if (state.modalCloseTimer) {
-        window.clearTimeout(state.modalCloseTimer);
-        state.modalCloseTimer = null;
-    }
-    if (overlay?.isConnected) {
-        overlay.remove();
-        if (!document.querySelector('.subagent-modal-overlay')) {
-            document.body?.classList.remove('modal-open');
-        }
-    }
-    if (activeSubagentModalState === state) {
-        activeSubagentModalState = null;
-    }
-
+    window.ChatWorkspace?.remove(`subagent:${state.runId}`);
+    window.ChatScrollManager?.endStream?.(state.transcriptScroll);
     state.launcher = null;
-    state.modalOverlay = null;
-    state.modalDialog = null;
-    state.modalChat = null;
-    state.modalLastFocusedElement = null;
+    state.transcriptPanel = null;
+    state.transcriptScroll = null;
+    state.transcriptChat = null;
+    state.renderedEventCount = 0;
 }
 
 /**
@@ -132,11 +118,12 @@ function getSubagentState(
             modelId: '',
             agentId: '',
             launcher: null,
-            modalOverlay: null,
-            modalDialog: null,
-            modalChat: null,
-            modalLastFocusedElement: null,
-            modalCloseTimer: null,
+            transcriptPanel: null,
+            transcriptScroll: null,
+            scrollTop: 0,
+            autoFollow: true,
+            renderedEventCount: 0,
+            transcriptChat: null,
             assistantContentCount: 0,
             assistantReasoningCount: 0,
             lastAppendedMessageType: '',
@@ -177,15 +164,24 @@ function getSubagentTitleText(state) {
 
 function updateSubagentLauncher(state) {
     if (!state?.launcher) return;
-    const title = state.launcher.querySelector('.subagent-launcher-title');
-    const status = state.launcher.querySelector('.subagent-launcher-status');
+    const title = state.launcher.querySelector('.canvas-markdown-result-title');
+    const status = state.launcher.querySelector('.canvas-markdown-result-sub');
+    const button = state.launcher.querySelector('.canvas-markdown-result-open-btn');
+    const selected = window.ChatWorkspace?.isSelected(`subagent:${state.runId}`) || false;
+    const titleText = getSubagentTitleText(state);
     const statusText = getSubagentStatusText(state.status);
-
-    state.launcher.classList.toggle('is-completed', String(state.status).toLowerCase() === 'completed');
-    state.launcher.classList.toggle('is-error', ['error', 'failed', 'cancelled'].includes(String(state.status).toLowerCase()));
-    state.launcher.setAttribute('aria-label', getSubagentText('subagent_open_aria', 'Open Subagent transcript'));
-    if (title) title.textContent = getSubagentTitleText(state);
-    if (status) status.textContent = statusText;
+    const actionText = selected
+        ? getSubagentText('subagent_modal_close', 'Close Subagent transcript')
+        : getSubagentText('subagent_open_aria', 'Open Subagent transcript');
+    button.setAttribute('aria-expanded', String(selected));
+    button.setAttribute('aria-controls', 'chat-workspace-panel');
+    button.setAttribute('aria-label', `${actionText}: ${titleText} (${statusText})`);
+    button.querySelector('.canvas-markdown-result-open-label').textContent = selected
+        ? getSubagentText('chat_workspace_hide', 'Hide')
+        : getSubagentText('subagent_open_button', 'Open');
+    title.textContent = titleText;
+    title.title = titleText;
+    status.textContent = statusText;
 }
 
 function ensureSubagentLauncher(messageId, runId, { meta = null } = {}) {
@@ -208,52 +204,19 @@ function ensureSubagentLauncher(messageId, runId, { meta = null } = {}) {
         finalizeThinkingBlocks(assistantContainer);
     }
 
-    const launcher = document.createElement('button');
-    launcher.type = 'button';
-    launcher.className = 'subagent-launcher';
+    const launcher = document.createElement('div');
+    launcher.className = 'assistant-widget subagent-launcher';
     launcher.dataset.runId = state.runId;
-
-    const icon = document.createElement('span');
-    icon.className = 'subagent-launcher-icon';
-    icon.innerHTML = Icons.sparkle;
-    launcher.appendChild(icon);
-
-    const text = document.createElement('span');
-    text.className = 'subagent-launcher-text';
-
-    const title = document.createElement('span');
-    title.className = 'subagent-launcher-title';
-    text.appendChild(title);
-
-    const metaRow = document.createElement('span');
-    metaRow.className = 'subagent-launcher-meta';
-
-    const status = document.createElement('span');
-    status.className = 'subagent-launcher-status';
-    metaRow.appendChild(status);
-
-    text.appendChild(metaRow);
-    launcher.appendChild(text);
-
-    const expand = document.createElement('span');
-    expand.className = 'subagent-launcher-expand';
-    const expandLabel = document.createElement('span');
-    expandLabel.textContent = getSubagentText('subagent_open_button', 'Open');
-    expand.appendChild(expandLabel);
-
-    // Keep the decorative arrow sourced from the shared icon registry so the
-    // launcher stays visually consistent with the rest of the chat interface.
-    const expandIcon = document.createElement('span');
-    expandIcon.className = 'subagent-launcher-expand-icon';
-    expandIcon.setAttribute('aria-hidden', 'true');
-    expandIcon.innerHTML = Icons?.arrow_right || '';
-    expand.appendChild(expandIcon);
-    launcher.appendChild(expand);
-
-    launcher.addEventListener('click', () => openSubagentModal(state));
+    const card = window.ChatResultCard.create({
+        icon: Icons.sparkle,
+        openLabel: getSubagentText('subagent_open_button', 'Open'),
+    });
+    launcher.appendChild(card);
+    card.querySelector('.canvas-markdown-result-open-btn').addEventListener('click', () => toggleSubagentPanel(state));
 
     appendBeforeAssistantList(assistantContainer, launcher);
     state.launcher = launcher;
+    registerSubagentPanel(state);
     updateSubagentLauncher(state);
     return launcher;
 }
@@ -381,37 +344,37 @@ function refreshAssistantStatsForMessage(messageId) {
     appendAssistantDone(messageId, metadataPayload);
 }
 
-function resetSubagentModalRenderState(state) {
+function resetSubagentTranscriptRenderState(state) {
     if (!state) return;
     state.assistantContentCount = 0;
     state.assistantReasoningCount = 0;
     state.lastAppendedMessageType = '';
     state.tempReasoningTime = null;
     state.hasRenderedAssistantText = false;
-    if (state.modalChat) {
-        state.modalChat.innerHTML = '';
-        state.modalChat.dataset.isStreaming = String(state.status).toLowerCase() === 'running' ? 'true' : 'false';
-        state.modalChat.dataset.announceStreaming = 'false';
-        delete state.modalChat.dataset.smoothStreaming;
+    if (state.transcriptChat) {
+        state.transcriptChat.innerHTML = '';
+        state.transcriptChat.dataset.isStreaming = String(state.status).toLowerCase() === 'running' ? 'true' : 'false';
+        state.transcriptChat.dataset.announceStreaming = 'false';
+        delete state.transcriptChat.dataset.smoothStreaming;
     }
 }
 
 function renderSubagentEventAsChat(state, event, isLive = false) {
-    if (!state?.modalChat || !event) return;
+    if (!state?.transcriptChat || !event) return;
     const eventName = event.eventName || 'event';
     const data = event.data || {};
     const raw = data.raw && typeof data.raw === 'object' ? data.raw : {};
     const syntheticMessageId = state.syntheticMessageId;
 
-    if (isLive && state.modalChat.dataset.isStreaming === 'true') {
-        state.modalChat.dataset.smoothStreaming = 'true';
+    if (isLive && state.transcriptChat.dataset.isStreaming === 'true') {
+        state.transcriptChat.dataset.smoothStreaming = 'true';
     }
     if (
         eventName !== 'message_delta'
         && state.lastAppendedMessageType === 'c'
         && typeof flushAssistantStreamingContentForMessage === 'function'
     ) {
-        flushAssistantStreamingContentForMessage(syntheticMessageId, state.modalChat);
+        flushAssistantStreamingContentForMessage(syntheticMessageId, state.transcriptChat);
     }
 
     if (eventName === 'message_delta') {
@@ -483,7 +446,7 @@ function renderSubagentEventAsChat(state, event, isLive = false) {
             raw.widget_type ?? 'unknown',
             state.lastAppendedMessageType,
             raw.meta ?? null,
-            { autoOpen: isLive },
+            { autoOpen: false },
         );
         state.lastAppendedMessageType = 'wg';
         return;
@@ -492,8 +455,8 @@ function renderSubagentEventAsChat(state, event, isLive = false) {
     if (eventName === 'error') {
         appendAssistantError(syntheticMessageId, data.message || data.content || getSubagentText('subagent_status_error', 'Error'), state.lastAppendedMessageType);
         state.lastAppendedMessageType = 'error';
-        state.modalChat.dataset.isStreaming = 'false';
-        finalizeStreamingMarkdownInContainer(state.modalChat);
+        state.transcriptChat.dataset.isStreaming = 'false';
+        finalizeStreamingMarkdownInContainer(state.transcriptChat);
         return;
     }
 
@@ -511,29 +474,29 @@ function renderSubagentEventAsChat(state, event, isLive = false) {
             state.lastAppendedMessageType = 'c';
             state.hasRenderedAssistantText = true;
         }
-        finalizeThinkingBlocks(state.modalChat);
-        state.modalChat.dataset.isStreaming = 'false';
-        finalizeStreamingMarkdownInContainer(state.modalChat);
+        finalizeThinkingBlocks(state.transcriptChat);
+        state.transcriptChat.dataset.isStreaming = 'false';
+        finalizeStreamingMarkdownInContainer(state.transcriptChat);
         return;
     }
 
     if (eventName === 'cancelled') {
-        finalizeThinkingBlocks(state.modalChat);
-        state.modalChat.dataset.isStreaming = 'false';
-        finalizeStreamingMarkdownInContainer(state.modalChat);
+        finalizeThinkingBlocks(state.transcriptChat);
+        state.transcriptChat.dataset.isStreaming = 'false';
+        finalizeStreamingMarkdownInContainer(state.transcriptChat);
     }
 }
 
-function renderSubagentModalTranscriptUnpreserved(state) {
-    if (!state?.modalChat) return;
-    resetSubagentModalRenderState(state);
+function renderSubagentTranscriptUnpreserved(state) {
+    if (!state?.transcriptChat) return;
+    resetSubagentTranscriptRenderState(state);
 
     const renderableEvents = state.events.filter((event) => event.eventName !== 'start' && event.eventName !== 'stream' && event.eventName !== 'done');
     if (!renderableEvents.length) {
         const empty = document.createElement('div');
-        empty.className = 'subagent-modal-empty';
+        empty.className = 'subagent-transcript-empty';
         empty.textContent = getSubagentText('subagent_modal_empty', 'The Subagent has not produced visible output yet.');
-        state.modalChat.appendChild(empty);
+        state.transcriptChat.appendChild(empty);
         return;
     }
 
@@ -541,192 +504,100 @@ function renderSubagentModalTranscriptUnpreserved(state) {
 }
 
 /** Rebuild a persisted transcript without moving a manually detached viewport. */
-function renderSubagentModalTranscript(state) {
-    if (!state?.modalChat) return;
+function renderSubagentTranscript(state) {
+    if (!state?.transcriptChat) return;
     const scrollManager = window.ChatScrollManager;
     if (scrollManager && typeof scrollManager.preserveDuringMutation === 'function') {
-        scrollManager.preserveDuringMutation(state.modalChat, () => renderSubagentModalTranscriptUnpreserved(state));
+        scrollManager.preserveDuringMutation(state.transcriptChat, () => renderSubagentTranscriptUnpreserved(state));
         return;
     }
-    renderSubagentModalTranscriptUnpreserved(state);
+    renderSubagentTranscriptUnpreserved(state);
 }
 
-function updateSubagentModalHeader(state) {
-    if (!state?.modalDialog) return;
-    const title = state.modalDialog.querySelector('.subagent-modal-title');
-    const status = state.modalDialog.querySelector('.subagent-modal-status');
-    if (title) title.textContent = getSubagentTitleText(state);
-    if (status) {
-        status.textContent = getSubagentStatusText(state.status);
-        status.classList.toggle('is-error', ['error', 'failed', 'cancelled'].includes(String(state.status).toLowerCase()));
-        status.classList.toggle('is-completed', String(state.status).toLowerCase() === 'completed');
-    }
-}
-
-function closeSubagentModal({ restoreFocus = true, state = activeSubagentModalState } = {}) {
-    if (!state?.modalOverlay) return;
-    const overlay = state.modalOverlay;
-    const scroll = state.modalDialog?.querySelector('.subagent-modal-scroll');
-    window.ChatScrollManager?.endStream?.(scroll);
-    overlay.inert = true;
-    overlay.setAttribute('aria-hidden', 'true');
-    overlay.classList.add('is-closing');
-    overlay.classList.remove('is-visible');
-    const focusTarget = state.modalLastFocusedElement;
-    if (state.modalCloseTimer) window.clearTimeout(state.modalCloseTimer);
-    state.modalCloseTimer = window.setTimeout(() => {
-        state.modalCloseTimer = null;
-        if (overlay.parentElement) overlay.remove();
-        if (!document.querySelector('.subagent-modal-overlay')) {
-            document.body.classList.remove('modal-open');
-        }
-        state.modalOverlay = null;
-        state.modalDialog = null;
-        state.modalChat = null;
-        state.modalLastFocusedElement = null;
-        if (activeSubagentModalState === state) {
-            activeSubagentModalState = null;
-        }
-        if (restoreFocus && focusTarget instanceof HTMLElement) {
-            focusTarget.focus();
-        }
-    }, shouldReduceMotionForStreamMessages() ? 0 : 160);
-}
-
-function trapSubagentModalFocus(event, dialog) {
-    if (event.key !== 'Tab' || !dialog) return;
-    const focusable = Array.from(dialog.querySelectorAll(
-        'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-    )).filter((element) => !element.hidden && element.getClientRects().length > 0);
-    if (!focusable.length) {
-        event.preventDefault();
-        dialog.focus({ preventScroll: true });
-        return;
-    }
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    if (event.shiftKey && (document.activeElement === first || !dialog.contains(document.activeElement))) {
-        event.preventDefault();
-        last.focus();
-    } else if (!event.shiftKey && (document.activeElement === last || !dialog.contains(document.activeElement))) {
-        event.preventDefault();
-        first.focus();
-    }
-}
-
-function openSubagentModal(state) {
-    if (!state) return;
-    if (state.modalOverlay?.isConnected) {
-        if (state.modalCloseTimer) {
-            window.clearTimeout(state.modalCloseTimer);
-            state.modalCloseTimer = null;
-        }
-        state.modalOverlay.inert = false;
-        state.modalOverlay.setAttribute('aria-hidden', 'false');
-        state.modalOverlay.classList.remove('is-closing');
-        state.modalOverlay.classList.add('is-visible');
-        updateSubagentModalHeader(state);
-        renderSubagentModalTranscript(state);
-        state.modalDialog?.querySelector('[data-subagent-close]')?.focus();
-        activeSubagentModalState = state;
-        return;
-    }
-    if (activeSubagentModalState && activeSubagentModalState !== state) {
-        closeSubagentModal({ restoreFocus: false, state: activeSubagentModalState });
-    }
-
-    const titleId = `subagent-modal-title-${state.runId}`;
-    const overlay = document.createElement('div');
-    overlay.className = 'subagent-modal-overlay shared-modal-overlay';
-    overlay.inert = true;
-    overlay.setAttribute('aria-hidden', 'true');
-    overlay.tabIndex = -1;
-    overlay.dataset.runId = state.runId;
-    overlay.addEventListener('click', (event) => {
-        if (event.target === overlay) closeSubagentModal();
+function registerSubagentPanel(state) {
+    state.tabNumber ||= Math.max(0, ...[...subagentRunStates.values()].map((item) => item.tabNumber || 0)) + 1;
+    window.ChatWorkspace.register({
+        id: `subagent:${state.runId}`,
+        tabbed: true,
+        label: () => {
+            return getSubagentText('subagent_tab_label', '{name} · {number}', {
+                name: getSubagentDisplayName(state) || getSubagentText('subagent_title', 'Subagent'),
+                number: state.tabNumber,
+            });
+        },
+        status: () => getSubagentStatusText(state.status),
+        create: () => {
+            const panel = document.createElement('section');
+            panel.className = 'subagent-transcript-panel';
+            const scroll = document.createElement('div');
+            scroll.className = 'subagent-transcript-scroll';
+            scroll.tabIndex = 0;
+            const chat = document.createElement('div');
+            chat.id = `a-${state.syntheticMessageId}`;
+            chat.className = 'assistant-message-container subagent-transcript-chat';
+            chat.dataset.referenceId = state.syntheticMessageId;
+            chat.dataset.announceStreaming = 'false';
+            scroll.appendChild(chat);
+            panel.append(scroll);
+            state.transcriptPanel = panel;
+            state.transcriptChat = chat;
+            state.transcriptScroll = scroll;
+            return panel;
+        },
+        onShow: () => {
+            // Replay only missed events. Keeping existing nodes preserves tool
+            // expansion, selections and the reading position across tab switches.
+            if (!state.renderedEventCount || state.transcriptChat.querySelector('.subagent-transcript-empty')) {
+                renderSubagentTranscript(state);
+            } else {
+                state.events.slice(state.renderedEventCount).forEach((event) => renderSubagentEventAsChat(state, event, false));
+            }
+            state.renderedEventCount = state.events.length;
+            state.transcriptScroll.scrollTop = state.scrollTop;
+            window.ChatScrollManager?.beginStream?.(state.transcriptScroll, { autoFollow: state.autoFollow });
+            if (state.autoFollow) {
+                if (!window.ChatScrollManager?.scrollToBottom?.(state.transcriptScroll)) {
+                    state.transcriptScroll.scrollTop = state.transcriptScroll.scrollHeight;
+                }
+            }
+        },
+        onHide: () => {
+            if (typeof flushAssistantStreamingContentForMessage === 'function') {
+                flushAssistantStreamingContentForMessage(state.syntheticMessageId, state.transcriptChat);
+            }
+            state.scrollTop = state.transcriptScroll.scrollTop;
+            state.autoFollow = window.ChatScrollManager?.isFollowing?.(state.transcriptScroll) ?? true;
+            window.ChatScrollManager?.endStream?.(state.transcriptScroll);
+        },
     });
-    overlay.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape') {
-            event.preventDefault();
-            closeSubagentModal();
-            return;
-        }
-        trapSubagentModalFocus(event, state.modalDialog);
-    });
+}
 
-    const dialog = document.createElement('div');
-    dialog.className = 'subagent-modal shared-modal shared-modal--large shared-modal--fixed';
-    dialog.setAttribute('role', 'dialog');
-    dialog.setAttribute('aria-modal', 'true');
-    dialog.setAttribute('aria-labelledby', titleId);
-    dialog.tabIndex = -1;
+function toggleSubagentPanel(state) {
+    const id = `subagent:${state.runId}`;
+    if (window.ChatWorkspace.isSelected(id)) window.ChatWorkspace.close();
+    else window.ChatWorkspace.show(id, { focus: true, trigger: state.launcher.querySelector('.canvas-markdown-result-open-btn') });
+}
 
-    const header = document.createElement('div');
-    header.className = 'subagent-modal-header shared-modal-header shared-modal-header--main';
+document.addEventListener('chatWorkspace:changed', () => {
+    subagentRunStates.forEach(updateSubagentLauncher);
+});
+document.addEventListener('i18n:updated', () => {
+    subagentRunStates.forEach(updateSubagentLauncher);
+});
 
-    const heading = document.createElement('div');
-    heading.className = 'subagent-modal-heading';
-    const icon = document.createElement('span');
-    icon.className = 'subagent-modal-icon';
-    icon.innerHTML = Icons?.sparkles || Icons?.bot || '';
-    heading.appendChild(icon);
-    const titleBlock = document.createElement('div');
-    titleBlock.className = 'subagent-modal-title-block';
-    const title = document.createElement('h2');
-    title.className = 'subagent-modal-title shared-modal-title';
-    title.id = titleId;
-    titleBlock.appendChild(title);
-    const status = document.createElement('span');
-    status.className = 'subagent-modal-status shared-modal-subtitle';
-    titleBlock.appendChild(status);
-    heading.appendChild(titleBlock);
-    header.appendChild(heading);
-
-    const closeButton = document.createElement('button');
-    closeButton.type = 'button';
-    closeButton.className = 'om-button shared-modal-close';
-    closeButton.setAttribute('data-subagent-close', '');
-    closeButton.setAttribute('aria-label', getSubagentText('subagent_modal_close', 'Close Subagent transcript'));
-    closeButton.innerHTML = Icons.close;
-    closeButton.addEventListener('click', () => closeSubagentModal());
-    header.appendChild(closeButton);
-    dialog.appendChild(header);
-
-    const scroll = document.createElement('div');
-    scroll.className = 'subagent-modal-scroll shared-modal-body';
-    const chat = document.createElement('div');
-    chat.id = `a-${state.syntheticMessageId}`;
-    chat.className = 'assistant-message-container subagent-modal-chat';
-    chat.dataset.referenceId = state.syntheticMessageId;
-    chat.dataset.announceStreaming = 'false';
-    scroll.appendChild(chat);
-    dialog.appendChild(scroll);
-
-    overlay.appendChild(dialog);
-    document.body.appendChild(overlay);
-    document.body.classList.add('modal-open');
-
-    state.modalOverlay = overlay;
-    state.modalDialog = dialog;
-    state.modalChat = chat;
-    state.modalLastFocusedElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    activeSubagentModalState = state;
-
-    // A newly opened live transcript intentionally starts in follow mode. Any
-    // wheel, touch, keyboard, or scrollbar gesture will detach it immediately.
-    window.ChatScrollManager?.beginStream?.(scroll, { autoFollow: true });
-
-    updateSubagentModalHeader(state);
-    renderSubagentModalTranscript(state);
-    requestAnimationFrame(() => {
-        overlay.inert = false;
-        overlay.setAttribute('aria-hidden', 'false');
-        overlay.classList.add('is-visible');
-        closeButton.focus();
-        if (!window.ChatScrollManager?.scrollToBottom?.(scroll)) {
-            scroll.scrollTop = scroll.scrollHeight;
-        }
-    });
+// Transcript replacement, deletion, and split-screen navigation can all detach
+// launchers. Remove their views after synchronous optimistic-ID rebinding ends.
+if (typeof MutationObserver !== 'undefined') {
+    new MutationObserver((mutations) => {
+        const removedLaunchers = mutations.some((mutation) => [...mutation.removedNodes].some((node) =>
+            node.nodeType === 1 && (node.matches('.subagent-launcher') || node.querySelector('.subagent-launcher'))));
+        if (!removedLaunchers) return;
+        subagentRunStates.forEach((state, id) => {
+            if (state.launcher?.isConnected) return;
+            releaseSubagentStateView(state);
+            subagentRunStates.delete(id);
+        });
+    }).observe(document.body, { childList: true, subtree: true });
 }
 
 function handleSubagentStreamEvent(obj, messageId) {
@@ -743,18 +614,20 @@ function handleSubagentStreamEvent(obj, messageId) {
     ensureSubagentLauncher(messageId, runId, { meta: data });
     state.events.push(normalizeSubagentEvent(eventName, data));
     updateSubagentLauncher(state);
-    updateSubagentModalHeader(state);
-    if (state.modalChat) {
-        if (state.modalChat.querySelector('.subagent-modal-empty')) {
-            renderSubagentModalTranscript(state);
+    if (state.transcriptChat && window.ChatWorkspace.isSelected(`subagent:${state.runId}`)) {
+        if (state.transcriptChat.querySelector('.subagent-transcript-empty')) {
+            renderSubagentTranscript(state);
         } else {
             renderSubagentEventAsChat(state, state.events[state.events.length - 1], true);
-            const scroll = state.modalDialog?.querySelector('.subagent-modal-scroll');
+            const scroll = state.transcriptPanel?.querySelector('.subagent-transcript-scroll');
             if (scroll) {
                 window.ChatScrollManager?.scheduleFollow?.(scroll);
             }
         }
     }
+    state.renderedEventCount = state.transcriptChat && window.ChatWorkspace.isSelected(`subagent:${state.runId}`)
+        ? state.events.length : state.renderedEventCount;
+    window.ChatWorkspace.update(`subagent:${state.runId}`);
     refreshAssistantStatsForMessage(messageId);
 }
 

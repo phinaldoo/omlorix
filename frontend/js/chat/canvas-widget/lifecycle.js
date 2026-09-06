@@ -6,15 +6,15 @@
     function initializeLifecycle(deps, state) {
         const {
             SPREADSHEET_CONTENT_TYPES, applyPreviewWidthRatio, applyShareMode, autoSaveTimers,
-            beginPreviewResize, buildFileDownloadUrl, canvasFileIds, canvasToolCallKeysByMessage,
+            buildFileDownloadUrl, canvasFileIds, canvasToolCallKeysByMessage,
             chatArea, clearHtmlExternalResourcePromptTimer, clearHtmlRenderTimer, clearMarkdownStreamingRenderSchedule,
             closeHtmlExternalResourceModal, closeShareModal, copyRawCanvasContent, copyShareUrl,
             createShareLink, deleteShareLink, destroyActiveMarkdownEditor, destroyActiveSpreadsheetEditor,
-            draftEditStateMap, draftMap, draftScrollStates, endPreviewResize,
+            draftEditStateMap, draftMap, draftScrollStates,
             enterShareCreateMode, enterShareEditMode, enterShareListMode, filePreviewLoadTokens,
             getDefaultShareExpiryIso, getDraftEditState, getHtmlExternalResources, getHtmlPreviewPermissions,
             getHtmlSettingsMenuItems, getPreviewWidthBounds, getRenderableContentForDraft, getShareLinkById,
-            handleCanvasEvent, handlePreviewResizerKeydown, handleStreamEnd, handleToolCallDeltaEvent,
+            handleCanvasEvent, handleStreamEnd, handleToolCallDeltaEvent,
             handleToolCallEvent, hasCurrentLatexPdf, hasHtmlFileExtension, hidePreviewPanel,
             hideReferenceToolbar, hideShareExpiryError, hideSharePasswordError, htmlExternalContentBtn,
             htmlExternalResourceAllowBtn, htmlExternalResourceDenyBtn, htmlExternalResourceOverlay, htmlExternalResourcePromptTimers,
@@ -24,7 +24,7 @@
             notifyShareError, openLatexPdfPreview, openPreviewForFile, openShareDialogForFile,
             openShareModal, previewClose, previewCopyBtn,
             previewDownload, previewDownloadFormat, previewPanel, previewRenderTimers,
-            previewResizer, previewRevertBtn, previewSaveBtn, previewShareBtn,
+            previewRevertBtn, previewSaveBtn, previewShareBtn,
             previewStatus, previewTitle, previewTrack, refreshExistingShareLinksForButton,
             refreshReferenceSelectionState, refreshWidgetOpenButtonStates, registerCanvasFile, reloadHtmlPreview,
             renderHTMLPreviewInto, renderHtmlCanvasPngBlob, renderSavedWidgetFromFile, requestActivePreview,
@@ -37,7 +37,7 @@
             sharePasswordContent, sharePasswordInput, sharePasswordToggle, sharePrimaryBtn,
             shareSecondaryBtn, showLatexPdfStatus, showSharePasswordError, t,
             terminalCanvasToolCallKeys, toLocalDateTimeValue, trapFocus, updateCopyButtonState,
-            updateEditorActionButtons, updateHtmlCapabilityControls, updateHtmlToggleButtons, updatePreviewResize,
+            updateEditorActionButtons, updateHtmlCapabilityControls, updateHtmlToggleButtons,
             updateShareButtonState, updateShareLink,
         } = deps;
         function initResultWidget(node) {
@@ -155,6 +155,7 @@
                 previewPanel.removeAttribute('data-content-type');
             }
             setPanelVisible(false);
+            window.ChatWorkspace?.setAvailable('canvas', false);
             // Reset toggle button states
             const codeBtn = document.getElementById('canvas-html-ViewCodeBtn');
             const previewBtn = document.getElementById('canvas-html-ViewPreviewBtn');
@@ -247,15 +248,6 @@
                     hidePreviewPanel();
                 },
             });
-        }
-    
-        if (previewResizer) {
-            previewResizer.addEventListener('pointerdown', beginPreviewResize);
-            previewResizer.addEventListener('pointermove', updatePreviewResize);
-            previewResizer.addEventListener('pointerup', endPreviewResize);
-            previewResizer.addEventListener('pointercancel', endPreviewResize);
-            previewResizer.addEventListener('dblclick', () => resetPreviewWidth());
-            previewResizer.addEventListener('keydown', handlePreviewResizerKeydown);
         }
     
         // HTML view toggle buttons
@@ -577,7 +569,6 @@
             if (!state.previewVisible) return;
             refreshReferenceSelectionState();
         }, { passive: true });
-        window.addEventListener('blur', () => endPreviewResize());
     
         if (previewDownload) {
             previewDownload.addEventListener('click', async (event) => {

@@ -19,13 +19,9 @@
         parentModelId: '',
         query: '',
         requestSequence: 0,
-        open: false,
     };
 
     let wrapper = null;
-    let trigger = null;
-    let triggerLabel = null;
-    let menu = null;
     let searchInput = null;
     let targetList = null;
     let emptyState = null;
@@ -48,24 +44,6 @@
                 ? String(variables[token])
                 : ''
         ));
-    }
-
-    function pluralTranslation(baseKey, count, oneFallback, otherFallback) {
-        let category = Number(count) === 1 ? 'one' : 'other';
-        try {
-            category = new Intl.PluralRules(document.documentElement?.lang || 'en')
-                .select(Math.abs(Number(count) || 0));
-        } catch (_error) {
-            // The one/other fallback above covers hosts without Intl support.
-        }
-        const categoryKey = `${baseKey}_${category}`;
-        const missing = `__missing_translation_${categoryKey}__`;
-        const localizedCategory = translate(categoryKey, missing);
-        const fallback = category === 'one' ? oneFallback : otherFallback;
-        const template = localizedCategory === missing
-            ? translate(baseKey, fallback)
-            : localizedCategory;
-        return String(template).replace('{count}', String(count));
     }
 
     function targetKey(target) {
@@ -155,49 +133,13 @@
         if (!wrapper) return;
         const splitActive = Boolean(window.SplitScreenManager?.active);
         wrapper.hidden = !['enabled', 'error'].includes(state.availability) || splitActive;
-        if (wrapper.hidden && state.open) closeMenu();
-    }
-
-    function updateTrigger() {
-        if (!trigger || !triggerLabel) return;
-        if (state.availability === 'error') {
-            const unavailable = translate(
-                'subagent_targets_button_unavailable',
-                'Delegation targets unavailable',
-            );
-            triggerLabel.textContent = unavailable;
-            trigger.setAttribute('aria-label', unavailable);
-            return;
-        }
-        const selectedCount = state.selected.size;
-        triggerLabel.textContent = state.automatic
-            ? translate('subagent_targets_button_automatic', 'Delegation: Automatic')
-            : pluralTranslation(
-                'subagent_targets_button_selected',
-                selectedCount,
-                'Delegation: {count} selected',
-                'Delegation: {count} selected',
-            );
-        trigger.setAttribute(
-            'aria-label',
-            state.automatic
-                ? translate('subagent_targets_button_aria_automatic', 'Choose Subagent delegation targets. Any accessible target is currently allowed.')
-                : pluralTranslation(
-                    'subagent_targets_button_aria_selected',
-                    selectedCount,
-                    'Choose Subagent delegation targets. {count} target is selected.',
-                    'Choose Subagent delegation targets. {count} targets are selected.',
-                ),
-        );
     }
 
     function updateStaticLabels() {
-        if (!menu) return;
-        const title = menu.querySelector('#subagentTargetsTitle');
+        if (!wrapper) return;
+        const title = wrapper.querySelector('#subagentTargetsTitle');
         if (title) title.textContent = translate('subagent_targets_dialog_title', 'Delegation targets');
-        const close = menu.querySelector('#subagentTargetsClose');
-        close?.setAttribute('aria-label', translate('subagent_targets_close_aria', 'Close delegation targets'));
-        const description = menu.querySelector('.subagent-targets-description');
+        const description = wrapper.querySelector('.subagent-targets-description');
         if (description) {
             description.textContent = translate(
                 'subagent_targets_dialog_description',
@@ -218,8 +160,6 @@
             searchInput.setAttribute('aria-label', translate('subagent_targets_search_aria', 'Search delegation targets'));
         }
         targetList?.setAttribute('aria-label', translate('subagent_targets_list_aria', 'Available delegation targets'));
-        const done = menu.querySelector('.subagent-targets-done');
-        if (done) done.textContent = translate('subagent_targets_done', 'Done');
     }
 
     function createTargetRow(target) {
@@ -232,6 +172,7 @@
 
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
+        checkbox.dataset.subagentTargetKey = key;
         checkbox.checked = state.selected.has(key);
         checkbox.setAttribute(
             'aria-label',
@@ -284,11 +225,17 @@
         if (!targetList) return;
         const loadFailed = state.availability === 'error';
         const visibleTargets = state.targets.filter(targetMatchesQuery);
+        const focusedKey = targetList.contains(document.activeElement)
+            ? document.activeElement?.dataset?.subagentTargetKey : null;
         targetList.replaceChildren();
         visibleTargets.forEach((target) => {
             const row = createTargetRow(target);
             if (row) targetList.appendChild(row);
         });
+        if (focusedKey) {
+            [...targetList.querySelectorAll('input')]
+                .find((input) => input.dataset.subagentTargetKey === focusedKey)?.focus({ preventScroll: true });
+        }
         if (emptyState) {
             emptyState.hidden = !loadFailed && visibleTargets.length > 0;
             emptyState.textContent = loadFailed
@@ -311,37 +258,7 @@
     function render() {
         updateVisibility();
         updateStaticLabels();
-        updateTrigger();
         renderTargetList();
-    }
-
-    function closeMenu({ restoreFocus = false } = {}) {
-        if (!menu || !trigger) return;
-        state.open = false;
-        menu.classList.remove('open');
-        menu.setAttribute('aria-hidden', 'true');
-        menu.hidden = true;
-        trigger.setAttribute('aria-expanded', 'false');
-        if (restoreFocus) trigger.focus();
-    }
-
-    function openMenu() {
-        if (!menu || !trigger || wrapper?.hidden) return;
-        state.open = true;
-        menu.hidden = false;
-        window.prepareDropdownOpeningAnimation?.(trigger, menu);
-        menu.classList.add('open');
-        menu.setAttribute('aria-hidden', 'false');
-        trigger.setAttribute('aria-expanded', 'true');
-        window.requestAnimationFrame(() => {
-            if (state.availability === 'error') retryButton?.focus();
-            else searchInput?.focus();
-        });
-    }
-
-    function toggleMenu() {
-        if (state.open) closeMenu();
-        else openMenu();
     }
 
     async function refresh(parentModelId = '') {
@@ -388,51 +305,23 @@
     }
 
     function buildUi() {
-        const controls = document.querySelector('#chatBox .chat-box-bottom-div');
+        const controls = document.getElementById('subagentTargetsSettings');
         if (!controls || document.getElementById('subagentTargetsControl')) return;
 
-        wrapper = document.createElement('div');
+        wrapper = document.createElement('section');
         wrapper.id = 'subagentTargetsControl';
-        wrapper.className = 'chat-box-dropdown subagent-targets-control';
+        wrapper.className = 'model-settings-section subagent-targets-control';
+        wrapper.setAttribute('aria-labelledby', 'subagentTargetsTitle');
         wrapper.hidden = true;
 
-        trigger = document.createElement('button');
-        trigger.id = 'subagentTargetsButton';
-        trigger.type = 'button';
-        trigger.className = 'om-button subagent-targets-trigger';
-        trigger.setAttribute('aria-haspopup', 'dialog');
-        trigger.setAttribute('aria-expanded', 'false');
-        trigger.setAttribute('aria-controls', 'subagentTargetsMenu');
-        const icon = document.createElement('span');
-        icon.className = 'subagent-targets-icon';
-        icon.setAttribute('aria-hidden', 'true');
-        icon.innerHTML = (typeof Icons !== 'undefined' && Icons?.model_tool_subagent) || '';
-        triggerLabel = document.createElement('span');
-        triggerLabel.className = 'subagent-targets-trigger-label';
-        trigger.append(icon, triggerLabel);
-
-        menu = document.createElement('div');
-        menu.id = 'subagentTargetsMenu';
-        menu.className = 'select-dropdown subagent-targets-menu';
-        menu.setAttribute('role', 'dialog');
-        menu.setAttribute('aria-modal', 'false');
-        menu.setAttribute('aria-labelledby', 'subagentTargetsTitle');
-        menu.setAttribute('aria-hidden', 'true');
-        menu.hidden = true;
-
-        const header = document.createElement('div');
-        header.className = 'subagent-targets-header';
-        const title = document.createElement('strong');
+        const header = document.createElement('header');
+        header.className = 'model-settings-section-header';
+        const title = document.createElement('h4');
         title.id = 'subagentTargetsTitle';
         title.textContent = translate('subagent_targets_dialog_title', 'Delegation targets');
-        const close = document.createElement('button');
-        close.type = 'button';
-        close.id = 'subagentTargetsClose';
-        close.className = 'om-button';
-        close.innerHTML = (typeof Icons !== 'undefined' && Icons?.close) || '<span aria-hidden="true">×</span>';
-        close.setAttribute('aria-label', translate('subagent_targets_close_aria', 'Close delegation targets'));
-        close.addEventListener('click', () => closeMenu({ restoreFocus: true }));
-        header.append(title, close);
+        header.appendChild(title);
+        const body = document.createElement('div');
+        body.className = 'model-settings-section-body';
 
         const description = document.createElement('p');
         description.className = 'subagent-targets-description';
@@ -474,33 +363,10 @@
         retryButton.className = 'subagent-targets-retry';
         retryButton.addEventListener('click', () => void refresh(state.parentModelId));
 
-        const footer = document.createElement('div');
-        footer.className = 'subagent-targets-footer';
-        const done = document.createElement('button');
-        done.type = 'button';
-        done.className = 'om-button border submit subagent-targets-done';
-        done.textContent = translate('subagent_targets_done', 'Done');
-        done.addEventListener('click', () => closeMenu({ restoreFocus: true }));
-        footer.appendChild(done);
-
-        menu.append(header, description, automaticButton, searchInput, targetList, emptyState, retryButton, footer);
-        wrapper.append(trigger, menu);
-        const thinkingControl = document.getElementById('chatBoxThinkingContainer');
-        if (thinkingControl?.parentElement === controls) thinkingControl.after(wrapper);
-        else controls.appendChild(wrapper);
-
-        trigger.addEventListener('click', (event) => {
-            event.stopPropagation();
-            toggleMenu();
-        });
-        menu.addEventListener('click', (event) => event.stopPropagation());
-        document.addEventListener('click', () => closeMenu());
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape' && state.open) {
-                event.preventDefault();
-                closeMenu({ restoreFocus: true });
-            }
-        });
+        header.appendChild(description);
+        body.append(automaticButton, searchInput, targetList, emptyState, retryButton);
+        wrapper.append(header, body);
+        controls.appendChild(wrapper);
 
         render();
     }

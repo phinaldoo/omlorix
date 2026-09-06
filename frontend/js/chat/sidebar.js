@@ -422,7 +422,10 @@ function setMainSidebarAutoCollapsed(source, shouldCollapse) {
 function closeOtherArtifactPreviews(activeSource) {
     const source = String(activeSource || '').trim();
     const previews = [
-        ['canvas-preview', () => window.canvasMarkdownWidget?.hidePreviewPanel?.()],
+        ['canvas-preview', () => {
+            window.ChatWorkspace?.close({ restoreFocus: false });
+            window.canvasMarkdownWidget?.hidePreviewPanel?.();
+        }],
         ['slide-presentation-preview', () => window.slidePresentationWidget?.hidePreviewPanel?.()],
         ['notes-preview', () => window.NotesToolSidebar?.hidePreviewPanel?.()],
         ['deep-research-preview', () => window.deepResearchWidget?.closeSidebar?.({ restoreFocus: false })],

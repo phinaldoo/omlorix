@@ -12,7 +12,6 @@
 
     const previewPanel = document.getElementById('canvas-markdown-PreviewPanel');
     ensureCanvasPreviewHeader(previewPanel);
-    const previewResizer = document.getElementById('canvas-markdown-PreviewResizer');
     const previewClose = document.getElementById('canvas-markdown-PreviewClose');
     const previewTitle = document.getElementById('canvas-markdown-PreviewTitle');
     const previewStatus = document.getElementById('canvas-markdown-PreviewStatus');
@@ -340,18 +339,10 @@
     const RENDER_DEBOUNCE_MS = 50;
     const MARKDOWN_STREAM_RENDER_INTERVAL_MS = 100;
     const AUTO_SAVE_DELAY_MS = 450;
-    const PREVIEW_WIDTH_STORAGE_KEY = 'omlorix.canvasMarkdownPreviewWidthRatio';
-    const PREVIEW_DEFAULT_WIDTH_RATIO = 0.5;
-    const PREVIEW_MIN_PANEL_WIDTH = 420;
-    const PREVIEW_MIN_MAIN_WIDTH = 360;
-    const PREVIEW_RESIZE_KEYBOARD_STEP = 32;
-    const PREVIEW_RESIZE_KEYBOARD_LARGE_STEP = 96;
-
     const BUTTON_LABEL_OPEN = 'Open Canvas';
     const BUTTON_LABEL_CLOSE = 'Close Canvas';
 
-    let canvasPreviewWidthRatio = readStoredPreviewWidthRatio();
-    let previewResizeActive = false;
+
 
     function t(key, fallback) {
         if (typeof window.getTranslation === 'function') {
@@ -842,204 +833,33 @@
         contentTypes: CONTENT_TYPES,
     });
 
-    function readStoredPreviewWidthRatio() {
-        try {
-            const stored = Number(window.localStorage?.getItem(PREVIEW_WIDTH_STORAGE_KEY));
-            return Number.isFinite(stored) && stored > 0 ? stored : PREVIEW_DEFAULT_WIDTH_RATIO;
-        } catch (_) {
-            return PREVIEW_DEFAULT_WIDTH_RATIO;
-        }
-    }
+    // Canvas and subagents share the same panel, sizing and navigation ownership.
+    const {
+        applyPreviewWidthRatio, getPreviewWidthBounds, resetPreviewWidth,
+        setPreviewWidthFromPixels, setPreviewWidthFromPointerX,
+    } = window.ChatWorkspace.resize;
 
-    function writeStoredPreviewWidthRatio(ratio) {
-        try {
-            window.localStorage?.setItem(PREVIEW_WIDTH_STORAGE_KEY, String(ratio));
-        } catch (_) {}
-    }
-
-    // Store preview width as a viewport ratio so the split survives window resizes
-    // while still respecting the minimum sizes required by both panes.
-    function getViewportWidth() {
-        return window.innerWidth || document.documentElement.clientWidth || 0;
-    }
-
-    function isDesktopPreviewLayout() {
-        return getViewportWidth() > 900;
-    }
-
-    function getPreviewWidthBounds() {
-        const viewportWidth = Math.max(getViewportWidth(), 1);
-        const minWidth = Math.min(PREVIEW_MIN_PANEL_WIDTH, Math.max(1, viewportWidth - PREVIEW_MIN_MAIN_WIDTH));
-        const maxWidth = Math.max(minWidth, viewportWidth - PREVIEW_MIN_MAIN_WIDTH);
-        return { viewportWidth, minWidth, maxWidth };
-    }
-
-    function clampPreviewWidth(width) {
-        const { minWidth, maxWidth } = getPreviewWidthBounds();
-        return Math.min(Math.max(Number(width) || 0, minWidth), maxWidth);
-    }
-
-    function updatePreviewResizerA11y(widthRatio) {
-        if (!previewResizer) return;
-        const { viewportWidth, minWidth, maxWidth } = getPreviewWidthBounds();
-        const minPercent = Math.round((minWidth / viewportWidth) * 100);
-        const maxPercent = Math.round((maxWidth / viewportWidth) * 100);
-        const currentPercent = Math.round(widthRatio * 100);
-        previewResizer.setAttribute('aria-valuemin', String(minPercent));
-        previewResizer.setAttribute('aria-valuemax', String(maxPercent));
-        previewResizer.setAttribute('aria-valuenow', String(currentPercent));
-    }
-
-    function setPreviewWidthFromPixels(width, { persist = false } = {}) {
-        const { viewportWidth } = getPreviewWidthBounds();
-        const clampedWidth = clampPreviewWidth(width);
-        const nextRatio = clampedWidth / viewportWidth;
-        const widthValue = `${(nextRatio * 100).toFixed(3)}vw`;
-        canvasPreviewWidthRatio = nextRatio;
-        document.documentElement.style.setProperty('--canvas-markdown-preview-width', widthValue);
-        previewPanel?.style.setProperty('--canvas-markdown-preview-width', widthValue);
-        updatePreviewResizerA11y(nextRatio);
-        if (persist) writeStoredPreviewWidthRatio(nextRatio);
-        return clampedWidth;
-    }
-
-    function applyPreviewWidthRatio(ratio = canvasPreviewWidthRatio) {
-        if (!isDesktopPreviewLayout()) {
-            updatePreviewResizerA11y(canvasPreviewWidthRatio);
-            return;
-        }
-        const { viewportWidth } = getPreviewWidthBounds();
-        setPreviewWidthFromPixels(viewportWidth * (Number(ratio) || PREVIEW_DEFAULT_WIDTH_RATIO));
-    }
-
-    function resetPreviewWidth({ persist = true } = {}) {
-        const { viewportWidth } = getPreviewWidthBounds();
-        setPreviewWidthFromPixels(viewportWidth * PREVIEW_DEFAULT_WIDTH_RATIO, { persist });
-    }
-
-    function setPreviewWidthFromPointerX(clientX, options = {}) {
-        const { viewportWidth } = getPreviewWidthBounds();
-        return setPreviewWidthFromPixels(viewportWidth - Number(clientX || 0), options);
-    }
-
-    function beginPreviewResize(event) {
-        if (!previewResizer || !isDesktopPreviewLayout()) return;
-        if (event.pointerType === 'mouse' && event.button !== 0) return;
-        event.preventDefault();
-        previewResizeActive = true;
-        document.body.classList.add('canvas-markdown-preview-resizing');
-        previewResizer.setPointerCapture?.(event.pointerId);
-        setPreviewWidthFromPointerX(event.clientX);
-    }
-
-    function updatePreviewResize(event) {
-        if (!previewResizeActive) return;
-        event.preventDefault();
-        setPreviewWidthFromPointerX(event.clientX);
-    }
-
-    function endPreviewResize(event) {
-        if (!previewResizeActive) return;
-        previewResizeActive = false;
-        document.body.classList.remove('canvas-markdown-preview-resizing');
-        if (event?.pointerId !== undefined) {
-            previewResizer?.releasePointerCapture?.(event.pointerId);
-        }
-        writeStoredPreviewWidthRatio(canvasPreviewWidthRatio);
-    }
-
-    function handlePreviewResizerKeydown(event) {
-        if (!isDesktopPreviewLayout()) return;
-        const { viewportWidth, minWidth, maxWidth } = getPreviewWidthBounds();
-        const currentWidth = clampPreviewWidth(viewportWidth * canvasPreviewWidthRatio);
-        const step = event.shiftKey ? PREVIEW_RESIZE_KEYBOARD_LARGE_STEP : PREVIEW_RESIZE_KEYBOARD_STEP;
-        let nextWidth = null;
-
-        if (event.key === 'ArrowLeft') {
-            nextWidth = currentWidth + step;
-        } else if (event.key === 'ArrowRight') {
-            nextWidth = currentWidth - step;
-        } else if (event.key === 'Home') {
-            nextWidth = minWidth;
-        } else if (event.key === 'End') {
-            nextWidth = maxWidth;
-        } else if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-            resetPreviewWidth();
-            return;
-        }
-
-        if (nextWidth === null) return;
-        event.preventDefault();
-        setPreviewWidthFromPixels(nextWidth, { persist: true });
-    }
-
-    let markdownCompactMainLayoutActive = false;
-
-    /**
-     * Give the content beside a visible split document preview the same navigation
-     * and drawer affordances it would receive on a narrow viewport. The event
-     * lets feature-specific drawers reset transient open state when the split
-     * layout is entered or left.
-     */
     function syncMarkdownCompactMainLayout() {
-        const shouldUseCompactLayout = Boolean(
-            previewVisible && ['markdown', 'html', 'pdf'].includes(previewPanel?.dataset.contentType)
-        );
-        if (shouldUseCompactLayout === markdownCompactMainLayoutActive) return;
-
-        markdownCompactMainLayoutActive = shouldUseCompactLayout;
-        document.body.classList.toggle(
-            'canvas-markdown-compact-main-layout',
-            shouldUseCompactLayout
-        );
-        if (typeof window.setMainSidebarCompactLayout === 'function') {
-            window.setMainSidebarCompactLayout('canvas-markdown-preview', shouldUseCompactLayout);
-        }
-        document.dispatchEvent(new CustomEvent('canvasMarkdownCompactLayoutChange', {
-            detail: { active: shouldUseCompactLayout },
-        }));
+        window.ChatWorkspace.syncLayout();
     }
-    function setPanelVisible(visible) {
+
+    function applyCanvasVisibility(visible) {
         previewVisible = Boolean(visible);
-        if (previewVisible) {
-            applyPreviewWidthRatio();
-        }
-        if (previewPanel) {
-            previewPanel.classList.toggle('visible', previewVisible);
-            previewPanel.setAttribute('aria-hidden', previewVisible ? 'false' : 'true');
-            previewPanel.toggleAttribute('inert', !previewVisible);
-        }
-        document.body.classList.toggle('canvas-markdown-preview-open', previewVisible);
-        if (!previewVisible) {
-            // Make the panel non-interactive before cancelling format-specific
-            // work. A cleanup failure must never strand the visible sidebar.
-            endPreviewResize();
-            resetSelectablePdfPreviewRendering();
-        }
-        if (typeof window.setMainSidebarAutoCollapsed === 'function') {
-            // Canvas only borrows the sidebar's horizontal space. The shared
-            // controller restores the user's persisted state when Canvas closes.
-            window.setMainSidebarAutoCollapsed('canvas-preview', previewVisible);
-        } else if (previewVisible && typeof closeSidebar === 'function') {
-            // Keep older embedded frontends functional without overwriting the
-            // user's preference when the shared controller is unavailable.
-            closeSidebar({ persist: false });
-        }
-        syncMarkdownCompactMainLayout();
-        if (previewVisible && typeof window.closeOtherArtifactPreviews === 'function') {
-            window.closeOtherArtifactPreviews('canvas-preview');
-        }
+        previewPanel?.classList.toggle('visible', previewVisible);
         updateShareButtonState();
         refreshWidgetOpenButtonStates();
         if (!previewVisible) {
-            updateEditorActionButtons(null, null);
-        }
-        if (!previewVisible) {
-            updateCopyButtonState('');
             hideReferenceToolbar();
         } else {
             refreshReferenceSelectionState();
+        }
+    }
+
+    function setPanelVisible(visible, { automatic = false } = {}) {
+        if (visible) {
+            window.ChatWorkspace.show('canvas', { automatic });
+        } else if (window.ChatWorkspace.isSelected('canvas')) {
+            window.ChatWorkspace.close();
         }
     }
 
@@ -1132,20 +952,10 @@
         }
 
         if (!widget) {
-            widget = document.createElement('div');
-            widget.className = 'canvas-markdown-result-widget';
-            widget.innerHTML =
-                '<div class="canvas-markdown-result-header">' +
-                '  <div class="canvas-markdown-result-icon" aria-hidden="true"></div>' +
-                '  <div class="canvas-markdown-result-meta">' +
-                '    <div class="canvas-markdown-result-title"></div>' +
-                '    <div class="canvas-markdown-result-sub"></div>' +
-                '  </div>' +
-                '</div>' +
-                '<button class="canvas-markdown-result-open-btn" type="button" data-canvas-open="true">' +
-                Icons.eye +
-                '  <span class="canvas-markdown-result-open-label">' + escapeHtml(t('canvas_open_canvas', BUTTON_LABEL_OPEN)) + '</span>' +
-                '</button>';
+            widget = window.ChatResultCard.create({
+                openLabel: t('canvas_open_canvas', BUTTON_LABEL_OPEN),
+            });
+            widget.querySelector('.canvas-markdown-result-open-btn').dataset.canvasOpen = 'true';
 
             const widgetWrapper = document.createElement('div');
             widgetWrapper.className = 'assistant-widget';
@@ -1311,25 +1121,17 @@
             return existing;
         }
 
-        const widget = document.createElement('div');
-        widget.className = 'canvas-markdown-result-widget';
+        const widget = window.ChatResultCard.create({
+            icon: iconSvg,
+            title: fileName || 'canvas',
+            subtitle: typeLabel + ' • ' + statusText,
+            openLabel: t('canvas_open_canvas', BUTTON_LABEL_OPEN),
+        });
+        widget.querySelector('.canvas-markdown-result-icon').classList.add('canvas-type-' + contentType);
         widget.setAttribute('data-canvas-draft-key', draftKey);
         widget.setAttribute('data-canvas-file-name', fileName);
         widget.setAttribute('data-canvas-content-type', contentType);
         widget.setAttribute('data-canvas-status', 'generating');
-
-        widget.innerHTML =
-            '<div class="canvas-markdown-result-header">' +
-            '  <div class="canvas-markdown-result-icon canvas-type-' + escapeHtml(contentType) + '" aria-hidden="true">' + iconSvg + '</div>' +
-            '  <div class="canvas-markdown-result-meta">' +
-            '    <div class="canvas-markdown-result-title">' + escapeHtml(fileName || 'canvas') + '</div>' +
-            '    <div class="canvas-markdown-result-sub">' + escapeHtml(typeLabel) + ' • ' + escapeHtml(statusText) + '</div>' +
-            '  </div>' +
-            '</div>' +
-            '<button class="canvas-markdown-result-open-btn" type="button">' +
-            Icons.eye + 
-            '  <span class="canvas-markdown-result-open-label">' + escapeHtml(t('canvas_open_canvas', BUTTON_LABEL_OPEN)) + '</span>' +
-            '</button>';
 
         const openBtn = widget.querySelector('.canvas-markdown-result-open-btn');
         if (openBtn) {
@@ -1922,6 +1724,14 @@
     }
 
     async function openPreviewForFile(fileId, fileName, contentType) {
+        // A card for the retained Canvas acts like its tab. Do not replace an
+        // editor (and a pending local edit) just because a Subagent was selected.
+        const retainedDraft = draftMap.get(fileId);
+        if (!previewVisible && activeDraftKey === fileId && retainedDraft && !retainedDraft.loadError
+            && (filePreviewLoadTokens.has(fileId) || retainedDraft.statusKind === 'saved')) {
+            setPanelVisible(true);
+            return;
+        }
         const detectedType = normalizeContentType(contentType || detectContentTypeFromFileName(fileName));
         const name = resolveDisplayCanvasFileName(fileName, detectedType);
         const isSpreadsheet = SPREADSHEET_CONTENT_TYPES.has(detectedType);
@@ -1930,7 +1740,6 @@
         const isCurrentLoad = () => (
             filePreviewLoadTokens.get(fileId) === loadToken
             && activeDraftKey === fileId
-            && previewVisible
         );
         
         resetScrollState(fileId, { autoFollow: false });
@@ -2183,7 +1992,7 @@
             activeCanvasToolCallKey = '';
             return;
         }
-        setPanelVisible(true);
+        setPanelVisible(true, { automatic: true });
         renderDraft(nextDraft);
         activeCanvasToolCallKey = '';
     }
@@ -2308,7 +2117,7 @@
 
         activeDraftKey = draftKey;
         syncInlineWidgetForResultKind(toolMessageId, updated);
-        setPanelVisible(true);
+        setPanelVisible(true, { automatic: true });
         
         const contentType = normalizeContentType(updated.contentType);
         if (contentType === 'html') {
@@ -2398,7 +2207,7 @@
             registerCanvasFile(updated.fileId, updated.fileName, contentType);
         }
         const editState = syncDraftEditStateFromServer(key, updated.content || '', { force: false });
-        setPanelVisible(true);
+        setPanelVisible(true, { automatic: true });
         renderDraft(updated, true);
         if (editState?.dirty) {
             queueAutoSaveForDraft(key, { immediate: true });
@@ -2455,17 +2264,26 @@
         return resolvedAny;
     }
 
+    window.ChatWorkspace.register({
+        id: 'canvas',
+        element: previewPanel,
+        available: false,
+        label: () => t('canvas_preview_title', 'Canvas Preview'),
+        onShow: () => applyCanvasVisibility(true),
+        onHide: () => applyCanvasVisibility(false),
+    });
+
     canvasWidgetModules.lifecycle.initialize({
         SPREADSHEET_CONTENT_TYPES, applyPreviewWidthRatio, applyShareMode, autoSaveTimers,
-        beginPreviewResize, buildFileDownloadUrl, canvasFileIds, canvasToolCallKeysByMessage,
+        buildFileDownloadUrl, canvasFileIds, canvasToolCallKeysByMessage,
         chatArea, clearHtmlExternalResourcePromptTimer, clearHtmlRenderTimer, clearMarkdownStreamingRenderSchedule,
         closeHtmlExternalResourceModal, closeShareModal, copyRawCanvasContent, copyShareUrl,
         createShareLink, deleteShareLink, destroyActiveMarkdownEditor, destroyActiveSpreadsheetEditor,
-        draftEditStateMap, draftMap, draftScrollStates, endPreviewResize,
+        draftEditStateMap, draftMap, draftScrollStates,
         enterShareCreateMode, enterShareEditMode, enterShareListMode, filePreviewLoadTokens,
         getDefaultShareExpiryIso, getDraftEditState, getHtmlExternalResources, getHtmlPreviewPermissions,
         getHtmlSettingsMenuItems, getPreviewWidthBounds, getRenderableContentForDraft, getShareLinkById,
-        handleCanvasEvent, handlePreviewResizerKeydown, handleStreamEnd, handleToolCallDeltaEvent,
+        handleCanvasEvent, handleStreamEnd, handleToolCallDeltaEvent,
         handleToolCallEvent, hasCurrentLatexPdf, hasHtmlFileExtension, hidePreviewPanel,
         hideReferenceToolbar, hideShareExpiryError, hideSharePasswordError, htmlExternalContentBtn,
         htmlExternalResourceAllowBtn, htmlExternalResourceDenyBtn, htmlExternalResourceOverlay, htmlExternalResourcePromptTimers,
@@ -2475,7 +2293,7 @@
         notifyShareError, openLatexPdfPreview, openPreviewForFile, openShareDialogForFile,
         openShareModal, previewClose, previewCopyBtn,
         previewDownload, previewDownloadFormat, previewPanel, previewRenderTimers,
-        previewResizer, previewRevertBtn, previewSaveBtn, previewShareBtn,
+        previewRevertBtn, previewSaveBtn, previewShareBtn,
         previewStatus, previewTitle, previewTrack, refreshExistingShareLinksForButton,
         refreshReferenceSelectionState, refreshWidgetOpenButtonStates, registerCanvasFile, reloadHtmlPreview,
         renderHTMLPreviewInto, renderHtmlCanvasPngBlob, renderSavedWidgetFromFile, requestActivePreview,
@@ -2488,7 +2306,7 @@
         sharePasswordContent, sharePasswordInput, sharePasswordToggle, sharePrimaryBtn,
         shareSecondaryBtn, showLatexPdfStatus, showSharePasswordError, t,
         terminalCanvasToolCallKeys, toLocalDateTimeValue, trapFocus, updateCopyButtonState,
-        updateEditorActionButtons, updateHtmlCapabilityControls, updateHtmlToggleButtons, updatePreviewResize,
+        updateEditorActionButtons, updateHtmlCapabilityControls, updateHtmlToggleButtons,
         updateShareButtonState, updateShareLink,
     }, {
         get previewVisible() { return previewVisible; },
@@ -2527,8 +2345,7 @@
         set activeMarkdownEditorInstance(value) { activeMarkdownEditorInstance = value; },
         get activeSpreadsheetEditorInstance() { return activeSpreadsheetEditorInstance; },
         set activeSpreadsheetEditorInstance(value) { activeSpreadsheetEditorInstance = value; },
-        get canvasPreviewWidthRatio() { return canvasPreviewWidthRatio; },
-        set canvasPreviewWidthRatio(value) { canvasPreviewWidthRatio = value; },
+        get canvasPreviewWidthRatio() { return window.ChatWorkspace.resize.getPreviewWidthRatio(); },
         get shareMode() { return shareMode; },
         set shareMode(value) { shareMode = value; },
         get activeShareLink() { return activeShareLink; },
