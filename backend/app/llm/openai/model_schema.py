@@ -118,7 +118,7 @@ def _impl_get_openai_model_schema(
 
     model = None
     if model_id:
-        model = get_model(db, model_id)
+        model = get_model(db, model_id, include_inactive=True)
         model_name = model.model_name
 
     value_model_name = model_name or ""

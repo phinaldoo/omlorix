@@ -91,7 +91,7 @@ def test_chat_completions_parameter_schema_exposes_structured_logit_bias(monkeyp
         settings={"allow_custom_generation_parameter": True},
         tools=[],
     )
-    monkeypatch.setattr("app.llm.models.get_model", lambda _db, _model_id: model)
+    monkeypatch.setattr("app.llm.models.get_model", lambda _db, _model_id, **_kwargs: model)
     monkeypatch.setattr(
         openai_schemas,
         "get_parameter_basic_schema",
@@ -133,7 +133,7 @@ def test_anthropic_base_unknown_model_parameter_schema_exposes_every_effort(monk
         settings={},
         tools=[],
     )
-    monkeypatch.setattr("app.llm.models.get_model", lambda _db, _model_id: model)
+    monkeypatch.setattr("app.llm.models.get_model", lambda _db, _model_id, **_kwargs: model)
     monkeypatch.setattr(
         anthropic_parameter_schema,
         "get_parameter_basic_schema",

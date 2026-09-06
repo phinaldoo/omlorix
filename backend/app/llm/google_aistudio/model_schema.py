@@ -78,13 +78,20 @@ for _dependency_name in (
 def _impl_get_aistudio_model_schema(
     db, provider_id, model_name: str | None = None, model_id: str | None = None
 ):
+    from fastapi import HTTPException
     from app.llm.models import get_model
 
     model = None
     if model_id:
-        model = get_model(db, model_id)
+        model = get_model(db, model_id, include_inactive=True)
         model_name = model.model_name
-    model_info = get_aistudio_model_info(db, provider_id, model_name)
+    try:
+        model_info = get_aistudio_model_info(db, provider_id, model_name)
+    except HTTPException:
+        if model is None:
+            raise
+        # Saved configuration remains editable during provider outages.
+        model_info = {}
     model_group_dict = model_info.get("model_group_dict") or {}
     supports_native_websearch = bool(model_group_dict.get("supports_native_websearch"))
     value_model_name = ""

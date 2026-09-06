@@ -15,6 +15,10 @@ A provider connection test does not validate a model. Test the longest expected 
 
 ## Defaults and visibility
 
+The admin model list shows all saved administrator-managed models, including inactive models and models whose providers are down. These records can still be edited, duplicated, or deleted; bulk editing also includes inactive models. User-managed Agent models remain outside this list.
+
+The chat model selector only lists active models the user can access, excluding providers explicitly marked down. This also applies when an administrator uses chat. Unknown provider status remains selectable; provider-group models remain selectable while at least one member is not down. Listing a model does not guarantee that a specific provider-side model will accept a request.
+
 Set the **Default model** only after its provider, access rules, and quotas are stable. The default model and every model in the administrator's default pinned set must be visible to **Everyone**; the default pinned set accepts at most eight models. A user's customized pins are not overwritten by later changes to that default set.
 
 When a user cannot see a model, check:

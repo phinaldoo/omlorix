@@ -1,7 +1,9 @@
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
+from fastapi import HTTPException
 
 from app.llm.openai.schemas import get_openai_model_schema
 
@@ -23,6 +25,43 @@ class _EmptyQuery:
 class _EmptyDB:
     def query(self, *_args, **_kwargs):
         return _EmptyQuery()
+
+
+@pytest.mark.parametrize("provider", ["google_aistudio", "openrouter"])
+def test_saved_inactive_model_schema_survives_failed_discovery(monkeypatch, provider):
+    from app.llm.google_aistudio import schemas as google_schemas
+    from app.llm.openrouter import schemas as openrouter_schemas
+
+    model = SimpleNamespace(
+        id="inactive", is_active=False, model_name="vendor/saved-model", name="Saved name",
+        description="Saved description", model_icon=provider, status="normal",
+        tools=[], access={"everyone": True}, capabilities=[], meta={},
+        settings={"input_formats": ["text"], "output_formats": ["text"], "system_instruction": "Saved instruction"},
+    )
+
+    def get_saved_model(db, model_id, *, include_inactive=False):
+        assert model_id == "inactive"
+        assert include_inactive is True
+        return model
+
+    def unavailable(*args, **kwargs):
+        raise HTTPException(status_code=503, detail="Provider down")
+
+    monkeypatch.setattr("app.llm.models.get_model", get_saved_model)
+    if provider == "google_aistudio":
+        monkeypatch.setattr(google_schemas, "get_aistudio_model_info", unavailable)
+        get_schema = google_schemas.get_aistudio_model_schema
+    else:
+        monkeypatch.setattr("app.llm.openrouter.utils.get_model_information_endpoint", unavailable)
+        get_schema = openrouter_schemas.get_openrouter_model_schema
+
+    schema = get_schema(_EmptyDB(), "provider-1", model_id="inactive")
+    fields = {field.key: field for section in schema.sections for field in section.fields or []}
+    assert fields["name"].value == "Saved name"
+    assert fields["settings.system_instruction"].value == "Saved instruction"
+    # New-model discovery errors must still surface to the creation flow.
+    with pytest.raises(HTTPException):
+        get_schema(_EmptyDB(), "provider-1", model_name="vendor/new-model")
 
 
 @pytest.mark.parametrize("model_name", ["gpt-5.6", "manual-openai-model"])

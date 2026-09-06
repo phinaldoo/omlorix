@@ -404,11 +404,12 @@ def _list_user_models(
             return True
         return False
 
-    rows = (
-        list_models_ollama(db, byok_base_url=byok_base_url, byok_api_key=byok_api_key)
-        if byok_base_url
-        else list_models(db)
-    )
+    if byok_base_url:
+        rows = list_models_ollama(db, byok_base_url=byok_base_url, byok_api_key=byok_api_key)
+    elif include_admin_fields:
+        rows = list_models(db, include_inactive=True)
+    else:
+        rows = list_models(db)
     filtered_base_models = [
         m
         for m in rows
@@ -417,7 +418,9 @@ def _list_user_models(
             include_agents
             or not (isinstance(getattr(m, "meta", None), dict) and m.meta.get("user_managed") is True)
         )
-        and _is_provider_available_to_user(db, getattr(m, "provider_id", None))
+        # Management visibility must not depend on provider health. The public
+        # selector keeps filtering even when the caller is an administrator.
+        and (include_admin_fields or _is_provider_available_to_user(db, getattr(m, "provider_id", None)))
     ]
     agents_enabled = include_agents and bool(get_user_group_setting_value(user_id, "agents", "allow_agents", db))
 

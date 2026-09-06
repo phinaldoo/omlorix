@@ -111,7 +111,7 @@ def test_prompt_cache_setting_is_not_exposed_as_a_per_chat_override(
             "tools": [],
         },
     )()
-    monkeypatch.setattr("app.llm.models.get_model", lambda *_args: model)
+    monkeypatch.setattr("app.llm.models.get_model", lambda *_args, **_kwargs: model)
     monkeypatch.setattr(
         anthropic_parameter_schema,
         "get_anthropic_model_info",

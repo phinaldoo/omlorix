@@ -88,7 +88,7 @@ def get_anthropic_model_schema(
 
     model = None
     if model_id:
-        model = get_model(db, model_id)
+        model = get_model(db, model_id, include_inactive=True)
         model_name = model.model_name
     resolved_info = get_anthropic_model_info(
         db,

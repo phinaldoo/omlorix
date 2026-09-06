@@ -1023,20 +1023,24 @@ def _ensure_default_model_present(
 # -------------------
 # List models
 # -------------------
-def list_models(db):
-    """List all active models."""
-    rows = db.query(Models).filter(Models.is_active == True).all()
-    return rows
+def list_models(db, *, include_inactive: bool = False):
+    """List active models, optionally including inactive management records."""
+    query = db.query(Models)
+    if not include_inactive:
+        query = query.filter(Models.is_active == True)
+    return query.all()
 
 
 
 # -------------------
 # Get model
 # -------------------
-def get_model(db, model_id):
-    """Get a model by ID."""
-    # Check if the model id is valid and get the provider
-    db_model = db.query(Models).filter(Models.id == model_id, Models.is_active == True).first()
+def get_model(db, model_id, *, include_inactive: bool = False):
+    """Get an active model, or an inactive record for explicit management use."""
+    query = db.query(Models).filter(Models.id == model_id)
+    if not include_inactive:
+        query = query.filter(Models.is_active == True)
+    db_model = query.first()
     if not db_model:
         raise HTTPException(status_code=404, detail="Model not found!")
     return db_model

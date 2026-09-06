@@ -84,7 +84,7 @@ def _impl_get_lmstudio_model_schema(
     value_status = "normal"
 
     if model_id:
-        model = get_model(db, model_id)
+        model = get_model(db, model_id, include_inactive=True)
         model_settings = _coerce_model_settings(getattr(model, "settings", None))
         access_payload = (
             getattr(model, "access", None)

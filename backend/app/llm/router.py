@@ -2611,7 +2611,7 @@ def get_model_schema_route(
     provider = ProviderEnum(normalize_provider_value(provider))
     get_llm_provider(db, provider_id)
     if model_id:
-        get_model(db, model_id)
+        get_model(db, model_id, include_inactive=True)
     match provider:
         case ProviderEnum.openai:
             schema_obj = get_openai_model_schema(db, provider_id, model_name, model_id)
@@ -2734,7 +2734,7 @@ def update_model_values_route(
     admin_user = Depends(verified_admin),
 ):
     # TODO
-    model = get_model(db, model_id)
+    model = get_model(db, model_id, include_inactive=True)
     try:
         provider_enum = ProviderEnum(normalize_provider_value(model.provider))
     except ValueError:
@@ -2885,7 +2885,7 @@ def bulk_update_models_route(
 
     models = (
         db.query(Models)
-        .filter(Models.id.in_(model_ids), Models.is_active.is_(True))
+        .filter(Models.id.in_(model_ids))
         .all()
     )
     models_by_id = {model.id: model for model in models}
@@ -2957,7 +2957,7 @@ def delete_model_route(
     admin_user=Depends(verified_admin),
 ):
     """Delete a model by its database ID (admin only)."""
-    get_model(db, model_id)
+    get_model(db, model_id, include_inactive=True)
     result = delete_model(db, model_id)
     _audit_llm_event(
         db_log,
@@ -2986,7 +2986,7 @@ def duplicate_model_route(
     admin_user=Depends(verified_admin),
 ):
     """Duplicate a model (admin only). New model has identical fields; name gets a ' Copy' suffix."""
-    get_model(db, model_id)
+    get_model(db, model_id, include_inactive=True)
     result = duplicate_model(db, model_id)
     _audit_llm_event(
         db_log,

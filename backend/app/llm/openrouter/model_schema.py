@@ -103,7 +103,7 @@ def _impl_get_openrouter_model_schema(
 
     model = None
     if model_id:
-        model = get_model(db, model_id)
+        model = get_model(db, model_id, include_inactive=True)
         model_name = getattr(model, "model_name", None)
         settings = getattr(model, "settings", None)
         provider_from_settings = None
@@ -122,12 +122,18 @@ def _impl_get_openrouter_model_schema(
     if not resolved_model_name:
         raise HTTPException(status_code=422, detail="OpenRouter model_name is required")
 
-    model_info = (
-        get_model_information_endpoint(
+    from requests.exceptions import RequestException
+
+    try:
+        model_info = get_model_information_endpoint(
             db, resolved_model_name, provider_id, model_provider
-        )
-        or {}
-    )
+        ) or {}
+    except (HTTPException, RequestException):
+        if model is None:
+            raise
+        # Discovery may fail or stop listing a model without invalidating its
+        # saved management record.
+        model_info = {}
     endpoint_info = model_info.get("endpoint") or {}
     supported_parameters_raw = endpoint_info.get("supported_parameters")
     supported_parameters = _normalize_supported_parameters(supported_parameters_raw)

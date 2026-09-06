@@ -4,6 +4,8 @@ from types import SimpleNamespace
 
 import pytest
 from fastapi import HTTPException
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
 
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -13,6 +15,92 @@ from app.llm.utils import (
     list_admin_models,
     list_user_models,
 )
+from app.llm.models import Models, get_model, list_models
+
+
+@pytest.fixture
+def model_inventory_db():
+    engine = create_engine("sqlite:///:memory:")
+    Models.__table__.create(engine)
+    with Session(engine) as db:
+        for model_id, active, provider_id, meta in [
+            ("online", True, "up", {}),
+            ("offline", True, "down", {}),
+            ("unknown", True, "unknown", {}),
+            ("inactive", False, "up", {}),
+            ("agent", True, "up", {"user_managed": True, "owner_user_id": "admin-1"}),
+        ]:
+            db.add(Models(
+                id=model_id, name=model_id, description="", model_icon="openai",
+                provider="openai", provider_id=provider_id, model_name="gpt-test",
+                capabilities=[], tools=[], settings={"title_generation": False, "allow_custom_generation_parameter": False}, access={"everyone": True},
+                status="normal", is_active=active, meta=meta,
+            ))
+        db.commit()
+        yield db
+    engine.dispose()
+
+
+@pytest.mark.parametrize("role", ["admin", "user"])
+def test_management_inventory_and_chat_availability_are_separate(monkeypatch, model_inventory_db, role):
+    from app.llm.utils import _is_provider_available_to_user
+
+    user = SimpleNamespace(id="admin-1", role=role, group_id="group-1", last_model="offline")
+    _patch_common_model_dependencies(monkeypatch, user=user, models=[])
+    # Exercise the actual database active filter and provider-health policy.
+    monkeypatch.setattr("app.llm.utils.list_models", list_models)
+    monkeypatch.setattr("app.llm.utils._is_provider_available_to_user", _is_provider_available_to_user)
+    monkeypatch.setattr("app.llm.provider_groups.is_provider_group", lambda db, provider_id: False)
+    monkeypatch.setattr("app.llm.utils.get_llm_provider", lambda db, provider_id: SimpleNamespace(
+        name=provider_id, status={"available": provider_id}, settings={},
+    ))
+
+    chat = list_user_models(model_inventory_db, user.id, include_agents=False)
+    assert {model["model_id"] for model in chat} == {"online", "unknown"}
+    assert all(not model["is_last"] for model in chat)
+    assert all("settings" not in model and "access" not in model for model in chat)
+    if role == "admin":
+        admin = list_admin_models(model_inventory_db, user.id)
+        assert {model["id"] for model in admin} == {"online", "offline", "unknown", "inactive"}
+        assert next(model for model in admin if model["id"] == "inactive")["is_active"] is False
+
+
+def test_inactive_lookup_requires_explicit_management_opt_in(model_inventory_db):
+    with pytest.raises(HTTPException) as exc:
+        get_model(model_inventory_db, "inactive")
+    assert exc.value.status_code == 404
+    assert get_model(model_inventory_db, "inactive", include_inactive=True).id == "inactive"
+    with pytest.raises(HTTPException) as exc:
+        get_model(model_inventory_db, "missing", include_inactive=True)
+    assert exc.value.status_code == 404
+
+
+@pytest.mark.parametrize("bulk", [False, True])
+def test_admin_update_can_reactivate_inactive_model(monkeypatch, model_inventory_db, bulk):
+    from app.llm import router
+    from app.llm.schemas import BulkUpdateModelsPayload, UpdateModelPayload
+
+    monkeypatch.setattr(router, "create_audit_log", lambda **kwargs: None)
+    monkeypatch.setattr(router, "get_audit_request_ip", lambda *args: None)
+    monkeypatch.setattr(router, "clear_llm_model_leaderboard_cache", lambda: None)
+    monkeypatch.setattr("app.llm.models.get_default_model_id", lambda db: None)
+    common = dict(
+        request=SimpleNamespace(headers={}), db=model_inventory_db, db_log=None,
+        admin_user=SimpleNamespace(id="admin-1"),
+    )
+    if bulk:
+        router.bulk_update_models_route(
+            payload=BulkUpdateModelsPayload(model_ids=["inactive", "offline"], is_active=True),
+            **common,
+        )
+    else:
+        router.update_model_values_route(
+            model_id="inactive",
+            payload=UpdateModelPayload(name="Reactivated", settings={}, is_active=True),
+            **common,
+        )
+    model_inventory_db.expire_all()
+    assert get_model(model_inventory_db, "inactive").is_active is True
 
 
 USER_MODEL_SUMMARY_FIELDS = {
@@ -45,7 +133,7 @@ def _patch_common_model_dependencies(
     agents_enabled=False,
 ):
     monkeypatch.setattr("app.llm.utils.get_user", lambda db, user_id: user)
-    monkeypatch.setattr("app.llm.utils.list_models", lambda db: models)
+    monkeypatch.setattr("app.llm.utils.list_models", lambda db, **kwargs: models)
     monkeypatch.setattr("app.llm.utils._is_provider_available_to_user", lambda db, provider_id: True)
     def _group_setting(_user_id, section, key, _db):
         if (section, key) == ("agents", "allow_agents"):
