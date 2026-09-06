@@ -33,6 +33,19 @@ test('send is a high-contrast primary action while the dedicated stop action sta
         composerStyles,
         /\.om-button\.chat-box-stop-button[^,{]*\{[^}]*var\(--error-color\)/s,
     );
+    assert.match(
+        composerStyles,
+        /\.chat-box \.om-button\.send:hover:not\(:disabled\):not\(\.disabled\):not\(\.is-disabled\)\s*\{[^}]*background-color:\s*var\(--chat-composer-primary-control-hover/s,
+        'the composer hover rule must outrank the global button hover selector',
+    );
+});
+
+test('dynamic send-button modes use only the custom tooltip', () => {
+    assert.doesNotMatch(
+        chatBoxSource,
+        /sendButton\.title = (?:stop|stopping|queue|unavailable|uploading)Copy/,
+        'a native title would duplicate the custom translated tooltip',
+    );
 });
 
 test('leaving Stop mode dismisses its tooltip before the send trigger is hidden', () => {

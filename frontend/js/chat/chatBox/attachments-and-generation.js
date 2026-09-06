@@ -852,7 +852,7 @@ function setChatSendUploadingState(uploading) {
     const uploadingCopy = getChatI18nString(CHAT_UPLOAD_TOOLTIP_KEY, 'Uploading files…');
     if (!contextGenerating) {
       sendButton.innerHTML = chatSendSpinnerMarkup;
-      sendButton.title = uploadingCopy;
+      sendButton.title = '';
       sendButton.setAttribute('aria-label', uploadingCopy);
     }
     updateChatSendTooltip(uploadingCopy);

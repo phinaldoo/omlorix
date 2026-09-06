@@ -10,7 +10,7 @@
 
 @media (hover: hover) and (pointer: fine) {
     .chat-box .om-button.call:not(.is-active-call):hover,
-    .chat-box .om-button.send:hover {
+    .chat-box .om-button.send:hover:not(:disabled):not(.disabled):not(.is-disabled) {
         background-color: var(--chat-composer-primary-control-hover, var(--chat-composer-primary-control-background));
         color: var(--chat-composer-primary-control-text, var(--background));
     }

@@ -688,7 +688,7 @@ function applySendButtonMode() {
   if (isCancelPending) {
     sendButton.dataset.mode = 'stopping';
     sendButton.innerHTML = chatSendStoppingSpinnerMarkup;
-    sendButton.title = stoppingCopy;
+    sendButton.title = '';
     sendButton.setAttribute('aria-label', stoppingCopy);
     updateChatSendTooltip(stoppingCopy);
     setChatSendTooltipEnabled(true);
@@ -699,7 +699,7 @@ function applySendButtonMode() {
     const unavailableCopy = getChatI18nString('model_select_no_models_available', 'No models available');
     sendButton.dataset.mode = 'send';
     sendButton.innerHTML = __originalSendIconHTML;
-    sendButton.title = unavailableCopy;
+    sendButton.title = '';
     sendButton.setAttribute('aria-label', unavailableCopy);
     updateChatSendTooltip(unavailableCopy);
     setChatSendTooltipEnabled(true);
@@ -709,7 +709,7 @@ function applySendButtonMode() {
   if ((isGeneratingNow || queueCount > 0) && hasQueueableInput) {
     sendButton.dataset.mode = 'queue';
     sendButton.innerHTML = chatSendQueueIconMarkup;
-    sendButton.title = queueCopy;
+    sendButton.title = '';
     sendButton.setAttribute('aria-label', queueCopy);
     updateChatSendTooltip(queueCopy);
     setChatSendTooltipEnabled(true);
@@ -721,7 +721,7 @@ function applySendButtonMode() {
     if (typeof Icons !== 'undefined' && Icons.stop) {
       sendButton.innerHTML = Icons.stop;
     }
-    sendButton.title = stopCopy;
+    sendButton.title = '';
     sendButton.setAttribute('aria-label', stopCopy);
     updateChatSendTooltip(stopCopy);
     setChatSendTooltipEnabled(true);
