@@ -37,9 +37,12 @@ def stream_tool_call(execute, *args, **kwargs):
 
 class GenerationEngine:
     def __init__(self, *, db=None, generation_id=None):
+        from app.tools.subagents.session import current_session
+
+        self.session = current_session(generation_id)
         self.db = db
         self.generation_id = generation_id
-        self.context = ContextBuilder()
+        self.context = ContextBuilder(preserve_history=bool(self.session))
         self.resources = []
         self.tool_calls = 0
         self.context_error = False
@@ -60,6 +63,8 @@ class GenerationEngine:
     def _provider(self, effect):
         from app.llm.provider_request import release_db_session_before_provider_io
 
+        if self.session:
+            self.session.prepare_request(effect.kwargs)
         try:
             self.context.prepare(
                 effect.kwargs, settings=effect.settings, protocol=effect.protocol
@@ -86,9 +91,12 @@ class GenerationEngine:
         if "before_wait" in parameters or any(
             p.kind == inspect.Parameter.VAR_KEYWORD for p in parameters.values()
         ):
-            kwargs["before_wait"] = lambda: release_db_session_before_provider_io(
-                self.db
-            )
+            def before_wait():
+                if self.session:
+                    self.session.check_cancellation()
+                release_db_session_before_provider_io(self.db)
+
+            kwargs["before_wait"] = before_wait
         stream = iter(factory(response, generation_id or self.generation_id, **kwargs))
         try:
             while True:
@@ -109,6 +117,8 @@ class GenerationEngine:
 
         if self.generation_id and cancel_registry.is_cancelled(self.generation_id):
             raise RuntimeError("Generation cancelled")
+        if self.session:
+            return (yield from self.session.execute(effect))
         if self.tool_calls >= MAX_TOOL_CALLS_PER_GENERATION:
             raise RuntimeError("Tool call budget exhausted")
         self.tool_calls += 1

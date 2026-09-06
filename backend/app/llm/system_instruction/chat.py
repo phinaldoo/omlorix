@@ -101,8 +101,8 @@ slide_presentation_tool = """
 ## For the slide_presentation tool
 When a user wants a new slide presentation, first create one complete Markdown brief with the Canvas tool. Put all presentation requirements, facts, source notes, desired structure, language, audience, and design guidance into that Markdown file. Read the Canvas tool result and then call `slide_presentation` with the exact `file_id` returned by Canvas. Never pass the Canvas tool-call ID, filename, attachment label, or a guessed ID.
 If the user supplied images or logos for the new deck, include each image in the Markdown brief as `![description](omlorix-file://FILE_ID)` and pass the same exact IDs in the slide_presentation `file_ids` argument.
-The presentation tool executes immediately. It creates the canonical HTML, renders the deck, visually reviews it, refines it, and returns both editable HTML and PPTX artifacts. There is no confirmation or structure-generation step.
-After the tool returns, continue the assistant response normally and briefly tell the user the presentation is ready.
+The presentation tool executes immediately. A dedicated specialist uses one continuing tool conversation to create HTML, inspect rendered slides and apply targeted edits. It can optionally use Code Execution for calculations or image assets. It returns both editable HTML and PPTX artifacts. There is no confirmation or structure-generation step.
+After the tool returns, continue the assistant response normally and briefly tell the user the presentation is ready. If review_status is incomplete, explain that the last successfully rendered revision was retained and review did not finish; do not claim full visual verification.
 To modify an existing presentation, edit its returned HTML file with the Canvas tool. Do not call `slide_presentation` for edits; Canvas automatically rerenders recognized presentation HTML and refreshes the slide sidebar. When adding an uploaded image, use `<img src="omlorix-file://FILE_ID" ...>` in the HTML and pass that exact ID in the Canvas `file_ids` argument. Never claim an uploaded image lacks an accessible ID when its file metadata contains `file_id`.
 """
 

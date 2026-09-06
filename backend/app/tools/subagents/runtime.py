@@ -580,26 +580,36 @@ def _dispatch_nested_provider(
     settings_override: dict[str, Any],
     system_instruction_sections: list[dict[str, str]] | None,
     user_role: str | None,
+    session=None,
 ) -> Generator[str, None, Any]:
     normalized_provider = normalize_provider_value(provider)
-    return call_provider_chat(
-        ProviderRequest(
-            request_type=REQUEST_TYPE_CHAT,
-            db=db,
-            provider=normalized_provider,
-            model=db_model,
-            chat_history=chat_history,
-            user_id=user_id,
-            project_id=project_id,
-            generation_id=generation_id,
-            temp_request_flag=True,
-            settings_override=settings_override,
-            system_instruction_sections=system_instruction_sections,
-            assistant_metadata={"subagent": True},
-            user_role=user_role,
-            extra={"chat_id": chat_id},
+
+    def dispatch():
+        yield from call_provider_chat(
+            ProviderRequest(
+                request_type=REQUEST_TYPE_CHAT,
+                db=db,
+                provider=normalized_provider,
+                model=db_model,
+                chat_history=chat_history,
+                user_id=user_id,
+                project_id=project_id,
+                generation_id=generation_id,
+                temp_request_flag=True,
+                settings_override=settings_override,
+                system_instruction_sections=system_instruction_sections,
+                assistant_metadata={"subagent": True},
+                user_role=user_role,
+                extra={"chat_id": chat_id},
+            )
         )
-    )
+
+    stream = dispatch()
+    if session is not None:
+        from app.tools.subagents.session import scoped_stream
+
+        return scoped_stream(stream, session)
+    return stream
 
 
 def _event_from_nested_line(raw_line: str) -> tuple[str, str | None, dict[str, Any]]:

@@ -226,7 +226,13 @@ OmlorixPresentation.ready.then(api => {
 """
 
 
-def get_sys_instruct_generate_html() -> str:
+def get_sys_instruct_generate_html(*, tool_workflow: bool = False) -> str:
+    output_instruction = (
+        "Create the HTML file through update_presentation and use its rendered images to review your work. "
+        "The rules below describe the file content submitted to that tool, not your conversational response. "
+        "Code Execution is optional for calculations and image assets."
+        if tool_workflow else "You must output **ONLY raw HTML**."
+    )
     return f"""Today is {get_today()}.
 
 # Role
@@ -274,7 +280,7 @@ These rules are strict.
 
 ## Output Format
 
-You must output **ONLY raw HTML**.
+{output_instruction}
 
 Do not include:
 

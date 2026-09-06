@@ -7,11 +7,17 @@ Complete the shared [Tool Rollout Checklist](0_tool_rollout.md), then validate b
 ## Configure
 
 1. Deploy a compatible slide-rendering service and add it under **Admin Settings > Service Connections** with **Slides** enabled.
-2. Open **Admin Settings > Tools > Slide Presentation** and select a suitable presentation model and the visible generation, rendering, and file settings.
+2. Open **Admin Settings > Tools > Slide Presentation** and select a presentation model that supports image input and tool calling.
 3. Save, then select **Slide Presentation** on the chat models that may start the workflow.
 4. Have a pilot user create or upload the complete Markdown brief, generate a small deck from that file, edit it in the browser, rerender it, and download each offered format. Up to 20 owned image files can be supplied as presentation assets.
 
 The presentation model and the chat model have different roles: the chat model gathers the request, while the presentation model produces the deck. Both must remain available and within quota.
+
+The presentation model runs as a purpose-specific subagent through the shared subagent/provider runtime. Its tool set is explicitly **update_presentation** and **Code Execution**, independently of its saved chat tools. Code Execution is always offered but never required: the specialist can use it to calculate values or create image assets when useful. A healthy Code Execution service is needed only when the specialist chooses to execute code; normal execution-service network, package, quota and rate-limit policies still apply. The public Subagent tool and its target picker do not need to be enabled to generate presentations.
+
+One continuing conversation retains the complete brief, tool results and visual feedback. Each run permits **12 total tool calls** and **4 write/render attempts**, including failed attempts; source reads consume a tool call but no render. Every tool result reports both remaining budgets. Once all tool calls are spent, the model receives the last result for a final response with tools disabled. Code Execution can be skipped entirely. Updates use the existing Canvas create/read/exact-edit contract and accept only this deck, approved input images and files generated during the run. Rendered contact sheets are temporary, owner-scoped model attachments, removed when the run ends; they are not added to Workspace Files or account archives.
+
+Each valid candidate is rendered before publication. Canonical HTML, revision metadata, the presentation index and the new artifact pointer are committed together using the Canvas transaction hook. A failed render or publication leaves the last successful revision available. Rendering still produces the renderer's existing PPTX-and-PNG bundle on each pass; there is no new renderer API requirement. The existing Rendering Worker can run the workflow, and parent cancellation propagates to the specialist.
 
 ## Files and lifecycle
 

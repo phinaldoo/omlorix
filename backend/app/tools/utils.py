@@ -66,6 +66,10 @@ available_tools = {
 def list_available_tool_names(db) -> list[str]:
     """Return a list of all available tool names, including custom tools."""
     names = list(available_tools.keys())
+    from app.tools.subagents.session import current_session
+    session = current_session()
+    if session:
+        names.extend(name for name in session.schemas if name not in names)
     if db is None:
         return names
     for custom_name in list_enabled_custom_python_tool_names(db):
@@ -256,6 +260,8 @@ def get_tool_schemas(
       names.append(normalized_name)
 
   specs: list[dict] = []
+  from app.tools.subagents.session import current_session
+  session = current_session()
   for n in names:
     if n == "web_search":
       resolved_spec = _get_web_search_tool_schema(
@@ -276,7 +282,7 @@ def get_tool_schemas(
         ),
       )
     else:
-      spec = tool_schemas.get(n)
+      spec = (session.schemas.get(n) if session else None) or tool_schemas.get(n)
       if spec:
         resolved_spec = deepcopy(spec)
       else:

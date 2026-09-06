@@ -93,7 +93,8 @@ class ContextSegment:
 
 
 class ContextBuilder:
-    def __init__(self):
+    def __init__(self, *, preserve_history=False):
+        self.preserve_history = preserve_history
         self.prefix_count = 0
         self.prefix_sections = []
         self.last_report = None
@@ -172,7 +173,7 @@ class ContextBuilder:
         history_started = False
         for message in body:
             if not history_started or _user_turn(message):
-                segments.append(ContextSegment("history", 30, False, []))
+                segments.append(ContextSegment("history", 30, self.preserve_history, []))
                 history_started = True
             segments[-1].content.append(message)
         if segments:

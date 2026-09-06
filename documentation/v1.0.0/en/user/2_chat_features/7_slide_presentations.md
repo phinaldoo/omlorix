@@ -6,7 +6,7 @@ A model with **Slide presentation** can create and edit a deck of up to 50 slide
 
 Prepare a Markdown file containing the audience, purpose, key messages, evidence, source notes, desired slide count, and visual direction. Save it in Workspace Files, then ask the model to create a presentation from that brief. Add only approved images that the deck must use.
 
-Generation can take time while Omlorix builds, renders, and reviews the slides. Keep the chat open and wait for the presentation card to become ready.
+Generation can take time while Omlorix builds, renders, and reviews the slides. A presentation specialist keeps your brief in the same conversation while inspecting slide images and making targeted corrections. It may use Code Execution to check calculations or generate chart and image assets when helpful; this is optional. The preview updates after successful rendering passes. Keep the chat open and wait for the presentation card to become ready.
 
 ## Review, edit, and present
 

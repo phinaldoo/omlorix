@@ -1888,6 +1888,13 @@ def delete_storage_reference(
 # -------------------
 def get_file_info(user_id: str, file_id: str):
     """Get file information for a chat file by user_id and file_id."""
+    from app.tools.subagents.session import current_session
+
+    session = current_session()
+    if session:
+        transient = session.file_info(user_id, str(file_id))
+        if transient is not None:
+            return dict(transient)
     from app.agents.utils import get_agent_asset_info_for_user, parse_agent_asset_descriptor
     from app.skills.models import parse_skill_file_descriptor, resolve_skill_file_info_for_user
     from app.database import SessionLocal

@@ -1843,6 +1843,7 @@ def _resolve_tool_call(
         pipeline = run_presentation_pipeline(
             user_id=str(user_id), markdown_file_id=brief_file_id, db=db,
             chat_id=chat_id, project_id=project_id, user_role=normalized_user_role,
+            generation_id=generation_id,
             input_file_ids=(
                 tool_args.get("file_ids")
                 if isinstance(tool_args.get("file_ids"), list)

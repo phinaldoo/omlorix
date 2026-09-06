@@ -2827,7 +2827,10 @@
                 const count = data.count || 0;
                 if (presId && count > 0) {
                     slidePresentationPresentationId = presId;
-                    _loadSlideImages(presId, count, Number(data.revision) || 0)
+                    _loadSlideImages(presId, count, Number(data.revision) || 0, {
+                        forceRebuild: _slideItems.length !== count,
+                        preserveIndex: slidePresentationCurrentIndex,
+                    })
                         .then((loaded) => {
                             if (loaded || String(slidePresentationPresentationId || '') !== String(presId)) return;
                             updatePreviewStatus(
