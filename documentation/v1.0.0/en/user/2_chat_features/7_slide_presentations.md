@@ -10,7 +10,7 @@ Generation can take time while Omlorix builds, renders, and reviews the slides. 
 
 ## Review, edit, and present
 
-Select **View Presentation** to open the preview. Use **Outline** to navigate slides and **Present** for the slideshow view.
+Select **View Presentation** to open the preview. Scroll vertically through the live, interactive slides, or use **Outline** to jump to a slide. Multiple slides can be visible at once, and the outline and slide counter follow your scrolling. Controls retain their state as you navigate. Select **Present** for the separate single-slide slideshow view.
 
 The slideshow displays the saved HTML directly, scaled to fit the screen while preserving the slide’s proportions. Text and graphics remain browser-rendered at fullscreen size. Saved decks can open and present before preview images finish loading. Interactive decks can include quizzes, clickable controls, scenario sliders, animated charts, custom slide transitions, public API data, and embeddable websites. Quiz answers and controls survive slide changes within the session; reopening starts fresh. They are not automatically shared with other viewers or saved to your account.
 

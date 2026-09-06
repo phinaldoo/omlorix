@@ -30,10 +30,11 @@ DECK = '''<!DOCTYPE html><html lang="en" data-omlorix-interactive="1"><head>
 </section><script>window.quizValue = 42;</script></body></html>'''
 
 
-def test_streamed_preview_is_isolated_and_drops_unfinished_scripts():
+@pytest.mark.parametrize('mode', ['present', 'preview'])
+def test_streamed_preview_is_isolated_and_drops_unfinished_scripts(mode):
     partial = DECK.split('<script>')[0] + '<script>window.unfinished = '
     result = router.create_presentation_preview(
-        SlidePresentationPreviewRequest(html=partial),
+        SlidePresentationPreviewRequest(html=partial, mode=mode),
         SimpleNamespace(base_url='https://app.example.org/'),
         user=SimpleNamespace(id='preview-owner'),
     )
@@ -41,6 +42,7 @@ def test_streamed_preview_is_isolated_and_drops_unfinished_scripts():
     html = frame['path'].read_text()
     assert 'window.unfinished' not in html
     assert '<button' in html and 'startPresentation' in html
+    assert BeautifulSoup(html, 'html.parser').html['data-omlorix-mode'] == mode
     assert result['slide_count'] == 1
     assert 'sandbox allow-scripts' in frame['headers']['Content-Security-Policy']
     assert 'allow-same-origin' not in frame['headers']['Content-Security-Policy']

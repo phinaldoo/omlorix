@@ -803,6 +803,27 @@ body.slide-presentation-editor-open {
     background: var(--slide-presentation-card-bg);
 }
 
+.slide-presentation-preview-slides-track:has(.scroll-document) {
+    padding: 0;
+    overflow: hidden;
+    scrollbar-gutter: auto;
+    min-height: 0;
+}
+
+.slide-presentation-preview-slide-item.scroll-document {
+    flex: 1;
+    min-height: 0;
+    max-width: none;
+    aspect-ratio: auto;
+    border-radius: 0;
+}
+
+.slide-presentation-preview-slide-item.scroll-document iframe.interactive {
+    width: 100%;
+    height: 100%;
+    transform: none;
+}
+
 /* Keep the rounded clip on the slide wrapper, but make the rendered image a
    full-size, untransformed layer. This prevents the image's former white
    background from being blended into the rounded edge by the compositor. */

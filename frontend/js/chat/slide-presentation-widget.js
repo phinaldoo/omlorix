@@ -992,6 +992,7 @@
     }
 
     function _scaleIframe(iframe, containerEl) {
+        if (iframe.classList.contains('interactive')) return;
         if (!containerEl) return;
         const w = containerEl.offsetWidth;
         if (w > 0) iframe.style.transform = `scale(${w / 1920})`;
@@ -999,6 +1000,7 @@
 
     function _scaleIframeWithRetry(iframe, containerEl, attempt = 0) {
         if (!iframe || !containerEl) return;
+        if (iframe.classList.contains('interactive')) return;
 
         const w = containerEl.offsetWidth;
         if (w > 0) {
@@ -1173,7 +1175,7 @@
         try {
             const payload = await _editorFetchJson('/api/v1/presentations/preview', {
                 method: 'POST',
-                body: JSON.stringify({ html, slide_index: Math.min(slidePresentationCurrentIndex, 49) }),
+                body: JSON.stringify({ html, slide_index: Math.min(slidePresentationCurrentIndex, 49), mode: 'preview' }),
                 signal: controller.signal,
             });
             if (token !== _previewLoadToken) return;
@@ -1191,7 +1193,7 @@
             frame.className = 'interactive';
             frame.style.visibility = 'hidden';
             const item = _slideItems[0] || document.createElement('div');
-            item.className = 'slide-presentation-preview-slide-item active';
+            item.className = 'slide-presentation-preview-slide-item scroll-document active';
             if (!item.isConnected) previewSlidesTrack.appendChild(item);
             item.appendChild(frame);
             _scaleIframe(frame, item);
@@ -1266,6 +1268,7 @@
         if (!_previewRuntimeFrame || event.source !== _previewRuntimeFrame.contentWindow
             || event.origin !== 'null' || event.data?.channel !== _previewRuntimeChannel) return;
         const data = event.data;
+        if (data.type === 'omlorix-presentation:activity' && data.userInitiated) _previewAutoFollowGeneration = false;
         if (data.type === 'omlorix-presentation:state' && Number.isInteger(data.index)) {
             _setCurrentSlideIndex(data.index);
         }
@@ -1311,6 +1314,7 @@
         _setCurrentSlideIndex(index);
         _previewRuntimeFrame.contentWindow.postMessage({
             type: 'omlorix-presentation:goto', channel: _previewRuntimeChannel, index,
+            behavior: preserveAutoFollow || _shouldReduceMotion() ? 'auto' : 'smooth',
         }, '*');
     }
 

@@ -505,7 +505,7 @@ def create_presentation_preview(
     try:
         return create_playback_frame(
             user_id=str(user.id), html=prepare_preview_source(payload.html),
-            app_origin=str(request.base_url), slide_index=payload.slide_index,
+            app_origin=str(request.base_url), slide_index=payload.slide_index, mode=payload.mode,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="The edited presentation is not a valid 1920 by 1080 slide deck.") from exc

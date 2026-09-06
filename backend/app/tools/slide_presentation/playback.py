@@ -97,12 +97,21 @@ section.slide.omlorix-leaving{pointer-events:none!important}
 """
     if mode == "present":
         soup.head.append(style)
+    elif mode == "preview":
+        style.string = """
+html{width:100%!important;height:100%!important;overflow:hidden!important;background:transparent!important}
+body{width:auto!important;height:100%!important;margin:0!important;padding:24px!important;box-sizing:border-box!important;display:flex!important;flex-direction:column!important;align-items:center!important;gap:24px!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain;scrollbar-gutter:stable;scroll-snap-type:y proximity;scroll-padding-block:24px;background:transparent!important}
+.omlorix-preview-slot{position:relative;flex:none;width:100%;max-width:860px;aspect-ratio:16/9;overflow:hidden;border-radius:8px;isolation:isolate;scroll-snap-align:center;background:Canvas;color-scheme:light}
+.omlorix-preview-slot>section.slide{display:block!important;position:absolute!important;inset:0!important;margin:0!important;width:1920px!important;height:1080px!important;box-sizing:border-box!important;overflow:hidden;transform:scale(var(--omlorix-preview-scale))!important;transform-origin:top left!important}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+"""
+        soup.head.append(style)
     return {"html": str(soup), "source": html, "csp": csp, "runtime": bootstrap.string,
             "channel_id": channel, "slide_count": count}
 
 
-def create_playback_frame(*, user_id: str, html: str, app_origin: str, slide_index: int = 0) -> dict:
-    document = prepare_presentation_document(html, mode="present", app_origin=app_origin, slide_index=slide_index)
+def create_playback_frame(*, user_id: str, html: str, app_origin: str, slide_index: int = 0, mode: str = "present") -> dict:
+    document = prepare_presentation_document(html, mode=mode, app_origin=app_origin, slide_index=slide_index)
     result = store_isolated_frame_document(user_id=user_id, html=document["html"],
                                           csp="sandbox allow-scripts; " + document["csp"],
                                           widget_type="slide_presentation")

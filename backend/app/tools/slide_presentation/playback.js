@@ -3,6 +3,11 @@ function startPresentation(config) {
     const channel = config.channel;
     const mode = config.mode || "present";
     const rendering = mode === "render";
+    const preview = mode === "preview";
+    const previewControllers = new Map();
+    let previewSlots = [];
+    let previewScrollFrame;
+    let previewNavigationIndex = null;
     const pendingRender = [];
     let resolveRender, rejectRender;
     const renderReady = new Promise((resolve, reject) => { resolveRender = resolve; rejectRender = reject; });
@@ -44,11 +49,11 @@ function startPresentation(config) {
         });
     }
 
-    function enterCurrent(previousIndex) {
+    function enterCurrent(previousIndex, currentIndex = index, slideController = controller) {
         if (!rendering && (!hostVisible || document.hidden)) return;
-        const slide = slides[index];
+        const slide = slides[currentIndex];
         if (!slide) return;
-        if (controller.signal.aborted || rendering) controller = new AbortController();
+        if (!preview && (controller.signal.aborted || rendering)) slideController = controller = new AbortController();
         slide.querySelectorAll('iframe[data-omlorix-embed-src]').forEach(frame => {
             if (!frame.dataset.omlorixEmbedSrc) return;
             if (rendering) waitUntil(new Promise(resolve => frame.addEventListener('load', resolve, { once: true })));
@@ -58,15 +63,98 @@ function startPresentation(config) {
             if (!reducedMotion.matches && animation.playState === 'paused') animation.play();
         });
         slide.dispatchEvent(new CustomEvent('omlorix:slide-enter', {
-            bubbles: true, detail: { index, previousIndex, slide, signal: controller.signal, state, reducedMotion: reducedMotion.matches, waitUntil },
+            bubbles: true, detail: { index: currentIndex, previousIndex, slide, signal: slideController.signal, state, reducedMotion: reducedMotion.matches, waitUntil },
         }));
     }
 
-    function goTo(value, { initial = false } = {}) {
+    // One document preserves authored state and avoids a runtime per slide.
+    // Only visible slides run lifecycle-managed work; all slides stay readable.
+    function syncPreview() {
+        const viewport = document.body.getBoundingClientRect();
+        const bounds = previewSlots.map(slot => slot.getBoundingClientRect());
+        const previousIndex = index;
+        let nearest = index < 0 ? 0 : index;
+        let distance = Infinity;
+        bounds.forEach((rect, i) => {
+            const nextDistance = Math.abs((rect.top + rect.bottom - viewport.top - viewport.bottom) / 2);
+            if (nextDistance < distance) { nearest = i; distance = nextDistance; }
+        });
+        if (document.body.scrollTop <= 1) nearest = 0;
+        else if (document.body.scrollTop + document.body.clientHeight >= document.body.scrollHeight - 1) nearest = slides.length - 1;
+        index = previewNavigationIndex ?? nearest;
+        bounds.forEach((rect, i) => {
+            const visible = hostVisible && !document.hidden && rect.bottom > viewport.top && rect.top < viewport.bottom;
+            if (visible && !previewControllers.has(i)) {
+                const active = new AbortController();
+                previewControllers.set(i, active);
+                controller = active;
+                enterCurrent(previousIndex, i, active);
+            } else if (!visible && previewControllers.has(i)) {
+                previewControllers.get(i).abort();
+                previewControllers.delete(i);
+                slides[i].dispatchEvent(new CustomEvent('omlorix:slide-leave', {
+                    bubbles: true, detail: { index: i, nextIndex: index, state },
+                }));
+                slides[i].getAnimations({ subtree: true }).forEach(animation => animation.pause());
+                slides[i].querySelectorAll('audio,video').forEach(media => media.pause());
+                slides[i].querySelectorAll('iframe').forEach(frame => frame.removeAttribute('src'));
+            }
+        });
+        controller = previewControllers.get(index) || controller;
+        if (index !== previousIndex) send('state', { index, count: slides.length });
+    }
+
+    function scrollPreview(next, behavior = 'auto') {
+        const slot = previewSlots[next];
+        if (!slot) return;
+        previewNavigationIndex = next;
+        const viewport = document.body.getBoundingClientRect();
+        const rect = slot.getBoundingClientRect();
+        document.body.scrollTo({
+            top: document.body.scrollTop + rect.top - viewport.top - (viewport.height - rect.height) / 2,
+            behavior: reducedMotion.matches ? 'auto' : behavior,
+        });
+        syncPreview();
+    }
+
+    function initializePreview() {
+        previewSlots = slides.map(slide => {
+            const slot = document.createElement('div');
+            slot.className = 'omlorix-preview-slot';
+            slide.before(slot);
+            slot.appendChild(slide);
+            slide.classList.add('omlorix-active');
+            slide.inert = false;
+            slide.removeAttribute('aria-hidden');
+            slide.setAttribute('tabindex', '-1');
+            slide.getAnimations({ subtree: true }).forEach(animation => animation.pause());
+            return slot;
+        });
+        const resize = new ResizeObserver(() => {
+            previewSlots.forEach(slot => slot.style.setProperty('--omlorix-preview-scale', slot.clientWidth / 1920));
+            scrollPreview(Math.max(0, index));
+        });
+        previewSlots.forEach(slot => {
+            slot.style.setProperty('--omlorix-preview-scale', slot.clientWidth / 1920);
+            resize.observe(slot);
+        });
+        resize.observe(document.body);
+        document.body.addEventListener('scroll', () => {
+            if (previewScrollFrame) return;
+            previewScrollFrame = requestAnimationFrame(() => {
+                previewScrollFrame = null;
+                syncPreview();
+            });
+        }, { passive: true });
+        scrollPreview(config.initialIndex);
+    }
+
+    function goTo(value, { initial = false, behavior = 'smooth' } = {}) {
         if (rendering) return;
         if (mode === "editor") slides = [...document.querySelectorAll("section.slide")];
         if (!slides.length || !Number.isInteger(Number(value))) return;
         const next = Math.max(0, Math.min(Number(value), slides.length - 1));
+        if (preview) { scrollPreview(next, initial ? 'auto' : behavior); return; }
         if (next === index && !initial) return;
         const previousIndex = index;
         if (!initial && !document.dispatchEvent(new CustomEvent('omlorix:before-slide-change', {
@@ -186,12 +274,15 @@ function startPresentation(config) {
 
     addEventListener('message', event => {
         if (event.source !== parent || event.data?.channel !== channel) return;
-        if (event.data.type === 'omlorix-presentation:goto') goTo(event.data.index);
+        if (event.data.type === 'omlorix-presentation:goto') goTo(event.data.index, {
+            behavior: event.data.behavior === 'auto' ? 'auto' : 'smooth',
+        });
         if (event.data.type === 'omlorix-presentation:focus') slides[index]?.focus();
         if (event.data.type === 'omlorix-presentation:visibility' && typeof event.data.visible === 'boolean') {
             const visible = event.data.visible;
             if (visible === hostVisible) return;
             hostVisible = visible;
+            if (preview) { syncPreview(); return; }
             controller.abort();
             if (visible && !document.hidden) enterCurrent(index);
             else {
@@ -202,12 +293,13 @@ function startPresentation(config) {
         }
     });
     document.addEventListener('keydown', event => {
-        if (mode !== 'present') return;
+        if (mode !== 'present' && !preview) return;
+        previewNavigationIndex = null;
         const control = event.target.closest('input,textarea,select,button,a,[role="slider"],[role="button"],[contenteditable="true"]');
         if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return;
         if (event.key === 'Escape') { event.preventDefault(); send('close'); return; }
         if (event.key === 'Tab') {
-            const focusable = [...(slides[index]?.querySelectorAll('button,input,select,textarea,a[href],iframe,[tabindex]') || [])]
+            const focusable = [...((preview ? document : slides[index])?.querySelectorAll('button,input,select,textarea,a[href],iframe,[tabindex]') || [])]
                 .filter(el => !el.disabled && el.tabIndex >= 0 && el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden');
             if ((event.shiftKey && (event.target === focusable[0] || event.target === slides[index])) || (!event.shiftKey && event.target === focusable.at(-1))) {
                 event.preventDefault(); send('focus-host', { backwards: event.shiftKey });
@@ -229,9 +321,19 @@ function startPresentation(config) {
     document.addEventListener('pointermove', () => {
         if (performance.now() - lastActivity > 250) { lastActivity = performance.now(); send('activity'); }
     }, { passive: true });
-    document.addEventListener('pointerdown', () => send('activity'), { passive: true });
+    document.addEventListener('pointerdown', () => {
+        previewNavigationIndex = null;
+        send('activity', { userInitiated: true });
+    }, { passive: true });
+    if (preview) {
+        ['wheel', 'touchstart', 'keydown'].forEach(type => document.addEventListener(type, () => {
+            if (type !== 'keydown') previewNavigationIndex = null;
+            send('activity', { userInitiated: true });
+        }, { passive: true }));
+    }
     document.addEventListener('visibilitychange', () => {
         if (rendering) return;
+        if (preview) { syncPreview(); return; }
         controller.abort();
         if (document.hidden) {
             slides[index]?.getAnimations({ subtree: true }).forEach(animation => animation.pause());
@@ -239,7 +341,7 @@ function startPresentation(config) {
         } else if (hostVisible) enterCurrent(index);
     });
     reducedMotion.addEventListener('change', () => {
-        if (reducedMotion.matches && !rendering) finishTransition();
+        if (reducedMotion.matches && !rendering && !preview) finishTransition();
         document.dispatchEvent(new CustomEvent('omlorix:motion-change', { detail: { reducedMotion: reducedMotion.matches } }));
     });
     document.addEventListener('DOMContentLoaded', () => {
@@ -248,7 +350,8 @@ function startPresentation(config) {
         resolveReady(window.OmlorixPresentation);
         // Ready callbacks can attach initial lifecycle listeners before entering.
         queueMicrotask(async () => {
-            if (rendering) {
+            if (preview) initializePreview();
+            else if (rendering) {
                 // Every slide must initialize, including charts created on entry.
                 slides.forEach((slide, i) => {
                     index = i;
