@@ -524,7 +524,7 @@ def run_specialist(
             review_dir=Path(directory),
         )
         instructions = (
-            get_sys_instruct_generate_html(tool_workflow=True)
+            get_sys_instruct_generate_html()
             + "\n\n"
             + SPECIALIST_INSTRUCTIONS
         )
