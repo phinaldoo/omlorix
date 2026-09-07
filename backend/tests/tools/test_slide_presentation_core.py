@@ -256,7 +256,7 @@ def test_presentation_title_is_safe_as_a_file_basename():
     )
 
 
-def test_visual_review_images_use_numeric_order_and_a_bounded_payload(tmp_path):
+def test_visual_review_images_use_numeric_order_for_slides_and_overviews(tmp_path):
     from PIL import Image
     from app.tools.slide_presentation.specialist import PresentationSession
 
@@ -269,8 +269,11 @@ def test_visual_review_images_use_numeric_order_and_a_bounded_payload(tmp_path):
 
     session = PresentationSession("run", (), user_id="user-1", review_dir=tmp_path)
     ids = session.review_images(images_dir, 23)
-    assert len(ids) == 6
-    assert [session.attachments[file_id]["file_name"] for file_id in ids] == [
+    assert len(ids) == 29
+    assert [session.attachments[file_id]["file_name"] for file_id in ids[:23]] == [
+        f"slide-{number}.png" for number in range(1, 24)
+    ]
+    assert [session.attachments[file_id]["file_name"] for file_id in ids[23:]] == [
         "slides-1-4.jpg", "slides-5-8.jpg", "slides-9-12.jpg",
         "slides-13-16.jpg", "slides-17-20.jpg", "slides-21-23.jpg",
     ]
@@ -767,6 +770,11 @@ def test_slide_pipeline_ignores_non_object_json_events(monkeypatch):
         lambda *args, **kwargs: None,
     )
 
+    snapshot = {"schema_version": 1, "run_id": "run-1", "events": [
+        {"event": "message_delta", "content": "Reviewed the retention chart."},
+        {"event": "complete", "result": "Review complete."},
+    ]}
+
     def fake_pipeline(**kwargs):
         yield "42\n"
         yield (
@@ -779,7 +787,7 @@ def test_slide_pipeline_ignores_non_object_json_events(monkeypatch):
             )
             + "\n"
         )
-        return {"html_file_id": "deck-1", "pptx_file_id": "pptx-1"}
+        return {"html_file_id": "deck-1", "pptx_file_id": "pptx-1", "slide_presentation_activity": snapshot}
 
     monkeypatch.setattr(
         presentation_pipeline, "run_presentation_pipeline", fake_pipeline
@@ -802,6 +810,22 @@ def test_slide_pipeline_ignores_non_object_json_events(monkeypatch):
 
     assert emitted[0] == "42\n"
     assert result["documents"] == ["deck-1", "pptx-1"]
+
+    assert result["tool_meta"]["slide_presentation_activity"] == snapshot
+    assert "slide_presentation_activity" not in json.loads(result["content"])
+    assert "slide_presentation_activity" not in result["result"]
+
+    # The existing chat export/import boundary retains display-only tool metadata.
+    from app.chats.models import ChatMessages
+    from app.chats.io import _build_imported_message_content
+    from app.users.data_export import _stream_chat_messages_json_array
+
+    message = ChatMessages(role="assistant", content=json.dumps([{
+        "type": "tool_call_result", "content": result["content"], "meta": result["tool_meta"],
+    }]))
+    exported = json.loads("".join(_stream_chat_messages_json_array([message])))[0]
+    restored = json.loads(_build_imported_message_content(exported))
+    assert restored[0]["meta"]["slide_presentation_activity"] == snapshot
 
 
 def test_canvas_save_survives_presentation_rerender_failure(monkeypatch):

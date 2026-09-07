@@ -29,10 +29,9 @@ test('slide presentation sidebar reuses Canvas panel primitives', () => {
     assert.match(widget, /setPreviewWidthFromPixels/);
     assert.match(widget, /applyPreviewWidthRatio/);
     assert.match(widget, /canvas-markdown-preview-resizing/);
-    assert.match(slideCss, /@container canvas-preview \(max-width: 600px\)\s*\{\s*\.slide-presentation-preview-btn-label\s*\{\s*display: none;/);
-    assert.doesNotMatch(slideCss, /@media \(max-width: 1199px\)\s*\{\s*\.slide-presentation-preview-btn-label/);
     assert.doesNotMatch(slideCss, /\.slide-presentation-preview-panel\s*\{/);
-    assert.doesNotMatch(slideCss, /\.slide-presentation-preview-panel-header\s*\{/);
+    // The icon toolbar wraps within the shared panel's container breakpoint.
+    assert.match(slideCss, /@container canvas-preview \(max-width: 600px\)\s*\{\s*\.slide-presentation-preview-panel-header\s*\{/);
     assert.doesNotMatch(slideCss, /\.slide-presentation-preview-panel-workspace\s*\{/);
 });
 
@@ -193,14 +192,16 @@ test('failed editor close dialog uses localized authenticated-page copy', () => 
     }
 });
 
-test('slide presentation generation uses live HTML without image requests', () => {
+test('slide presentation generation uses specialist activity and loads canonical HTML on completion', () => {
     const widget = readFrontendSource(path.join(ROOT, 'js/chat/slide-presentation-widget.js'), 'utf8');
     assert.match(widget, /case 'html_snapshot'/);
-    assert.match(widget, /_queueInteractivePreview\(data.html/);
+    assert.match(widget, /_specialistTranscript.append\(data.event, data\)/);
+    assert.match(widget, /_loadCompletedPresentation\(data\)/);
+    assert.doesNotMatch(widget, /_queueInteractivePreview\(data.html/);
     assert.match(widget, /frame.setAttribute\('sandbox', 'allow-scripts'\)/);
     assert.match(widget, /event.source !== _previewRuntimeFrame.contentWindow/);
     assert.match(widget, /event.origin !== 'null'/);
-    assert.match(widget, /_previewQueuedHtml/);
+    assert.doesNotMatch(widget, /_previewQueuedHtml/);
     assert.doesNotMatch(widget, /_loadSlideImages|_fetchSlideImage|_restorePreviewFromImages|createElement\('img'\)/);
 });
 
@@ -224,12 +225,15 @@ test('native full-site editor uses revisioned save and render APIs', () => {
         ),
         [
             '/css/common/animations.css',
+            '/css/common/init.css',
+            '/css/common/elements.css',
             '/css/common/elementsNew.css',
             '/css/common/searchModal.css',
         ],
     );
     assert.match(editor, /querySelectorAll\('link\[data-slide-presentation-editor-stylesheet\]'\)/);
-    assert.match(editor, /fetch\(link\.href\)/);
+    assert.match(editor, /readAsset\(link\.href\)/);
+    assert.match(editor, /readAsset\(script\.src\)/);
     assert.match(editor, /window\.slideEditorStyles/);
     assert.doesNotMatch(
         editor,
@@ -385,10 +389,10 @@ test('presentation export waits for every saved edit and its newest rendered rev
     const renderStart = editor.indexOf('async function requestServerRender()');
     const saveStart = editor.indexOf('async function flushServerSave(', renderStart);
     const actionsStart = editor.indexOf('/* ---------------------------------------------------------------------\n   Shared presentation', saveStart);
-    const exportStart = editor.indexOf('async function requestSharedExport()');
+    const exportStart = editor.indexOf('async function requestSharedExport(format)');
     const exportEnd = editor.indexOf("$('#btnPresent').addEventListener", exportStart);
     const refreshStateStart = widget.indexOf('function _setEditorPreviewRefreshState(');
-    const refreshStateEnd = widget.indexOf('/**\n     * Batch token-level HTML updates', refreshStateStart);
+    const refreshStateEnd = widget.indexOf('function _clearSpecialistActivity(', refreshStateStart);
     assertSourceMarkers({
         renderStart,
         saveStart,
@@ -434,7 +438,7 @@ test('editor presentation saves source without waiting for rendered derivatives'
     const editor = readFrontendSource(path.join(ROOT, 'js/chat/slide-presentation-editor.js'), 'utf8');
     const widget = readFrontendSource(path.join(ROOT, 'js/chat/slide-presentation-widget.js'), 'utf8');
     const presentStart = editor.indexOf('async function requestSharedPresent()');
-    const presentEnd = editor.indexOf('async function requestSharedExport()', presentStart);
+    const presentEnd = editor.indexOf('async function requestSharedExport(format)', presentStart);
     const present = editor.slice(presentStart, presentEnd);
 
     assert.match(present, /const saved = await flushServerSave\(\);/);

@@ -47,19 +47,6 @@ body.slide-presentation-preview-open .main-container {
     max-width: 100%;
 }
 
-.slide-presentation-preview-btn-label {
-    display: inline;
-}
-
-/* The presentation preview is resizable independently of the browser. Match
-   the shared Canvas header breakpoint so its text actions collapse when the
-   panel itself runs out of room, including on a wide desktop viewport. */
-@container canvas-preview (max-width: 600px) {
-    .slide-presentation-preview-btn-label {
-        display: none;
-    }
-}
-
 @media (max-width: 900px) {
     body.slide-presentation-preview-open .main-container {
         margin-right: 0;
@@ -86,6 +73,24 @@ body.slide-presentation-preview-open .main-container {
     cursor: pointer;
     appearance: none;
     padding-right: 4px;
+}
+
+@container canvas-preview (max-width: 600px) {
+    .slide-presentation-preview-panel-header {
+        height: auto;
+        min-height: 50px;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding-block: 8px;
+    }
+    .slide-presentation-preview-panel-left {
+        flex-basis: 100%;
+    }
+    .slide-presentation-preview-panel-right {
+        flex: 1 1 100%;
+        flex-wrap: wrap;
+        min-width: 0;
+    }
 }
 
 /* Custom download split button
@@ -249,12 +254,6 @@ body.slide-presentation-preview-open .main-container {
     opacity: 0.8;
 }
 
-.slide-presentation-preview-download-actions {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
 /* ── Native whole-site presentation editor ─────────────────────────── */
 body.slide-presentation-editor-open {
     overflow: hidden;
@@ -360,7 +359,6 @@ body.slide-presentation-editor-open {
 /* Sidebar (thumbnails) */
 .slide-presentation-preview-sidebar {
     width: 180px;
-    background: var(--slide-presentation-card-bg);
     border-right: 1px solid var(--slide-presentation-preview-border);
     padding: 16px;
     display: flex;
@@ -581,126 +579,59 @@ body.slide-presentation-editor-open {
     }
 }
 
-/* Generating State */
-.slide-presentation-preview-generating {
+.slide-presentation-preview-main > [hidden],
+.slide-presentation-preview-sidebar[hidden] {
+    display: none !important;
+}
+
+.slide-presentation-source-panel {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    min-width: 0;
+    padding: 12px;
+    gap: 10px;
+}
+
+.slide-presentation-source-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.slide-presentation-source-actions [role="status"] {
+    color: var(--slide-presentation-text-secondary);
+    font-size: 13px;
+}
+
+.slide-presentation-source-panel textarea {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    resize: none;
+    font-family: var(--font-courier);
+    font-size: 13px;
+    line-height: 1.5;
+    tab-size: 2;
+}
+
+/* The specialist shares the subagent transcript layout and scroll behavior. */
+.slide-presentation-preview-activity:not([hidden]) {
     position: absolute;
     inset: 0;
     display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10;
-    transition: opacity 0.4s ease;
+    background: var(--background);
+    z-index: 2;
 }
 
-.slide-presentation-preview-generating.hidden {
-    opacity: 0;
-    pointer-events: none;
-}
-
-.slide-presentation-preview-generating-inner {
-    display: grid;
-    grid-template-columns: 36px minmax(0, 1fr);
-    align-items: center;
-    gap: 14px 12px;
-    max-width: 520px;
-    width: 100%;
-    padding: 0 24px;
-}
-
-/* Phase icon */
-.slide-presentation-gen-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    background: color-mix(in srgb, var(--slide-presentation-accent) 12%, transparent);
+.slide-presentation-preview-activity .subagent-transcript-panel {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--slide-presentation-accent);
-    animation: slide-presentation-GenIconPulse 2.4s ease-in-out infinite;
-}
-
-.slide-presentation-gen-icon svg {
-    width: 20px;
-    height: 20px;
-}
-
-/* Phase label */
-.slide-presentation-gen-phase-label {
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--slide-presentation-text-primary);
-    text-align: start;
-}
-
-/* Skeleton slide placeholder */
-.slide-presentation-gen-skeleton {
-    grid-column: 1 / -1;
-    width: 100%;
-}
-
-.slide-presentation-gen-skeleton-slide {
-    width: 100%;
-    aspect-ratio: 16 / 9;
-    background: var(--slide-presentation-card-bg);
-    border: 1px solid var(--slide-presentation-card-border);
-    border-radius: 10px;
-    padding: 14% 8% 8%;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-}
-
-:root[data-mode="dark"] .slide-presentation-gen-skeleton-slide {
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-}
-
-.slide-presentation-skel-title {
-    width: 50%;
-    height: 14px;
-    border-radius: 4px;
-    background: var(--slide-presentation-preview-border);
-    animation: slide-presentation-SkelShimmer 1.6s ease-in-out infinite;
-}
-
-.slide-presentation-skel-line {
-    height: 8px;
-    border-radius: 3px;
-    background: var(--slide-presentation-preview-border);
-    animation: slide-presentation-SkelShimmer 1.6s ease-in-out infinite;
-}
-
-.slide-presentation-skel-line.w80 {
-    width: 80%;
-    animation-delay: 0.1s;
-}
-.slide-presentation-skel-line.w60 {
-    width: 60%;
-    animation-delay: 0.2s;
-}
-.slide-presentation-skel-line.w70 {
-    width: 70%;
-    animation-delay: 0.3s;
-}
-
-.slide-presentation-skel-blocks {
-    display: flex;
-    gap: 6px;
-    margin-top: auto;
-}
-
-.slide-presentation-skel-block {
     flex: 1;
-    aspect-ratio: 1;
-    border-radius: 6px;
-    background: var(--slide-presentation-preview-border);
-    animation: slide-presentation-SkelShimmer 1.6s ease-in-out infinite;
+    min-width: 0;
+    min-height: 0;
 }
-
-.slide-presentation-skel-block:nth-child(1) { animation-delay: 0.15s; }
-.slide-presentation-skel-block:nth-child(2) { animation-delay: 0.3s; }
-.slide-presentation-skel-block:nth-child(3) { animation-delay: 0.45s; }
 
 /* ── Scrollable Snap Slides Track ───────── */
 .slide-presentation-preview-slides-track {
@@ -779,11 +710,6 @@ body.slide-presentation-editor-open {
     .slide-presentation-preview-slide-item {
         transition: none;
     }
-
-    .slide-presentation-gen-icon,
-    .slide-presentation-gen-skeleton-slide * {
-        animation: none;
-    }
 }
 
 .slide-presentation-preview-slide-item iframe {
@@ -800,7 +726,7 @@ body.slide-presentation-editor-open {
     position: absolute;
     inset: 0;
     pointer-events: auto;
-    background: var(--slide-presentation-card-bg);
+    background: var(--background);
 }
 
 .slide-presentation-preview-slides-track:has(.scroll-document) {
@@ -1246,6 +1172,13 @@ body.slide-presentation-editor-open {
     display: flex;
     align-items: center;
     gap: 4px;
+}
+
+.slide-presentation-ss-position {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    white-space: nowrap;
 }
 
 .slide-presentation-ss-counter {

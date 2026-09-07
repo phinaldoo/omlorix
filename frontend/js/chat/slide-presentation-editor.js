@@ -99,27 +99,14 @@ root.innerHTML = `
   @media (hover: hover) and (pointer: fine) { #deckTitle:hover { border-color: var(--line); } }
   #deckTitle:focus { border-color: var(--accent); background: var(--panel-2); }
   .tb-group { display: flex; align-items: center; gap: 2px; padding: 0 8px; border-left: 1px solid var(--line-soft); }
-  .tb-btn {
-    display: inline-flex; align-items: center; gap: 7px;
-    height: 32px; padding: 0 10px; border-radius: 8px; color: var(--text-dim);
-    transition: background .12s, color .12s; white-space: nowrap;
-  }
-  @media (hover: hover) and (pointer: fine) { .tb-btn:hover { background: var(--panel-2); color: var(--text); } }
-  .tb-btn:disabled { opacity: .35; pointer-events: none; }
-  .tb-btn svg { width: 16px; height: 16px; flex: none; }
-  .tb-btn.primary { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
-  @media (hover: hover) and (pointer: fine) {
-    :host([data-theme="dark"]) .tb-btn.primary:hover { background: #93acff; }
-    :host([data-theme="light"]) .tb-btn.primary:hover { background: #6480ff; }
-  }
   .spacer { flex: 1; }
-  #btnCloseEditor { display: none; width: 32px; padding: 0; justify-content: center; }
+  #btnCloseEditor { display: none; }
   :host([data-embedded="true"]) #btnCloseEditor { display: inline-flex; }
   :host([data-embedded="true"]) #btnOpen { display: none; }
   #saveState { min-width: 82px; text-align: right; color: var(--text-dim); }
   #saveState.error { color: var(--danger); }
   #saveState.saved { color: #4fba77; }
-  .zoom-label { min-width: 46px; text-align: center; color: var(--text-dim); font-variant-numeric: tabular-nums; cursor: pointer; }
+  .zoom-label { min-width: 46px; font-variant-numeric: tabular-nums; }
   kbd { font: 10px/1 var(--mono); color: var(--text-faint); background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 2px 4px; }
 
   /* ---------- Left: slides ---------- */
@@ -320,15 +307,6 @@ root.innerHTML = `
   .var-row input[type=color] { width: 26px; height: 26px; padding: 2px; border-radius: 6px; flex: none; cursor: pointer; }
   .var-row input[type=text] { width: 110px; height: 26px; padding: 0 7px; font: 10.5px var(--mono); flex: none; }
 
-  /* Match the presentation preview sidebar while delegating both actions to
-     that sidebar's existing behavior. */
-  .shared-export-controls { display: flex; align-items: center; gap: 6px; height: 36px; padding-left: 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); }
-  .shared-export-controls select { border: 0; background: transparent; color: var(--text); font-size: 12px; font-weight: 500; padding: 0 4px 0 0; appearance: none; cursor: pointer; }
-  .shared-export-controls .shared-export-btn { height: 34px; padding: 0 12px; border-radius: 999px; font-size: 12px; font-weight: 600; color: var(--text); background: var(--bg); }
-  .shared-export-btn svg { width: 14px; height: 14px; margin-right: 4px; vertical-align: -2px; }
-  .shared-present-btn { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 16px; border-radius: 20px; background: var(--accent); color: var(--accent-ink); font-size: 13px; font-weight: 600; }
-  .shared-present-btn svg { width: 14px; height: 14px; }
-
   /* ---------- Landing ---------- */
   #landing {
     position: fixed; inset: 0; z-index: 40; display: grid; place-items: center;
@@ -406,51 +384,42 @@ root.innerHTML = `
 <div id="app" class="hidden">
   <!-- ============ TOP BAR ============ -->
   <header id="topbar">
-    <button class="tb-btn" id="btnCloseEditor" title="Close editor" aria-label="Close editor">
+    <button class="om-button" id="btnCloseEditor" title="Close editor" aria-label="Close editor">
       ${Icons.resolveIcon("close")}
     </button>
     <input id="deckTitle" value="Untitled deck" spellcheck="false" title="Deck title" aria-label="Presentation title">
     <div class="tb-group">
-      <button class="tb-btn" id="btnOpen" title="Open HTML file">
+      <button class="om-button" id="btnOpen" title="Open HTML file">
         ${Icons.resolveIcon("upload")}
         Open
       </button>
-      <button class="tb-btn" id="btnUndo" title="Undo (⌘Z)" aria-label="Undo">
+      <button class="om-button" id="btnUndo" title="Undo (⌘Z)" aria-label="Undo">
         ${Icons.resolveIcon("undo")}
       </button>
-      <button class="tb-btn" id="btnRedo" title="Redo (⇧⌘Z)" aria-label="Redo">
+      <button class="om-button" id="btnRedo" title="Redo (⇧⌘Z)" aria-label="Redo">
         ${Icons.resolveIcon("redo")}
       </button>
     </div>
     <div class="tb-group">
-      <button class="tb-btn" id="zoomOut" title="Zoom out" aria-label="Zoom out">−</button>
-      <button class="zoom-label" id="zoomLabel" title="Fit to screen" aria-label="Fit to screen">100%</button>
-      <button class="tb-btn" id="zoomIn" title="Zoom in" aria-label="Zoom in">+</button>
+      <button class="om-button" id="zoomOut" title="Zoom out" aria-label="Zoom out">−</button>
+      <button class="om-button zoom-label" id="zoomLabel" title="Fit to screen" aria-label="Fit to screen">100%</button>
+      <button class="om-button" id="zoomIn" title="Zoom in" aria-label="Zoom in">+</button>
     </div>
     <span id="saveState" role="status" aria-live="polite"></span>
     <div class="spacer"></div>
     <div class="tb-group">
-      <button class="tb-btn" id="btnCode" title="Edit HTML source">
+      <button class="om-button" id="btnCode" title="Edit HTML source">
         ${Icons.resolveIcon("code")}
         Code
       </button>
-      <button class="shared-present-btn" id="btnPresent" title="Present (⌘⏎)">
+      <button class="om-button" id="btnPresent" title="Present (⌘⏎)">
         ${Icons.resolveIcon("play")}
         Present
       </button>
     </div>
-    <div class="shared-export-controls">
-      <select id="editorExportFormat" aria-label="Download format">
-        <option value="pptx">PPTX</option>
-        <option value="pdf">PDF</option>
-        <option value="slides_zip">Images</option>
-        <option value="html">HTML source</option>
-      </select>
-      <button class="shared-export-btn" id="btnExport" title="Download">
-        ${Icons.resolveIcon("download")}
-        Download
-      </button>
-    </div>
+    <button class="om-button" id="btnExport" type="button" title="Download" aria-label="Download" aria-haspopup="menu" aria-expanded="false">
+      ${Icons.withSvgAttributes("download", { "width": "14", "height": "14", "aria-hidden": "true" })}
+    </button>
   </header>
 
   <!-- ============ MAIN ============ -->
@@ -665,6 +634,7 @@ const $ = (selector, scope = root) => scope.querySelector(selector);
 const $$ = (selector, scope = root) => [...scope.querySelectorAll(selector)];
 const EMBEDDED = true;
 let editorController = null;
+let exportMenu = null;
 
 function tr(key, fallback) {
   if (typeof window.getTranslation === 'function') {
@@ -2655,17 +2625,43 @@ async function requestSharedPresent() {
   });
 }
 
-async function requestSharedExport() {
+async function requestSharedExport(format) {
   if (!state.loaded || typeof editorController?.export !== 'function') return;
   stopTextEdit();
-  const format = $('#editorExportFormat').value;
   const saved = await flushServerSave({ renderAfter: format !== 'html' });
   if (!saved) return;
   await editorController.export({ format });
 }
 
 $('#btnPresent').addEventListener('click', () => requestSharedPresent().catch(error => toast(error?.message || String(error))));
-$('#btnExport').addEventListener('click', () => requestSharedExport().catch(error => toast(error?.message || String(error))));
+$('#btnExport').addEventListener('click', event => {
+  // The document sees the shadow host as the click target; keep the opening
+  // click from being treated as an outside click by the shared menu.
+  event.stopPropagation();
+  if (exportMenu?.isOpen()) { exportMenu.close({ reason: 'toggle', restoreFocus: true }); return; }
+  const button = $('#btnExport');
+  exportMenu = window.openDropdownMenu({
+    trigger: button,
+    ariaLabel: tr('slide_presentation_download_format_aria', 'Download format'),
+    items: [
+      { value: 'pptx', label: 'PPTX' },
+      { value: 'pdf', label: 'PDF' },
+      { value: 'slides_zip', label: tr('pdf_export_images', 'Images') },
+      { value: 'html', label: tr('slide_presentation_editor_html_source', 'HTML source') },
+    ],
+    onSelect: async ({ value }) => {
+      button.disabled = true;
+      button.setAttribute('aria-busy', 'true');
+      try { await requestSharedExport(value); }
+      catch (error) { toast(error?.message || String(error)); }
+      finally {
+        button.disabled = false;
+        button.removeAttribute('aria-busy');
+        if (ownerDocument.activeElement === ownerDocument.body) button.focus();
+      }
+    },
+  });
+});
 
 /* ---------------------------------------------------------------------
    File open / landing / misc wiring
@@ -2747,12 +2743,7 @@ function localizeEmbeddedChrome() {
   $('#btnCloseEditor').setAttribute('aria-label', tr('slide_presentation_editor_close', 'Close'));
   setButtonText($('#btnCode'), tr('slide_presentation_editor_code', 'Code'));
   setButtonText($('#btnPresent'), tr('slide_presentation_present', 'Present'));
-  setButtonText($('#btnExport'), tr('files_preview_download', 'Download'));
-  $('#btnExport').title = tr('files_preview_download', 'Download');
-  $('#editorExportFormat').setAttribute('aria-label', tr('slide_presentation_download_format_aria', 'Download format'));
-  const imagesOption = $('#editorExportFormat option[value="slides_zip"]');
-  $('#editorExportFormat option[value="html"]').textContent = tr('slide_presentation_editor_html_source', 'HTML source');
-  if (imagesOption) imagesOption.textContent = tr('pdf_export_images', 'Images');
+  labelControl('#btnExport', 'files_preview_download', 'Download');
   const deckTitleLabel = tr('slide_presentation_editor_deck_title', 'Presentation title');
   $('#deckTitle').title = deckTitleLabel;
   $('#deckTitle').setAttribute('aria-label', deckTitleLabel);
@@ -2854,6 +2845,7 @@ function localizeEmbeddedChrome() {
 ownerDocument.addEventListener('i18n:updated', localizeEmbeddedChrome);
 
 async function closeEmbeddedEditor() {
+  exportMenu?.close({ reason: 'editor-close' });
   if (!EMBEDDED) return;
   clearTimeout(server.saveTimer);
   clearTimeout(server.renderTimer);
@@ -2908,6 +2900,7 @@ localizeEmbeddedChrome();
  * of controls every time the user opens it.
  */
 function resetNativeEditorState() {
+  exportMenu?.close({ reason: 'reset' });
   frameLoadId += 1;
   frame.onload = null;
   server.sessionId += 1;
@@ -2949,8 +2942,6 @@ function resetNativeEditorState() {
 function openNativeEditor(options = {}) {
   resetNativeEditorState();
   localizeEmbeddedChrome();
-  const exportFormat = String(options.exportFormat || 'pptx');
-  $('#editorExportFormat').value = ['pptx', 'pdf', 'slides_zip', 'html'].includes(exportFormat) ? exportFormat : 'pptx';
   editorController = {
     reload: options.reload,
     save: options.save,
@@ -2975,6 +2966,7 @@ function openNativeEditor(options = {}) {
 }
 
 function cancelNativeEditor() {
+  exportMenu?.close({ reason: 'reset' });
   frameLoadId += 1;
   frame.onload = null;
   server.sessionId += 1;
@@ -3011,7 +3003,7 @@ window.slidePresentationNativeEditor = Object.freeze({
   const host = document.getElementById('slide-presentation-EditorHost');
   if (!host) return;
   let view, options, channel, generation = 0, renderInFlight = null;
-  let stylesPromise;
+  let assetsPromise;
   const editorSource = installSlidePresentationEditor.toString();
   const translationKeys = [...new Set([...editorSource.matchAll(/['"]([a-z][a-z0-9]*(?:_[a-z0-9]+)+)['"]/g)].map(match => match[1]))];
   const translations = () => Object.fromEntries(translationKeys.map(key => [key, window.getTranslation?.(key, '') || '']));
@@ -3025,12 +3017,12 @@ window.slidePresentationNativeEditor = Object.freeze({
       translations: translations(),
     };
   };
-  function shell(csp, styles) {
+  function shell(csp, { styles, scripts }) {
     // The data editor must allow its own srcdoc canvas. Network permissions
     // otherwise match the server's policy for this exact deck source.
     csp = csp.replace("frame-ancestors 'self'; ", "").replace(/frame-src (?:'none')?/,  "frame-src data: blob: 'self' ");
     const script = `const Icons = ${JSON.stringify(Icons)}; Object.assign(Icons, {${['resolveIcon', 'createSvgElement', 'withSvgAttributes'].map(key => Icons[key].toString()).join(',')}});\n` +
-      `(${isolatedEditorBridge.toString()})(${JSON.stringify(channel)}, ${JSON.stringify(styles)});\n(${editorSource})();`;
+      `(${isolatedEditorBridge.toString()})(${JSON.stringify(channel)}, ${JSON.stringify(styles)});\n${scripts.join("\n")}\n(${editorSource})();`;
     const escape = value => value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
     return '<!doctype html><html><head><meta charset="utf-8">' +
       `<meta http-equiv="Content-Security-Policy" content="${escape(csp)}">` +
@@ -3040,12 +3032,19 @@ window.slidePresentationNativeEditor = Object.freeze({
   }
   async function mount(nextOptions) {
     const token = ++generation;
-    stylesPromise ||= Promise.all([...document.querySelectorAll('link[data-slide-presentation-editor-stylesheet]')].map(async link => {
-      const response = await fetch(link.href);
-      if (!response.ok) throw new Error(window.getTranslation('slide_presentation_editor_load_failed', 'Failed to open the presentation editor.'));
-      return response.text();
-    })).catch(error => { stylesPromise = null; throw error; });
-    const [prepared, styles] = await Promise.all([nextOptions.prepare({ html: nextOptions.payload.html }), stylesPromise]);
+    assetsPromise ||= (async () => {
+      const readAsset = async url => {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(window.getTranslation('slide_presentation_editor_load_failed', 'Failed to open the presentation editor.'));
+        return response.text();
+      };
+      const [styles, scripts] = await Promise.all([
+        Promise.all([...document.querySelectorAll('link[data-slide-presentation-editor-stylesheet]')].map(link => readAsset(link.href))),
+        Promise.all([...document.querySelectorAll('script[data-slide-presentation-editor-script]')].map(script => readAsset(script.src))),
+      ]);
+      return { styles, scripts };
+    })().catch(error => { assetsPromise = null; throw error; });
+    const [prepared, assets] = await Promise.all([nextOptions.prepare({ html: nextOptions.payload.html }), assetsPromise]);
     if (token !== generation) return;
     options = nextOptions;
     channel = crypto.randomUUID();
@@ -3056,7 +3055,7 @@ window.slidePresentationNativeEditor = Object.freeze({
     next.referrerPolicy = 'no-referrer';
     view?.remove();
     view = next;
-    const html = shell(prepared.csp, styles);
+    const html = shell(prepared.csp, assets);
     next._editorShell = html;
     next.src = '/api/v1/presentations/editor/proxy';
     host.replaceChildren(next);
@@ -3124,6 +3123,17 @@ function isolatedEditorBridge(channel, styles) {
   const pending = new Map();
   let sequence = 0, labels = {};
   window.slideEditorStyles = styles;
+  // Shared menus are portaled outside the editor's shadow root.
+  styles.forEach(css => {
+    const style = document.createElement('style');
+    style.textContent = css;
+    document.head.appendChild(style);
+  });
+  window.escapeHtml = value => {
+    const element = document.createElement('span');
+    element.textContent = String(value);
+    return element.innerHTML;
+  };
   window.getTranslation = (key, fallback) => labels[key] || fallback;
   const send = message => parent.postMessage({ ...message, channel }, '*');
   const request = (action, payload) => new Promise((resolve, reject) => {

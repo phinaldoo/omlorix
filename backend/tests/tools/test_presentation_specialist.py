@@ -37,29 +37,93 @@ def drain(stream):
             return events, done.value
 
 
-def test_specialist_streams_html_before_rendering(workspace, monkeypatch):
-    clock = iter(range(1, 100))
-    monkeypatch.setattr(s, 'time', SimpleNamespace(monotonic=lambda: next(clock)))
+def test_specialist_streams_subagent_activity_until_final_deck(workspace, monkeypatch):
+    public_events = [
+        {"t": "r", "d": "Planning the visual story"},
+        {"t": "c", "d": "Creating the first draft"},
+        {"t": "t_c", "d": {"id": "create", "name": "update_presentation"}},
+        {"t": "t_cd", "d": {"id": "create", "name": "update_presentation", "delta": json.dumps({"type": "html", "content": HTML})}},
+    ]
 
     def provider(request):
-        encoded = json.dumps({'type': 'html', 'content': HTML})
-        split = encoded.index('One') + 1
-        for delta in (encoded[:split], encoded[split:]):
-            yield json.dumps({'t': 't_cd', 'd': {'id': 'create', 'name': 'update_presentation', 'delta': delta}})
+        for event in public_events:
+            yield json.dumps(event)
         session = current_session(request.generation_id)
         yield from session.update({'type': 'html', 'content': HTML})
+        yield json.dumps({'t': 'c', 'd': 'Reviewed every slide.'})
         yield json.dumps({'t': 'd', 'd': 'f'})
 
     monkeypatch.setattr(runtime, 'call_provider_chat', provider)
     events, result = drain(p.run_presentation_pipeline(user_id='u', markdown_file_id='brief', db=workspace.db))
     events = [json.loads(event) for event in events]
-    first_preview = next(i for i, event in enumerate(events) if event['event'] == 'html_snapshot')
+    activity = [event['data'] for event in events if event['event'] == 'activity']
+    assert [event['event'] for event in activity] == [
+        'reasoning_delta', 'message_delta', 'tool_call', 'tool_delta', 'message_delta'
+    ]
+    assert activity[2]['raw']['payload'] == public_events[2]
+    assert activity[3]['raw'] == public_events[3]
+    first_activity = next(i for i, event in enumerate(events) if event['event'] == 'activity')
     rendering = next(i for i, event in enumerate(events) if event['event'] == 'status' and event['data']['phase'] == 'rendering')
-    assert first_preview < rendering
-    assert any(event['event'] == 'html_snapshot' and event['data']['html'] == HTML for event in events)
+    assert first_activity < rendering
+    assert {event['run_id'] for event in activity} == {result['run_id']}
+    assert events[0]['data']['run_id'] == result['run_id']
     assert any(event['event'] == 'revision_ready' for event in events)
-    assert not any(event['event'] == 'slide_images' for event in events)
+    assert not any(event['event'] in {'html_snapshot', 'slide_images'} for event in events)
+    assert events[-1]['event'] == 'complete'
     assert result['review_status'] == 'completed'
+    snapshot = result['slide_presentation_activity']
+    assert snapshot['schema_version'] == 1
+    assert snapshot['run_id'] == result['run_id']
+    assert [event['event'] for event in snapshot['events']] == [event['event'] for event in activity] + ['complete']
+    assert snapshot['events'][0] == {'event': 'reasoning_delta', 'content': public_events[0]['d']}
+    assert snapshot['events'][3]['raw'] == public_events[3]
+    assert snapshot['events'][-1]['result'] == 'Reviewed every slide.'
+    assert events[-1]['data']['slide_presentation_activity'] == snapshot
+
+
+def test_specialist_activity_compacts_chunks_without_merging_tool_calls():
+    events = []
+    for name, content in [('message_delta', 'First '), ('message_delta', 'takeaway'), ('reasoning_delta', 'Review')]:
+        s._append_specialist_activity(events, name, content, {'private_provider_metadata': 'not for storage'})
+    for tool_id, chunk in [('a', '{'), ('a', '}'), ('b', 'next')]:
+        s._append_specialist_activity(events, 'tool_delta', None, {
+            't': 't_cd', 'd': {'id': tool_id, 'name': 'update_presentation', 'delta': chunk, 'private_provider_metadata': 'hidden'},
+        })
+    assert [event['event'] for event in events] == ['message_delta', 'reasoning_delta', 'tool_delta', 'tool_delta']
+    assert events[0]['content'] == 'First takeaway'
+    assert events[2]['raw']['d']['delta'] == '{}'
+    assert events[3]['raw']['d']['id'] == 'b'
+    assert 'private_provider_metadata' not in json.dumps(events)
+
+
+def test_review_images_preserve_each_slide_and_overviews_after_staging_cleanup(tmp_path):
+    staging = tmp_path / "staging"
+    review = tmp_path / "review"
+    staging.mkdir()
+    review.mkdir()
+    originals = []
+    for number in range(1, 6):
+        path = staging / f"slide_{number}.png"
+        with Image.new("RGB", (1920, 1080), (number * 40, 20, 30)) as slide:
+            slide.save(path)
+        originals.append(path.read_bytes())
+    session = s.PresentationSession(
+        "review", ("update_presentation",), user_id="u", review_dir=review
+    )
+    images = session.review_images(staging, 5)
+    s.shutil.rmtree(staging)
+    assert len(images) == 7  # Five full-resolution slides and two overview sheets.
+    for number, file_id in enumerate(images[:5], 1):
+        info = session.file_info("u", file_id)
+        assert info["file_name"] == f"slide-{number}.png"
+        assert info["file_type"] == "image/png"
+        assert Path(info["path"]).read_bytes() == originals[number - 1]
+        with Image.open(info["path"]) as slide:
+            assert slide.size == (1920, 1080)
+        assert session.file_info("other-user", file_id) is None
+    assert [session.attachments[file_id]["file_name"] for file_id in images[5:]] == [
+        "slides-1-4.jpg", "slides-5-5.jpg"
+    ]
 
 
 @pytest.fixture

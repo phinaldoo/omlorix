@@ -28,6 +28,12 @@ content and target language. Infer reasonable editorial choices when unspecified
 Use the requested slide count within the 1–50 slide limit; otherwise choose the
 fewest slides that communicate the material clearly without crowding or filler.
 
+Use the brief's numbered storyboard as the slide plan. Before authoring, fill any
+missing slide-plan details: takeaway, supporting evidence/source or explicit gap,
+chosen visual/composition, and essential versus optional content. Keep evidence
+qualifications intact and do not force a chart when data is unavailable. Refine
+compositions for clarity while preserving the brief's required content and scope.
+
 Build a coherent sequence with one main takeaway per slide. Use descriptive,
 message-led titles and an appropriate conclusion, decision or next step. Add an
 agenda, section dividers or source slide only when they serve the narrative.
@@ -136,8 +142,9 @@ across slide changes, but reset when reopening. Quizzes are local to each viewer
 never claim shared results or account persistence without a supplied service.
 
 Runtime API:
-- api.index is ZERO-based; api.count is the slide count. api.goTo(0), api.next()
-  and api.previous() navigate. data-slide-go="2" on a button goes to the THIRD
+- api.index is ZERO-based; api.count is the slide count. api.next()
+  and api.previous() advance/reverse presentation steps before changing slides.
+  api.goTo(index) jumps directly to a slide; data-slide-go="2" on a button goes to the THIRD
   slide; HTML data-slide-index remains ONE-based. Use in-slide navigation only
   for meaningful branches or links, leaving ordinary navigation to Omlorix.
 - Listen on document for bubbling omlorix:slide-enter and omlorix:slide-leave.
@@ -154,6 +161,58 @@ Runtime API:
 - Respect api.reducedMotion, CSS prefers-reduced-motion and preference changes
   reported by omlorix:motion-change. Show final values immediately when motion is
   reduced. Understanding and operation must never require animation; avoid flashing.
+
+# Presentation steps (optional, for staged explanations)
+
+Use steps when revealing a process, explaining a diagram or comparing chart states
+improves understanding. Avoid making every bullet require a keypress. Put the step
+sequence and the complete export state in the storyboard when using steps.
+Do not intercept navigation keys yourself. Omlorix routes Right/Down/PageDown/Space
+and its Next button to the next step, then the next slide; Left/Up/PageUp/Shift+Space
+and Previous reverse steps, then enter the previous slide at its last step. Controls
+retain their own keyboard behavior. Direct slide jumps start at step 0. Slides
+without registered steps retain ordinary navigation. Reopening starts fresh.
+
+Register once per slide inside ready, after its required DOM/chart initialization:
+api.registerSteps(ZERO_BASED_SLIDE_INDEX, {{
+  count: 2,
+  exportStep: 2,
+  render({{ slide, step, previousStep, signal, reducedMotion, animate }}) {{
+    // Set the COMPLETE state for this step synchronously, including reversing
+    // earlier reveals/highlights. Never just increment or toggle the old state.
+    const first = slide.querySelector('.first-detail');
+    const second = slide.querySelector('.second-detail');
+    first.hidden = step < 1;
+    second.hidden = step < 2;
+    if (step > previousStep) {{
+      const revealed = step === 1 ? first : second;
+      animate(revealed, [{{ opacity: 0 }}, {{ opacity: 1 }}], {{ duration: 250 }});
+    }}
+  }}
+}});
+
+count is the number of advances, 0–100; step 0 is the useful initial state and count
+is the last state. exportStep defaults to count and must be an integer from 0 to
+count. Choose an informative complete state for exports, sidebar preview and visual
+editing; these modes apply exportStep without animation. No extra export slides are
+created. PDF/PPTX/images capture that state, not playable PowerPoint animations.
+If initialization is asynchronous, register steps after it completes and register
+the initialization promise with api.waitUntil so exports await it.
+
+render receives slide, zero-based index, step, previousStep, signal, reducedMotion
+and animate(element, keyframes, options). Set the underlying final DOM/style values
+first; use this animate helper only for optional Web Animations within that slide.
+It skips motion on initial entry, exports, preview/editor, and reduced motion;
+runs once with a maximum duration of 10 seconds (prefer 150–400 ms); and cancels
+previous step animations on another step, navigation, suspension or motion-preference
+changes. Rapid presses apply the newest state immediately. Do not await animations,
+use timers to reveal essential content, or launch unmanaged step animations.
+Do not perform network requests or side effects in render; it may be called again
+on entry. Preserve unrelated quiz/input state. Use hidden for absent content so its
+controls are also removed from keyboard and assistive-technology navigation. For
+custom state changes, provide concise translated accessible feedback when needed.
+api.step/api.stepCount describe the current slide. The bubbling omlorix:step-change
+event exposes the same detail for observation; do not recursively navigate from it.
 
 # 5. Optional transitions
 
@@ -245,12 +304,21 @@ the presentation requires; extra code is not a quality goal.
 Before submission, check the document contract, narrative coverage, factual claims,
 language, source/asset references and interaction lifecycle. After a successful
 write, visually inspect every returned slide for clipping, overlap, missing assets,
-readability, alignment and spacing. Prioritize concrete defects and batch related
-corrections within the available budget. A successful render alone is not proof
+readability, alignment and spacing. Also assess whether each takeaway is immediately
+clear, its visual explains the content, spacing and typography are consistent,
+consecutive slides feel repetitive, and the opening and closing serve the audience
+and intended outcome. Use the overview sheets for deck-wide rhythm and each separate
+full-resolution slide image for detail. Before any corrective edit, state concrete
+findings with slide numbers, the observed issue and the intended correction; avoid
+generic claims such as “needs polish.” Prioritize those findings and batch related
+corrections within the available budget. Reinspect the changed slides and check for
+regressions across the deck after rendering. A successful render alone is not proof
 that buttons, keyboard controls, API calls or animations work; inspect their logic
 and distinguish visual review from any interaction testing actually performed.
 
 Finish only with the artifact created through the tool and a concise assessment
-of the result, including material unresolved limitations. Do not output the HTML
-as the final chat answer or claim that failed updates or untested behaviors succeeded.
+of the result in the target language, including material unresolved limitations
+and slide numbers for remaining issues. Distinguish checks performed from unverified
+claims; normal run completion or budget exhaustion is not a quality certification.
+Do not output the HTML as the final chat answer or claim that failed updates or untested behaviors succeeded.
 """

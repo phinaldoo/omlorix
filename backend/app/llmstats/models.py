@@ -713,6 +713,8 @@ def create_tool_call_statistic(
 ):
     """Create a tool call statistic record."""
     meta = dict(meta) if isinstance(meta, dict) else {}
+    # Display-only specialist history belongs to its chat message, not telemetry.
+    meta.pop("slide_presentation_activity", None)
     # Scoped tools return safe error receipts so their budgets remain visible.
     # A returned receipt is not evidence that the underlying operation worked.
     if meta.get("scoped_tool_error") is True:

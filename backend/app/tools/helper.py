@@ -1938,8 +1938,10 @@ def _resolve_tool_call(
         for artifact_id in (html_file_id, pptx_file_id):
             if artifact_id and artifact_id not in documents:
                 documents.append(artifact_id)
-        result = presentation_result
-        content = json.dumps(presentation_result, ensure_ascii=False, separators=(",", ":"))
+        # The specialist transcript belongs to the saved chat UI. Keep it out
+        # of the parent model's tool-result text and structured result payload.
+        result = {key: value for key, value in presentation_result.items() if key != "slide_presentation_activity"}
+        content = json.dumps(result, ensure_ascii=False, separators=(",", ":"))
         return {
             "content": content, "documents": documents, "images": images,
             "videos": videos, "audios": audios, "youtube": youtube,

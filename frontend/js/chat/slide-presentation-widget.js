@@ -11,8 +11,22 @@
     const previewTitle          = document.getElementById('slide-presentation-PreviewTitle');
     const previewStatus         = document.getElementById('slide-presentation-PreviewStatus');
     const previewClose          = document.getElementById('slide-presentation-PreviewClose');
-    const previewGenerating     = document.getElementById('slide-presentation-PreviewGenerating');
-    const previewGeneratingText = document.getElementById('slide-presentation-PreviewGeneratingText');
+    const previewActivity = document.getElementById('slide-presentation-PreviewActivity');
+    let _specialistTranscript = null;
+    let _specialistRunId = null;
+    let _sidebarView = 'preview';
+    const previewView = document.getElementById('slide-presentation-PreviewView');
+    const previewSource = document.getElementById('slide-presentation-PreviewSource');
+    const sourceHtml = document.getElementById('slide-presentation-SourceHtml');
+    const sourceSave = document.getElementById('slide-presentation-SourceSave');
+    const sourceReload = document.getElementById('slide-presentation-SourceReload');
+    const sourceStatus = document.getElementById('slide-presentation-SourceStatus');
+    let _sourceRevision = null;
+    let _sourceTitle = '';
+    let _sourceDirty = false;
+    let _sourceBusy = false;
+    let _sourceToken = 0;
+    let _sourceController = null;
     const previewMain           = document.getElementById('slide-presentation-PreviewMain');
     const previewUpdating       = document.getElementById('slide-presentation-PreviewUpdating');
     const previewUpdatingSpinner = document.getElementById('slide-presentation-PreviewUpdatingSpinner');
@@ -23,8 +37,8 @@
     const previewCounter        = document.getElementById('slide-presentation-PreviewCounter');
     const previewThumbnails     = document.getElementById('slide-presentation-PreviewThumbnails');
     const previewDownloadBtn    = document.getElementById('slide-presentation-PreviewDownloadBtn');
-    const previewDownloadFormat = document.getElementById('slide-presentation-PreviewDownloadFormat');
-    const previewDownloadBtnDefaultHtml = previewDownloadBtn ? previewDownloadBtn.innerHTML : '';
+    let _previewDownloadFormat = 'pptx';
+    let _headerMenu = null;
     const previewSidebarToggle  = document.getElementById('slide-presentation-PreviewSidebarToggle');
     const previewPresent        = document.getElementById('slide-presentation-PreviewPresent');
     const previewSidebar        = document.getElementById('slide-presentation-PreviewSidebar');
@@ -83,8 +97,6 @@
     let _previewSidebarAutoOpened = false;
     let _generationInProgress = false;
     let _generationPreviewInitialized = false;
-    let _pendingHtmlDelta = '';
-    let _htmlDeltaRafId = null;
     let _editorOpen = false;
     let _editorReturnFocus = null;
     let _editorOpenToken = 0;
@@ -107,6 +119,8 @@
 
     // Slideshow state
     let ssIndex = 0;
+    let ssStep = 0;
+    let ssStepCount = 0;
     let ssSlideCount = 0;
     let ssLoadToken = 0;
     let ssSourceController = null;
@@ -123,10 +137,7 @@
     let _previewRuntimeFrame = null;
     let _previewRuntimeChannel = null;
     let _previewSourceHtml = '';
-    let _previewQueuedHtml = '';
-    let _previewTimer = null;
     let _previewController = null;
-    let _previewRequestRunning = false;
     let _previewLoadToken = 0;
 
     // Export revision metadata (independent of the live HTML preview)
@@ -209,6 +220,7 @@
             title: String(options.title || t('slide_presentation_default_title', 'Presentation')).trim() || t('slide_presentation_default_title', 'Presentation'),
             slideCount: Number(options.slideCount ?? options.slide_count) || 0,
             operation: String(options.operation || 'created').trim() || 'created',
+            specialistActivity: options.specialistActivity || options.slide_presentation_activity || null,
         };
     }
 
@@ -228,23 +240,10 @@
         window.chatDownloadControls?.setDownloadBusy?.({
             button: previewDownloadBtn,
             busy: _previewDownloadIsBusy,
-            enabled: _canDownloadPresentation(previewDownloadFormat?.value || 'pptx'),
-            defaultHtml: previewDownloadBtnDefaultHtml,
+            enabled: ['pptx', 'pdf', 'slides_zip', 'html'].some(_canDownloadPresentation),
             disabledClass: 'disabled',
             manageTabIndex: true,
-            busyLabel: t('slide_presentation_downloading', 'Downloading...'),
-            idleLabel: t('files_preview_download', 'Download'),
         });
-        // Keep the format selector usable when only the saved source is ready.
-        if (previewDownloadFormat) {
-            previewDownloadFormat.disabled = _previewDownloadIsBusy || !(
-                _previewDownloadEnabled || slidePresentationPresentationId
-            );
-            for (const option of previewDownloadFormat.options) {
-                option.disabled = !_canDownloadPresentation(option.value);
-            }
-            window.chatDownloadControls?.syncDownloadFormatSelect?.(previewDownloadFormat);
-        }
     }
 
     function _setPreviewDownloadEnabled(enabled) {
@@ -283,6 +282,7 @@
         card.dataset.title = context.title;
         card.dataset.slideCount = String(context.slideCount || 0);
         card.dataset.operation = context.operation;
+        card._specialistActivity = context.specialistActivity;
         return context;
     }
 
@@ -294,7 +294,22 @@
             title: card.dataset.title || t('slide_presentation_default_title', 'Presentation'),
             slideCount: card.dataset.slideCount || 0,
             operation: card.dataset.operation || 'created',
+            specialistActivity: card._specialistActivity,
         });
+    }
+
+    function _findSavedSpecialistActivity(context) {
+        // A later source-edit card or attachment may not carry a specialist run.
+        // Reuse the latest matching run from this chat's loaded result cards.
+        const cards = [...document.querySelectorAll('.slide-presentation-completion-card')];
+        for (let index = cards.length - 1; index >= 0; index -= 1) {
+            const saved = _getCompletionCardContext(cards[index]);
+            if (saved.specialistActivity && (
+                (context.presentationId && saved.presentationId === context.presentationId)
+                || (context.fileId && saved.fileId === context.fileId)
+            )) return saved.specialistActivity;
+        }
+        return null;
     }
 
     /** Refresh every in-memory card for a deck after its editable source changes. */
@@ -308,6 +323,7 @@
             const merged = {
                 ...updated,
                 operation: current.operation,
+                specialistActivity: current.specialistActivity,
             };
             _setCompletionCardContext(card, merged);
             const title = card.querySelector('.slide-presentation-completion-title');
@@ -340,6 +356,7 @@
                 title: payload.title || fallback.title,
                 slideCount: payload.slide_count ?? fallback.slideCount,
                 operation: fallback.operation,
+                specialistActivity: fallback.specialistActivity,
             });
         } catch (error) {
             console.warn('[slide-presentation] Could not refresh presentation context', error);
@@ -366,7 +383,12 @@
             return;
         }
 
+        context.specialistActivity ||= _findSavedSpecialistActivity(context);
         if (_isActivePresentationContext(context)) {
+            if (context.specialistActivity && context.specialistActivity.run_id !== _specialistRunId) {
+                _restoreSpecialistActivity(context.specialistActivity);
+                _syncSidebarView();
+            }
             if (slidePresentationPreviewVisible) {
                 hidePreviewPanel();
             } else if (_slideItems.length > 0 || (_generationInProgress && _generationPreviewInitialized)) {
@@ -620,7 +642,6 @@
     // ══════════════════════════════════════════════════════════════════════
 
     // ── Phase-aware generating state helpers ─────────────────────────────
-    let _genPhase = 'styles'; // 'styles' | 'slides' | 'finalizing'
 
     function _setPreviewBusy(busy) {
         if (previewMain) previewMain.setAttribute('aria-busy', busy ? 'true' : 'false');
@@ -667,57 +688,200 @@
         _setPreviewDownloadEnabled(!isError && Boolean(slidePresentationFileId));
     }
 
-    /**
-     * Batch token-level HTML updates to one mutation pass per animation frame.
-     * Provider streams can deliver dozens of chunks per second; rebuilding a
-     * sandboxed iframe for every chunk would make the progressive preview less
-     * responsive than the loading state it replaces.
-     */
-    function _flushPendingHtmlDelta() {
-        if (_htmlDeltaRafId) {
-            cancelAnimationFrame(_htmlDeltaRafId);
-            _htmlDeltaRafId = null;
-        }
-        const delta = _pendingHtmlDelta;
-        _pendingHtmlDelta = '';
-        if (delta) appendHtmlDelta(delta);
+    function _syncSidebarView() {
+        const hasPreview = Boolean(_previewRuntimeFrame);
+        _headerMenu?.close({ reason: 'view-update' });
+        const panels = [[previewSlidesTrack, 'preview'], [previewActivity, 'activity'], [previewSource, 'html']];
+        panels.forEach(([panel, view]) => {
+            if (!panel) return;
+            if (view !== _sidebarView && panel.contains(document.activeElement)) previewView?.focus();
+            panel.hidden = view !== _sidebarView;
+        });
+        if (previewSidebar) previewSidebar.hidden = _sidebarView !== 'preview';
+        previewNav?.classList.toggle('visible', _sidebarView === 'preview' && hasPreview);
+        if (previewSidebarToggle) previewSidebarToggle.disabled = _sidebarView !== 'preview' || !hasPreview;
+        _specialistTranscript?.setVisible(slidePresentationPreviewVisible && _sidebarView === 'activity');
+        _setInteractivePreviewVisibility(slidePresentationPreviewVisible && !ssOpen);
     }
 
-    function _queueHtmlDelta(delta) {
-        if (!delta) return;
-        _pendingHtmlDelta += delta;
-        if (_htmlDeltaRafId) return;
-        _htmlDeltaRafId = requestAnimationFrame(() => {
-            _htmlDeltaRafId = null;
-            const pending = _pendingHtmlDelta;
-            _pendingHtmlDelta = '';
-            if (pending) appendHtmlDelta(pending);
+    async function _selectSidebarView(view) {
+        if (!['preview', 'activity', 'html'].includes(view)) return;
+        if (view === 'activity' && !_specialistTranscript) return;
+        if (view === 'html' && (!slidePresentationPresentationId || _generationInProgress)) return;
+        _sidebarView = view;
+        _syncSidebarView();
+        if (view === 'html' && _sourceRevision === null && !_sourceBusy) await _loadHtmlSource();
+        if (view === 'preview') requestAnimationFrame(_rescaleAllSlideItems);
+    }
+
+    function _resetHtmlSource() {
+        _sourceToken += 1;
+        _sourceController?.abort();
+        _sourceController = null;
+        _sourceRevision = null;
+        _sourceTitle = '';
+        _sourceDirty = _sourceBusy = false;
+        if (sourceHtml) sourceHtml.value = '';
+        if (sourceStatus) sourceStatus.textContent = '';
+        _syncHtmlSourceControls();
+    }
+
+    function _syncHtmlSourceControls() {
+        if (sourceHtml) sourceHtml.readOnly = _sourceBusy || _sourceRevision === null;
+        if (sourceSave) sourceSave.disabled = _sourceBusy || !_sourceDirty || _sourceRevision === null;
+        if (sourceReload) sourceReload.disabled = _sourceBusy;
+    }
+
+    function _acceptHtmlSource(payload) {
+        if (_sourceDirty || !sourceHtml) return;
+        sourceHtml.value = String(payload.html || '');
+        _sourceRevision = Number(payload.canvas_revision);
+        _sourceTitle = String(payload.title || previewTitle?.textContent || '');
+        if (sourceStatus) sourceStatus.textContent = t('slide_presentation_editor_saved', 'Saved');
+        _syncHtmlSourceControls();
+    }
+
+    async function _loadHtmlSource() {
+        if (_sourceBusy || !slidePresentationPresentationId) return;
+        const presentationId = slidePresentationPresentationId;
+        const token = ++_sourceToken;
+        const controller = new AbortController();
+        _sourceController = controller;
+        _sourceBusy = true;
+        _syncHtmlSourceControls();
+        if (sourceStatus) sourceStatus.textContent = t('slide_presentation_loading_slides', 'Loading slides...');
+        try {
+            const payload = await _editorFetchJson(`/api/v1/presentations/${encodeURIComponent(presentationId)}/editor`, { signal: controller.signal });
+            if (token !== _sourceToken || presentationId !== slidePresentationPresentationId) return;
+            _sourceDirty = false;
+            _acceptHtmlSource(payload);
+        } catch (error) {
+            if (token === _sourceToken && error.name !== 'AbortError' && sourceStatus) sourceStatus.textContent = t('slide_presentation_editor_load_failed', 'Failed to open the presentation editor.');
+        } finally {
+            if (token === _sourceToken) { _sourceBusy = false; _sourceController = null; _syncHtmlSourceControls(); }
+        }
+    }
+
+    async function _saveHtmlSource() {
+        if (!_sourceDirty) return true;
+        if (_sourceBusy || _sourceRevision === null) return false;
+        const presentationId = slidePresentationPresentationId;
+        const token = ++_sourceToken;
+        const controller = new AbortController();
+        _sourceController = controller;
+        _sourceBusy = true;
+        _syncHtmlSourceControls();
+        if (sourceStatus) sourceStatus.textContent = t('slide_presentation_editor_saving', 'Saving…');
+        try {
+            const result = await _editorFetchJson(`/api/v1/presentations/${encodeURIComponent(presentationId)}/editor`, {
+                method: 'PUT', signal: controller.signal,
+                body: JSON.stringify({ html: sourceHtml.value, title: _sourceTitle, expected_revision: _sourceRevision }),
+            });
+            if (token !== _sourceToken || presentationId !== slidePresentationPresentationId) return false;
+            _sourceRevision = result.canvas_revision;
+            _sourceDirty = false;
+            slidePresentationFileId = result.file_id || slidePresentationFileId;
+            slidePresentationRenderedRevision = Number(result.render_revision) || 0;
+            if (sourceStatus) sourceStatus.textContent = t('slide_presentation_editor_saved', 'Saved');
+            _refreshStoredPresentationContext({ fileId: slidePresentationFileId, presentationId, title: result.title, slideCount: result.slide_count, operation: 'updated' });
+            _queueEditorClosePreviewRefresh(presentationId);
+            return true;
+        } catch (error) {
+            if (token === _sourceToken && error.name !== 'AbortError' && sourceStatus) sourceStatus.textContent = error.status === 409
+                ? t('slide_presentation_editor_conflict', 'This presentation changed elsewhere. Reload it before saving.')
+                : t('slide_presentation_editor_save_failed', 'Failed to save presentation changes.');
+            return false;
+        } finally {
+            if (token === _sourceToken) { _sourceBusy = false; _sourceController = null; _syncHtmlSourceControls(); }
+        }
+    }
+
+    function _openHeaderMenu(trigger, items, ariaLabel, onSelect) {
+        const wasOpen = _headerMenu?.isOpen() && _headerMenu.triggerElements.includes(trigger);
+        _headerMenu?.close({ reason: 'toggle' });
+        if (wasOpen) return;
+        _headerMenu = window.openDropdownMenu({
+            trigger, items, ariaLabel,
+            onSelect: (item) => {
+                trigger.focus();
+                return onSelect(item.value);
+            },
         });
     }
 
-    function _resetPendingHtmlDelta() {
-        if (_htmlDeltaRafId) cancelAnimationFrame(_htmlDeltaRafId);
-        _htmlDeltaRafId = null;
-        _pendingHtmlDelta = '';
+    previewView?.addEventListener('click', () => {
+        _openHeaderMenu(previewView, [
+            { value: 'preview', label: t('slide_presentation_preview', 'Preview'), disabled: !_previewRuntimeFrame },
+            { value: 'activity', label: t('slide_presentation_specialist_chat', 'Specialist chat'), disabled: !_specialistTranscript },
+            { value: 'html', label: t('slide_presentation_editor_html_source', 'HTML source'), disabled: !slidePresentationPresentationId || _generationInProgress },
+        ].map(item => ({ ...item, checked: item.value === _sidebarView })),
+        t('slide_presentation_view', 'Presentation view'), _selectSidebarView);
+    });
+    sourceSave?.addEventListener('click', _saveHtmlSource);
+    sourceReload?.addEventListener('click', _loadHtmlSource);
+    sourceHtml?.addEventListener('input', () => {
+        _sourceDirty = true;
+        if (sourceStatus) sourceStatus.textContent = t('slide_presentation_editor_unsaved', 'Unsaved changes');
+        _syncHtmlSourceControls();
+    });
+    sourceHtml?.addEventListener('keydown', event => {
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') { event.preventDefault(); _saveHtmlSource(); }
+    });
+
+    function _clearSpecialistActivity() {
+        _specialistTranscript?.destroy();
+        _specialistTranscript = null;
+        _specialistRunId = null;
+        if (previewActivity) previewActivity.hidden = true;
     }
 
-    function _setGenPhase(phase) {
-        _genPhase = phase;
-        const label = document.getElementById('slide-presentation-PreviewGeneratingText');
-        const icon = document.getElementById('slide-presentation-GenIcon');
-        if (phase === 'styles') {
-            if (label) label.textContent = t('slide_presentation_generating_design_system', 'Generating design system…');
-            if (icon) icon.innerHTML = Icons.loading_circle;
-        } else if (phase === 'slides') {
-            if (label) label.textContent = t('slide_presentation_building_slides_progress', 'Building slides…');
-            if (icon) icon.innerHTML = Icons.desktop;
-        } else if (phase === 'finalizing') {
-            if (label) label.textContent = t('slide_presentation_finalizing_progress', 'Finalizing presentation…');
-            if (icon) icon.innerHTML = Icons.check;
+    function _showSpecialistActivity(runId) {
+        if (!previewActivity) return;
+        _specialistRunId = runId || _specialistRunId;
+        if (!_specialistTranscript) {
+            _specialistTranscript = window.createEmbeddedSubagentTranscript(previewActivity);
         }
+        _sidebarView = 'activity';
+        _syncSidebarView();
+        // The transcript must remain readable/announced while output streams.
+        previewMain?.setAttribute('aria-busy', 'false');
+    }
+
+    function _restoreSpecialistActivity(activity) {
+        if (!previewActivity || activity?.schema_version !== 1 || !Array.isArray(activity.events) || !activity.events.length) return;
+        _clearSpecialistActivity();
+        _specialistRunId = activity.run_id || null;
+        _specialistTranscript = window.createEmbeddedSubagentTranscript(previewActivity);
+        activity.events.forEach(event => {
+            if (event && ['message_delta', 'reasoning_delta', 'tool_call', 'tool_delta', 'widget', 'complete'].includes(event.event)) {
+                _specialistTranscript.append(event.event, event, false);
+            }
+        });
+    }
+
+    function _loadCompletedPresentation(data) {
+        const presentationId = data.presentation_id;
+        if (!presentationId) return;
+        const token = ++_editorPreviewRefreshToken;
+        _editorPreviewRetry = () => _loadCompletedPresentation(data);
+        _setEditorPreviewRefreshState('idle');
+        updatePreviewStatus(t('slide_presentation_loading_slides', 'Loading slides...'));
+        _refreshPreviewSource(presentationId, token).then(current => {
+            if (!current) return;
+            _editorPreviewRetry = null;
+            _setEditorPreviewRefreshState('idle');
+            completePreview(data.file_id, presentationId, data.title, data.slide_count, data.operation || 'created');
+            _selectSidebarView('preview');
+            if (data.review_status === 'incomplete') updatePreviewStatus(t('slide_presentation_polishing_warning', 'Draft ready · automatic polishing stopped'), false, 'warning');
+        }).catch(() => {
+            if (_isEditorPreviewRefreshCurrent(token, presentationId)) _setEditorPreviewRefreshState('error');
+        });
     }
 
     function showPreviewPanel(title) {
+        _clearSpecialistActivity();
+        _resetHtmlSource();
+        _sidebarView = 'preview';
         if (_editorOpen) closePresentationEditor();
         if (ssOpen) closeSlideshow();
         _editorPreviewRefreshToken += 1;
@@ -726,7 +890,6 @@
         slidePresentationStyles = '';
         slidePresentationCurrentIndex = 0;
         slidePresentationHtmlBuffer = '';
-        _resetPendingHtmlDelta();
         slidePresentationFileId = null;
         slidePresentationPresentationId = null;
         slidePresentationRenderedRevision = 0;
@@ -739,12 +902,11 @@
 
         if (previewTitle) previewTitle.textContent = title || t('slide_presentation_generating', 'Generating...');
         if (previewStatus) {
-            previewStatus.textContent = t('slide_presentation_preparing_styles', 'Preparing styles');
+            previewStatus.textContent = t('slide_presentation_generating', 'Generating…');
             previewStatus.className = 'slide-presentation-preview-panel-status canvas-markdown-preview-status generating';
         }
         if (previewThumbnails) previewThumbnails.innerHTML = '';
         if (previewSlidesTrack) previewSlidesTrack.innerHTML = '';
-        if (previewGenerating) previewGenerating.classList.remove('hidden');
         if (previewNav) previewNav.classList.remove('visible');
         if (previewDownloadBtn) previewDownloadBtn.removeAttribute('href');
         _setPreviewDownloadEnabled(false);
@@ -754,9 +916,9 @@
         _setPreviewSidebarCollapsed(true);
         _setEditorPreviewRefreshState('idle');
 
-        _setGenPhase('styles');
         _setPreviewBusy(true);
         _setPanelVisible(true);
+        _syncSidebarView();
     }
 
     function _disconnectScaleObservers() {
@@ -842,6 +1004,9 @@
     /** Close and clear a partial deck so the global preview toggle cannot
      * reopen failed output after the terminal tool error. */
     function _discardFailedGenerationPreview() {
+        _clearSpecialistActivity();
+        _resetHtmlSource();
+        _sidebarView = 'preview';
         hidePreviewPanel();
         if (ssOpen) closeSlideshow();
         _resetInteractivePreview();
@@ -849,7 +1014,6 @@
         slidePresentationSlides = [];
         slidePresentationStyles = '';
         slidePresentationHtmlBuffer = '';
-        _resetPendingHtmlDelta();
         slidePresentationCurrentIndex = 0;
         slidePresentationFileId = null;
         slidePresentationPresentationId = null;
@@ -857,7 +1021,6 @@
         _slideItems = [];
         if (previewThumbnails) previewThumbnails.innerHTML = '';
         if (previewSlidesTrack) previewSlidesTrack.innerHTML = '';
-        if (previewGenerating) previewGenerating.classList.add('hidden');
         if (previewNav) previewNav.classList.remove('visible');
         _setPreviewDownloadEnabled(false);
         _setPreviewEditEnabled(false);
@@ -888,11 +1051,12 @@
         _finishGenerationTracking();
         _discardFailedGenerationPreview();
         _setEditorPreviewRefreshState('idle');
-        _genPhase = 'styles';
     }
 
     function _setPanelVisible(visible) {
+        if (!visible) _headerMenu?.close({ reason: 'panel-hidden' });
         slidePresentationPreviewVisible = visible;
+        _specialistTranscript?.setVisible(visible && _sidebarView === 'activity');
         _setInteractivePreviewVisibility(visible && !ssOpen);
         if (visible) {
             // All artifact panels share Canvas' persisted split width. Applying
@@ -937,9 +1101,6 @@
             previewStatus.textContent = text;
             const statusClass = isComplete ? 'complete' : String(state || 'generating');
             previewStatus.className = 'slide-presentation-preview-panel-status canvas-markdown-preview-status ' + statusClass;
-        }
-        if (previewGeneratingText && !isComplete) {
-            previewGeneratingText.textContent = text;
         }
     }
 
@@ -1137,33 +1298,13 @@
 
     function _resetInteractivePreview({ keepFrame = false } = {}) {
         _previewLoadToken += 1;
-        clearTimeout(_previewTimer);
-        _previewTimer = null;
         _previewController?.abort();
         _previewController = null;
-        _previewQueuedHtml = '';
         if (!keepFrame) {
             _previewSourceHtml = '';
             _previewRuntimeFrame = null;
             _previewRuntimeChannel = null;
         }
-        _previewRequestRunning = false;
-    }
-
-    function _queueInteractivePreview(html) {
-        if (typeof html !== 'string' || !html.includes('<section')) return;
-        _previewQueuedHtml = html;
-        if (_previewTimer || _previewRequestRunning) return;
-        // Coalesce fast argument streams. Keep at most one frame request in
-        // flight and one newest snapshot, not a backlog of every token.
-        _previewTimer = setTimeout(() => {
-            _previewTimer = null;
-            const next = _previewQueuedHtml;
-            _previewQueuedHtml = '';
-            _renderInteractivePreview(next).catch(error => {
-                if (error.name !== 'AbortError') console.debug('[slide-presentation] Draft not ready', error);
-            });
-        }, 1000);
     }
 
     async function _renderInteractivePreview(html) {
@@ -1171,7 +1312,6 @@
         const token = _previewLoadToken;
         const controller = new AbortController();
         _previewController = controller;
-        _previewRequestRunning = true;
         try {
             const payload = await _editorFetchJson('/api/v1/presentations/preview', {
                 method: 'POST',
@@ -1235,7 +1375,6 @@
                 const next = _generationInProgress && _previewAutoFollowGeneration
                     ? slides.length - 1 : Math.min(slidePresentationCurrentIndex, slides.length - 1);
                 _goToSlide(next, { preserveAutoFollow: true });
-                previewGenerating?.classList.add('hidden');
                 previewNav?.classList.add('visible');
                 if (previewSidebarToggle) previewSidebarToggle.disabled = false;
                 if (previewPresent) previewPresent.disabled = false;
@@ -1243,7 +1382,7 @@
                     _setPreviewSidebarCollapsed(false);
                     _previewSidebarAutoOpened = true;
                 }
-                _setInteractivePreviewVisibility(slidePresentationPreviewVisible && !ssOpen);
+                _syncSidebarView();
             } catch (error) {
                 frame.remove();
                 if (!_slideItems.length) item.remove();
@@ -1251,14 +1390,13 @@
             }
         } finally {
             if (token === _previewLoadToken) {
-                _previewRequestRunning = false;
                 _previewController = null;
-                if (_previewQueuedHtml) _queueInteractivePreview(_previewQueuedHtml);
             }
         }
     }
 
     function _setInteractivePreviewVisibility(visible) {
+        visible = visible && _sidebarView === 'preview';
         _previewRuntimeFrame?.contentWindow.postMessage({
             type: 'omlorix-presentation:visibility', channel: _previewRuntimeChannel, visible,
         }, '*');
@@ -1285,27 +1423,20 @@
         const loadToken = _previewLoadToken;
         const controller = new AbortController();
         _previewController = controller;
-        _previewRequestRunning = true;
         try {
             const payload = await _editorFetchJson(
                 `/api/v1/presentations/${encodeURIComponent(presentationId)}/editor`,
                 { signal: controller.signal }
             );
             if (loadToken !== _previewLoadToken || !_isEditorPreviewRefreshCurrent(token, presentationId)) return false;
+            _acceptHtmlSource(payload);
             await _renderInteractivePreview(String(payload.html || ''));
             return loadToken === _previewLoadToken && _isEditorPreviewRefreshCurrent(token, presentationId);
         } finally {
             if (loadToken === _previewLoadToken && _previewController === controller) {
                 _previewController = null;
-                _previewRequestRunning = false;
-                if (_previewQueuedHtml) _queueInteractivePreview(_previewQueuedHtml);
             }
         }
-    }
-
-    function appendHtmlDelta(delta) {
-        slidePresentationHtmlBuffer += delta;
-        _queueInteractivePreview(slidePresentationHtmlBuffer);
     }
 
     function _goToSlide(index, { preserveAutoFollow = false } = {}) {
@@ -1362,11 +1493,9 @@
     }
 
     function completePreview(fileId, presentationId, title = null, slideCount = 0, operation = 'created') {
-        _flushPendingHtmlDelta();
         slidePresentationFileId = fileId;
         slidePresentationPresentationId = presentationId;
 
-        _setGenPhase('finalizing');
         _setPreviewBusy(false);
         updatePreviewStatus(t('slide_presentation_complete', 'Complete'), true);
 
@@ -1387,13 +1516,8 @@
             } else {
                 previewDownloadBtn.removeAttribute('data-presentation-id');
             }
-            previewDownloadBtn.setAttribute('download', '');
         }
-        if (previewDownloadFormat) {
-            if (!fileId && previewDownloadFormat.value === 'pptx') {
-                previewDownloadFormat.value = 'pdf';
-            }
-        }
+        if (!fileId && _previewDownloadFormat === 'pptx') _previewDownloadFormat = 'pdf';
         _setPreviewDownloadEnabled(Boolean(fileId || presentationId));
         if (previewPresent) previewPresent.disabled = false;
         _setPreviewEditEnabled(Boolean(presentationId));
@@ -1475,6 +1599,7 @@
             if (!current) return;
             _editorPreviewRetry = null;
             _setEditorPreviewRefreshState('idle');
+            updatePreviewStatus(t('slide_presentation_editor_saved', 'Saved'), true);
         }).catch(() => {
             if (_isEditorPreviewRefreshCurrent(token, presentationId)) {
                 _setEditorPreviewRefreshState('error', t('slide_presentation_editor_render_failed', 'Preview update failed'));
@@ -1508,6 +1633,7 @@
      * reopening an editor the user has already closed.
      */
     async function openPresentationEditor() {
+        if (!await _saveHtmlSource()) { _selectSidebarView('html'); return; }
         const presentationId = String(slidePresentationPresentationId || '').trim();
         const nativeEditor = window.slidePresentationNativeEditor;
         if (!presentationId || !editorOverlay || !editorHost || !nativeEditor?.open) {
@@ -1554,7 +1680,7 @@
                     { method: 'POST', body: JSON.stringify(changes) }
                 ),
                 payload,
-                exportFormat: previewDownloadFormat?.value || 'pptx',
+                exportFormat: _previewDownloadFormat,
                 save: async changes => {
                     try {
                         const result = await _editorFetchJson(
@@ -1810,8 +1936,6 @@
 
     if (previewPresent) previewPresent.addEventListener('click', openSlideshow);
     if (previewEdit) {
-        const icon = previewEdit.querySelector('.slide-presentation-preview-edit-icon');
-        if (icon) icon.innerHTML = Icons.expand || Icons.edit || '';
         previewEdit.addEventListener('click', openPresentationEditor);
     }
     if (editorFallbackClose) {
@@ -1830,9 +1954,7 @@
     async function downloadPresentation(formatOverride = '') {
             let fileId = previewDownloadBtn.getAttribute('data-file-id');
             const presentationId = previewDownloadBtn.getAttribute('data-presentation-id') || slidePresentationPresentationId;
-            const format = String(formatOverride || '').trim() || (window.chatDownloadControls
-                    ? window.chatDownloadControls.getSelectedDownloadFormat(previewDownloadFormat, 'pptx')
-                    : (previewDownloadFormat && previewDownloadFormat.value ? previewDownloadFormat.value : 'pptx'));
+            const format = String(formatOverride || '').trim() || _previewDownloadFormat;
             if (_previewDownloadIsBusy || !_canDownloadPresentation(format)) return;
 
             try {
@@ -1914,14 +2036,23 @@
             }
     }
 
-    // Both the sidebar button and editor export control call the same helper.
-    previewDownloadFormat?.addEventListener('change', _syncPreviewDownloadControls);
-    if (previewDownloadBtn) {
-        previewDownloadBtn.addEventListener('click', async (e) => {
-            e.preventDefault();
-            await downloadPresentation();
+    // Each format is a direct download action; the editor uses the same helper.
+    previewDownloadBtn?.addEventListener('click', () => {
+        if (_previewDownloadIsBusy) return;
+        _openHeaderMenu(previewDownloadBtn, [
+            { value: 'pptx', label: 'PPTX' },
+            { value: 'pdf', label: 'PDF' },
+            { value: 'slides_zip', label: t('pdf_export_images', 'Images') },
+            { value: 'html', label: t('slide_presentation_editor_html_source', 'HTML source') },
+        ].map(item => ({ ...item, disabled: !_canDownloadPresentation(item.value) })),
+        t('slide_presentation_download_format_aria', 'Download format'), async (format) => {
+            _previewDownloadFormat = format;
+            await downloadPresentation(format);
+            // Disabling the busy button drops focus; do not steal it if the
+            // user has moved to another control during the download.
+            if (slidePresentationPreviewVisible && document.activeElement === document.body) previewDownloadBtn.focus();
         });
-    }
+    });
 
     window.addEventListener('resize', () => {
         _updatePreviewResizerA11y();
@@ -1942,8 +2073,13 @@
     function _ssUpdateCounter() {
         if (ssCurrent) ssCurrent.textContent = ssSlideCount ? ssIndex + 1 : 0;
         if (ssTotal)   ssTotal.textContent   = ssSlideCount;
-        if (ssPrev)    ssPrev.disabled  = ssIndex === 0;
-        if (ssNext)    ssNext.disabled  = ssIndex >= ssSlideCount - 1;
+        if (ssPrev)    ssPrev.disabled  = ssIndex === 0 && ssStep === 0;
+        if (ssNext)    ssNext.disabled  = ssIndex >= ssSlideCount - 1 && ssStep >= ssStepCount;
+        const stepStatus = document.getElementById('slide-presentation-SsStep');
+        if (stepStatus) {
+            stepStatus.hidden = !ssStepCount;
+            stepStatus.textContent = ssStepCount ? tf('slide_presentation_step_status', 'Step {step} of {count}', { step: ssStep, count: ssStepCount }) : '';
+        }
         if (ssOverlay) {
             ssOverlay.querySelectorAll('.slide-presentation-ss-dot').forEach((d, i) =>
                 d.classList.toggle('active', i === ssIndex));
@@ -1966,12 +2102,18 @@
 
     function _ssGoTo(index) {
         if (ssOpen && ssRuntimeFrame && ssRuntimeChannel) {
-            ssIndex = Math.max(0, Math.min(Number(index) || 0, ssSlideCount - 1));
             ssRuntimeFrame.contentWindow?.postMessage({
-                type: 'omlorix-presentation:goto', channel: ssRuntimeChannel, index: ssIndex,
+                type: 'omlorix-presentation:goto', channel: ssRuntimeChannel,
+                index: Math.max(0, Math.min(Number(index) || 0, ssSlideCount - 1)),
             }, '*');
-            _ssUpdateCounter();
-            return;
+        }
+    }
+
+    function _ssAdvance(direction) {
+        if (ssOpen && ssRuntimeFrame && ssRuntimeChannel) {
+            ssRuntimeFrame.contentWindow?.postMessage({
+                type: 'omlorix-presentation:advance', channel: ssRuntimeChannel, direction,
+            }, '*');
         }
     }
 
@@ -2063,6 +2205,8 @@
         }
         if (data.type === 'omlorix-presentation:state' || data.type === 'omlorix-presentation:ready') {
             if (Number.isInteger(data.index)) ssIndex = Math.max(0, Math.min(data.index, ssSlideCount - 1));
+            ssStepCount = Number.isInteger(data.stepCount) ? Math.max(0, Math.min(data.stepCount, 100)) : 0;
+            ssStep = Number.isInteger(data.step) ? Math.max(0, Math.min(data.step, ssStepCount)) : 0;
             _ssUpdateCounter();
         }
         if (data.type === 'omlorix-presentation:activity') _showSlideshowControls();
@@ -2087,6 +2231,7 @@
         _setInteractivePreviewVisibility(false);
         ssNavigationToken += 1;
         ssSlideCount = 0;
+        ssStep = ssStepCount = 0;
         ssIndex = Math.max(0, Number(options.slideIndex ?? slidePresentationCurrentIndex) || 0);
         clearTimeout(ssRuntimeReadyTimer);
         ssRuntimeFrame = null;
@@ -2175,8 +2320,8 @@
 
     // ── Slideshow event listeners ──────────────────────────────────────────
     if (ssClose)      ssClose.addEventListener('click', closeSlideshow);
-    if (ssPrev)       ssPrev.addEventListener('click', () => _ssGoTo(ssIndex - 1));
-    if (ssNext)       ssNext.addEventListener('click', () => _ssGoTo(ssIndex + 1));
+    if (ssPrev)       ssPrev.addEventListener('click', () => _ssAdvance(-1));
+    if (ssNext)       ssNext.addEventListener('click', () => _ssAdvance(1));
     if (ssFullscreen) ssFullscreen.addEventListener('click', _toggleSsFullscreen);
 
     if (ssOverlay) {
@@ -2211,15 +2356,20 @@
             }
             return;
         }
-        if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || e.target.closest?.('input,textarea,select,[contenteditable="true"]')) return;
-        const isArrow = (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowUp');
-        if (isArrow) {
+        if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || e.target.closest?.('input,textarea,select,[role="slider"],[role="tab"],[role="listbox"],[role="spinbutton"],[contenteditable]:not([contenteditable="false"])')) return;
+        // Space on a focused button/link retains its native activation behavior.
+        if (e.key === ' ' && e.target.closest?.('button,a,[role="button"]')) return;
+        const forward = ['ArrowRight', 'ArrowDown', 'PageDown', ' '].includes(e.key);
+        const backward = ['ArrowLeft', 'ArrowUp', 'PageUp'].includes(e.key);
+        if (forward || backward) {
             e.preventDefault();
-            const delta = (e.key === 'ArrowRight' || e.key === 'ArrowDown') ? 1 : -1;
-            _ssGoTo(ssIndex + delta);
-            if (ssOverlay) {
-                ssOverlay.classList.remove('show-controls');
-            }
+            _ssAdvance(backward || (e.key === ' ' && e.shiftKey) ? -1 : 1);
+            ssOverlay?.classList.remove('show-controls');
+            return;
+        }
+        if (e.key === 'Home' || e.key === 'End') {
+            e.preventDefault();
+            _ssGoTo(e.key === 'Home' ? 0 : ssSlideCount - 1);
             return;
         }
         if (e.key === 'Escape') closeSlideshow();
@@ -2245,6 +2395,15 @@
     function handleSlidePresentationEvent(obj, messageId) {
         const event = obj.event;
         const data = obj.data || {};
+        if (data.run_id && data.run_id !== _specialistRunId && !(event === 'status' && data.phase === 'generating')) {
+            // Completion still belongs in its original chat, but must not steal
+            // a preview the user has replaced or reopen a reset sidebar.
+            if (event === 'complete' && document.getElementById('a-' + messageId)) {
+                _addCompletionCard(messageId, data);
+                _setAssistantMessageListVisible(messageId, true);
+            }
+            return;
+        }
 
         switch (event) {
             case 'status': {
@@ -2254,17 +2413,15 @@
                         _addGeneratingCard(messageId, { title: data.title });
                     }
                     _beginGenerationPreview(data.title || t('slide_presentation_default_title', 'Presentation'));
+                    _showSpecialistActivity(data.run_id);
                     if (data.title && previewTitle) previewTitle.textContent = data.title;
                     _updateGeneratingCard({
                         title: data.title,
                         subtitle: t('slide_presentation_generating_title', 'Generating presentation...'),
                     });
-                    _setGenPhase('styles');
-                    _setPreviewBusy(true);
+                    _setPreviewBusy(false);
                     updatePreviewStatus(t('slide_presentation_generating', 'Generating…'));
                 } else if (phase === 'rendering' || phase === 'refining') {
-                    _flushPendingHtmlDelta();
-                    _setGenPhase('finalizing');
                     updatePreviewStatus(
                         phase === 'refining'
                             ? t('slide_presentation_reviewing', 'Reviewing visual quality…')
@@ -2281,38 +2438,19 @@
                 break;
             }
 
+            case 'activity':
+                if (_generationInProgress && _specialistTranscript && data.run_id === _specialistRunId) {
+                    _specialistTranscript.append(data.event, data);
+                }
+                break;
+
+            // Old workers may still emit draft HTML. Keep activity visible and
+            // use canonical source only once the specialist has finished.
             case 'tool_call':
             case 'tool_call_delta':
-                break;
-
             case 'html_delta':
-                _beginGenerationPreview(t('slide_presentation_default_title', 'Presentation'));
-                if (!_getConnectedGeneratingCard(messageId)) {
-                    _addGeneratingCard(messageId);
-                }
-                _queueHtmlDelta(data.delta || '');
-                break;
-
-            case 'draft_complete': {
-                _flushPendingHtmlDelta();
-                slidePresentationPresentationId = data.presentation_id || slidePresentationPresentationId;
-                if (data.title && previewTitle) previewTitle.textContent = data.title;
-                _setGenPhase('finalizing');
-                updatePreviewStatus(
-                    t('slide_presentation_draft_ready_rendering', 'Draft ready · preparing downloads…'),
-                    false,
-                    'rendering'
-                );
-                _updateGeneratingCard({
-                    title: data.title,
-                    subtitle: t('slide_presentation_draft_ready_rendering', 'Draft ready · preparing downloads…'),
-                });
-                break;
-            }
-
             case 'html_snapshot':
-                _beginGenerationPreview(data.title || t('slide_presentation_default_title', 'Presentation'));
-                _queueInteractivePreview(data.html || '');
+            case 'draft_complete':
                 break;
 
             case 'revision_ready':
@@ -2321,22 +2459,23 @@
                 if (presId) {
                     slidePresentationPresentationId = presId;
                     slidePresentationRenderedRevision = Number(data.revision) || 0;
-                    _refreshPreviewSource(presId).catch(error => console.warn('Could not refresh presentation HTML', error));
+                    if (!_generationInProgress) _refreshPreviewSource(presId).catch(error => console.warn('Could not refresh presentation HTML', error));
                 }
                 break;
             }
 
             case 'complete':
-                if (data.presentation_id) {
-                    slidePresentationPresentationId = data.presentation_id;
-                    _refreshPreviewSource(data.presentation_id).catch(error => console.warn('Could not refresh presentation HTML', error));
-                }
-                completePreview(data.file_id, data.presentation_id, data.title, data.slide_count, data.operation || 'created');
+                slidePresentationPresentationId = data.presentation_id || slidePresentationPresentationId;
+                slidePresentationFileId = data.file_id || null;
+                if (!_specialistTranscript) _restoreSpecialistActivity(data.slide_presentation_activity);
+                else _specialistTranscript.append('complete', { result: data.assessment || '' });
+                _specialistTranscript?.setVisible(false);
                 _addCompletionCard(messageId, data);
                 _setAssistantMessageListVisible(_activeMessageId || messageId, true);
                 _generatingCard = null;
                 _finishGenerationTracking();
                 _activeMessageId = null;
+                _loadCompletedPresentation(data);
                 break;
 
             case 'warning':
@@ -2444,9 +2583,10 @@
 
         slidePresentationFileId = fileId || null;
         slidePresentationPresentationId = presentationId;
+        _restoreSpecialistActivity(context.specialistActivity || _findSavedSpecialistActivity(context));
+        _syncSidebarView();
         updatePreviewStatus(t('slide_presentation_loading_slides', 'Loading slides...'), false);
 
-        if (previewGenerating) previewGenerating.classList.remove('hidden');
         if (previewNav) previewNav.classList.remove('visible');
         if (previewSidebarToggle) previewSidebarToggle.disabled = true;
         if (previewPresent) previewPresent.disabled = true;
@@ -2457,6 +2597,7 @@
                 `/api/v1/presentations/${encodeURIComponent(presentationId)}/editor`
             );
             if (!_isEditorPreviewRefreshCurrent(contextToken, presentationId)) return;
+            _acceptHtmlSource(payload);
             await _renderInteractivePreview(String(payload.html || ''));
             if (!_isEditorPreviewRefreshCurrent(contextToken, presentationId)) return;
             const slideCount = slidePresentationSlides.length;
@@ -2478,7 +2619,6 @@
         hidePreviewPanel: hidePreviewPanel,
         togglePptxPreview: toggleSlidePresentationPreview,
         toggleSlidePresentationPreview: toggleSlidePresentationPreview,
-        appendHtmlDelta: appendHtmlDelta,
         completePreview: completePreview,
         openSlideshow: openSlideshow,
         closeSlideshow: closeSlideshow,

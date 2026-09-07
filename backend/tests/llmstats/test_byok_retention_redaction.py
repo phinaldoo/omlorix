@@ -14,6 +14,7 @@ from app.llmstats.models import (
     LLMGenerationStatistic,
     ToolCallStatistic,
     coerce_byok_stats_retention_days,
+    create_tool_call_statistic,
     export_llm_generation_stats,
     export_tool_call_stats,
     sanitize_provider_error_message,
@@ -171,3 +172,11 @@ def test_retention_worker_rolls_back_and_closes_session_on_failure(monkeypatch):
 
     db.rollback.assert_called_once()
     db.close.assert_called_once()
+
+
+def test_presentation_transcript_stays_in_chat_metadata_not_tool_statistics():
+    snapshot = {"schema_version": 1, "events": [{"event": "message_delta", "content": "Private slide review"}]}
+    metadata = {"slide_presentation": True, "run_id": "run-1", "slide_presentation_activity": snapshot}
+    row = create_tool_call_statistic(MagicMock(), tool_name="slide_presentation", meta=metadata, is_byok=False)
+    assert row.meta == {"slide_presentation": True, "run_id": "run-1"}
+    assert metadata["slide_presentation_activity"] == snapshot

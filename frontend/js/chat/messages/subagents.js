@@ -514,6 +514,63 @@ function renderSubagentTranscript(state) {
     renderSubagentTranscriptUnpreserved(state);
 }
 
+function createSubagentTranscriptPanel(state) {
+    const panel = document.createElement('section');
+    panel.className = 'subagent-transcript-panel';
+    const scroll = document.createElement('div');
+    scroll.className = 'subagent-transcript-scroll';
+    scroll.tabIndex = 0;
+    scroll.setAttribute('aria-label', getSubagentTitleText(state));
+    const chat = document.createElement('div');
+    chat.id = `a-${state.syntheticMessageId}`;
+    chat.className = 'assistant-message-container subagent-transcript-chat';
+    chat.dataset.referenceId = state.syntheticMessageId;
+    chat.dataset.announceStreaming = 'false';
+    scroll.appendChild(chat);
+    panel.append(scroll);
+    state.transcriptPanel = panel;
+    state.transcriptChat = chat;
+    state.transcriptScroll = scroll;
+    return panel;
+}
+
+// Embedded specialist activity uses the same chat renderer without registering
+// a launcher, keeping a duplicate event history, or contributing subagent stats.
+let embeddedSubagentTranscriptId = 0;
+window.createEmbeddedSubagentTranscript = function (container) {
+    const state = {
+        syntheticMessageId: `specialist-${++embeddedSubagentTranscriptId}`,
+        status: 'running',
+    };
+    container.appendChild(createSubagentTranscriptPanel(state));
+    resetSubagentTranscriptRenderState(state);
+    let destroyed = false;
+    let visible = false;
+    return {
+        append(eventName, data = {}, isLive = true) {
+            if (destroyed) return;
+            renderSubagentEventAsChat(state, normalizeSubagentEvent(eventName, data), isLive);
+            if (isLive) window.ChatScrollManager?.scheduleFollow?.(state.transcriptScroll);
+        },
+        setVisible(nextVisible) {
+            if (destroyed || visible === nextVisible) return;
+            visible = nextVisible;
+            if (visible) window.ChatScrollManager?.beginStream?.(state.transcriptScroll, { autoFollow: state.autoFollow ?? true });
+            else {
+                state.autoFollow = window.ChatScrollManager?.isFollowing?.(state.transcriptScroll) ?? true;
+                window.ChatScrollManager?.endStream?.(state.transcriptScroll);
+            }
+        },
+        destroy() {
+            if (destroyed) return;
+            renderSubagentEventAsChat(state, normalizeSubagentEvent('cancelled'), false);
+            window.ChatScrollManager?.endStream?.(state.transcriptScroll);
+            state.transcriptPanel.remove();
+            destroyed = true;
+        },
+    };
+};
+
 function registerSubagentPanel(state) {
     state.tabNumber ||= Math.max(0, ...[...subagentRunStates.values()].map((item) => item.tabNumber || 0)) + 1;
     window.ChatWorkspace.register({
@@ -527,22 +584,7 @@ function registerSubagentPanel(state) {
         },
         status: () => getSubagentStatusText(state.status),
         create: () => {
-            const panel = document.createElement('section');
-            panel.className = 'subagent-transcript-panel';
-            const scroll = document.createElement('div');
-            scroll.className = 'subagent-transcript-scroll';
-            scroll.tabIndex = 0;
-            const chat = document.createElement('div');
-            chat.id = `a-${state.syntheticMessageId}`;
-            chat.className = 'assistant-message-container subagent-transcript-chat';
-            chat.dataset.referenceId = state.syntheticMessageId;
-            chat.dataset.announceStreaming = 'false';
-            scroll.appendChild(chat);
-            panel.append(scroll);
-            state.transcriptPanel = panel;
-            state.transcriptChat = chat;
-            state.transcriptScroll = scroll;
-            return panel;
+            return createSubagentTranscriptPanel(state);
         },
         onShow: () => {
             // Replay only missed events. Keeping existing nodes preserves tool

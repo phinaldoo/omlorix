@@ -71,7 +71,7 @@ test('presenting a saved deck reads fresh HTML each time without fetching images
 });
 
 test('editor Present waits for saving but not an in-flight image render', async () => {
-    const source = section('slide-presentation-editor.js', 'async function requestSharedPresent()', 'async function requestSharedExport()');
+    const source = section('slide-presentation-editor.js', 'async function requestSharedPresent()', 'async function requestSharedExport(format)');
     const calls = [];
     let saved = false;
     let releaseSave;

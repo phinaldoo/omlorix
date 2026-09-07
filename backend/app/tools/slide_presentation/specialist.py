@@ -5,7 +5,6 @@ import json
 from pathlib import Path
 import shutil
 import tempfile
-import time
 import uuid
 
 from PIL import Image, ImageDraw
@@ -21,7 +20,7 @@ from app.tools.canvas_markdown.schemas import (
     canvas_parameters_schema,
     parse_canvas_tool_arguments,
 )
-from app.tools.slide_presentation.sanitizer import MAX_PRESENTATION_HTML_BYTES, prepare_slide_presentation_html
+from app.tools.slide_presentation.sanitizer import prepare_slide_presentation_html
 from app.tools.slide_presentation.system_instructions import (
     get_sys_instruct_generate_html,
 )
@@ -32,6 +31,46 @@ from app.tools.slide_presentation import pipeline as p
 
 MAX_PRESENTATION_TOOL_CALLS = 12
 MAX_PRESENTATION_RENDERS = 4
+
+
+def _append_specialist_activity(events, name, content, raw):
+    """Keep display events in tool-result metadata, compacting streamed chunks.
+
+    Text needs no raw provider envelope. Tool deltas retain only the descriptor
+    used by the shared chat renderer; scoped image/file transport is excluded.
+    """
+    event = {"event": name}
+    if name in {"message_delta", "reasoning_delta"}:
+        if not content:
+            return
+        previous = events[-1] if events else None
+        if previous and previous["event"] == name:
+            previous["content"] += content
+            return
+        event["content"] = content
+    elif name == "tool_delta":
+        descriptor = raw.get("d")
+        if not isinstance(descriptor, dict):
+            return
+        descriptor = {key: descriptor[key] for key in ("id", "name", "delta") if key in descriptor}
+        previous = events[-1] if events else None
+        if previous and previous["event"] == name:
+            prior = previous["raw"]["d"]
+            if (prior.get("id"), prior.get("name")) == (descriptor.get("id"), descriptor.get("name")):
+                prior["delta"] = str(prior.get("delta") or "") + str(descriptor.get("delta") or "")
+                return
+        event["raw"] = {"t": "t_cd", "d": descriptor}
+    elif name == "tool_call":
+        payload = raw.get("payload") or {}
+        descriptor = payload.get("d")
+        if isinstance(descriptor, dict):
+            descriptor = {key: descriptor[key] for key in ("id", "name", "args") if key in descriptor}
+        event["raw"] = {"name": raw.get("name"), "payload": {"t": "t_c", "d": descriptor, "c": payload.get("c")}}
+    elif name == "widget":
+        event["raw"] = {key: raw[key] for key in ("t", "c", "widget_type", "meta") if key in raw}
+    else:
+        return
+    events.append(event)
 
 
 @dataclass
@@ -191,9 +230,6 @@ class PresentationSession(SubagentSession):
                 )
             }
 
-        # Display the complete, embedded candidate before waiting for the
-        # external renderer. Publication still remains atomic after rendering.
-        yield p._sse("html_snapshot", {"html": candidate})
         yield p._sse("status", {"phase": "rendering", **self.budget()})
         return (yield from self.render_candidate(candidate, count, asset_ids))
 
@@ -379,7 +415,7 @@ class PresentationSession(SubagentSession):
                         "canvas_revision": revision,
                         "slide_count": count,
                         "render_status": "ready",
-                        "review": "Review all attached slides against the brief. Batch corrections with exact edits; use type=view to inspect canonical source. Finish if satisfactory.",
+                        "review": "Review every full-resolution slide and the overview sheets against the storyboard and design criteria. Before editing, state slide-specific findings and intended corrections. Batch exact edits; use type=view to inspect canonical source. Finish with an assessment of checks performed and unresolved slide-specific issues, not a quality certification.",
                     }
                 ),
                 "images": images,
@@ -418,8 +454,30 @@ class PresentationSession(SubagentSession):
             shutil.rmtree(staging, ignore_errors=True)
 
     def review_images(self, directory, count):
-        """Four readable slides per sheet; scoped attachments never become user files."""
+        """Lossless individual slides plus overview sheets, scoped to this run."""
         ids = []
+
+        def attach(path, file_id, name, mime):
+            self.attachments[file_id] = {
+                "file_id": file_id,
+                "path": str(path),
+                "owner_user_id": self.user_id,
+                "requester_user_id": self.user_id,
+                "file_name": name,
+                "file_type": mime,
+                "file_category": "image",
+                "file_size": path.stat().st_size,
+                "meta": {},
+            }
+            ids.append(file_id)
+
+        for number in range(1, count + 1):
+            file_id = f"subagent-review-{uuid.uuid4().hex}"
+            path = self.review_dir / f"{file_id}.png"
+            # Staging is removed after publication; keep the original PNG in the
+            # leased review workspace without resizing or lossy re-encoding.
+            shutil.copyfile(directory / f"slide_{number}.png", path)
+            attach(path, file_id, f"slide-{number}.png", "image/png")
         for start in range(1, count + 1, 4):
             sheet = Image.new("RGB", (1920, 1120), "white")
             draw = ImageDraw.Draw(sheet)
@@ -434,18 +492,7 @@ class PresentationSession(SubagentSession):
             path = self.review_dir / f"{file_id}.jpg"
             sheet.save(path, "JPEG", quality=85)
             sheet.close()
-            self.attachments[file_id] = {
-                "file_id": file_id,
-                "path": str(path),
-                "owner_user_id": self.user_id,
-                "requester_user_id": self.user_id,
-                "file_name": f"slides-{start}-{min(start + 3, count)}.jpg",
-                "file_type": "image/jpeg",
-                "file_category": "image",
-                "file_size": path.stat().st_size,
-                "meta": {},
-            }
-            ids.append(file_id)
+            attach(path, file_id, f"slides-{start}-{min(start + 3, count)}.jpg", "image/jpeg")
         return ids
 
 
@@ -463,6 +510,7 @@ def run_specialist(
     from app.tools.subagents.runtime import (
         _clone_model_with_subagent_tools,
         _dispatch_nested_provider,
+        _event_from_nested_line,
     )
     from app.chats.streaming import cancel_registry
 
@@ -535,7 +583,7 @@ def run_specialist(
         )
         yield p._sse(
             "status",
-            {"phase": "generating", "title": session.title, **session.budget()},
+            {"phase": "generating", "title": session.title, "run_id": generation_id, **session.budget()},
         )
         stream = _dispatch_nested_provider(
             db=db,
@@ -563,9 +611,7 @@ def run_specialist(
         )
         completed = False
         assessment = ""
-        preview_call_id = None
-        preview_arguments = ""
-        preview_sent_at = 0.0
+        activity_events = []
         try:
             for line in stream:
                 if parent_generation_id and cancel_registry.is_cancelled(
@@ -581,32 +627,7 @@ def run_specialist(
                     isinstance(event, dict)
                     and event.get("t") == "slide_presentation_evt"
                 ):
-                    yield line
-                elif isinstance(event, dict) and event.get("t") == "t_cd":
-                    data = event.get("d") or {}
-                    if not isinstance(data, dict) or data.get("name") != "update_presentation":
-                        continue
-                    call_id = data.get("id")
-                    if call_id != preview_call_id:
-                        preview_call_id, preview_arguments = call_id, ""
-                    preview_arguments += str(data.get("delta") or "")
-                    if len(preview_arguments) > 2 * MAX_PRESENTATION_HTML_BYTES:
-                        preview_arguments = ""
-                        continue
-                    if time.monotonic() - preview_sent_at < 1:
-                        continue
-                    preview_sent_at = time.monotonic()
-                    from pydantic_core import from_json
-
-                    try:
-                        args = from_json(preview_arguments, allow_partial="trailing-strings")
-                    except ValueError:
-                        continue
-                    # Exact edits are applied atomically by update(); never
-                    # pretend a partial replacement snippet is a complete deck.
-                    html = args.get("content") if isinstance(args, dict) else None
-                    if isinstance(html, str) and "<section" in html and not args.get("edits") and not args.get("start_snippet"):
-                        yield p._sse("html_snapshot", {"html": html})
+                    yield p._sse(event["event"], {**(event.get("data") or {}), "run_id": generation_id})
                 elif isinstance(event, dict) and event.get("t") == "e":
                     raise RuntimeError("Presentation specialist generation failed.")
                 elif isinstance(event, dict) and event.get("t") == "d":
@@ -615,6 +636,15 @@ def run_specialist(
                     assessment = ""
                 elif isinstance(event, dict) and event.get("t") == "c":
                     assessment = (assessment + str(event.get("d") or ""))[:4000]
+                # Reuse the public subagent event contract, without forwarding
+                # private provider metadata or scoped review-image attachments.
+                if isinstance(event, dict) and event.get("t") in {"c", "r", "t_c", "t_cd", "wg"}:
+                    name, content, raw = _event_from_nested_line(line)
+                    _append_specialist_activity(activity_events, name, content, raw)
+                    yield p._sse("activity", {
+                        "run_id": generation_id, "event": name,
+                        "content": content, "raw": raw,
+                    })
             session.check_cancellation()
             session.raise_if_failed()
             if not completed:
@@ -635,7 +665,7 @@ def run_specialist(
                 exc_info=True,
             )
             yield p._sse(
-                "warning", {"code": "visual_review_failed", "recoverable": True}
+                "warning", {"code": "visual_review_failed", "recoverable": True, "run_id": generation_id}
             )
         finally:
             stream.close()
@@ -648,9 +678,16 @@ def run_specialist(
             **session.result,
             "budget": session.budget(),
             "review_status": "completed" if completed else "incomplete",
+            "run_id": generation_id,
         }
         if assessment.strip():
             result["assessment"] = assessment.strip()
+        activity_events.append({"event": "complete", "result": assessment.strip()})
+        result["slide_presentation_activity"] = {
+            "schema_version": 1,
+            "run_id": generation_id,
+            "events": activity_events,
+        }
         yield p._sse("complete", result)
         return result
 
@@ -665,7 +702,10 @@ or generating chart/image assets. You are not required to call it. Save reusable
 Reference its returned exact image file IDs with <img src="omlorix-file://FILE_ID"> and include them in file_ids.
 Use PNG, JPEG, GIF or WebP assets. Do not embed execution-container paths or invent file IDs.
 After each successful update, inspect every rendered slide against the brief for clipping, overlap, readability,
-spacing and factual consistency. Apply small batched edits using the returned file_id and canvas_revision.
+spacing and factual consistency, plus the narrative and design criteria in the quality check above.
+Every slide is attached separately at its original rendered resolution, followed by overview sheets.
+Before corrective edits, state slide-specific findings and intended fixes. Apply small batched edits
+using the returned file_id and canvas_revision.
 View the current source when exact snippets are unclear. Keep embedded-image placeholders intact.
 Never regenerate the full HTML just to fix a small detail. Every update returns a fresh render session;
 interactive answers are not saved. Finish with a concise assessment when the deck is ready or budgets run out.

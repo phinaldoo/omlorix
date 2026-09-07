@@ -129,3 +129,90 @@ test('readiness reports failed initialization and preserves requests started in 
     await assert.rejects(api.renderReady, /API unavailable/);
     assert.equal(document.documentElement.dataset.omlorixRenderReady, 'error');
 });
+
+test('steps consume navigation, reverse across slides, and direct jumps reset', async () => {
+    const rendered = [];
+    const { api, message } = await runtime('present', api => api.ready.then(() => {
+        api.registerSteps(0, { count: 2, render: detail => rendered.push([0, detail.step]) });
+        api.registerSteps(2, { count: 1, render: detail => rendered.push([2, detail.step]) });
+    }));
+    assert.equal(api.stepCount, 2);
+    message({ type: 'omlorix-presentation:advance', direction: 2 });
+    assert.equal(api.step, 0);
+    api.next(); api.next();
+    assert.equal(api.index, 0);
+    assert.equal(api.step, 2);
+    api.next();
+    assert.equal(api.index, 1);
+    api.previous();
+    assert.equal(api.index, 0);
+    assert.equal(api.step, 2);
+    api.previous();
+    assert.equal(api.step, 1);
+    api.goTo(2); api.next(); api.next();
+    assert.equal(api.index, 2);
+    assert.equal(api.step, 1);
+    api.goTo(2);
+    assert.equal(api.step, 0, "jumping to the same slide resets its steps");
+    api.goTo(0);
+    assert.equal(api.step, 0);
+    api.previous();
+    assert.equal(api.index, 0);
+    assert.deepEqual(rendered.at(-1), [0, 0]);
+    assert.throws(() => api.registerSteps(0, { count: 101, render() {} }), /invalid_presentation_steps/);
+    assert.throws(() => api.registerSteps(0, { count: 2, exportStep: 3, render() {} }), /invalid_presentation_steps/);
+});
+
+test('step effects cancel on rapid input, reduced motion and suspension without losing final state', async () => {
+    const animations = [];
+    let state;
+    const element = { animate(_frames, options) {
+        const animation = { options, finished: new Promise(() => {}), cancel() { this.cancelled = true; } };
+        animations.push(animation);
+        return animation;
+    } };
+    const { api, motion, message } = await runtime('present', (api, _document, slides) => api.ready.then(() => {
+        slides[0].contains = candidate => candidate === element;
+        api.registerSteps(0, { count: 3, render({ step, animate }) {
+            state = step;
+            animate(element, [{ opacity: 0 }, { opacity: 1 }], { duration: 300, iterations: Infinity, delay: 500 });
+        } });
+    }));
+    assert.equal(animations.length, 0, 'no motion during initialization');
+    api.next(); api.next();
+    assert.equal(state, 2);
+    assert.equal(animations[0].cancelled, true);
+    assert.equal(animations[1].options.iterations, 1);
+    assert.equal(animations[1].options.delay, 0);
+    motion.matches = true;
+    motion.dispatchEvent(new Event('change'));
+    assert.equal(animations[1].cancelled, true);
+    api.previous();
+    assert.equal(state, 1);
+    assert.equal(animations.length, 2);
+    motion.matches = false;
+    motion.dispatchEvent(new Event('change'));
+    api.next();
+    message({ type: 'omlorix-presentation:visibility', visible: false });
+    assert.equal(animations[2].cancelled, true);
+    message({ type: 'omlorix-presentation:visibility', visible: true });
+    assert.equal(state, 2);
+    assert.equal(animations.length, 3);
+    api.next(); api.next();
+    assert.equal(animations[3].cancelled, true, 'leaving cancels step effects');
+});
+
+test('render and editor modes apply the selected complete state without step animations', async () => {
+    for (const mode of ['render', 'editor']) {
+        const states = new Map();
+        const { api } = await runtime(mode, api => api.ready.then(() => {
+            api.registerSteps(0, { count: 3, exportStep: 2, render: ({ step }) => states.set(0, step) });
+            api.registerSteps(1, { count: 2, render: ({ step }) => states.set(1, step) });
+        }));
+        await api.renderReady;
+        assert.equal(states.get(0), 2);
+        assert.equal(states.get(1), 2);
+        api.next();
+        assert.equal(states.get(0), 2);
+    }
+});

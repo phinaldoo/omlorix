@@ -18,8 +18,8 @@ function section(file, start, end) {
 
 test('both presentation download menus expose the translated HTML source option', () => {
     const frontend = path.resolve(__dirname, '../..');
-    assert.match(fs.readFileSync(path.join(frontend, 'index.html'), 'utf8'), /value="html" data-i18n="slide_presentation_editor_html_source"/);
-    assert.match(source('slide-presentation-editor.js'), /option value="html"/);
+    assert.match(source('slide-presentation-widget.js'), /value: 'html', label: t\('slide_presentation_editor_html_source', 'HTML source'\)/);
+    assert.match(source('slide-presentation-editor.js'), /value: 'html', label: tr\('slide_presentation_editor_html_source', 'HTML source'\)/);
     for (const locale of fs.readdirSync(path.join(frontend, 'i18n'))) {
         const file = path.join(frontend, 'i18n', locale, 'index.json');
         if (fs.existsSync(file)) assert.ok(JSON.parse(fs.readFileSync(file)).slide_presentation_editor_html_source, locale);
@@ -27,27 +27,25 @@ test('both presentation download menus expose the translated HTML source option'
 });
 
 test('HTML export saves pending edits without waiting for rendered derivatives', async () => {
-    const exportSource = section('slide-presentation-editor.js', 'async function requestSharedExport()', "$('#btnPresent').addEventListener");
+    const exportSource = section('slide-presentation-editor.js', 'async function requestSharedExport(format)', "$('#btnPresent').addEventListener");
     for (const format of ['html', 'pptx', 'pdf', 'slides_zip']) {
-        const select = { value: format };
         let release;
         const calls = [];
         const context = vm.createContext({
-            state: { loaded: true }, $: () => select, stopTextEdit() {},
+            state: { loaded: true }, stopTextEdit() {},
             flushServerSave(options) {
-                assert.equal(options.renderAfter, select.value !== 'html');
+                assert.equal(options.renderAfter, format !== 'html');
                 return new Promise(resolve => { release = resolve; });
             },
             editorController: { export: options => calls.push(options.format) },
         });
         vm.runInContext(exportSource, context);
-        const pending = context.requestSharedExport();
+        const pending = context.requestSharedExport(format);
         assert.deepEqual(calls, []);
-        select.value = 'changed-during-save';
         release(true);
         await pending;
         assert.deepEqual(calls, [format]);
-        const failed = context.requestSharedExport();
+        const failed = context.requestSharedExport(format);
         release(false);
         await failed;
         assert.equal(calls.length, 1, 'a failed save must block the export');
@@ -60,33 +58,28 @@ function downloadContext() {
     const context = vm.createContext({
         _previewDownloadEnabled: false, _previewDownloadIsBusy: false,
         slidePresentationPresentationId: 'source/id', slidePresentationFileId: 'pptx-id',
-        previewDownloadBtnDefaultHtml: '',
         previewDownloadBtn: { getAttribute: key => key === 'data-file-id' ? 'pptx-id' : 'source/id' },
-        previewDownloadFormat: { value: 'pptx', options: ['pptx', 'pdf', 'slides_zip', 'html'].map(value => ({ value })) },
+        _previewDownloadFormat: 'pptx',
         previewTitle: { textContent: 'Quarterly report' },
         t: (_, fallback) => fallback, tf: (_, fallback) => fallback,
         console,
         _editorFetchJson: async () => ({ canvas_revision: 1, render_revision: 1, file_id: 'pptx-id' }),
         window: { chatDownloadControls: {
-            setDownloadBusy: options => controls.push(options), syncDownloadFormatSelect() {},
-            getSelectedDownloadFormat: select => select.value,
+            setDownloadBusy: options => controls.push(options),
             downloadBlobFromUrl: async (url, filename) => requests.push({ url, filename }),
         } },
     });
     vm.runInContext(section('slide-presentation-widget.js', '    function _setPreviewDownloadBusy(', '    function _setPreviewEditEnabled('), context);
-    vm.runInContext(section('slide-presentation-widget.js', '    async function downloadPresentation(', '    // Both the sidebar button'), context);
+    vm.runInContext(section('slide-presentation-widget.js', '    async function downloadPresentation(', '    // Each format is a direct download action'), context);
     return { context, requests, controls };
 }
 
 test('HTML remains selectable and downloads the canonical source while previews are unavailable', async () => {
     const { context, requests, controls } = downloadContext();
     context._setPreviewDownloadEnabled(false);
-    assert.equal(context.previewDownloadFormat.disabled, false);
-    assert.deepEqual(context.previewDownloadFormat.options.map(option => option.disabled), [true, true, true, false]);
-    assert.equal(controls.at(-1).enabled, false);
-    context.previewDownloadFormat.value = 'html';
-    context._syncPreviewDownloadControls();
-    assert.equal(controls.at(-1).enabled, true);
+    assert.equal(controls.at(-1).enabled, true, 'the menu remains available for HTML');
+    assert.deepEqual(['pptx', 'pdf', 'slides_zip', 'html'].map(context._canDownloadPresentation), [false, false, false, true]);
+    context._previewDownloadFormat = 'html';
     await context.downloadPresentation();
     assert.deepEqual(requests, [{ url: '/api/v1/files/download?file_id=source%2Fid', filename: 'Quarterly-report.html' }]);
     await context.downloadPresentation('pptx');

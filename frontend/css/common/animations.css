@@ -481,16 +481,6 @@
     }
 }
 
-@keyframes slide-presentation-GenIconPulse {
-    0%, 100% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.06); opacity: 0.85; }
-}
-
-@keyframes slide-presentation-SkelShimmer {
-    0%, 100% { opacity: 0.35; }
-    50%      { opacity: 0.12; }
-}
-
 @keyframes slideDownIn {
     from {
         opacity: 0;
