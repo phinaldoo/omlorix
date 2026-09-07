@@ -1,0 +1,50 @@
+{{- if .Values.worker.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "omlorix.fullname" . }}-worker
+  labels:
+    {{- include "omlorix.labels" . | nindent 4 }}
+    app.kubernetes.io/component: worker
+spec:
+  replicas: {{ .Values.worker.replicas }}
+  selector:
+    matchLabels:
+      {{- include "omlorix.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: worker
+  template:
+    metadata:
+      labels:
+        {{- include "omlorix.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: worker
+    spec:
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: worker
+          image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          command: ["sh", "-c", "rq worker --url ${REDIS_URL} ${AUTOMATION_QUEUE_NAME}"]
+          envFrom:
+            - configMapRef:
+                name: {{ include "omlorix.fullname" . }}-env
+            - secretRef:
+                name: {{ default (printf "%s-env" (include "omlorix.fullname" .)) .Values.existingSecretName }}
+          env:
+            - name: DB_MIGRATIONS_MODE
+              value: "off"
+          {{- if include "omlorix.localFileStorageUsesPersistence" . }}
+          {{- include "omlorix.localFileStorageVolumeMounts" . | nindent 10 }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.worker.resources | nindent 12 }}
+      {{- if include "omlorix.localFileStorageUsesPersistence" . }}
+      {{- include "omlorix.localFileStorageVolumes" . | nindent 6 }}
+      {{- end }}
+{{- end }}

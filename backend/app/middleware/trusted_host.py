@@ -103,10 +103,10 @@ class LocalOrPrivateTrustedHostMiddleware:
     private/loopback IP addresses receive the additional trust; arbitrary DNS
     names and public IP literals still require an explicit allowed-host entry.
 
-    Container probes are the narrow exception: the status-only health endpoints
-    accept local/private Host values without opening any other application
-    route. Docker probes use ``localhost`` or a private container IP that cannot
-    be known when the allowlist is built.
+    Container and Kubernetes probes are the narrow exception: the status-only
+    health endpoints accept local/private Host values without opening any other
+    application route. Docker probes use ``localhost`` and Kubernetes commonly
+    uses a private pod IP that cannot be known when the allowlist is built.
     """
 
     def __init__(

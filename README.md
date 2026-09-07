@@ -47,6 +47,7 @@ Third-party product names, logos, brands, and trademarks are the property of the
 ### Flexible self-hosting
 
 - Install through the guided Server Launcher, the matching `omlorix-server` CLI, or a Docker Compose source workflow.
+- Deploy with Helm on Kubernetes when you need separately scalable frontend, API, scheduler, and worker workloads.
 - Use bundled services for a straightforward single-server deployment or connect managed infrastructure.
 - Store files locally or with S3-compatible storage, Google Cloud Storage, Azure Blob Storage, or WebDAV.
 - Add encrypted backups with verified downloads and restore verification.
@@ -59,6 +60,8 @@ Feature availability depends on the providers, services, and policies configured
 The **Omlorix Server Launcher** is the recommended path for most installations. A command-line workflow is available for headless servers, while a source checkout is intended for development and custom builds.
 
 Follow the installation guide in our documentation to choose the right path and complete setup.
+
+Kubernetes operators can start with the [Helm deployment guide](deploy/helm/README.md).
 
 > [!NOTE]
 > macOS Server Launcher releases are currently not signed. The release workflow

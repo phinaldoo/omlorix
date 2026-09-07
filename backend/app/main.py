@@ -530,7 +530,7 @@ app.add_middleware(SecurityHeadersMiddleware)
 @app.get("/health", tags=["health"])
 @app.get("/healthz", tags=["health"])
 def root_health_check():
-    """Cheap liveness check for container and load-balancer health probes."""
+    """Cheap liveness check for Kubernetes/Docker health probes."""
     from app.telemetry import is_telemetry_enabled
     return {"status": "ok", "version": APP_VERSION, "telemetry": is_telemetry_enabled()}
 
