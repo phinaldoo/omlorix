@@ -933,21 +933,11 @@ def _apply_openai_store_setting(
     return store_setting
 
 
-def _normalize_openai_reasoning_effort(value: Any) -> str | None:
-    """Normalize OpenAI reasoning effort."""
-    return _normalize_openai_text_setting(value)
-
-
 def _resolve_openai_reasoning_effort(settings: dict | None) -> str | None:
     """Resolve reasoning effort from merged OpenAI settings."""
     if not isinstance(settings, dict):
         return None
-    return _normalize_openai_reasoning_effort(settings.get("reasoning_effort"))
-
-
-def _normalize_openai_reasoning_summary(value: Any) -> str | None:
-    """Normalize OpenAI reasoning summary."""
-    return _normalize_openai_text_setting(value)
+    return _normalize_openai_text_setting(settings.get("reasoning_effort"))
 
 
 def _requests_openai_encrypted_reasoning(settings: dict | None) -> bool:
@@ -1003,7 +993,7 @@ def _build_openai_reasoning_payload(
         if reasoning_enabled is False and reasoning_effort is not None:
             # A stale effort selection must not override the explicit toggle.
             reasoning_effort = "none"
-    reasoning_summary = _normalize_openai_reasoning_summary(
+    reasoning_summary = _normalize_openai_text_setting(
         settings.get("reasoning_summary")
     )
 
@@ -1768,22 +1758,6 @@ def _resolve_openai_client_kwargs(
     return _resolve_openai_client_context(
         db, openai_provider_id, byok, openai_provider_type
     )["client_kwargs"]
-
-
-def _resolve_openai_request_options(
-    db: Session | None,
-    openai_provider_id: str | None = None,
-    byok: dict | None = None,
-    openai_provider_type: str = "openai",
-) -> dict:
-    """Resolve OpenAI request options."""
-    context = _resolve_openai_client_context(
-        db, openai_provider_id, byok, openai_provider_type
-    )
-    try:
-        return context["request_options"]
-    finally:
-        _close_openai_client(None, context.get("client_kwargs"))
 
 
 # -------------------

@@ -19,7 +19,7 @@ class GCSBackupStorageAdapter(BackupStorageAdapter):
         try:
             from google.cloud import storage
             from google.oauth2 import service_account
-        except Exception as exc:  # noqa: BLE001
+        except ImportError as exc:  # noqa: BLE001
             raise RuntimeError("google-cloud-storage is required for GCS backup destinations") from exc
 
         credentials_json = config.get("credentials_json")

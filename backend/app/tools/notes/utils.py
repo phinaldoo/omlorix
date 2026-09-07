@@ -5,8 +5,6 @@ from app.notes.models import (
     SharedNoteSubscription,
     create_user_note as db_create_note,
     edit_user_note as db_edit_note,
-    list_user_notes as db_list_notes,
-    get_subscribed_notes as db_get_subscribed_notes,
 )
 from app.tools.audit import stage_tool_audit_action
 from app.tools.text_edits import (
@@ -67,40 +65,6 @@ def _serialize_note(
         "is_subscribed": is_subscribed,
         "share_type": share_type,
         "can_edit": can_edit,
-    }
-
-
-def _note_title(content: str | None) -> str:
-    for line in str(content or "").splitlines():
-        cleaned = line.strip().lstrip("#").strip()
-        if cleaned:
-            return cleaned[:80]
-    return "Untitled note"
-
-
-def _note_snippet(content: str | None) -> str:
-    lines = [line.strip() for line in str(content or "").splitlines() if line.strip()]
-    if len(lines) < 2:
-        return ""
-    return " ".join(lines[1:])[:240]
-
-
-def _serialize_note_summary(
-    note,
-    *,
-    is_subscribed: bool = False,
-    share_type: Optional[str] = None,
-) -> Dict[str, Any]:
-    return {
-        "id": note.id,
-        "title": _note_title(note.content),
-        "snippet": _note_snippet(note.content),
-        "content_length": len(str(note.content or "")),
-        "created_at": datetime_to_iso(getattr(note, "created_at", None)),
-        "updated_at": datetime_to_iso(getattr(note, "updated_at", None)),
-        "is_subscribed": is_subscribed,
-        "share_type": share_type,
-        "can_edit": not is_subscribed or str(share_type or "") == "collaborate",
     }
 
 

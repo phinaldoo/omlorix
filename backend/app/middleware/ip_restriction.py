@@ -476,68 +476,6 @@ _COUNTRY_LOCK_WAIT_ATTEMPTS = 8
 _COUNTRY_LOCK_WAIT_SECONDS = 0.15
 
 
-def _parse_trusted_proxy_entries(raw_entries) -> tuple[ipaddress._BaseNetwork, ...]:
-    if not isinstance(raw_entries, (list, tuple, set)):
-        raw_entries = [raw_entries]
-
-    parsed: list[ipaddress._BaseNetwork] = []
-    for entry in raw_entries:
-        value = str(entry or "").strip()
-        if not value:
-            continue
-        try:
-            if "/" in value:
-                parsed.append(ipaddress.ip_network(value, strict=False))
-            else:
-                ip_obj = ipaddress.ip_address(value)
-                prefix = 32 if ip_obj.version == 4 else 128
-                parsed.append(ipaddress.ip_network(f"{ip_obj}/{prefix}", strict=False))
-        except ValueError:
-            logger.warning("Ignoring invalid trusted proxy entry '%s'", value)
-    return tuple(parsed)
-
-
-def _is_trusted_proxy(client_host: str, trusted_entries: tuple[ipaddress._BaseNetwork, ...]) -> bool:
-    try:
-        client_ip = ipaddress.ip_address(client_host)
-    except ValueError:
-        return False
-    return any(client_ip in network for network in trusted_entries)
-
-
-def _validate_forwarded_chain(
-    header_ips: list[str],
-    trusted_entries: tuple[ipaddress._BaseNetwork, ...],
-    client_host: str,
-) -> str | None:
-    sanitized_chain: list[ipaddress._BaseAddress] = []
-    for raw_ip in header_ips:
-        candidate = str(raw_ip or "").strip()
-        if not candidate:
-            continue
-        try:
-            sanitized_chain.append(ipaddress.ip_address(candidate))
-        except ValueError:
-            logger.warning("Rejecting malformed X-Forwarded-For entry '%s'", candidate)
-            return None
-
-    try:
-        direct_proxy_ip = ipaddress.ip_address(client_host)
-    except ValueError:
-        return None
-
-    full_chain = sanitized_chain + [direct_proxy_ip]
-    if len(full_chain) < 2:
-        return None
-
-    for proxy_ip in full_chain[1:]:
-        if not any(proxy_ip in network for network in trusted_entries):
-            logger.warning("Rejecting forwarded chain because proxy '%s' is not trusted", proxy_ip)
-            return None
-
-    return str(full_chain[0])
-
-
 def _country_cache_key(ip: str, provider: str, token: Optional[str]) -> str:
     token_fingerprint = hashlib.sha1((token or "").encode("utf-8")).hexdigest()[:12]
     return f"omlorix:geoip:{provider or 'unknown'}:{token_fingerprint}:{ip}"

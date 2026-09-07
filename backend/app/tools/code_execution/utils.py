@@ -97,11 +97,6 @@ def code_execution_supports_external_pip_packages(db) -> bool:
         return False
 
 
-def _get_code_execution_runtime_config(db=None) -> dict:
-    """Backward-compatible shim for older tests and internal callers."""
-    return get_code_execution_runtime_config(db)
-
-
 def _truncate_execution_text(value: Any, max_length: int) -> str:
     text = str(value or "")
     if len(text) <= max_length:
@@ -629,7 +624,7 @@ def execute_code(
     if exec_language not in _VALID_LANGUAGES:
         raise ValueError(f"Invalid language '{exec_language}'. Supported values: python, bash")
 
-    runtime_config = _get_code_execution_runtime_config()
+    runtime_config = get_code_execution_runtime_config()
     max_output_length = runtime_config.get("max_output_length", 50000)
 
     clean_pip_packages: list[str] = []

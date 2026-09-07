@@ -123,7 +123,7 @@ class MemoryImportItem(BaseModel):
     @field_validator("date")
     @classmethod
     def validate_date(cls, value: str) -> str:
-        normalized = str(value or "").strip()
+        normalized = value.strip()
         if normalized.lower() == "unknown":
             return "unknown"
         try:
@@ -137,7 +137,7 @@ class MemoryImportItem(BaseModel):
     @field_validator("content")
     @classmethod
     def validate_content(cls, value: str) -> str:
-        normalized = str(value or "").strip()
+        normalized = value.strip()
         if not normalized:
             raise ValueError("content is required")
         return normalized

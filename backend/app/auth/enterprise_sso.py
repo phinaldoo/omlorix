@@ -451,16 +451,6 @@ class SAMLSSOProvider(EnterpriseSSOProvider):
             },
         }
 
-    def _prepare_saml_request(self, http_request: Dict[str, Any]) -> Dict[str, Any]:
-        """Prepare request dict for python3-saml."""
-        return {
-            "https": "on" if http_request.get("https") else "off",
-            "http_host": http_request.get("http_host", ""),
-            "script_name": http_request.get("script_name", ""),
-            "get_data": http_request.get("get_data", {}),
-            "post_data": http_request.get("post_data", {}),
-        }
-
     def _resolve_subject_identifier(
         self,
         *,

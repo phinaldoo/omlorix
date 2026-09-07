@@ -63,7 +63,7 @@ def _capabilities_openai(settings: dict, tools: Any, *, provider: ProviderEnum |
         caps.append("thinking")
     elif _has_reasoning_effort(settings.get("reasoning_effort")):
         caps.append("thinking")
-    if _has_tools(tools):
+    if has_configured_tools(tools):
         caps.append("tools")
     return caps
 
@@ -85,7 +85,7 @@ def _capabilities_google_aistudio(settings: dict, tools: Any, model_name: str | 
         caps.append("thinking")
     elif model_name and is_aistudio_thinking_enforced(model_name):
         caps.append("thinking")
-    if _has_tools(tools):
+    if has_configured_tools(tools):
         caps.append("tools")
     return caps
 
@@ -103,7 +103,7 @@ def _capabilities_anthropic(settings: dict, tools: Any) -> list[str]:
         caps.append("audio")
     if settings.get("thinking"):
         caps.append("thinking")
-    if _has_tools(tools):
+    if has_configured_tools(tools):
         caps.append("tools")
     return caps
 
@@ -124,7 +124,7 @@ def _capabilities_openrouter(settings: dict, tools: Any) -> list[str]:
         caps.append("video")
     if _has_document_input(input_formats):
         caps.append("documents")
-    if "tools" in supported_parameters or _has_tools(tools):
+    if "tools" in supported_parameters or has_configured_tools(tools):
         caps.append("tools")
     if settings.get("reasoning_enabled"):
         caps.append("thinking")
@@ -211,7 +211,7 @@ def _has_document_input(input_formats: Sequence[str]) -> bool:
     )
 
 
-def _has_tools(tools: Any) -> bool:
+def has_configured_tools(tools: Any) -> bool:
     """Check if tools are configured."""
     if isinstance(tools, dict):
         return any(bool(value) for value in tools.values())
@@ -246,11 +246,6 @@ def _dedupe_capabilities(capabilities: Iterable[str], fallback: Sequence[str] | 
     if fallback:
         return list(fallback)
     return ["completion"]
-
-
-def has_configured_tools(tools: Any) -> bool:
-    """Public helper to determine whether a tools payload contains any entries."""
-    return _has_tools(tools)
 
 
 def model_has_capability(capabilities: Any, capability: str) -> bool:

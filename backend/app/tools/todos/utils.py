@@ -8,10 +8,6 @@ from app.todos.models import (
     get_accessible_todo_list,
     get_editable_todo,
     get_subscription_for_todo_list,
-    get_subscribed_todo_lists,
-    list_todos as db_list_todos,
-    search_todos as db_search_todos,
-    list_todo_lists as db_list_todo_lists,
     update_todo as db_update_todo,
     update_todo_list as db_update_todo_list,
 )
@@ -64,27 +60,6 @@ def _serialize_todo(todo) -> Dict[str, Any]:
         "completed_at": datetime_to_iso(getattr(todo, "completed_at", None)),
         "order": todo.order,
         "created_at": datetime_to_iso(getattr(todo, "created_at", None)),
-        "updated_at": datetime_to_iso(getattr(todo, "updated_at", None)),
-    }
-
-
-def _serialize_todo_summary(todo) -> Dict[str, Any]:
-    content = str(todo.content or "")
-    return {
-        "id": todo.id,
-        "todo_list": todo.todo_list,
-        "content": content[:500],
-        "content_length": len(content),
-        "priority": todo.priority,
-        "due_at": datetime_to_iso(getattr(todo, "due_at", None)),
-        "all_day": bool(getattr(todo, "all_day", False)),
-        "status": getattr(todo, "status", "todo"),
-        "is_done": bool(getattr(todo, "is_done", False)),
-        "is_marked": bool(getattr(todo, "is_marked", False)),
-        "has_notes": bool(str(getattr(todo, "notes", "") or "").strip()),
-        "subtask_count": len(getattr(todo, "subtasks", None) or []),
-        "link_count": len(getattr(todo, "links", None) or []),
-        "attachment_count": len(getattr(todo, "attachments", None) or []),
         "updated_at": datetime_to_iso(getattr(todo, "updated_at", None)),
     }
 

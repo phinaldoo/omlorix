@@ -64,16 +64,13 @@ def _resolve_tcp_addresses(
     """Resolve a host once and retain only policy-approved peer addresses."""
 
     hostname = host.strip("[]")
-    try:
-        infos = socket.getaddrinfo(
-            hostname,
-            port,
-            family,
-            socket.SOCK_STREAM,
-            socket.IPPROTO_TCP,
-        )
-    except OSError:
-        raise
+    infos = socket.getaddrinfo(
+        hostname,
+        port,
+        family,
+        socket.SOCK_STREAM,
+        socket.IPPROTO_TCP,
+    )
 
     resolved: list[tuple[int, int, int, str, tuple[Any, ...]]] = []
     seen: set[tuple[int, str, int]] = set()

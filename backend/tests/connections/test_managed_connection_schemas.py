@@ -77,7 +77,7 @@ def test_token_rotation_keeps_an_omitted_enabled_field_unchanged(monkeypatch):
 
     monkeypatch.setattr(service, "ensure_connections_enabled", lambda *_args: None)
     monkeypatch.setattr(service, "get_user_connection", lambda *_args: connection)
-    monkeypatch.setattr(service, "_group_allows_provider", lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(service, "group_allows_connection_provider", lambda *_args, **_kwargs: True)
     monkeypatch.setattr(service, "update_user_connection", update_connection)
     monkeypatch.setattr(service, "_is_connection_connected", lambda *_args: False)
     monkeypatch.setattr(service, "_upsert_connection_mcp_server", lambda *_args: None)

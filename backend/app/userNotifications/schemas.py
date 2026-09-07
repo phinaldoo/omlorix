@@ -23,8 +23,6 @@ class UserNotificationCreate(BaseModel):
         normalized = []
         seen = set()
         for raw in value:
-            if not isinstance(raw, str):
-                continue
             trimmed = raw.strip()
             if not trimmed or trimmed in seen:
                 continue
@@ -76,8 +74,6 @@ class UserNotificationUpdate(BaseModel):
         normalized = []
         seen = set()
         for raw in value:
-            if not isinstance(raw, str):
-                continue
             trimmed = raw.strip()
             if not trimmed or trimmed in seen:
                 continue

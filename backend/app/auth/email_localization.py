@@ -62,7 +62,7 @@ def resolve_email_language(preferred_language: str | None = None, accept_languag
                 if key.strip().lower() == "q":
                     try:
                         weight = float(value)
-                    except Exception:
+                    except ValueError:
                         weight = 0.0
                     break
         weighted_candidates.append((weight, index, candidate))

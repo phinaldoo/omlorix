@@ -14,7 +14,6 @@ from app.todos.models import (
     create_todo_list,
     delete_todo,
     delete_todo_lists,
-    list_todo_lists,
     list_todos,
     search_todos,
     list_marked_todos,
@@ -29,8 +28,6 @@ from app.todos.models import (
     get_shared_todo_list_preview,
     subscribe_to_shared_todo_list,
     unsubscribe_from_shared_todo_list,
-    get_subscribed_todo_lists,
-    get_todo_list_subscriber_count,
     clone_shared_todo_list,
     detect_share_type_from_id,
 )
@@ -42,7 +39,6 @@ from app.todos.schemas import (
     TodoListUpdate,
     TodoListPageResponse,
     TodoListResponse,
-    SubscribedTodoListResponse,
     TodoPageResponse,
     TodoResponse,
     MarkedTodoPageResponse,
@@ -64,9 +60,7 @@ from app.utils.pagination import (
     DEFAULT_PAGE_LIMIT,
     MAX_PAGE_LIMIT,
     MAX_PAGE_OFFSET,
-    merged_window_limit,
     page_from_limited_items,
-    page_from_merged_window,
 )
 from app.groups.init import get_user_group_setting_value
 
@@ -137,39 +131,6 @@ def _serialize_sort_order(payload_sort):
     if not payload_sort:
         return None
     return [item.model_dump() for item in payload_sort]
-
-
-def _todo_list_owner_response(todo_list, *, subscriber_count: int | None = None) -> TodoListResponse:
-    return TodoListResponse(
-        id=todo_list.id,
-        user_id=todo_list.user_id,
-        title=todo_list.title,
-        description=todo_list.description,
-        icon=todo_list.icon,
-        clone_share_id=todo_list.clone_share_id,
-        live_share_id=todo_list.live_share_id,
-        collaborate_share_id=todo_list.collaborate_share_id,
-        sort_order=todo_list.sort_order,
-        order=todo_list.order,
-        created_at=todo_list.created_at,
-        updated_at=todo_list.updated_at,
-        subscriber_count=subscriber_count,
-    )
-
-
-def _todo_list_subscriber_response(todo_list, subscription, *, owner_name: str | None = None) -> SubscribedTodoListResponse:
-    return SubscribedTodoListResponse(
-        id=todo_list.id,
-        title=todo_list.title,
-        description=todo_list.description,
-        icon=todo_list.icon,
-        sort_order=todo_list.sort_order,
-        order=todo_list.order,
-        created_at=todo_list.created_at,
-        updated_at=todo_list.updated_at,
-        share_type=subscription.share_type,
-        owner_name=owner_name,
-    )
 
 
 def _todo_list_item_permissions(db: Session, user_id: str, todo_list: TodoLists | None) -> dict:

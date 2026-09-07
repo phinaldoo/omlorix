@@ -463,18 +463,6 @@ def _build_tool_result_meta(message: dict, content: dict) -> dict | None:
     return meta or None
 
 
-def _guess_mime_type(path: str, asset_meta: dict | None) -> str:
-    """Guess the MIME type of a file from its path and optional metadata."""
-    if isinstance(asset_meta, dict):
-        for key in ("mime_type", "file_type"):
-            mime_type = str(asset_meta.get(key) or "").strip()
-            if mime_type:
-                return mime_type
-
-    guessed, _ = mimetypes.guess_type(path)
-    return guessed or "application/octet-stream"
-
-
 def _normalize_original_filename(path: str, asset_meta: dict | None) -> str:
     """Determine the original filename from metadata or archive path."""
     if isinstance(asset_meta, dict):

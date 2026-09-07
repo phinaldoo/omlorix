@@ -256,19 +256,11 @@ def ensure_connections_enabled(user_id: str, db) -> None:
         raise HTTPException(status_code=403, detail="Connections are disabled for your group.")
 
 
-def _group_enabled_connections(user_id: str, db) -> list[str]:
-    return group_enabled_connections(user_id, db)
-
-
-def _group_allows_provider(user_id: str, db, *, provider: str) -> bool:
-    return group_allows_connection_provider(user_id, db, provider=provider)
-
-
 def _group_allows_connection_management(user_id: str, db, *, connection) -> bool:
     """Authorize mutations using the provider stored on the connection row."""
 
     stored_provider = str(getattr(connection, "provider", "") or "").strip().lower()
-    return _group_allows_provider(user_id, db, provider=stored_provider)
+    return group_allows_connection_provider(user_id, db, provider=stored_provider)
 
 
 def _normalize_return_path(value: str | None) -> str:
@@ -322,8 +314,6 @@ def _mark_connection_policy_blocked(db, connection, error_message: str):
 
 def _coerce_connection_status(connection, mcp_server=None) -> dict[str, Any]:
     payload = deepcopy(connection.status if isinstance(connection.status, dict) else {})
-    if not isinstance(payload, dict):
-        payload = {}
     payload.setdefault("state", "connected" if _is_connection_connected(connection) else "not_connected")
     payload.setdefault("last_error", "")
     payload.setdefault("last_error_code", "")
@@ -877,7 +867,7 @@ def prepare_managed_mcp_server_for_runtime(db, server):
 
 def list_connections_catalog_payload(db, user_id: str) -> dict[str, Any]:
     ensure_connections_enabled(user_id, db)
-    enabled_providers = _group_enabled_connections(user_id, db)
+    enabled_providers = group_enabled_connections(user_id, db)
     if not enabled_providers:
         return {"items": []}
     connections = list_user_connections(db, user_id)
@@ -892,7 +882,7 @@ def list_connections_catalog_payload(db, user_id: str) -> dict[str, Any]:
     for provider, meta in _PROVIDER_CATALOG.items():
         if enabled_providers and provider not in enabled_providers:
             continue
-        if provider in FILE_STORAGE_CONNECTION_PROVIDERS and not _group_allows_provider(user_id, db, provider=provider):
+        if provider in FILE_STORAGE_CONNECTION_PROVIDERS and not group_allows_connection_provider(user_id, db, provider=provider):
             continue
         connection = connection_map.get(provider)
         oauth_ready = connection_provider_oauth_is_configured(db, provider)
@@ -1220,7 +1210,7 @@ def delete_connection_payload(db, *, user_id: str, connection_id: str) -> dict[s
 def preview_connection_tools_payload(db, *, user_id: str, connection_id: str) -> dict[str, Any]:
     ensure_connections_enabled(user_id, db)
     connection = get_user_connection(db, user_id, connection_id)
-    if not _group_allows_provider(user_id, db, provider=connection.provider):
+    if not group_allows_connection_provider(user_id, db, provider=connection.provider):
         raise HTTPException(status_code=403, detail="Connection provider is not enabled for your group.")
     meta = _provider_meta(connection.provider)
     if meta.get("managed_mcp") is False:

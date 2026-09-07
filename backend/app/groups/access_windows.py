@@ -39,11 +39,6 @@ def _disabled_access_window_settings() -> Dict[str, Any]:
     }
 
 
-def _parse_time(time_str: str) -> Optional[dt_time]:
-    """Parse HH:MM string into a time object."""
-    return parse_access_window_time(time_str)
-
-
 def _get_timezone(tz_str: str) -> ZoneInfo:
     """Get ZoneInfo from timezone string, defaulting to UTC."""
     if not tz_str:
@@ -119,8 +114,8 @@ def _evaluate_rules(
     for rule in rules:
         if not isinstance(rule, dict):
             continue
-        start = _parse_time(rule.get("start", ""))
-        end = _parse_time(rule.get("end", ""))
+        start = parse_access_window_time(rule.get("start", ""))
+        end = parse_access_window_time(rule.get("end", ""))
         days = rule.get("days", [])
         
         if not start or not end:
@@ -158,7 +153,7 @@ def _calculate_next_allowed_time(
         for rule in rules:
             if not isinstance(rule, dict):
                 continue
-            start = _parse_time(rule.get("start", ""))
+            start = parse_access_window_time(rule.get("start", ""))
             days = rule.get("days", [])
             
             if not start:

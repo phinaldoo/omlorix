@@ -90,7 +90,7 @@ def test_note_file_route_audits_only_effective_attachments(
     )
     monkeypatch.setattr(
         notes_router,
-        "_can_user_access_embedded_file",
+        "can_user_access_note_file_reference",
         lambda *_args: True,
     )
     monkeypatch.setattr(

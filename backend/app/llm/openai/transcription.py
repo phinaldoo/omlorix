@@ -153,10 +153,6 @@ def _get_async_client(
     )
 
 
-async def _close_async_client(client: Any) -> None:
-    await close_async_resource(client)
-
-
 @contextmanager
 def _audio_file_context(input_file: InputFile) -> Iterator[BinaryIO]:
     """Audio file context."""
@@ -262,7 +258,7 @@ async def transcribe_audio_bytes(
         )
         return transcription.text
     finally:
-        await _close_async_client(client)
+        await close_async_resource(client)
 
 
 def get_live_transcription_settings_schema():

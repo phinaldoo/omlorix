@@ -11,6 +11,12 @@ from __future__ import annotations
 # ruff: noqa: F821, F841, F541
 
 from app.llm.google_aistudio import utils as _compat_source
+from app.llm.message_history import (
+    build_reference_context_text,
+    decode_jsonish,
+    filter_widget_blocks,
+    format_block_text,
+)
 
 _COMPAT_DEPENDENCIES = {
     "reformat_chat_history": (
@@ -152,37 +158,13 @@ def _impl_reformat_chat_history(
             return [value]
         return [value]
 
-    def _decode_jsonish(raw):
-        if raw is None:
-            return None
-        if isinstance(raw, (dict, list)):
-            return raw
-        if isinstance(raw, str):
-            stripped = raw.strip()
-            if not stripped:
-                return None
-            try:
-                return json.loads(stripped)
-            except Exception:
-                return stripped
-        return raw
-
     def _normalize_content_blocks(raw):
-        decoded = _decode_jsonish(raw)
+        decoded = decode_jsonish(raw)
         if decoded is None:
             return []
         if isinstance(decoded, list):
             return decoded
         return [{"type": "content", "content": decoded}]
-
-    def _filter_widget_blocks(blocks):
-        if not isinstance(blocks, list):
-            return blocks
-        return [
-            block
-            for block in blocks
-            if not (isinstance(block, dict) and block.get("type") == "widget")
-        ]
 
     attachment_fields = ("images", "videos", "audios", "documents")
 
@@ -221,21 +203,6 @@ def _impl_reformat_chat_history(
             if isinstance(text_val, (str, int, float)):
                 return str(text_val)
         return None
-
-    def _format_block_text(block_type: str | None, text: str | None):
-        if not text:
-            return None
-        normalized = (block_type or "").strip().lower()
-        prefix_map = {
-            "reasoning": "Reasoning:",
-            "tool_call": "Tool call:",
-            "tool_call_result": "Tool result:",
-            "file_gen": "Generated file:",
-        }
-        prefix = prefix_map.get(normalized)
-        if prefix:
-            return f"{prefix} {text}".strip()
-        return text
 
     def _block_meta(block: Any) -> dict[str, Any]:
         """Return provider metadata saved on one canonical Omlorix block."""
@@ -402,7 +369,7 @@ def _impl_reformat_chat_history(
                 if not call_id:
                     continue
                 tool_name = str(extracted.get("tool_name") or "tool")
-                arguments = _decode_jsonish(extracted.get("arguments"))
+                arguments = decode_jsonish(extracted.get("arguments"))
                 if not isinstance(arguments, dict):
                     arguments = {}
                 call_names[call_id] = tool_name
@@ -465,7 +432,7 @@ def _impl_reformat_chat_history(
                 if not call_id:
                     continue
                 response_value = block.get("content") if include_tool_content else ""
-                decoded_response = _decode_jsonish(response_value)
+                decoded_response = decode_jsonish(response_value)
                 if meta.get("native_web_search"):
                     flush_function_exchange()
                     payload = (
@@ -510,25 +477,6 @@ def _impl_reformat_chat_history(
         flush_function_exchange()
         flush_model()
         return True
-
-    def _build_reference_context_text() -> str:
-        """Build selected-reference context so it can travel with the latest prompt."""
-        segments: list[str] = []
-        if reference_parts and isinstance(reference_parts, list):
-            valid_parts = [
-                p for p in reference_parts if isinstance(p, str) and p.strip()
-            ]
-            if valid_parts:
-                ref_intro = (
-                    "The user refers to the following parts from previous messages:\n\n"
-                )
-                ref_content = "\n\n---\n\n".join(
-                    f'"{part.strip()}"' for part in valid_parts
-                )
-                segments.append(ref_intro + ref_content)
-        if isinstance(chat_reference_context, str) and chat_reference_context.strip():
-            segments.append(chat_reference_context.strip())
-        return "\n\n".join(segments).strip()
 
     def _append_reference_context_to_latest_user(
         reference_text: str, history_start_index: int
@@ -697,7 +645,7 @@ def _impl_reformat_chat_history(
         except Exception as exc:
             logger.warning("[Google AI Studio] Memories context attach failed: %s", exc)
 
-    reference_context_text = _build_reference_context_text()
+    reference_context_text = build_reference_context_text(reference_parts, chat_reference_context)
     history_start_index = len(formatted)
 
     for msg in chathistory:
@@ -715,7 +663,7 @@ def _impl_reformat_chat_history(
 
             # Extract content and file IDs
             content_blocks = _normalize_content_blocks(msg_dict.get("content"))
-            content_blocks = _filter_widget_blocks(content_blocks)
+            content_blocks = filter_widget_blocks(content_blocks)
             block_file_ids = _collect_block_file_ids(content_blocks)
             block_youtube_entries: list = []
             for block in content_blocks:
@@ -739,7 +687,7 @@ def _impl_reformat_chat_history(
                     if block_type == "tool_call"
                     else _coerce_text_from_block(block)
                 )
-                formatted_text = _format_block_text(block_type, block_text)
+                formatted_text = format_block_text(block_type, block_text)
                 if formatted_text:
                     content_fragments.append(formatted_text)
             content_str = "\n\n".join(

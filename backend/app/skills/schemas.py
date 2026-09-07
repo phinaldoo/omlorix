@@ -32,7 +32,7 @@ class SkillCreate(BaseModel):
             return None
         cleaned: dict[str, str | int | float | None] = {}
         for key, item in value.items():
-            if not isinstance(key, str) or not key.strip():
+            if not key.strip():
                 raise ValueError("metadata keys must be non-empty strings")
             cleaned[key.strip()] = item
         return cleaned

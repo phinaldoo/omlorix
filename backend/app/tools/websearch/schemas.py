@@ -824,9 +824,9 @@ class WebSearchProviderSettingsYou(_ScrapeDomainFilterSettingsMixin):
     @field_validator("count")
     @classmethod
     def _validate_count(cls, value: int) -> int:
-        if int(value) <= 0:
+        if value <= 0:
             raise ValueError("count must be greater than 0")
-        return int(value)
+        return value
 
 
 YOU_WEBSEARCH_PROVIDER_SCHEMA = Section(
@@ -1242,7 +1242,7 @@ class CreateWebSearchProviderRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_settings(self):
-        provider_key = self.provider.value if isinstance(self.provider, WebSearchProviderEnum) else str(self.provider).lower()
+        provider_key = self.provider.value
         settings_model = WEBSEARCH_PROVIDER_SETTINGS_MODELS.get(provider_key)
         if settings_model is None:
             raise ValueError(f"Unsupported provider '{self.provider}'.")

@@ -200,11 +200,6 @@ def sanitize_provider_error_message(message: Any) -> str:
     return text
 
 
-def _coerce_bool(value: Any) -> bool:
-    # Backward-compatible alias for internal call sites.
-    return coerce_bool(value)
-
-
 def _coerce_float(value: Any, default: float = 0.0) -> float:
     if value in (None, ""):
         return default
@@ -315,7 +310,7 @@ def _is_byok_user_statistics_enabled(db, user_id: str | None) -> bool:
 
     enabled = False
     try:
-        enabled = _coerce_bool(get_user_setting_value(user_id, "chat", "byok_statistics_enabled", db))
+        enabled = coerce_bool(get_user_setting_value(user_id, "chat", "byok_statistics_enabled", db))
     except Exception:
         enabled = False
 
@@ -337,7 +332,7 @@ def _infer_is_byok(
         if normalized_provider == "byok" or normalized_provider.startswith("byok_provider"):
             return True
 
-    if isinstance(meta, dict) and _coerce_bool(meta.get("is_byok")):
+    if isinstance(meta, dict) and coerce_bool(meta.get("is_byok")):
         # ``meta_is_byok`` is OpenRouter's upstream routing diagnostic. It
         # deliberately does not classify the Omlorix request or database row as
         # BYOK; that remains controlled by the explicit argument and Omlorix's

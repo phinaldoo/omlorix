@@ -42,7 +42,7 @@ def _coerce_positive_int(value: Any, default: int) -> int:
     try:
         parsed = int(value)
         return parsed if parsed > 0 else default
-    except Exception:
+    except (TypeError, ValueError, OverflowError):
         return default
 
 

@@ -73,7 +73,7 @@ def test_connection_management_uses_the_stored_provider(monkeypatch):
         checked_providers.append(provider)
         return provider == PROVIDER_SLACK
 
-    monkeypatch.setattr(service, "_group_allows_provider", allows_provider)
+    monkeypatch.setattr(service, "group_allows_connection_provider", allows_provider)
 
     assert service._group_allows_connection_management(
         "user-1",

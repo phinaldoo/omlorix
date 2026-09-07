@@ -37,7 +37,7 @@ def _connection(
 def _patch_delete_dependencies(monkeypatch, connection):
     monkeypatch.setattr(service, "ensure_connections_enabled", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(service, "get_user_connection", lambda *_args, **_kwargs: connection)
-    monkeypatch.setattr(service, "_group_allows_provider", lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(service, "group_allows_connection_provider", lambda *_args, **_kwargs: True)
     monkeypatch.setattr(service, "_assert_connection_url_allowed", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(service, "_get_managed_mcp_server_for_connection", lambda *_args, **_kwargs: None)
 

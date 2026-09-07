@@ -2274,16 +2274,6 @@ def _get_window_bounds(
     return local_start.astimezone(timezone.utc), local_end.astimezone(timezone.utc)
 
 
-def _get_window_start(period: str, timezone_name: str | None = None) -> datetime:
-    """Get the UTC start of the time window for a period."""
-    return _get_window_bounds(period, timezone_name)[0]
-
-
-def _get_window_end(period: str, timezone_name: str | None = None) -> datetime:
-    """Get the UTC end of the time window for a period."""
-    return _get_window_bounds(period, timezone_name)[1]
-
-
 def supports_chat_token_accounting_for_provider(provider: str | None) -> bool:
     provider_value = normalize_provider_value(str(provider or "").strip().lower())
     return provider_value in SUPPORTED_CHAT_TOKEN_ACCOUNTING_PROVIDERS

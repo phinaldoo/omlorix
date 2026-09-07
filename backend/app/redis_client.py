@@ -99,21 +99,21 @@ async def get_async_redis_client():
             # the same time. Keep the winner and deterministically close the
             # unshared pool instead of leaving it for garbage collection.
             try:
-                await _close_async_redis_instance(client)
+                await close_async_resource(client)
             except Exception:
                 logger.warning("Failed to close redundant Redis async client", exc_info=True)
         return selected_client
     except asyncio.CancelledError:
         if client is not None:
             try:
-                await _close_async_redis_instance(client)
+                await close_async_resource(client)
             except Exception:
                 logger.warning("Failed to close cancelled Redis async client", exc_info=True)
         raise
     except Exception as exc:  # noqa: BLE001
         if client is not None:
             try:
-                await _close_async_redis_instance(client)
+                await close_async_resource(client)
             except Exception:
                 logger.warning("Failed to close unusable Redis async client", exc_info=True)
         # Another concurrent probe may have installed a healthy shared client
@@ -145,12 +145,6 @@ def _create_async_redis_client():
     )
 
 
-async def _close_async_redis_instance(client) -> None:
-    """Close one redis-py async client across supported SDK versions."""
-
-    await close_async_resource(client)
-
-
 async def close_async_redis_client() -> None:
     """Detach and close the process-wide async Redis pool."""
 
@@ -162,7 +156,7 @@ async def close_async_redis_client() -> None:
         # after shutdown detached the current pool.
         _async_client_epoch += 1
     if client is not None:
-        await _close_async_redis_instance(client)
+        await close_async_resource(client)
 
 
 def redis_get_json(client, key: str, default: Any = None) -> Any:

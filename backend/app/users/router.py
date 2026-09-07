@@ -93,12 +93,6 @@ _CHANGE_PASSWORD_FAILURE_LIMIT_PER_IP = 10
 _CHANGE_PASSWORD_LOCKOUT_SECONDS = 15 * 60
 
 
-def _password_change_client_ip(request: Request, db: Session) -> str | None:
-    # Critical: do not trust spoofable proxy headers unless they come from a trusted proxy.
-    # Reuse the hardened helper used elsewhere in the backend.
-    return get_client_ip(request, db)
-
-
 def _redis_fixed_window_counter(
     client,
     *,
@@ -567,7 +561,7 @@ def change_password_route(
     db_log: Session = Depends(get_db_log),
     user = Depends(verified_user),
 ):
-    client_ip = _password_change_client_ip(request, db)
+    client_ip = get_client_ip(request, db)
     _enforce_change_password_lockouts(user.id, client_ip)
     _enforce_change_password_rate_limits(user.id, client_ip)
 
@@ -642,7 +636,7 @@ def set_password_social_route(
 ):
     enforce_same_origin(request, db)
     require_sensitive_action_auth(user, token, db)
-    client_ip = _password_change_client_ip(request, db)
+    client_ip = get_client_ip(request, db)
     from app.email.service import security_request_context
 
     result = set_password_for_social_user(

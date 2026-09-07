@@ -11,6 +11,9 @@ from __future__ import annotations
 # ruff: noqa: F821, F841, F541
 
 from app.llm.openrouter import utils as _compat_source
+from app.llm.message_history import (
+    build_reference_context_text,
+)
 
 _COMPAT_DEPENDENCIES = {
     "reformat_chat_history": (
@@ -351,25 +354,6 @@ def _impl_reformat_chat_history(
     }
 
     formatted: list[dict] = []
-
-    def _build_reference_context_text() -> str:
-        """Build selected-reference context so it can travel with the latest prompt."""
-        segments: list[str] = []
-        if reference_parts and isinstance(reference_parts, list):
-            valid_parts = [
-                p for p in reference_parts if isinstance(p, str) and p.strip()
-            ]
-            if valid_parts:
-                ref_intro = (
-                    "The user refers to the following parts from previous messages:\n\n"
-                )
-                ref_content = "\n\n---\n\n".join(
-                    f'"{part.strip()}"' for part in valid_parts
-                )
-                segments.append(ref_intro + ref_content)
-        if isinstance(chat_reference_context, str) and chat_reference_context.strip():
-            segments.append(chat_reference_context.strip())
-        return "\n\n".join(segments).strip()
 
     def _append_reference_context_to_latest_user(
         reference_text: str, history_start_index: int
@@ -1092,7 +1076,7 @@ def _impl_reformat_chat_history(
         except Exception as exc:
             logger.warning("[OpenRouter] Memories context attach failed: %s", exc)
 
-    reference_context_text = _build_reference_context_text()
+    reference_context_text = build_reference_context_text(reference_parts, chat_reference_context)
     history_start_index = len(formatted)
 
     assistant_parts = []

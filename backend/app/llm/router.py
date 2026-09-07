@@ -31,13 +31,13 @@ from app.users.roles import is_admin_role
 
 from app.groups.init import get_user_group_setting_value
 from app.groups.models import Group
+from app.llm.helper import coerce_allow_custom_flag
 from app.llm.models import (
     RATE_LIMIT_QUOTA_UNIT_REQUESTS,
     RATE_LIMIT_ADMISSION_COMPLETED,
     RATE_LIMIT_ADMISSION_FAILED,
     RATE_LIMIT_TARGET_TYPE_DICTATION,
     RATE_LIMIT_TARGET_TYPE_MODEL,
-    LLMProvider,
     Models,
     RateLimit,
     create_llm_provider,
@@ -399,16 +399,6 @@ def _resolve_existing_mcp_test_server(
     return server
 
 
-def _coerce_allow_custom_flag(value) -> bool:
-    if isinstance(value, bool):
-        return value
-    if isinstance(value, str):
-        return value.strip().lower() in {"1", "true", "yes", "on"}
-    if isinstance(value, (int, float)):
-        return value != 0
-    return False
-
-
 def _coerce_bool(value) -> bool:
     """Coerce a value to boolean, handling string representations."""
     if isinstance(value, bool):
@@ -505,21 +495,6 @@ def _build_rate_limit_payload(db: Session, rate_limit_obj) -> dict[str, Any]:
             for group_id in group_ids
         ],
     }
-
-
-def _extract_enabled_tool_names(raw_tools: Any) -> set[str]:
-    names: set[str] = set()
-    if not isinstance(raw_tools, list):
-        return names
-    for entry in raw_tools:
-        if isinstance(entry, str) and entry.strip():
-            names.add(entry.strip())
-            continue
-        if isinstance(entry, dict):
-            name = entry.get("name")
-            if isinstance(name, str) and name.strip():
-                names.add(name.strip())
-    return names
 
 
 def _ensure_byok_allowed(user_id: str, db: Session) -> None:
@@ -817,68 +792,6 @@ def _resolve_dotted_value(payload: Any, dotted_key: str):
     return cursor
 
 
-def _prefix_tool_schema_sections(
-    schema_payload: dict[str, Any],
-    *,
-    key_prefix: str,
-    section_title_prefix: str,
-) -> list[dict[str, Any]]:
-    sections = schema_payload.get("sections")
-    if not isinstance(sections, list):
-        return []
-
-    prefixed_sections: list[dict[str, Any]] = []
-    for section in sections:
-        if not isinstance(section, dict):
-            continue
-        section_copy = dict(section)
-        section_title = str(section_copy.get("title") or "").strip()
-        section_copy["title"] = (
-            f"{section_title_prefix} - {section_title}"
-            if section_title
-            else section_title_prefix
-        )
-
-        fields = section_copy.get("fields")
-        if not isinstance(fields, list):
-            section_copy["fields"] = []
-            prefixed_sections.append(section_copy)
-            continue
-
-        prefixed_fields: list[dict[str, Any]] = []
-        for field in fields:
-            if not isinstance(field, dict):
-                continue
-            field_copy = dict(field)
-            field_key = field_copy.get("key")
-            if isinstance(field_key, str) and field_key.strip():
-                field_copy["key"] = f"{key_prefix}.{field_key}"
-
-            for dep_key in ("dependency", "dependency2"):
-                dep_value = field_copy.get(dep_key)
-                if isinstance(dep_value, str) and dep_value.strip():
-                    field_copy[dep_key] = f"{key_prefix}.{dep_value}"
-
-            field_type = str(field_copy.get("type") or "").strip().lower()
-            input_type = str(field_copy.get("input_type") or "").strip().lower()
-            if field_type == "number" and not input_type:
-                step_value = None
-                attributes = field_copy.get("attributes")
-                if isinstance(attributes, dict):
-                    step_value = attributes.get("step")
-                if isinstance(step_value, (int, float)) and float(step_value) not in {0.0, 1.0}:
-                    field_copy["input_type"] = "float"
-                else:
-                    field_copy["input_type"] = "int"
-
-            prefixed_fields.append(field_copy)
-
-        section_copy["fields"] = prefixed_fields
-        prefixed_sections.append(section_copy)
-
-    return prefixed_sections
-
-
 def _apply_values_to_schema_sections(
     sections: list[dict[str, Any]],
     values_payload: dict[str, Any],
@@ -896,307 +809,6 @@ def _apply_values_to_schema_sections(
             value = _resolve_dotted_value(values_payload, key)
             if value is not None:
                 field["value"] = value
-    return sections
-
-
-def _build_image_tool_settings_sections(db: Session) -> list[dict[str, Any]]:
-    record = get_settings_page(db, "image_generation")
-    values = {"provider_id": "", "model_name": "", "settings": {}}
-    if record and isinstance(record.data, dict):
-        values["provider_id"] = str(record.data.get("provider_id") or "").strip()
-        values["model_name"] = str(record.data.get("model_name") or "").strip()
-        settings_payload = record.data.get("settings")
-        if isinstance(settings_payload, dict):
-            values["settings"] = dict(settings_payload)
-
-    provider_id = values["provider_id"]
-    model_name = values["model_name"]
-    if not provider_id or not model_name:
-        return []
-
-    provider = db.query(LLMProvider).filter(LLMProvider.id == provider_id).first()
-    if not provider:
-        return []
-
-    provider_type = str(provider.provider or "").strip().lower()
-    schema_obj = None
-    try:
-        if provider_type == "openai":
-            from app.llm.openai.image_generation import get_image_generation_schema_part_2
-
-            schema_obj = get_image_generation_schema_part_2(model_name)
-        elif provider_type in {"openai_responses", "openai_chat_completions"}:
-            from app.llm.openai_responses.image_generation import get_image_generation_schema_part_2
-
-            schema_obj = get_image_generation_schema_part_2()
-        elif provider_type == "openrouter":
-            from app.llm.openrouter.image_generation import get_image_generation_schema_part_2
-
-            schema_obj = get_image_generation_schema_part_2()
-        elif provider_type == "google_aistudio":
-            from app.llm.google_aistudio.image_generation import get_image_generation_schema_part_2
-
-            schema_obj = get_image_generation_schema_part_2(model_name)
-        elif provider_type == "xai":
-            from app.llm.xai.image_generation import get_image_generation_schema_part_2
-
-            schema_obj = get_image_generation_schema_part_2()
-        elif provider_type == "ollama":
-            from app.llm.ollama.image_generation import get_image_generation_schema_part_2
-
-            schema_obj = get_image_generation_schema_part_2()
-    except Exception:
-        logger.warning("Failed to build image generation tool settings schema", exc_info=True)
-        return []
-
-    schema_payload = _schema_to_payload(schema_obj)
-    prefixed = _prefix_tool_schema_sections(
-        schema_payload,
-        key_prefix="tool_settings.image_generation",
-        section_title_prefix="Image Generation Tool Settings",
-    )
-    return _apply_values_to_schema_sections(
-        prefixed,
-        {"tool_settings": {"image_generation": values}},
-    )
-
-
-def _build_audio_tool_settings_sections(db: Session) -> list[dict[str, Any]]:
-    record = get_settings_page(db, "audio_generation")
-    values = {
-        "provider_id": "",
-        "model_name": "",
-        "voice": None,
-        "response_format": None,
-        "language": None,
-        "sample_rate": None,
-        "bit_rate": None,
-        "speed": None,
-        "optimize_streaming_latency": None,
-        "text_normalization": None,
-    }
-    if record and isinstance(record.data, dict):
-        values["provider_id"] = str(record.data.get("provider_id") or "").strip()
-        values["model_name"] = str(record.data.get("model_name") or "").strip()
-        voice_value = record.data.get("voice")
-        if isinstance(voice_value, str) and voice_value.strip():
-            values["voice"] = voice_value.strip()
-        response_format_value = record.data.get("response_format")
-        if isinstance(response_format_value, str) and response_format_value.strip():
-            values["response_format"] = response_format_value.strip()
-        for key in (
-            "language",
-            "sample_rate",
-            "bit_rate",
-            "speed",
-            "optimize_streaming_latency",
-            "text_normalization",
-        ):
-            if key in record.data:
-                values[key] = record.data.get(key)
-
-    provider_id = values["provider_id"]
-    model_name = values["model_name"]
-    if not provider_id or not model_name:
-        return []
-
-    provider = db.query(LLMProvider).filter(LLMProvider.id == provider_id).first()
-    if not provider:
-        return []
-
-    provider_type = str(provider.provider or "").strip().lower()
-    schema_obj = None
-    try:
-        if provider_type in {"openai", "openai_responses", "openai_chat_completions"}:
-            from app.llm.openai.text_to_speech import get_audio_generation_schema_part_2
-
-            schema_obj = get_audio_generation_schema_part_2(model_name, provider=provider)
-        elif provider_type == "openrouter":
-            from app.llm.openrouter.audio_generation import get_audio_generation_schema_part_2
-
-            schema_obj = get_audio_generation_schema_part_2(model_name, provider=provider)
-        elif provider_type == "google_aistudio":
-            from app.llm.google_aistudio.text_to_speech import get_audio_generation_schema_part_2
-
-            schema_obj = get_audio_generation_schema_part_2(model_name)
-        elif provider_type == "elevenlabs":
-            from app.llm.elevenlabs.text_to_speech import get_audio_generation_schema_part_2
-
-            schema_obj = get_audio_generation_schema_part_2(
-                api_key=provider.api_key,
-                model_name=model_name,
-            )
-        elif provider_type == "xai":
-            from app.llm.xai.text_to_speech import get_audio_generation_schema_part_2
-
-            schema_obj = get_audio_generation_schema_part_2(
-                model_name,
-                provider=provider,
-            )
-    except Exception:
-        logger.warning("Failed to build audio generation tool settings schema", exc_info=True)
-        return []
-
-    schema_payload = _schema_to_payload(schema_obj)
-    prefixed = _prefix_tool_schema_sections(
-        schema_payload,
-        key_prefix="tool_settings.audio_generation",
-        section_title_prefix="Audio Generation Tool Settings",
-    )
-    return _apply_values_to_schema_sections(
-        prefixed,
-        {"tool_settings": {"audio_generation": values}},
-    )
-
-
-def _build_music_tool_settings_sections(db: Session) -> list[dict[str, Any]]:
-    record = get_settings_page(db, "music_generation")
-    values = {
-        "provider_id": "",
-        "model_name": "",
-        "response_format": "mp3",
-        "enable_reference_images": False,
-        "max_reference_images": 3,
-    }
-    if record and isinstance(record.data, dict):
-        for key in (
-            "provider_id",
-            "model_name",
-            "response_format",
-            "enable_reference_images",
-            "max_reference_images",
-        ):
-            if key in record.data:
-                values[key] = record.data.get(key)
-        values["provider_id"] = str(values.get("provider_id") or "").strip()
-        values["model_name"] = str(values.get("model_name") or "").strip()
-        values["response_format"] = str(values.get("response_format") or "mp3").strip().lower() or "mp3"
-
-    provider_id = values["provider_id"]
-    model_name = values["model_name"]
-    if not provider_id or not model_name:
-        return []
-
-    provider = db.query(LLMProvider).filter(LLMProvider.id == provider_id).first()
-    if not provider:
-        return []
-
-    if str(provider.provider or "").strip().lower() != "google_aistudio":
-        return []
-
-    try:
-        from app.llm.google_aistudio.music_generation import get_music_generation_schema_part_2
-
-        schema_obj = get_music_generation_schema_part_2(model_name)
-    except Exception:
-        logger.warning("Failed to build music generation tool settings schema", exc_info=True)
-        return []
-
-    schema_payload = _schema_to_payload(schema_obj)
-    prefixed = _prefix_tool_schema_sections(
-        schema_payload,
-        key_prefix="tool_settings.music_generation",
-        section_title_prefix="Music Generation Tool Settings",
-    )
-    return _apply_values_to_schema_sections(
-        prefixed,
-        {"tool_settings": {"music_generation": values}},
-    )
-
-
-def _build_video_tool_settings_sections(db: Session) -> list[dict[str, Any]]:
-    record = get_settings_page(db, "video_generation")
-    values = {
-        "provider_id": "",
-        "model_name": "",
-        "duration_seconds": 6,
-        "size": "720x1280",
-        "aspect_ratio": None,
-        "resolution": None,
-        "seed": None,
-        "generate_audio": None,
-        "enable_reference_files": False,
-        "timeout_seconds": 600,
-        "poll_interval_seconds": 5,
-        "max_retries": 2,
-    }
-    if record and isinstance(record.data, dict):
-        for key in (
-            "provider_id",
-            "model_name",
-            "duration_seconds",
-            "size",
-            "aspect_ratio",
-            "resolution",
-            "seed",
-            "generate_audio",
-            "enable_reference_files",
-            "timeout_seconds",
-            "poll_interval_seconds",
-            "max_retries",
-        ):
-            if key in record.data:
-                values[key] = record.data.get(key)
-        values["provider_id"] = str(values.get("provider_id") or "").strip()
-        values["model_name"] = str(values.get("model_name") or "").strip()
-
-    provider_id = values["provider_id"]
-    model_name = values["model_name"]
-    if not provider_id or not model_name:
-        return []
-
-    provider = db.query(LLMProvider).filter(LLMProvider.id == provider_id).first()
-    if not provider:
-        return []
-
-    provider_type = str(provider.provider or "").strip().lower()
-    schema_obj = None
-    try:
-        if provider_type in {"openai_responses", "openai_chat_completions"}:
-            from app.llm.openai_responses.video_generation import get_video_generation_schema_part_2
-
-            schema_obj = get_video_generation_schema_part_2(model_name)
-        elif provider_type == "openrouter":
-            from app.llm.openrouter.video_generation import get_video_generation_schema_part_2
-
-            schema_obj = get_video_generation_schema_part_2(model_name, provider=provider)
-        elif provider_type == "google_aistudio":
-            from app.llm.google_aistudio.video_generation import get_video_generation_schema_part_2
-
-            schema_obj = get_video_generation_schema_part_2(model_name)
-        elif provider_type == "xai":
-            from app.llm.xai.video_generation import get_video_generation_schema_part_2
-
-            schema_obj = get_video_generation_schema_part_2(model_name)
-    except Exception:
-        logger.warning("Failed to build video generation tool settings schema", exc_info=True)
-        return []
-
-    schema_payload = _schema_to_payload(schema_obj)
-    prefixed = _prefix_tool_schema_sections(
-        schema_payload,
-        key_prefix="tool_settings.video_generation",
-        section_title_prefix="Video Generation Tool Settings",
-    )
-    return _apply_values_to_schema_sections(
-        prefixed,
-        {"tool_settings": {"video_generation": values}},
-    )
-
-
-def _build_tool_settings_sections_for_model(
-    db: Session,
-    enabled_tool_names: set[str],
-) -> list[dict[str, Any]]:
-    sections: list[dict[str, Any]] = []
-    if "audio_generation" in enabled_tool_names:
-        sections.extend(_build_audio_tool_settings_sections(db))
-    if "music_generation" in enabled_tool_names:
-        sections.extend(_build_music_tool_settings_sections(db))
-    if "image_generation" in enabled_tool_names:
-        sections.extend(_build_image_tool_settings_sections(db))
-    if "video_generation" in enabled_tool_names:
-        sections.extend(_build_video_tool_settings_sections(db))
     return sections
 
 
@@ -3055,7 +2667,7 @@ def model_init_route(
         )
 
     supported_file_format_groups = _supported_file_format_groups_payload()
-    allow_custom = _coerce_allow_custom_flag(model_settings.get("allow_custom_generation_parameter"))
+    allow_custom = coerce_allow_custom_flag(model_settings.get("allow_custom_generation_parameter"))
     if not allow_custom:
         return {
             "supported": False,

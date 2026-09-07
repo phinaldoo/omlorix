@@ -27,7 +27,7 @@ class OpenaiResponsesListModelsByok(OpenaiResponsesSettings):
     @field_validator("api_key")
     @classmethod
     def _validate_api_key(cls, value: str) -> str:
-        if not isinstance(value, str) or not value.strip():
+        if not value.strip():
             raise ValueError("API key is required.")
         return value.strip()
 

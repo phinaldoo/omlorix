@@ -799,21 +799,6 @@ def _validate_login_social_apple_private_key(
         validate_apple_private_key(merged_settings.get("apple_private_key"))
 
 
-def _get_openai_provider_options(db: Session) -> list[dict[str, str]]:
-    """Get OpenAI provider options."""
-    openai_provider_values = {
-        ProviderEnum.openai.value,
-        ProviderEnum.openai_responses.value,
-        ProviderEnum.openai_chat_completions.value,
-    }
-    rows = list_llm_providers(db, provider_types=openai_provider_values)
-    options: list[dict[str, str]] = []
-    for row in rows:
-        label = (row.name or row.id or "").strip() or row.id
-        options.append({"value": row.id, "label": label})
-    return options
-
-
 def _get_transcription_provider_rows(db: Session) -> list[LLMProvider]:
     """Get transcription provider rows."""
     return list_llm_providers(db, provider_types=TRANSCRIPTION_PROVIDER_TYPES)
@@ -1205,15 +1190,6 @@ def _get_video_generation_provider_options(db: Session) -> list[dict[str, str]]:
     return options
 
 
-def _get_video_generation_provider_type_by_id(db: Session) -> dict[str, str]:
-    """Get video generation provider type by ID."""
-    mapping: dict[str, str] = {}
-    for row in _get_video_generation_provider_rows(db):
-        if isinstance(row.id, str) and isinstance(row.provider, str):
-            mapping[row.id] = row.provider
-    return mapping
-
-
 def _get_video_generation_models_for_provider(provider_row: LLMProvider) -> list[str]:
     """Get video generation models for a provider."""
     provider_type = (provider_row.provider or "").strip()
@@ -1454,15 +1430,6 @@ def _get_audio_generation_model_options(
                 }
             )
     return merged
-
-
-def _get_audio_generation_model_capabilities(
-    model_name: str, provider_type: str | None
-) -> dict[str, Any]:
-    """Get audio generation model capabilities."""
-    return get_tts_model_capabilities_for_provider(
-        model_name, provider_type=provider_type, provider_row=None
-    )
 
 
 def _get_audio_generation_model_capabilities_for_provider(
@@ -4932,16 +4899,6 @@ def _get_websearch_provider_options(
 
     options: List[Dict[str, str]] = []
     for row in rows:
-        label = (row.name or row.provider or row.id or "").strip() or row.id
-        options.append({"value": row.id, "label": label})
-    return options
-
-
-def _get_searxng_search_provider_options(db: Session) -> List[Dict[str, str]]:
-    options: List[Dict[str, str]] = []
-    for row in list_websearch_providers_search(db):
-        if str(getattr(row, "provider", "") or "").strip() != "searxng":
-            continue
         label = (row.name or row.provider or row.id or "").strip() or row.id
         options.append({"value": row.id, "label": label})
     return options

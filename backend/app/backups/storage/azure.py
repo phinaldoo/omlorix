@@ -17,7 +17,7 @@ class AzureBlobBackupStorageAdapter(BackupStorageAdapter):
 
         try:
             from azure.storage.blob import BlobServiceClient
-        except Exception as exc:  # noqa: BLE001
+        except ImportError as exc:  # noqa: BLE001
             raise RuntimeError("azure-storage-blob is required for Azure backup destinations") from exc
 
         connection_string = config.get("connection_string")

@@ -56,10 +56,10 @@ def test_workspace_catalog_hides_unavailable_new_connections(monkeypatch):
     monkeypatch.setattr(service, "ensure_connections_enabled", lambda *_args: None)
     monkeypatch.setattr(
         service,
-        "_group_enabled_connections",
+        "group_enabled_connections",
         lambda *_args: list(service._PROVIDER_CATALOG),
     )
-    monkeypatch.setattr(service, "_group_allows_provider", lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(service, "group_allows_connection_provider", lambda *_args, **_kwargs: True)
     monkeypatch.setattr(service, "list_user_connections", lambda *_args: [])
     monkeypatch.setattr(
         service,
@@ -90,7 +90,7 @@ def test_workspace_catalog_hides_existing_connection_when_global_setup_is_remove
         secrets={},
     )
     monkeypatch.setattr(service, "ensure_connections_enabled", lambda *_args: None)
-    monkeypatch.setattr(service, "_group_enabled_connections", lambda *_args: ["gmail"])
+    monkeypatch.setattr(service, "group_enabled_connections", lambda *_args: ["gmail"])
     monkeypatch.setattr(service, "list_user_connections", lambda *_args: [existing])
     monkeypatch.setattr(
         service,
@@ -116,8 +116,8 @@ def test_workspace_catalog_hides_existing_connection_when_global_setup_is_remove
 def test_file_source_catalog_item_is_not_an_llm_connection(monkeypatch):
     """File adapters advertise the picker surface, never the model surface."""
     monkeypatch.setattr(service, "ensure_connections_enabled", lambda *_args: None)
-    monkeypatch.setattr(service, "_group_enabled_connections", lambda *_args: ["google_drive"])
-    monkeypatch.setattr(service, "_group_allows_provider", lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(service, "group_enabled_connections", lambda *_args: ["google_drive"])
+    monkeypatch.setattr(service, "group_allows_connection_provider", lambda *_args, **_kwargs: True)
     monkeypatch.setattr(service, "list_user_connections", lambda *_args: [])
     monkeypatch.setattr(service, "connection_provider_is_setup", lambda _db, _provider, **_kwargs: True)
     monkeypatch.setattr(service, "connection_provider_oauth_is_configured", lambda _db, _provider: True)
@@ -178,7 +178,7 @@ def test_file_source_tool_preview_is_rejected(monkeypatch):
     connection = SimpleNamespace(provider="google_drive")
     monkeypatch.setattr(service, "ensure_connections_enabled", lambda *_args: None)
     monkeypatch.setattr(service, "get_user_connection", lambda *_args: connection)
-    monkeypatch.setattr(service, "_group_allows_provider", lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(service, "group_allows_connection_provider", lambda *_args, **_kwargs: True)
 
     with pytest.raises(HTTPException, match="file source adapter") as error:
         service.preview_connection_tools_payload(object(), user_id="user-1", connection_id="drive-1")
