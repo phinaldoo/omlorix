@@ -16,6 +16,7 @@ from app.llm.openai.custom_headers import (
     redact_custom_headers_for_display_settings,
 )
 from app.llm.openrouter.utils import list_models_openrouter
+from app.llm.deepgram.common import list_deepgram_models_payload
 from app.llm.models import (
     apply_disabled_sync_status,
     get_llm_provider,
@@ -954,6 +955,24 @@ def list_provider_models(db, provider_id: str):
                 raise HTTPException(status_code=424, detail=f"Failed to list ElevenLabs models: {exc}") from exc
             else:
                 _mark_model_listing_success(db, provider.id)
+        case "deepgram":
+            try:
+                models = _list_deepgram_models(provider.api_key)
+            except HTTPException:
+                provider_status = provider.status if isinstance(provider.status, dict) else {}
+                if provider_status.get("supports_model_list", True):
+                    update_provider_availability(db, provider.id, "down")
+                raise
+            except Exception as exc:
+                provider_status = provider.status if isinstance(provider.status, dict) else {}
+                if provider_status.get("supports_model_list", True):
+                    update_provider_availability(db, provider.id, "down")
+                raise HTTPException(
+                    status_code=424,
+                    detail=f"Failed to list Deepgram models: {exc}",
+                ) from exc
+            else:
+                _mark_model_listing_success(db, provider.id)
         case _:
             raise HTTPException(status_code=422, detail="Unsupported provider")
     return models
@@ -1084,6 +1103,49 @@ def _verify_elevenlabs_account(api_key: str, base_url: str | None = None) -> Non
         ) from exc
     except Exception as exc:
         raise HTTPException(status_code=424, detail=f"Failed to reach ElevenLabs API: {exc}") from exc
+
+
+def _list_deepgram_models(api_key: str) -> list[dict]:
+    """List available Deepgram models."""
+    if not isinstance(api_key, str) or not api_key.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Provider api_key is required for 'deepgram'.",
+        )
+
+    try:
+        payload = list_deepgram_models_payload(api_key.strip())
+    except RuntimeError as exc:
+        raise HTTPException(status_code=424, detail=str(exc)) from exc
+
+    normalized: list[dict] = []
+    seen: set[str] = set()
+    for category in ("stt", "tts"):
+        raw_models = payload.get(category)
+        if not isinstance(raw_models, list):
+            continue
+        for entry in raw_models:
+            if not isinstance(entry, dict):
+                continue
+            model_id = ""
+            for key in ("canonical_name", "name", "model", "id"):
+                value = str(entry.get(key) or "").strip()
+                if value:
+                    model_id = value
+                    break
+            if not model_id or model_id in seen:
+                continue
+            seen.add(model_id)
+            normalized.append(
+                {
+                    "id": model_id,
+                    "model": model_id,
+                    "name": model_id,
+                    "description": str(entry.get("architecture") or "").strip() or None,
+                    "category": category,
+                }
+            )
+    return normalized
 
 
 def _collect_provider_model_ids(models) -> list[str]:
@@ -1298,6 +1360,8 @@ def test_llm_provider(db, payload: TestProviderPayload | dict):
                 models = list_models_lmstudio(db, byok_base_url=base_url, byok_api_key=api_key)
             case ProviderEnum.elevenlabs:
                 models = _list_elevenlabs_models(api_key=api_key or "", base_url=base_url)
+            case ProviderEnum.deepgram:
+                models = _list_deepgram_models(api_key=api_key or "")
             case _:
                 raise HTTPException(status_code=400, detail=f"Unsupported provider '{provider.value}'")
     except HTTPException as exc:

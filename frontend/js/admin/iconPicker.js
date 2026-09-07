@@ -25,6 +25,7 @@
             'minimax',
             'lmstudio',
             'elevenlabs',
+            'deepgram',
             'nebius',
         ];
 

@@ -649,5 +649,15 @@
   "model_settings_system_instruction_placeholder": "管理者が設定したシステム命令を使用する場合は空のままにしてください。",
   "schema_group_field_settings_memories_memory_model_id_label": "メモリモデル",
   "schema_group_field_settings_memories_memory_model_id_description": "各ユーザーメッセージの後にメンバーのメモリを更新する専用モデルです。空欄の場合は現在のチャットモデルを使用します。",
-  "schema_group_option_settings_memories_memory_model_id_current": "現在のチャットモデルを使用"
+  "schema_group_option_settings_memories_memory_model_id_current": "現在のチャットモデルを使用",
+  "llm.shared.section_choose_a_deepgram.description": "Deepgramモデルを選択します。",
+  "llm.shared.section_deepgram_audio.title": "ディープグラムオーディオ",
+  "llm.shared.section_select_the_deepgram.description": "使用するDeepgramモデルを選択します。",
+  "schema_backend_configure_the_deepgram_api_key_used_for_speech_to_text_and_text": "音声テキスト変換およびテキスト読み上げリクエストに使用される Deepgram API キーを構成します。",
+  "schema_backend_deepgram_api_key_used_for_authenticating_requests": "リクエストの認証に使用されるディープグラム API キー。",
+  "schema_backend_deepgram_requests_sent_by_omlorix_always_opt_out_of_model_improvement_data": "Omlorix によって送信されるディープグラム リクエストでは、モデル改善データの使用が常にオプトアウトされます。",
+  "schema_backend_display_name_for_this_deepgram_provider_configuration": "このディープグラムプロバイダー構成の表示名。",
+  "schema_backend_e_g_my_deepgram_provider": "例: 私のディープグラムプロバイダー",
+  "schema_backend_name_how_this_deepgram_connection_appears_across_the_admin_ui": "このディープグラム接続が管理 UI 上でどのように表示されるかに名前を付けます。",
+  "schema_backend_timeout_applied_to_deepgram_api_requests": "Deepgram API リクエストに適用されるタイムアウト。"
 }

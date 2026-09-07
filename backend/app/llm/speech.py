@@ -8,6 +8,17 @@ from sqlalchemy.orm import Session
 
 from app.llm.audio_generation_pricing import get_audio_generation_pricing_metadata
 from app.llm.base_settings import LLM_PROVIDER_REQUEST_TIMEOUT_SECONDS
+from app.llm.deepgram.text_to_speech import (
+    DEEPGRAM_TTS_RESPONSE_FORMATS,
+    deepgram_generate_audio,
+    deepgram_text_to_speech_models_list,
+)
+from app.llm.deepgram.transcription import (
+    DEEPGRAM_TRANSCRIPTION_FILE_UPLOAD_LIMIT_BYTES,
+    DEEPGRAM_TRANSCRIPTION_SUPPORTED_FILE_FORMATS,
+    get_deepgram_transcription_models,
+    transcribe_audio_bytes as transcribe_audio_bytes_deepgram,
+)
 from app.llm.elevenlabs.text_to_speech import (
     elevenlabs_generate_audio,
     elevenlabs_text_to_speech_models_list,
@@ -75,6 +86,7 @@ OPENAI_COMPATIBLE_TTS_PROVIDER_TYPES = {
 TRANSCRIPTION_PROVIDER_TYPES = set(OPENAI_COMPATIBLE_TRANSCRIPTION_PROVIDER_TYPES) | {
     ProviderEnum.google_aistudio.value,
     ProviderEnum.elevenlabs.value,
+    ProviderEnum.deepgram.value,
     ProviderEnum.xai.value,
 }
 
@@ -82,6 +94,7 @@ TTS_PROVIDER_TYPES = set(OPENAI_COMPATIBLE_TTS_PROVIDER_TYPES) | {
     ProviderEnum.openrouter.value,
     ProviderEnum.google_aistudio.value,
     ProviderEnum.elevenlabs.value,
+    ProviderEnum.deepgram.value,
     ProviderEnum.xai.value,
 }
 
@@ -114,6 +127,7 @@ PROVIDER_DISPLAY_LABELS = {
     ProviderEnum.google_aistudio.value: "Google AI Studio",
     ProviderEnum.openrouter.value: "OpenRouter",
     ProviderEnum.elevenlabs.value: "ElevenLabs",
+    ProviderEnum.deepgram.value: "Deepgram",
     ProviderEnum.xai.value: "xAI",
 }
 
@@ -143,12 +157,15 @@ def get_provider_display_label(provider_type: str | None, default: str = "Provid
 def provider_supports_tts_instructions(provider_type: str | None) -> bool:
     return str(provider_type or "").strip().lower() not in {
         ProviderEnum.elevenlabs.value,
+        ProviderEnum.deepgram.value,
         ProviderEnum.xai.value,
     }
 
 
 def list_tts_models_for_provider(provider_row: LLMProvider) -> list[dict[str, Any]]:
     provider_type = str(provider_row.provider or "").strip()
+    raw_provider_settings = getattr(provider_row, "settings", None)
+    provider_settings = raw_provider_settings if isinstance(raw_provider_settings, dict) else {}
 
     if provider_type in OPENAI_COMPATIBLE_TTS_PROVIDER_TYPES:
         return openai_text_to_speech_models_list(provider_row.api_key, provider=provider_row)
@@ -161,6 +178,16 @@ def list_tts_models_for_provider(provider_row: LLMProvider) -> list[dict[str, An
             return elevenlabs_text_to_speech_models_list(provider_row.api_key)
         except Exception:
             return []
+    if provider_type == ProviderEnum.deepgram.value:
+        from app.llm.deepgram.text_to_speech import DEEPGRAM_DEFAULT_TTS_MODEL_FAMILY
+
+        try:
+            return deepgram_text_to_speech_models_list(
+                provider_row.api_key,
+                timeout=provider_settings.get("timeout"),
+            )
+        except Exception:
+            return [{"id": DEEPGRAM_DEFAULT_TTS_MODEL_FAMILY}]
     if provider_type == ProviderEnum.xai.value:
         return xai_text_to_speech_models_list(provider_row)
     return []
@@ -249,6 +276,31 @@ def get_tts_model_capabilities_for_provider(
         return _with_pricing({
             "voices": [],
             "response_formats": ["mp3"],
+            "voice_required": True,
+            "support_custom_instructions": False,
+        })
+
+    if normalized_provider_type == ProviderEnum.deepgram.value:
+        voices: list[str] = []
+        if provider_row is not None:
+            provider_settings = (
+                provider_row.settings if isinstance(provider_row.settings, dict) else {}
+            )
+            for model in deepgram_text_to_speech_models_list(
+                provider_row.api_key,
+                timeout=provider_settings.get("timeout"),
+            ):
+                if str(model.get("id") or "").strip() != model_id:
+                    continue
+                voices = [
+                    str(voice).strip()
+                    for voice in model.get("voices", [])
+                    if str(voice).strip()
+                ]
+                break
+        return _with_pricing({
+            "voices": voices,
+            "response_formats": list(DEEPGRAM_TTS_RESPONSE_FORMATS),
             "voice_required": True,
             "support_custom_instructions": False,
         })
@@ -369,6 +421,32 @@ def _generate_via_google_aistudio(
     )
 
 
+def _generate_via_deepgram(
+    provider: LLMProvider,
+    model_name: str,
+    input_text: str,
+    instructions: str | None,
+    multiple_speakers: bool,
+    config: dict[str, Any],
+) -> dict[str, Any]:
+    del instructions
+    del multiple_speakers
+    voice = str(config.get("voice") or "").strip()
+    if not voice:
+        raise ValueError("Voice is required for Deepgram audio generation.")
+
+    provider_settings = provider.settings if isinstance(provider.settings, dict) else {}
+    response_format = str(config.get("response_format") or "mp3").strip().lower()
+    return deepgram_generate_audio(
+        api_key=provider.api_key,
+        model=model_name,
+        voice=voice,
+        input_text=input_text,
+        response_format=response_format,
+        timeout=provider_settings.get("timeout", 120),
+    )
+
+
 def _generate_via_xai(
     provider: LLMProvider,
     model_name: str,
@@ -402,6 +480,7 @@ PROVIDER_AUDIO_GENERATORS: dict[str, AudioGenerator] = {
     ProviderEnum.openrouter.value: _generate_via_openrouter,
     ProviderEnum.elevenlabs.value: _generate_via_elevenlabs,
     ProviderEnum.google_aistudio.value: _generate_via_google_aistudio,
+    ProviderEnum.deepgram.value: _generate_via_deepgram,
     ProviderEnum.xai.value: _generate_via_xai,
 }
 
@@ -422,6 +501,14 @@ def get_transcription_models_for_provider(db: Session, provider_row: LLMProvider
         )
     if provider_type == ProviderEnum.elevenlabs.value:
         return list(ELEVENLABS_TRANSCRIPTION_MODELS)
+    if provider_type == ProviderEnum.deepgram.value:
+        provider_settings = (
+            provider_row.settings if isinstance(provider_row.settings, dict) else {}
+        )
+        return get_deepgram_transcription_models(
+            api_key=provider_row.api_key,
+            timeout=provider_settings.get("timeout"),
+        )
     if provider_type == ProviderEnum.xai.value:
         return list(XAI_TRANSCRIPTION_MODELS)
     return []
@@ -451,6 +538,9 @@ def get_transcription_runtime_for_provider(
     elif provider_type == ProviderEnum.google_aistudio.value:
         allowed_formats = GOOGLE_AISTUDIO_TRANSCRIPTION_SUPPORTED_FILE_FORMATS
         upload_limit_bytes = GOOGLE_AISTUDIO_TRANSCRIPTION_FILE_UPLOAD_LIMIT_BYTES
+    elif provider_type == ProviderEnum.deepgram.value:
+        allowed_formats = DEEPGRAM_TRANSCRIPTION_SUPPORTED_FILE_FORMATS
+        upload_limit_bytes = DEEPGRAM_TRANSCRIPTION_FILE_UPLOAD_LIMIT_BYTES
     elif provider_type == ProviderEnum.xai.value:
         allowed_formats = XAI_TRANSCRIPTION_SUPPORTED_FILE_FORMATS
         upload_limit_bytes = XAI_TRANSCRIPTION_FILE_UPLOAD_LIMIT_BYTES
@@ -502,6 +592,14 @@ async def transcribe_audio_bytes_for_provider(
             api_key=provider.api_key,
             model=model_name,
             enable_logging=enable_logging,
+        )
+    if provider_type == ProviderEnum.deepgram.value:
+        return await transcribe_audio_bytes_deepgram(
+            audio_bytes,
+            filename,
+            api_key=provider.api_key,
+            model=model_name,
+            timeout=provider_settings.get("timeout"),
         )
     if provider_type == ProviderEnum.xai.value:
         return await transcribe_audio_bytes_xai(

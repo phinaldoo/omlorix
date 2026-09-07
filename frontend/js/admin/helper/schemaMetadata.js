@@ -161,6 +161,7 @@ const PROVIDER_LABEL_MAP = {
     ollama: 'Ollama',
     lmstudio: 'LM Studio',
     elevenlabs: 'ElevenLabs',
+    deepgram: 'Deepgram',
     groq: 'Groq',
     deepseek: 'DeepSeek',
     fireworks: 'Fireworks AI',
@@ -198,6 +199,7 @@ const DEFAULT_PROVIDER_ICON_KEYS = [
     'minimax',
     'lmstudio',
     'elevenlabs',
+    'deepgram',
     'nebius',
 ];
 
@@ -223,6 +225,7 @@ const PROVIDER_DEFAULT_ICON_MAP = Object.freeze({
     ollama: 'ollama',
     lmstudio: 'lmstudio',
     elevenlabs: 'elevenlabs',
+    deepgram: 'deepgram',
     xai: 'xai',
 });
 

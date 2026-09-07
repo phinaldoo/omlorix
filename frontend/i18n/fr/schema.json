@@ -649,5 +649,15 @@
   "model_settings_system_instruction_placeholder": "Laissez vide pour utiliser l’instruction système configurée par l’administrateur.",
   "schema_group_field_settings_memories_memory_model_id_label": "Modèle de mémoire",
   "schema_group_field_settings_memories_memory_model_id_description": "Modèle dédié qui met à jour la mémoire des membres après chaque message. Laissez vide pour utiliser le modèle du chat actuel.",
-  "schema_group_option_settings_memories_memory_model_id_current": "Utiliser le modèle du chat actuel"
+  "schema_group_option_settings_memories_memory_model_id_current": "Utiliser le modèle du chat actuel",
+  "llm.shared.section_choose_a_deepgram.description": "Choisissez un modèle Deepgram.",
+  "llm.shared.section_deepgram_audio.title": "Audio Deepgram",
+  "llm.shared.section_select_the_deepgram.description": "Sélectionnez le modèle Deepgram à utiliser.",
+  "schema_backend_configure_the_deepgram_api_key_used_for_speech_to_text_and_text": "Configurez la clé API Deepgram utilisée pour les requêtes de synthèse vocale et de synthèse vocale.",
+  "schema_backend_deepgram_api_key_used_for_authenticating_requests": "Clé API Deepgram utilisée pour authentifier les requêtes.",
+  "schema_backend_deepgram_requests_sent_by_omlorix_always_opt_out_of_model_improvement_data": "Les requêtes Deepgram envoyées par Omlorix se désengagent toujours de l'utilisation des données d'amélioration du modèle.",
+  "schema_backend_display_name_for_this_deepgram_provider_configuration": "Nom d'affichage pour cette configuration de fournisseur Deepgram.",
+  "schema_backend_e_g_my_deepgram_provider": "Par ex. Mon fournisseur Deepgram",
+  "schema_backend_name_how_this_deepgram_connection_appears_across_the_admin_ui": "Nommez comment cette connexion Deepgram apparaît dans l'interface utilisateur d'administration.",
+  "schema_backend_timeout_applied_to_deepgram_api_requests": "Délai d'expiration appliqué aux requêtes API Deepgram."
 }

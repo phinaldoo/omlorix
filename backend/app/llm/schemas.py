@@ -65,6 +65,10 @@ from app.llm.elevenlabs.schemas import (
     ElevenlabsSettings,
     ELEVENLABS_PROVIDER_SCHEMA,
 )
+from app.llm.deepgram.schemas import (
+    DeepgramSettings,
+    DEEPGRAM_PROVIDER_SCHEMA,
+)
 from app.llm.xai.schemas import (
     XAIListModelsByok,
     XAIModelSettings,
@@ -91,6 +95,7 @@ class ProviderEnum(str, Enum):
     ollama = "ollama"
     lmstudio = "lmstudio"
     elevenlabs = "elevenlabs"
+    deepgram = "deepgram"
     xai = "xai"
 
 
@@ -203,6 +208,7 @@ PROVIDER_SETTINGS_MODELS = {
     ProviderEnum.ollama: OllamaSettings,
     ProviderEnum.lmstudio: LMStudioSettings,
     ProviderEnum.elevenlabs: ElevenlabsSettings,
+    ProviderEnum.deepgram: DeepgramSettings,
     ProviderEnum.xai: XAISettings,
 }
 
@@ -219,6 +225,7 @@ PROVIDER_SETTINGS_SCHEMAS = {
     ProviderEnum.ollama: OLLAMA_PROVIDER_SCHEMA,
     ProviderEnum.lmstudio: LMSTUDIO_PROVIDER_SCHEMA,
     ProviderEnum.elevenlabs: ELEVENLABS_PROVIDER_SCHEMA,
+    ProviderEnum.deepgram: DEEPGRAM_PROVIDER_SCHEMA,
     ProviderEnum.xai: XAI_PROVIDER_SCHEMA,
 }
 

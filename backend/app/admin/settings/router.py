@@ -492,6 +492,12 @@ def admin_list_audio_generation_models(
             )
 
             schema = get_audio_generation_schema_part_1(db, provider_id)
+        elif provider_type == ProviderEnum.deepgram.value:
+            from app.llm.deepgram.text_to_speech import (
+                get_audio_generation_schema_part_1,
+            )
+
+            schema = get_audio_generation_schema_part_1(db, provider_id)
         elif provider_type == ProviderEnum.xai.value:
             from app.llm.xai.text_to_speech import get_audio_generation_schema_part_1
 
@@ -564,6 +570,19 @@ def admin_get_audio_generation_model_settings(
             )
 
             schema = get_audio_generation_schema_part_2(model_name)
+        elif provider_type == ProviderEnum.deepgram.value:
+            from app.llm.deepgram.text_to_speech import (
+                get_audio_generation_schema_part_2,
+            )
+
+            provider_settings = (
+                provider.settings if isinstance(provider.settings, dict) else {}
+            )
+            schema = get_audio_generation_schema_part_2(
+                api_key=provider.api_key,
+                model_name=model_name,
+                timeout=provider_settings.get("timeout"),
+            )
         elif provider_type == ProviderEnum.xai.value:
             from app.llm.xai.text_to_speech import get_audio_generation_schema_part_2
 

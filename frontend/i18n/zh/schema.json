@@ -649,5 +649,15 @@
   "model_settings_system_instruction_placeholder": "留空以使用管理员配置的系统指令。",
   "schema_group_field_settings_memories_memory_model_id_label": "记忆模型",
   "schema_group_field_settings_memories_memory_model_id_description": "用于在每条用户消息后更新成员记忆的专用模型。留空则使用当前聊天模型。",
-  "schema_group_option_settings_memories_memory_model_id_current": "使用当前聊天模型"
+  "schema_group_option_settings_memories_memory_model_id_current": "使用当前聊天模型",
+  "llm.shared.section_choose_a_deepgram.description": "选择 Deepgram 模型。",
+  "llm.shared.section_deepgram_audio.title": "Deepgram 音频",
+  "llm.shared.section_select_the_deepgram.description": "选择要使用的 Deepgram 模型。",
+  "schema_backend_configure_the_deepgram_api_key_used_for_speech_to_text_and_text": "配置用于语音转文本和文本转语音请求的 Deepgram API 密钥。",
+  "schema_backend_deepgram_api_key_used_for_authenticating_requests": "Deepgram API 密钥用于验证请求。",
+  "schema_backend_deepgram_requests_sent_by_omlorix_always_opt_out_of_model_improvement_data": "Omlorix 发送的 Deepgram 请求始终选择不使用模型改进数据。",
+  "schema_backend_display_name_for_this_deepgram_provider_configuration": "此 Deepgram 提供程序配置的显示名称。",
+  "schema_backend_e_g_my_deepgram_provider": "例如 我的 Deepgram 提供商",
+  "schema_backend_name_how_this_deepgram_connection_appears_across_the_admin_ui": "命名此 Deepgram 连接在管理 UI 中的显示方式。",
+  "schema_backend_timeout_applied_to_deepgram_api_requests": "应用于 Deepgram API 请求的超时。"
 }

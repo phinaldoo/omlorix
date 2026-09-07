@@ -649,5 +649,15 @@
   "model_settings_system_instruction_placeholder": "व्यवस्थापक द्वारा कॉन्फ़िगर किए गए सिस्टम निर्देश का उपयोग करने के लिए खाली छोड़ें।",
   "schema_group_field_settings_memories_memory_model_id_label": "मेमोरी मॉडल",
   "schema_group_field_settings_memories_memory_model_id_description": "हर उपयोगकर्ता संदेश के बाद सदस्यों की मेमोरी अपडेट करने वाला समर्पित मॉडल। मौजूदा चैट मॉडल का उपयोग करने के लिए खाली छोड़ें।",
-  "schema_group_option_settings_memories_memory_model_id_current": "मौजूदा चैट मॉडल का उपयोग करें"
+  "schema_group_option_settings_memories_memory_model_id_current": "मौजूदा चैट मॉडल का उपयोग करें",
+  "llm.shared.section_choose_a_deepgram.description": "एक Deepgram मॉडल चुनें।",
+  "llm.shared.section_deepgram_audio.title": "डीपग्राम ऑडियो",
+  "llm.shared.section_select_the_deepgram.description": "उपयोग करने के लिए Deepgram मॉडल चुनें।",
+  "schema_backend_configure_the_deepgram_api_key_used_for_speech_to_text_and_text": "स्पीच-टू-टेक्स्ट और टेक्स्ट-टू-स्पीच अनुरोधों के लिए उपयोग की जाने वाली डीपग्राम एपीआई कुंजी को कॉन्फ़िगर करें।",
+  "schema_backend_deepgram_api_key_used_for_authenticating_requests": "अनुरोधों को प्रमाणित करने के लिए डीपग्राम एपीआई कुंजी का उपयोग किया जाता है।",
+  "schema_backend_deepgram_requests_sent_by_omlorix_always_opt_out_of_model_improvement_data": "Omlorix द्वारा भेजे गए डीपग्राम अनुरोध हमेशा मॉडल सुधार डेटा उपयोग से ऑप्ट आउट करते हैं।",
+  "schema_backend_display_name_for_this_deepgram_provider_configuration": "इस डीपग्राम प्रदाता कॉन्फ़िगरेशन के लिए प्रदर्शन नाम।",
+  "schema_backend_e_g_my_deepgram_provider": "उदा. मेरा डीपग्राम प्रदाता",
+  "schema_backend_name_how_this_deepgram_connection_appears_across_the_admin_ui": "नाम बताएं कि यह डीपग्राम कनेक्शन एडमिन यूआई में कैसे दिखाई देता है।",
+  "schema_backend_timeout_applied_to_deepgram_api_requests": "डीपग्राम एपीआई अनुरोधों पर टाइमआउट लागू किया गया।"
 }

@@ -1026,6 +1026,15 @@ def _build_audio_tool_settings_sections(db: Session) -> list[dict[str, Any]]:
                 api_key=provider.api_key,
                 model_name=model_name,
             )
+        elif provider_type == "deepgram":
+            from app.llm.deepgram.text_to_speech import get_audio_generation_schema_part_2
+
+            provider_settings = provider.settings if isinstance(provider.settings, dict) else {}
+            schema_obj = get_audio_generation_schema_part_2(
+                api_key=provider.api_key,
+                model_name=model_name,
+                timeout=provider_settings.get("timeout"),
+            )
         elif provider_type == "xai":
             from app.llm.xai.text_to_speech import get_audio_generation_schema_part_2
 
@@ -2279,6 +2288,22 @@ def create_provider_route(
             )
             result = refresh_provider_status_snapshot(db, result.id)
             metadata = {"action": "CREATE_ELEVENLABS_PROVIDER", "category": "llm_elevenlabs"}
+        case ProviderEnum.deepgram:
+            status = {
+                "available": "unknown",
+                "model_list": [],
+                "supports_model_list": True,
+            }
+            result = create_llm_provider(
+                db,
+                payload.provider.value,
+                payload.name,
+                payload.api_key,
+                settings_dict,
+                status=status,
+                icon=icon,
+            )
+            metadata = {"action": "CREATE_DEEPGRAM_PROVIDER", "category": "llm_deepgram"}
 
     if result is None:
         raise HTTPException(status_code=400, detail=f"Unsupported provider '{provider}'")
@@ -2367,6 +2392,7 @@ def update_provider_route(
         ProviderEnum.ollama: {"action": "UPDATE_OLLAMA_PROVIDER", "category": "llm_ollama"},
         ProviderEnum.lmstudio: {"action": "UPDATE_LMSTUDIO_PROVIDER", "category": "llm_lmstudio"},
         ProviderEnum.elevenlabs: {"action": "UPDATE_ELEVENLABS_PROVIDER", "category": "llm_elevenlabs"},
+        ProviderEnum.deepgram: {"action": "UPDATE_DEEPGRAM_PROVIDER", "category": "llm_deepgram"},
     }
 
     metadata = PROVIDER_UPDATE_METADATA.get(provider_enum, {"action": "UPDATE_LLM_PROVIDER", "category": "llm_provider"})

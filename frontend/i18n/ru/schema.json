@@ -649,5 +649,15 @@
   "model_settings_system_instruction_placeholder": "Оставьте пустым, чтобы использовать системную инструкцию, настроенную администратором.",
   "schema_group_field_settings_memories_memory_model_id_label": "Модель памяти",
   "schema_group_field_settings_memories_memory_model_id_description": "Отдельная модель, обновляющая память участников после каждого сообщения. Оставьте поле пустым, чтобы использовать модель текущего чата.",
-  "schema_group_option_settings_memories_memory_model_id_current": "Использовать модель текущего чата"
+  "schema_group_option_settings_memories_memory_model_id_current": "Использовать модель текущего чата",
+  "llm.shared.section_choose_a_deepgram.description": "Выберите модель Deepgram.",
+  "llm.shared.section_deepgram_audio.title": "Дипграмм Аудио",
+  "llm.shared.section_select_the_deepgram.description": "Выберите модель Deepgram для использования.",
+  "schema_backend_configure_the_deepgram_api_key_used_for_speech_to_text_and_text": "Настройте ключ API Deepgram, используемый для запросов преобразования речи в текст и текста в речь.",
+  "schema_backend_deepgram_api_key_used_for_authenticating_requests": "API-ключ Deepgram, используемый для аутентификации запросов.",
+  "schema_backend_deepgram_requests_sent_by_omlorix_always_opt_out_of_model_improvement_data": "Запросы Deepgram, отправленные через Omlorix, всегда отказываются от использования данных для улучшения модели.",
+  "schema_backend_display_name_for_this_deepgram_provider_configuration": "Отображаемое имя для этой конфигурации поставщика Deepgram.",
+  "schema_backend_e_g_my_deepgram_provider": "Мой провайдер Deepgram",
+  "schema_backend_name_how_this_deepgram_connection_appears_across_the_admin_ui": "Назовите, как это соединение Deepgram отображается в пользовательском интерфейсе администратора.",
+  "schema_backend_timeout_applied_to_deepgram_api_requests": "Тайм-аут, применяемый к запросам API Deepgram."
 }
