@@ -321,7 +321,7 @@ test('closing Notes commits hidden and inert state even when sidebar restoration
 test('Notes close resists late events and binds dismissal before optional enhancements', () => {
     const notesSource = readFrontendSource(NOTES_PATH, 'utf8');
     const closeBinding = notesSource.indexOf("state.closeBtn?.addEventListener('click', hidePreviewPanel)");
-    const downloadEnhancement = notesSource.indexOf('enhanceDownloadFormatSelect?.(state.downloadFormat');
+    const downloadEnhancement = notesSource.indexOf('bindDownloadFormatMenu?.(state.downloadFormat');
 
     assert.notEqual(closeBinding, -1);
     assert.notEqual(downloadEnhancement, -1);

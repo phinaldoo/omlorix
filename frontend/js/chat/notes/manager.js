@@ -53,8 +53,6 @@ const NotesManager = {
                 enabled: canEnableAfterBusy,
                 disabledClass: 'disabled',
                 manageTabIndex: false,
-                busyLabel: notesT('notes_download_preparing', 'Preparing download...'),
-                idleLabel: notesT('notes_download_aria', 'Download note'),
             });
             return;
         }
@@ -249,11 +247,9 @@ const NotesManager = {
     async init() {
         if (NotesState.initialized) return;
 
-        // Notes uses the same compact split-button as Canvas: the format menu
-        // is custom-rendered below the complete control, while the existing
-        // select remains the source of truth for download behavior.
-        window.chatDownloadControls?.enhanceDownloadFormatSelect?.(NotesDOM.downloadFormat, {
+        window.chatDownloadControls?.bindDownloadFormatMenu?.(NotesDOM.downloadFormat, {
             downloadButton: NotesDOM.downloadBtn,
+            onDownload: () => this.downloadCurrentNote(),
         });
         this.setupEventListeners();
         if (!this._beforeUnloadHandler) {
@@ -269,8 +265,6 @@ const NotesManager = {
     },
 
     setupEventListeners() {
-        NotesDOM.downloadBtn?.addEventListener('click', () => this.downloadCurrentNote());
-
         // Sidebar list item clicks
         const sidebarList = NotesDOM.sidebarList;
         if (sidebarList) {

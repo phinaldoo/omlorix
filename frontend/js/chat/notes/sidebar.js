@@ -34,7 +34,6 @@ const NotesToolSidebar = (() => {
         statusFallback: 'Waiting for notes tool...',
         statusClassName: 'complete',
         isDownloading: false,
-        downloadDefaultHtml: '',
         copyFeedbackTimer: null,
         copyDefaultLabel: '',
         // Navigation can close and immediately reset the sidebar before the
@@ -1053,9 +1052,6 @@ const NotesToolSidebar = (() => {
 
     function setDownloadBusy(isBusy) {
         state.isDownloading = Boolean(isBusy);
-        if (state.downloadBtn && !state.downloadDefaultHtml) {
-            state.downloadDefaultHtml = state.downloadBtn.innerHTML;
-        }
 
         if (window.chatDownloadControls && typeof window.chatDownloadControls.setDownloadBusy === 'function') {
             window.chatDownloadControls.setDownloadBusy({
@@ -1063,11 +1059,8 @@ const NotesToolSidebar = (() => {
                 select: state.downloadFormat,
                 busy: state.isDownloading,
                 enabled: Boolean(state.activeNoteId),
-                defaultHtml: state.downloadDefaultHtml,
                 disabledClass: 'disabled',
                 manageTabIndex: false,
-                busyLabel: notesT('notes_download_preparing', 'Preparing download...'),
-                idleLabel: notesT('notes_download_aria', 'Download note'),
             });
             return;
         }
@@ -1245,6 +1238,7 @@ const NotesToolSidebar = (() => {
     }
 
     function hidePreviewPanel() {
+        window.chatDownloadControls?.closeOpenFormatMenu?.();
         // Do not await: navigation must remain immediate, while the captured
         // snapshot continues saving independently from the sidebar DOM.
         void persistPendingEditsBeforeTeardown();
@@ -2024,8 +2018,8 @@ const NotesToolSidebar = (() => {
                     <button class="om-button notes-tool-preview-copy-btn is-disabled" id="notes-tool-CopyBtn" type="button" aria-label="${NotesRender.escapeHtml(notesT('notes_share_copy_action', 'Copy'))}" title="${NotesRender.escapeHtml(notesT('notes_share_copy_action', 'Copy'))}" aria-disabled="true" disabled>
                         ${Icons.copy || ''}
                     </button>
-                    <div class="notes-tool-preview-download-controls slide-presentation-preview-download-controls">
-                        <select class="notes-tool-preview-download-select slide-presentation-preview-download-select" id="notes-tool-DownloadFormat" aria-label="${NotesRender.escapeHtml(notesT('notes_download_format_aria', 'Download format'))}" disabled>
+                    <div class="notes-tool-preview-download-controls preview-download-controls">
+                        <select style="display:none" aria-hidden="true" tabindex="-1" id="notes-tool-DownloadFormat" aria-label="${NotesRender.escapeHtml(notesT('notes_download_format_aria', 'Download format'))}" disabled>
                             <option value="md" data-i18n="notes_download_md">${NotesRender.escapeHtml(notesT('notes_download_md', 'MD'))}</option>
                             <option value="pdf" data-i18n="notes_download_pdf">${NotesRender.escapeHtml(notesT('notes_download_pdf', 'PDF'))}</option>
                         </select>
@@ -2054,10 +2048,11 @@ const NotesToolSidebar = (() => {
         // must still remain closable.
         state.closeBtn?.addEventListener('click', hidePreviewPanel);
 
-        // Tool-created note previews are appended lazily, so enhance their
+        // Tool-created note previews are appended lazily, so bind their
         // download control only after the sidebar markup exists in the DOM.
-        window.chatDownloadControls?.enhanceDownloadFormatSelect?.(state.downloadFormat, {
+        window.chatDownloadControls?.bindDownloadFormatMenu?.(state.downloadFormat, {
             downloadButton: state.downloadBtn,
+            onDownload: downloadActiveNote,
         });
 
         state.track?.addEventListener('scroll', () => {
@@ -2102,7 +2097,6 @@ const NotesToolSidebar = (() => {
         const resizer = panel.querySelector('#notes-tool-PreviewResizer');
         resizer?.addEventListener('pointerdown', startResize);
         resizer?.addEventListener('keydown', handleResizeKey);
-        state.downloadBtn?.addEventListener('click', downloadActiveNote);
         applyWidthRatio();
         setDownloadEnabled(false);
         return panel;

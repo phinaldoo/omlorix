@@ -400,45 +400,8 @@ body.canvas-markdown-preview-resizing .canvas-pdf-document-viewer {
     border-radius: 50%;
 }
 
-/* Download controls
-   The canvas/markdown preview reuses the shared slide-presentation download
-   controls. When a format select is hidden, drop the outer pill chrome so only
-   the circular download button remains visible. */
-.canvas-markdown-preview-header-right .slide-presentation-preview-download-controls:has(.slide-presentation-preview-download-select[hidden]) {
-    background: transparent;
-    border-color: transparent;
-    padding-left: 0;
-}
-
 .canvas-markdown-share-btn[hidden] {
     display: none !important;
-}
-
-/* Mermaid source files and PDFs expose a single direct download. Strip the
-   shared split-button chrome and keep only the same circular action used
-   elsewhere in the header. */
-.canvas-markdown-preview-header-right .slide-presentation-preview-download-controls.is-direct-download {
-    width: 36px;
-    min-width: 36px;
-    height: 36px;
-    border: 0;
-    border-radius: 9999px;
-    background: transparent;
-}
-
-.canvas-markdown-preview-header-right .is-direct-download > .custom-download-format-trigger,
-.canvas-markdown-preview-header-right .is-direct-download > .custom-download-format-menu {
-    display: none !important;
-}
-
-/* The direct-download wrapper has explicit dimensions above, so mirror the
-   compact Canvas action size when the resizable panel crosses its breakpoint. */
-@container canvas-preview (max-width: 600px) {
-    .canvas-markdown-preview-panel .canvas-markdown-preview-header-right .slide-presentation-preview-download-controls.is-direct-download {
-        width: 34px;
-        min-width: 34px;
-        height: 34px;
-    }
 }
 
 /* A binary PDF has no source text to copy. Generated LaTeX keeps Copy because

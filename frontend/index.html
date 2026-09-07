@@ -1317,8 +1317,8 @@
                                         <button type="button" class="notes-history-btn" id="notesHistoryBtn" aria-label="View history" title="Version History" data-i18n-attr="aria-label:notes_history_aria;title:notes_history_title">
                                             <span data-omlorix-icon="clock"></span>
                                         </button>
-                                        <div class="notes-download-controls slide-presentation-preview-download-controls">
-                                            <select class="notes-download-select slide-presentation-preview-download-select" id="notesDownloadFormat" aria-label="Download format" data-i18n-attr="aria-label:notes_download_format_aria" disabled>
+                                        <div class="notes-download-controls preview-download-controls">
+                                            <select style="display:none" aria-hidden="true" tabindex="-1" id="notesDownloadFormat" aria-label="Download format" data-i18n-attr="aria-label:notes_download_format_aria" disabled>
                                                 <option value="md" data-i18n="notes_download_md">MD</option>
                                                 <option value="pdf" data-i18n="notes_download_pdf">PDF</option>
                                             </select>
@@ -1999,15 +1999,14 @@
 
             <footer class="deep-research-sidebar-footer" id="deepResearchSidebarFooter">
                 <button type="button" class="deep-research-sidebar-cancel" id="deepResearchSidebarCancel" data-i18n="deep_research_cancel_action">Cancel research</button>
-                <div class="deep-research-export-controls slide-presentation-preview-download-controls" id="deepResearchExportControls" hidden>
+                <div class="deep-research-export-controls preview-download-controls" id="deepResearchExportControls" hidden>
                     <label class="sr-only" for="deepResearchExportFormat" data-i18n="deep_research_export_format_label">Export format</label>
-                    <select class="deep-research-export-format slide-presentation-preview-download-select" id="deepResearchExportFormat" aria-label="Export format" data-i18n-attr="aria-label:deep_research_export_format_label" disabled>
+                    <select style="display:none" aria-hidden="true" tabindex="-1" id="deepResearchExportFormat" aria-label="Export format" data-i18n-attr="aria-label:deep_research_export_format_label" disabled>
                         <option value="pdf" data-i18n="deep_research_export_pdf">PDF</option>
                         <option value="md" data-i18n="deep_research_export_markdown">Markdown</option>
                     </select>
                     <button type="button" class="om-button deep-research-export-button disabled" id="deepResearchExportButton" aria-label="Export report" title="Export report" data-i18n-attr="aria-label:deep_research_export_aria;title:deep_research_export_aria" aria-disabled="true" disabled>
-                        <span class="deep-research-export-icon" data-deep-research-icon="download" aria-hidden="true"></span>
-                        <span class="sr-only deep-research-export-label" data-i18n="deep_research_export_action">Export</span>
+                        <span class="deep-research-export-icon" data-deep-research-icon="download" aria-hidden="true"><span data-omlorix-icon="download" aria-hidden="true"></span></span>
                     </button>
                 </div>
             </footer>
@@ -3394,8 +3393,8 @@
                 </div>
             </div>
             <div class="latex-pdf-preview-actions">
-                <div class="latex-pdf-preview-download-controls">
-                    <button class="latex-pdf-preview-icon-btn disabled" id="latex-pdf-PreviewDownload" type="button" aria-label="Download" title="Download" data-i18n-attr="aria-label:files_preview_download;title:files_preview_download" aria-disabled="true" tabindex="-1" disabled>
+                <div>
+                    <button class="om-button disabled" id="latex-pdf-PreviewDownload" type="button" aria-label="Download" title="Download" data-i18n-attr="aria-label:files_preview_download;title:files_preview_download" aria-disabled="true" tabindex="-1" disabled>
                         <span data-omlorix-icon="download" width="18" height="18"></span>
                     </button>
                 </div>

@@ -28,24 +28,12 @@
     const previewSaveBtn = document.getElementById('canvas-markdown-SaveBtn');
     const previewRevertBtn = document.getElementById('canvas-markdown-RevertBtn');
     const previewDownloadFormat = document.getElementById('canvas-markdown-DownloadFormat');
-    const previewDownloadControls = previewDownloadFormat?.closest('.slide-presentation-preview-download-controls');
-    let previewDownloadDefaultHtml = '';
     const markdownEditorControls = document.getElementById('canvas-markdown-EditorControls');
     const markdownEditorMarkdownTab = document.getElementById('canvas-markdown-MarkdownTab');
     const markdownEditorEditorTab = document.getElementById('canvas-markdown-EditorTab');
     const { escapeHtml, updateStatusClass } = canvasWidgetModules.status.create({ previewStatus });
 
-    // Replace the browser-native format popup with the shared split-button
-    // menu while retaining the select as the download handler's source of
-    // truth. This also keeps dynamic Markdown/LaTeX option changes simple.
-    window.chatDownloadControls?.enhanceDownloadFormatSelect?.(previewDownloadFormat, {
-        downloadButton: previewDownload,
-    });
-
-    // Enable/disable the preview download button using the shared
-    // chatDownloadControls helper. The button is an <a> styled with the shared
-    // slide-presentation download classes, so it is toggled via the `disabled`
-    // class while keeping aria-disabled and tabindex in sync for accessibility.
+    // Keep disabled, busy and accessible button state shared across previews.
     function setPreviewDownloadEnabled(enabled) {
         if (!previewDownload) return;
         if (window.chatDownloadControls?.setDownloadControlsEnabled) {
@@ -65,20 +53,14 @@
 
     function setPreviewDownloadBusy(isBusy, enabled = true) {
         if (!previewDownload) return;
-        if (!previewDownloadDefaultHtml) {
-            previewDownloadDefaultHtml = previewDownload.innerHTML;
-        }
         if (window.chatDownloadControls?.setDownloadBusy) {
             window.chatDownloadControls.setDownloadBusy({
                 button: previewDownload,
                 select: previewDownloadFormat,
                 busy: Boolean(isBusy),
                 enabled: Boolean(enabled),
-                defaultHtml: previewDownloadDefaultHtml,
                 disabledClass: 'disabled',
                 manageTabIndex: true,
-                busyLabel: t('canvas_download_preparing', 'Preparing download...'),
-                idleLabel: t('files_preview_download', 'Download'),
             });
             return;
         }
@@ -98,10 +80,6 @@
         const usesDirectDownload = normalizedType === 'mermaid'
             || normalizedType === 'pdf';
 
-        // Mark single-format controls as direct actions so the shared
-        // split-button enhancer cannot leave a trigger or divider in the
-        // header.
-        previewDownloadControls?.classList.toggle('is-direct-download', usesDirectDownload);
         if (usesDirectDownload) {
             window.chatDownloadControls?.closeOpenFormatMenu?.();
         }
@@ -856,6 +834,7 @@
     }
 
     function setPanelVisible(visible, { automatic = false } = {}) {
+        if (!visible) window.chatDownloadControls?.closeOpenFormatMenu?.();
         if (visible) {
             window.ChatWorkspace.show('canvas', { automatic });
         } else if (window.ChatWorkspace.isSelected('canvas')) {

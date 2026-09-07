@@ -63,22 +63,9 @@ body.notes-tool-preview-resizing .notes-tool-preview-panel {
     max-width: 100%;
 }
 
-.notes-tool-preview-download-controls {
-    flex: 0 0 auto;
-}
-
-.notes-tool-preview-download-btn svg {
-    width: 18px;
-    height: 18px;
-}
-
 .notes-tool-preview-copy-btn svg {
     width: 18px;
     height: 18px;
-}
-
-.notes-tool-preview-download-btn.is-busy {
-    cursor: wait;
 }
 
 .notes-tool-result-widget .canvas-markdown-result-icon svg,
@@ -1780,19 +1767,6 @@ body.notes-tool-preview-resizing .notes-tool-preview-panel {
     flex: 0 1 auto;
     min-width: 0;
     margin-left: auto;
-}
-
-.notes-download-controls {
-    flex: 0 0 auto;
-}
-
-.notes-download-btn svg {
-    width: 18px;
-    height: 18px;
-}
-
-.notes-download-btn.is-busy {
-    cursor: wait;
 }
 
 .notes-history-btn {

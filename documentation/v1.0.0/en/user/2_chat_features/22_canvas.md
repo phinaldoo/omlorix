@@ -10,7 +10,7 @@ Choose a model that lists **Canvas** and ask for the format, filename, audience,
 
 Edit the content directly or ask for a focused revision. Identify the file, exact section, and what must remain unchanged. For Markdown, switch between **Editor** and **Markdown**, and use formatting, tables, links, images, Undo, Redo, or History as needed. Wait for **Saved** before closing or referring to the latest version.
 
-Generated Canvas files are stored in Workspace Files. Available previews and downloads depend on the format: Markdown can download as **MD** or **PDF**, HTML as **HTML** or **PNG image**, spreadsheets as CSV, TSV, or Excel, and LaTeX as **PDF** or **TeX source**.
+Generated Canvas files are stored in Workspace Files. Click the preview’s icon-only **Download** button and choose a format from its menu. Files with a single download format download directly. Available previews and downloads depend on the format: Markdown can download as **MD** or **PDF**, HTML as **HTML** or **PNG image**, spreadsheets as CSV, TSV, or Excel, and LaTeX as **PDF** or **TeX source**.
 
 ## Edit spreadsheets and LaTeX
 

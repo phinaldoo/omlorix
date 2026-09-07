@@ -82,13 +82,10 @@ test('deep research widget is loaded and consumes the normal chat stream', () =>
     assert.match(indexSource, /class="deep-research-query-disclosure"/);
     assert.match(indexSource, /class="deep-research-query-chevron" data-deep-research-icon="chevron"/);
     assert.match(indexSource, /id="deepResearchExportFormat"[\s\S]*value="pdf"[\s\S]*value="md"/);
-    assert.match(indexSource, /slide-presentation-preview-download-controls[\s\S]*id="deepResearchExportControls"/);
-    assert.match(indexSource, /slide-presentation-preview-download-select[\s\S]*id="deepResearchExportFormat"/);
-    assert.match(indexSource, /om-button deep-research-export-button[\s\S]*deep_research_export_action/);
+    assert.match(indexSource, /preview-download-controls[\s\S]*id="deepResearchExportControls"/);
+    assert.match(indexSource, /style="display:none"[^>]*id="deepResearchExportFormat"/);
+    assert.match(indexSource, /om-button deep-research-export-button[\s\S]*deep_research_export_aria/);
     assert.match(widgetStyles, /\.deep-research-query-disclosure\[open\] \.deep-research-query-chevron svg/);
-    assert.match(widgetStyles, /\.deep-research-export-controls/);
-    assert.match(widgetStyles, /\.deep-research-export-button\.disabled/);
-    assert.match(widgetStyles, /\.deep-research-export-button \.deep-research-export-icon\s*\{[\s\S]*display: inline-flex;/);
     assert.doesNotMatch(widgetStyles, /\.deep-research-query-disclosure summary::after/);
     assert.doesNotMatch(indexSource, /id="deepResearchSteps"/);
     assert.doesNotMatch(indexSource, /deepResearchModelStreamHeading/);

@@ -14,7 +14,7 @@ Notes reference Workspace files rather than copying them into the note. Download
 
 ## Download and history
 
-Download a note as **MD** or **PDF**. Referenced files are not bundled automatically.
+Click the icon-only **Download note** button and choose **MD** or **PDF** from the menu. The note preview in chat uses the same control. Referenced files are not bundled automatically.
 
 **Version History** shows older changes and lets you compare **Changes** or **Preview** before **Restore**. Restoring a version replaces the current content and preserves the replaced content as another history entry. A Live read-only subscriber cannot open the owner's Version History.
 

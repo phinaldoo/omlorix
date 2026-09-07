@@ -123,7 +123,6 @@ test('single-format canvas types use a direct button while LaTeX exposes its for
 
     assert.match(source, /const usesDirectDownload = normalizedType === 'mermaid'[\s\S]*\|\| normalizedType === 'pdf';/);
     assert.doesNotMatch(source, /usesDirectDownload[\s\S]{0,160}normalizedType === 'latex'/);
-    assert.match(source, /previewDownloadControls\?\.classList\.toggle\('is-direct-download', usesDirectDownload\)/);
     assert.match(source, /state\.previewVisible\s*&&\s*\(state\.sharingAllowedByGroup \|\| hasExistingShareLinks\)/);
     assert.match(source, /previewPanel\.setAttribute\('data-content-type', contentType\);[\s\S]*updateShareButtonState\(\)/);
     assert.ok(renderingFactoryCall);
@@ -131,7 +130,6 @@ test('single-format canvas types use a direct button while LaTeX exposes its for
         assert.match(renderingSource, new RegExp(`\\b${dependency}\\b`));
         assert.match(renderingFactoryCall[1], new RegExp(`\\b${dependency}\\b`));
     });
-    assert.match(css, /\.canvas-markdown-preview-header-right \.is-direct-download > \.custom-download-format-trigger/);
     assert.doesNotMatch(css, /\[data-content-type="pdf"\] \.canvas-markdown-share-btn/);
 });
 
@@ -352,7 +350,6 @@ test('narrow canvas and notes previews collapse view tabs to accessible icon but
     assert.match(canvasCss, /@container canvas-preview \(max-width: 600px\)\s*\{[\s\S]*\.canvas-markdown-editor-view-btn-label\s*\{\s*display: none;/);
     assert.match(canvasCss, /@container canvas-preview \(max-width: 600px\)[\s\S]*\.canvas-markdown-editor-view-btn\s*\{[^}]*width: 30px;[^}]*height: 30px;[^}]*padding: 0;/);
     assert.doesNotMatch(canvasCss, /\.om-button/);
-    assert.match(canvasCss, /@container canvas-preview \(max-width: 600px\)[\s\S]*\.slide-presentation-preview-download-controls\.is-direct-download\s*\{[^}]*width: 34px;/);
     assert.match(canvasSource, /id="canvas-markdown-MarkdownTab"[^>]*aria-label="Markdown"[^>]*data-i18n-attr="aria-label:markdown_editor_tab_markdown;title:markdown_editor_tab_markdown"/);
     assert.match(canvasSource, /id="canvas-markdown-EditorTab"[^>]*aria-label="Editor"[^>]*data-i18n-attr="aria-label:markdown_editor_tab_editor;title:markdown_editor_tab_editor"/);
     assert.match(canvasSource, /class="canvas-html-view-toggle canvas-markdown-editor-view-toggle"[^>]*role="tablist"[^>]*canvas_view_mode_label/);

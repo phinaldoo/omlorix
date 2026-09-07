@@ -1,13 +1,10 @@
 (function () {
     'use strict';
 
-    // Custom format controls are deliberately built on top of the existing
-    // select elements. Keeping the select as the source of truth lets all
-    // download handlers continue reading `.value` while the browser-native UI
-    // is replaced by a consistent, fully styled and keyboard-friendly menu.
-    const customFormatControls = new WeakMap();
+    // Hidden selects retain each preview's format options and state. The only
+    // visible control is the shared icon button and transient dropdown menu.
+    const formatMenus = new WeakMap();
     let openFormatControl = null;
-    let outsideListenersBound = false;
 
     function sanitizeDownloadFilename(filename, fallback = 'download') {
         const normalized = String(filename || '').trim().slice(0, 180);
@@ -40,7 +37,7 @@
         return value || fallback;
     }
 
-    /** Close the currently open custom format menu, if there is one. */
+    /** Close the currently open download format menu, if there is one. */
     function closeOpenFormatMenu({ restoreFocus = false } = {}) {
         if (!openFormatControl) return;
         const control = openFormatControl;
@@ -48,240 +45,78 @@
         control.close({ restoreFocus });
     }
 
-    /**
-     * Bind the one set of document-level dismissal listeners shared by every
-     * custom format control. Pointer dismissal uses capture so clicks elsewhere
-     * close the menu even when another component stops bubbling.
-     */
-    function bindOutsideFormatMenuListeners() {
-        if (outsideListenersBound) return;
-        outsideListenersBound = true;
-
-        document.addEventListener('pointerdown', (event) => {
-            if (!openFormatControl || openFormatControl.wrapper.contains(event.target)) return;
-            closeOpenFormatMenu();
-        }, true);
-
-        window.addEventListener('blur', () => closeOpenFormatMenu());
-    }
-
-    /**
-     * Upgrade a native download-format select into an accessible custom menu.
-     * The returned controller exposes `sync()` for callers that change select
-     * options, disabled state, translations, or visibility programmatically.
-     */
-    function enhanceDownloadFormatSelect(selectEl, options = {}) {
-        if (!selectEl) return null;
-        const existing = customFormatControls.get(selectEl);
-        if (existing) {
-            existing.sync();
-            return existing;
-        }
-
-        const wrapper = options.wrapper || selectEl.closest('.slide-presentation-preview-download-controls');
-        const downloadButton = options.downloadButton
-            || wrapper?.querySelector('.om-button, .slide-presentation-preview-download-btn');
-        if (!wrapper || !downloadButton) return null;
-
-        const trigger = document.createElement('button');
-        const label = document.createElement('span');
-        const chevron = document.createElement('span');
-        const menu = document.createElement('div');
-        const baseId = selectEl.id || `download-format-${Math.random().toString(36).slice(2)}`;
-
-        trigger.type = 'button';
-        trigger.className = 'custom-download-format-trigger';
-        trigger.id = `${baseId}-trigger`;
-        trigger.setAttribute('aria-haspopup', 'listbox');
-        trigger.setAttribute('aria-expanded', 'false');
-        trigger.setAttribute('aria-controls', `${baseId}-menu`);
-
-        label.className = 'custom-download-format-label';
-        chevron.className = 'custom-download-format-chevron';
-        chevron.setAttribute('aria-hidden', 'true');
-        trigger.append(label, chevron);
-
-        menu.className = 'custom-download-format-menu';
-        menu.id = `${baseId}-menu`;
-        menu.setAttribute('role', 'listbox');
-        menu.setAttribute('aria-labelledby', trigger.id);
-        menu.hidden = true;
-
-        wrapper.classList.add('custom-download-control');
-        selectEl.classList.add('custom-download-native-select');
+    /** Bind a single download icon to shared format actions (or direct download). */
+    function bindDownloadFormatMenu(selectEl, { downloadButton, onDownload } = {}) {
+        if (!selectEl || !downloadButton || typeof onDownload !== 'function') return null;
+        const existing = formatMenus.get(selectEl);
+        if (existing) return existing;
+        selectEl.style.display = 'none';
         selectEl.setAttribute('aria-hidden', 'true');
         selectEl.tabIndex = -1;
-        wrapper.insertBefore(trigger, selectEl);
-        wrapper.appendChild(menu);
-
-        /** Return the menu items in their current visual order. */
-        const getMenuItems = () => Array.from(menu.querySelectorAll('.custom-download-format-option'));
-
-        /** Focus an option without allowing the header beneath it to scroll. */
-        const focusItem = (item) => {
-            if (!item) return;
-            item.focus({ preventScroll: true });
-        };
-
+        let menu = null;
+        let downloading = false;
+        const formats = () => Array.from(selectEl.options).filter(option => !option.hidden);
+        const hasMenu = () => !selectEl.hidden && formats().length > 1;
         const controller = {
-            wrapper,
-            select: selectEl,
-            trigger,
-            menu,
-
-            /** Close this menu and optionally return focus to its trigger. */
-            close({ restoreFocus = false } = {}) {
-                menu.hidden = true;
-                wrapper.classList.remove('is-open');
-                trigger.setAttribute('aria-expanded', 'false');
+            close(detail = {}) {
+                menu?.close(detail);
+                menu = null;
                 if (openFormatControl === controller) openFormatControl = null;
-                if (restoreFocus && !trigger.disabled) trigger.focus({ preventScroll: true });
             },
-
-            /** Open below the split button and focus the selected option. */
-            open({ focusSelected = false, focusLast = false } = {}) {
-                if (trigger.disabled || trigger.hidden) return;
-                if (openFormatControl && openFormatControl !== controller) {
-                    openFormatControl.close();
-                }
-                openFormatControl = controller;
-                menu.hidden = false;
-                wrapper.classList.add('is-open');
-                trigger.setAttribute('aria-expanded', 'true');
-                if (focusSelected || focusLast) {
-                    window.requestAnimationFrame(() => {
-                        const items = getMenuItems();
-                        const selected = items.find((item) => item.getAttribute('aria-selected') === 'true');
-                        focusItem(focusLast ? items.at(-1) : (selected || items[0]));
-                    });
-                }
-            },
-
-            /** Rebuild option rows and mirror all state from the source select. */
             sync() {
-                const selectOptions = Array.from(selectEl.options || []);
-                const selectedOption = selectOptions.find((option) => option.value === selectEl.value)
-                    || selectOptions.find((option) => option.selected)
-                    || selectOptions[0];
-                const isUnavailable = Boolean(selectEl.disabled) || selectOptions.length === 0;
-                const accessibleLabel = selectEl.getAttribute('aria-label');
-
-                label.textContent = selectedOption?.textContent?.trim() || '';
-                trigger.disabled = isUnavailable;
-                trigger.setAttribute('aria-disabled', isUnavailable ? 'true' : 'false');
-                if (accessibleLabel) trigger.setAttribute('aria-label', accessibleLabel);
-                else trigger.removeAttribute('aria-label');
-
-                // Canvas can hide the format picker while leaving the adjacent
-                // primary download action available in this shared wrapper.
-                // Only the picker trigger and its menu mirror the select.
-                wrapper.hidden = false;
-                trigger.hidden = Boolean(selectEl.hidden);
-                wrapper.classList.toggle('is-disabled', isUnavailable);
-
-                menu.replaceChildren(...selectOptions.map((option, index) => {
-                    const item = document.createElement('button');
-                    const itemLabel = document.createElement('span');
-                    const check = document.createElement('span');
-                    const selected = option === selectedOption;
-
-                    item.type = 'button';
-                    item.className = 'custom-download-format-option';
-                    item.id = `${baseId}-option-${index}`;
-                    item.dataset.value = option.value;
-                    item.setAttribute('role', 'option');
-                    item.setAttribute('aria-selected', selected ? 'true' : 'false');
-                    item.disabled = Boolean(option.disabled);
-
-                    itemLabel.className = 'custom-download-format-option-label';
-                    itemLabel.textContent = option.textContent?.trim() || option.value;
-                    check.className = 'custom-download-format-check';
-                    check.setAttribute('aria-hidden', 'true');
-                    item.append(itemLabel, check);
-                    return item;
-                }));
-
-                if (isUnavailable || trigger.hidden) controller.close();
+                if (hasMenu()) downloadButton.setAttribute('aria-haspopup', 'menu');
+                else downloadButton.removeAttribute('aria-haspopup');
+                if (!menu?.isOpen()) downloadButton.setAttribute('aria-expanded', 'false');
+                controller.close();
             },
         };
-
-        trigger.addEventListener('click', () => {
-            if (menu.hidden) controller.open();
-            else controller.close();
-        });
-
-        trigger.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape' && !menu.hidden) {
-                event.preventDefault();
-                controller.close({ restoreFocus: true });
-                return;
+        const download = async event => {
+            if (downloading) return;
+            downloading = true;
+            controller.close();
+            try { await onDownload(event); }
+            finally {
+                downloading = false;
+                if (document.activeElement === document.body && downloadButton.isConnected && downloadButton.getClientRects().length) {
+                    downloadButton.focus({ preventScroll: true });
+                }
             }
-            if (event.key === 'Tab' && !menu.hidden) {
-                controller.close();
-                return;
-            }
-            if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+        };
+        downloadButton.addEventListener('click', event => {
             event.preventDefault();
-            controller.open({ focusSelected: event.key === 'ArrowDown', focusLast: event.key === 'ArrowUp' });
+            if (downloading || downloadButton.disabled || downloadButton.getAttribute('aria-disabled') === 'true') return;
+            if (menu?.isOpen()) { controller.close({ restoreFocus: true }); return; }
+            if (!hasMenu()) { void download(event); return; }
+            closeOpenFormatMenu();
+            openFormatControl = controller;
+            menu = window.openDropdownMenu({
+                trigger: downloadButton,
+                ariaLabel: selectEl.getAttribute('aria-label') || downloadButton.getAttribute('aria-label'),
+                items: formats().map(option => ({
+                    value: option.value, label: option.textContent.trim(), disabled: option.disabled || selectEl.disabled,
+                })),
+                onSelect: (item, selectionEvent) => {
+                    selectEl.value = item.value;
+                    selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+                    return download(selectionEvent);
+                },
+            });
         });
-
-        // Activating the dedicated download half should always leave the
-        // compact header in its resting state, even if the menu was open.
-        downloadButton.addEventListener('click', () => controller.close());
-
-        menu.addEventListener('click', (event) => {
-            const item = event.target.closest('.custom-download-format-option');
-            if (!item || item.disabled) return;
-            selectEl.value = item.dataset.value || '';
-            selectEl.dispatchEvent(new Event('change', { bubbles: true }));
-            controller.sync();
-            controller.close({ restoreFocus: true });
-        });
-
-        menu.addEventListener('keydown', (event) => {
-            const items = getMenuItems().filter((item) => !item.disabled);
-            const currentIndex = items.indexOf(document.activeElement);
-            let nextItem = null;
-
-            if (event.key === 'ArrowDown') nextItem = items[(currentIndex + 1) % items.length];
-            if (event.key === 'ArrowUp') nextItem = items[(currentIndex - 1 + items.length) % items.length];
-            if (event.key === 'Home') nextItem = items[0];
-            if (event.key === 'End') nextItem = items.at(-1);
-            if (event.key === 'Escape') {
-                event.preventDefault();
-                controller.close({ restoreFocus: true });
-                return;
-            }
-            if (event.key === 'Tab') {
-                controller.close();
-                return;
-            }
-            if (nextItem) {
-                event.preventDefault();
-                focusItem(nextItem);
-            }
-        });
-
-        // Option labels are translated in place and Canvas replaces its option
-        // set when the artifact type changes, so observe both kinds of updates.
+        // Canvas replaces its options as the file type changes; localization
+        // and availability updates must also invalidate an open menu.
         const observer = new MutationObserver(() => controller.sync());
         observer.observe(selectEl, {
-            attributes: true,
-            attributeFilter: ['disabled', 'hidden', 'aria-label'],
-            childList: true,
-            characterData: true,
-            subtree: true,
+            attributes: true, attributeFilter: ['disabled', 'hidden', 'aria-label'],
+            childList: true, characterData: true, subtree: true,
         });
-
-        customFormatControls.set(selectEl, controller);
-        bindOutsideFormatMenuListeners();
+        formatMenus.set(selectEl, controller);
         controller.sync();
         return controller;
     }
 
-    /** Sync an already enhanced custom format select after direct DOM updates. */
+    /** Refresh the download menu after its format options change. */
     function syncDownloadFormatSelect(selectEl) {
-        customFormatControls.get(selectEl)?.sync();
+        formatMenus.get(selectEl)?.sync();
     }
 
     function getButtonLabelElement(buttonEl, labelSelector = 'span') {
@@ -398,7 +233,7 @@
     window.chatDownloadControls = {
         closeOpenFormatMenu,
         downloadBlobFromUrl,
-        enhanceDownloadFormatSelect,
+        bindDownloadFormatMenu,
         fetchBlob,
         getSelectedDownloadFormat,
         sanitizeDownloadFilename,

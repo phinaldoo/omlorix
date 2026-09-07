@@ -6,11 +6,10 @@ const test = require('node:test');
 
 const CHAT_DIR = __dirname;
 
-test('canvas preview download busy state captures default HTML lazily', () => {
+test('icon-only preview busy controls do not replace icons with text labels', () => {
     const source = readFrontendSource(path.join(CHAT_DIR, 'canvas-widget.js'), 'utf8');
-
-    assert.match(source, /let previewDownloadDefaultHtml = '';/);
-    assert.match(source, /if \(!previewDownloadDefaultHtml\) \{\s*previewDownloadDefaultHtml = previewDownload\.innerHTML;\s*\}/);
+    assert.match(source, /window.chatDownloadControls.setDownloadBusy/);
+    assert.doesNotMatch(source, /previewDownloadDefaultHtml|busyLabel:/);
 });
 
 test('HTML canvas downloads expose runnable source and frontend PNG rendering', () => {
@@ -92,21 +91,14 @@ test('notes tool preview exposes downloads and canvas-style result widget', () =
     assert.match(nativeWidgetsSource, /element\('div', 'canvas-markdown-result-widget notes-tool-result-widget'\)/);
 });
 
-test('canvas and notes use the shared custom download format menu', () => {
-    const controlsSource = readFrontendSource(path.join(CHAT_DIR, 'downloadControls.js'), 'utf8');
-    const canvasSource = readFrontendSource(path.join(CHAT_DIR, 'canvas-widget.js'), 'utf8');
-    const notesSource = readFrontendSource(path.join(CHAT_DIR, 'notes.js'), 'utf8');
-    const controlsCss = readFrontendSource(path.join(CHAT_DIR, '../../css/chat/slide-presentation-widget.css'), 'utf8');
-
-    assert.match(controlsSource, /function enhanceDownloadFormatSelect\(selectEl, options = \{\}\)/);
-    assert.match(controlsSource, /trigger\.setAttribute\('aria-haspopup', 'listbox'\)/);
-    assert.match(controlsSource, /item\.setAttribute\('role', 'option'\)/);
-    assert.match(controlsSource, /event\.key === 'Escape'/);
-    assert.match(controlsSource, /open\([^)]*\) \{\s*if \(trigger\.disabled \|\| trigger\.hidden\) return;/);
-    assert.match(controlsSource, /wrapper\.hidden = false;\s*trigger\.hidden = Boolean\(selectEl\.hidden\);/);
-    assert.match(canvasSource, /enhanceDownloadFormatSelect\?\.\(previewDownloadFormat/);
-    assert.equal((notesSource.match(/enhanceDownloadFormatSelect\?\./g) || []).length, 2);
-    assert.match(controlsCss, /\.custom-download-format-menu[\s\S]*top: calc\(100% \+ 6px\)/);
-    assert.match(controlsCss, /\.custom-download-format-menu[\s\S]*width: calc\(100% \+ 2px\)/);
-    assert.match(controlsCss, /@media \(hover: hover\) and \(pointer: fine\)[\s\S]*\.custom-download-format-option/);
+test('preview format actions reuse the shared dropdown and omit custom split-button styling', () => {
+    const controls = readFrontendSource(path.join(CHAT_DIR, 'downloadControls.js'), 'utf8');
+    const canvas = readFrontendSource(path.join(CHAT_DIR, 'canvas-widget.js'), 'utf8');
+    const notes = readFrontendSource(path.join(CHAT_DIR, 'notes.js'), 'utf8');
+    const css = readFrontendSource(path.join(CHAT_DIR, '../../css/chat/slide-presentation-widget.css'), 'utf8');
+    assert.match(controls, /window.openDropdownMenu/);
+    assert.match(controls, /await onDownload\(event\)/);
+    assert.match(canvas, /bindDownloadFormatMenu\(previewDownloadFormat/);
+    assert.equal((notes.match(/bindDownloadFormatMenu\?\./g) || []).length, 2);
+    assert.doesNotMatch(css, /custom-download|preview-download-controls|preview-download-select/);
 });

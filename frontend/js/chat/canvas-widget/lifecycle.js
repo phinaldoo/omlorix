@@ -571,7 +571,7 @@
         }, { passive: true });
     
         if (previewDownload) {
-            previewDownload.addEventListener('click', async (event) => {
+            const downloadPreview = async (event) => {
                 event.preventDefault();
                 if (previewDownload.classList.contains('disabled')) return;
                 const downloadContentType = String(previewDownload.dataset.contentType || '').trim();
@@ -722,6 +722,10 @@
                 } finally {
                     setPreviewDownloadBusy(false, wasEnabled);
                 }
+            };
+            window.chatDownloadControls.bindDownloadFormatMenu(previewDownloadFormat, {
+                downloadButton: previewDownload,
+                onDownload: downloadPreview,
             });
         }
     

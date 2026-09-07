@@ -30,7 +30,7 @@ test('latex pdf preview is wired into chat streaming and saved transcript restor
     assert.doesNotMatch(index, /id="canvas-markdown-PreviewClose"/);
     assert.doesNotMatch(index, /latex-pdf-PreviewDownloadFormat/);
     assert.doesNotMatch(index, /latex-pdf-PreviewShare/);
-    assert.match(index, /<div class="latex-pdf-preview-download-controls">\s*<button class="latex-pdf-preview-icon-btn disabled" id="latex-pdf-PreviewDownload" type="button"/);
+    assert.match(index, /<button class="om-button disabled" id="latex-pdf-PreviewDownload" type="button"/);
     assert.match(index, /\/js\/chat\/downloadControls\.js/);
     assert.match(index, /\/js\/chat\/latex-pdf-widget\.js/);
     assert.match(widget, /window\.latexPdfWidget/);

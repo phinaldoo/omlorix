@@ -81,14 +81,14 @@
                     <button class="om-button canvas-markdown-share-btn is-disabled" id="canvas-markdown-ShareBtn" type="button" aria-label="Share canvas" title="Share canvas" data-i18n-attr="aria-label:canvas_share_button_enabled;title:canvas_share_button_enabled" hidden>
                     ${getPreviewHeaderIcon('share')}
                 </button>
-                <div class="slide-presentation-preview-download-controls">
-                    <select class="slide-presentation-preview-download-select" id="canvas-markdown-DownloadFormat" aria-label="Download format" data-i18n-attr="aria-label:canvas_download_format_aria" hidden disabled>
+                <div class="preview-download-controls">
+                    <select style="display:none" aria-hidden="true" tabindex="-1" id="canvas-markdown-DownloadFormat" aria-label="Download format" data-i18n-attr="aria-label:canvas_download_format_aria" hidden disabled>
                         <option value="md" data-i18n="canvas_markdown_download_md">MD</option>
                         <option value="pdf" data-i18n="canvas_markdown_download_pdf">PDF</option>
                     </select>
-                    <a class="om-button disabled" id="canvas-markdown-PreviewDownload" href="#" aria-label="Download" title="Download" data-i18n-attr="aria-label:files_preview_download;title:files_preview_download" aria-disabled="true" tabindex="-1">
+                    <button type="button" class="om-button disabled" id="canvas-markdown-PreviewDownload" disabled aria-label="Download" title="Download" data-i18n-attr="aria-label:files_preview_download;title:files_preview_download" aria-disabled="true" tabindex="-1">
                         ${getPreviewHeaderIcon('download')}
-                    </a>
+                    </button>
                 </div>
             </div>
         `;

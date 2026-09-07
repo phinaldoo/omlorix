@@ -34,7 +34,6 @@
     // actions can be interacted with. The download button is only usable when
     // this is true *and* a downloadable file exists (downloadControlsEnabled).
     let previewActionsEnabled = false;
-    const downloadBtnDefaultHtml = downloadBtn ? downloadBtn.innerHTML : '';
 
     function esc(value) {
         return String(value ?? '')
@@ -116,8 +115,6 @@
             enabled,
             disabledClass: 'disabled',
             manageTabIndex: true,
-            defaultHtml: downloadBtnDefaultHtml,
-            label: t('files_preview_download', 'Download'),
         });
     }
 
@@ -138,9 +135,6 @@
             enabled: previewActionsEnabled && downloadControlsEnabled,
             disabledClass: 'disabled',
             manageTabIndex: true,
-            defaultHtml: downloadBtnDefaultHtml,
-            busyLabel: t('slide_presentation_downloading', 'Downloading...'),
-            idleLabel: t('files_preview_download', 'Download'),
         });
     }
 

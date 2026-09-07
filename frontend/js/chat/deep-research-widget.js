@@ -8,7 +8,6 @@
     let previewResizeActive = false;
     let sidebarRenderFrame = 0;
     let preferredExportFormat = 'pdf';
-    let exportButtonDefaultHtml = '';
 
     function t(key, fallback) {
         if (typeof window.getTranslation === 'function') {
@@ -833,19 +832,14 @@
 
             // Deep Research deliberately uses the same state helper as canvas
             // and notes so disabled, busy, ARIA, and select state cannot drift.
-            if (!exportButtonDefaultHtml) exportButtonDefaultHtml = exportButton.innerHTML;
             if (typeof window.chatDownloadControls?.setDownloadBusy === 'function') {
                 window.chatDownloadControls.setDownloadBusy({
                     button: exportButton,
                     select: exportFormat,
                     busy: state.exportBusy,
                     enabled: canExport,
-                    defaultHtml: exportButtonDefaultHtml,
                     disabledClass: 'disabled',
                     manageTabIndex: false,
-                    busyLabel: t('deep_research_export_preparing', 'Preparing…'),
-                    idleLabel: t('deep_research_export_action', 'Export'),
-                    labelSelector: '.deep-research-export-label',
                 });
             } else {
                 const disabled = !canExport || state.exportBusy;
@@ -1757,6 +1751,7 @@
     }
 
     function closeSidebar({ restoreFocus = true } = {}) {
+        window.chatDownloadControls?.closeOpenFormatMenu?.();
         const sidebar = document.getElementById('deepResearchSidebar');
         const wasOpen = Boolean(
             sidebar?.classList.contains('is-open')
@@ -1940,8 +1935,9 @@
                 ? 'md'
                 : 'pdf';
         });
-        document.getElementById('deepResearchExportButton')?.addEventListener('click', () => {
-            exportReport(getState(activeRunId));
+        window.chatDownloadControls?.bindDownloadFormatMenu?.(document.getElementById('deepResearchExportFormat'), {
+            downloadButton: document.getElementById('deepResearchExportButton'),
+            onDownload: () => exportReport(getState(activeRunId)),
         });
         document.addEventListener('keydown', handleSidebarKeyboard);
         const resizer = document.getElementById('deepResearchPreviewResizer');
