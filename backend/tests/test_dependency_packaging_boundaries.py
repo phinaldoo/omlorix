@@ -25,12 +25,13 @@ def test_runtime_lock_excludes_development_tools() -> None:
     """Keep security and test-only packages on the correct side of the image boundary."""
 
     runtime_versions = _pinned_versions(APP_ROOT / "requirements.txt")
+    runtime_pins = _pinned_versions(APP_ROOT / "requirements.in")
     development_versions = _pinned_versions(APP_ROOT / "requirements-dev.txt")
     development_pins = _pinned_versions(APP_ROOT / "requirements-dev.in")
 
     # The production lock must contain the patched cryptography dependency and
     # must never regain tools that are used exclusively by the test suite.
-    assert runtime_versions["cryptography"] == "50.0.0"
+    assert runtime_versions["cryptography"] == runtime_pins["cryptography"]
     assert runtime_versions["webauthn"] == "3.0.0"
     assert "pytest-asyncio" not in runtime_versions
     assert "fakeredis" not in runtime_versions
