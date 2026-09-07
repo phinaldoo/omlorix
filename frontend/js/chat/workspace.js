@@ -731,8 +731,6 @@ const PromptLibraryManager = {
     promptShareAction: 'link',
     promptShareStatus: null,
     promptShareUsers: [],
-    promptShareUsersLoaded: false,
-    promptShareUsersLoading: false,
     promptShareSelectedUserIds: [],
     pendingDeletePrompt: null,
     deleteConfirmDefaultText: '',
@@ -1633,7 +1631,7 @@ const PromptLibraryManager = {
             const selected = this.promptShareSelectedUserIds.includes(id);
             const label = String(user.display_name || user.id || this.t('prompt_share_unknown_user', 'Unknown user'));
             return `
-                <button type="button" class="cs-invite-user-item ${selected ? 'is-selected' : ''}" data-user-id="${this.escapeHtml(id)}">
+                <button type="button" class="cs-invite-user-item ${selected ? 'is-selected' : ''}" data-user-id="${this.escapeHtml(id)}" aria-pressed="${selected}">
                     <span class="cs-invite-avatar">${this.escapeHtml(label.slice(0, 2).toUpperCase())}</span>
                     <span class="cs-invite-user-info">
                         <span class="cs-invite-user-name">${this.escapeHtml(label)}</span>
@@ -1685,49 +1683,32 @@ const PromptLibraryManager = {
     },
 
     filterPromptShareUsers() {
-        const input = document.getElementById('promptShareInviteSearch');
-        const term = String(input?.value || '').trim().toLowerCase();
-        const users = term
-            ? this.promptShareUsers.filter((user) => `${user.display_name || ''}`.toLowerCase().includes(term))
-            : this.promptShareUsers;
-        this.renderPromptShareInviteUsers(users);
+        this.inviteUserPicker?.search(document.getElementById('promptShareInviteSearch')?.value || '');
+        this.inviteUserPicker?.refresh();
         this.updatePromptShareSelectedUsers();
     },
 
     async loadInviteUsers() {
+        this.inviteUserPicker?.dispose();
         const userList = document.getElementById('promptShareInviteUserList');
-        if (!userList || this.promptShareUsersLoading || this.promptShareUsersLoaded) return;
-        this.promptShareUsersLoading = true;
-        userList.innerHTML = `<div class="cs-invite-state">${this.escapeHtml(this.t('prompt_share_loading_users', 'Loading users...'))}</div>`;
-        try {
-            const users = [];
-            const seenUserIds = new Set();
-            let offset = 0;
-            const limit = 100;
-            while (true) {
-                const response = await this.request(`/api/v1/users/public-users?limit=${limit}&offset=${offset}`, { method: 'GET' });
-                if (!response.ok) throw new Error(this.t('prompt_share_load_users_failed', 'Failed to load users.'));
-                const page = await response.json();
-                const pageUsers = Array.isArray(page) ? page : [];
-                pageUsers.forEach((user) => {
-                    const userId = String(user?.id || '').trim();
-                    if (!userId || seenUserIds.has(userId)) return;
-                    seenUserIds.add(userId);
-                    users.push(user);
-                });
-                const hasMore = String(response.headers.get('X-Has-More') || '').toLowerCase() === 'true';
-                if (!hasMore || pageUsers.length === 0) break;
-                offset += pageUsers.length;
-            }
-            this.promptShareUsers = users;
-            this.promptShareUsersLoaded = true;
-            this.filterPromptShareUsers();
-        } catch (error) {
-            userList.innerHTML = `<div class="cs-invite-state">${this.escapeHtml(this.t('prompt_share_load_users_failed', 'Failed to load users.'))}</div>`;
-            if (typeof notifyError === 'function') notifyError(error.message || this.t('prompt_share_load_users_failed', 'Failed to load users.'));
-        } finally {
-            this.promptShareUsersLoading = false;
-        }
+        if (!userList) return;
+        this.inviteUserPicker = window.PublicUsers.createPicker({
+            list: userList,
+            fetchPage: (options) => window.PublicUsers.fetchPage({
+                ...options,
+                request: (url, init) => this.request(url, init),
+                errorMessage: this.t('prompt_share_load_users_failed', 'Failed to load users.'),
+            }),
+            render: (users) => this.renderPromptShareInviteUsers(users),
+            onUsers: (users) => {
+                this.promptShareUsers = users;
+                this.updatePromptShareSelectedUsers();
+            },
+            selectedUsers: () => this.promptShareUsers.filter((user) => this.promptShareSelectedUserIds.includes(String(user.id || ''))),
+            loadingMessage: this.t('prompt_share_loading_users', 'Loading users...'),
+            errorMessage: this.t('prompt_share_load_users_failed', 'Failed to load users.'),
+        });
+        await this.inviteUserPicker.search(document.getElementById('promptShareInviteSearch')?.value || '', { immediate: true });
     },
 
     enterPromptShareCreateMode(shareType = null) {
@@ -1744,6 +1725,8 @@ const PromptLibraryManager = {
     },
 
     renderPromptShareView() {
+        this.inviteUserPicker?.dispose();
+        this.inviteUserPicker = null;
         const linksSection = document.getElementById('promptShareLinksSection');
         const linkList = document.getElementById('promptShareLinkList');
         const emptySection = document.getElementById('promptShareEmptySection');
@@ -1803,11 +1786,7 @@ const PromptLibraryManager = {
         this.setI18nText(secondaryBtn, hasShares ? 'prompt_share_cancel' : 'prompt_share_done', hasShares ? 'Cancel' : 'Done');
         if (inviteField) inviteField.hidden = this.promptShareAction !== 'invite';
         if (this.promptShareAction === 'invite') {
-            if (this.promptShareUsersLoaded) {
-                this.filterPromptShareUsers();
-            } else {
-                void this.loadInviteUsers();
-            }
+            void this.loadInviteUsers();
         }
     },
 
@@ -2149,6 +2128,8 @@ const PromptLibraryManager = {
     },
 
     closeShareModal() {
+        this.inviteUserPicker?.dispose();
+        this.inviteUserPicker = null;
         const overlay = document.getElementById('promptShareOverlay');
         if (overlay) {
             overlay.classList.remove('cs-active');

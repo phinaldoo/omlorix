@@ -279,30 +279,12 @@ const FolderAPI = {
         return response.json();
     },
 
-    async fetchPublicUsers() {
-        const users = [];
-        const seenUserIds = new Set();
-        let offset = 0;
-        const limit = 100;
-        while (true) {
-            const response = await window.authedFetch(`/api/v1/users/public-users?limit=${limit}&offset=${offset}`, {
-                method: 'GET',
-                headers: { 'Content-Type': 'application/json' },
-            });
-            if (!response.ok) throw new Error(fileFoldersT('files_folder_users_error', 'Failed to fetch public users'));
-            const page = await response.json();
-            const pageUsers = Array.isArray(page) ? page : [];
-            pageUsers.forEach((user) => {
-                const userId = String(user?.id || '').trim();
-                if (!userId || seenUserIds.has(userId)) return;
-                seenUserIds.add(userId);
-                users.push(user);
-            });
-            const hasMore = String(response.headers.get('X-Has-More') || '').toLowerCase() === 'true';
-            if (!hasMore || pageUsers.length === 0) break;
-            offset += pageUsers.length;
-        }
-        return users;
+    fetchPublicUsers(options = {}) {
+        return window.PublicUsers.fetchPage({
+            ...options,
+            request: window.authedFetch,
+            errorMessage: fileFoldersT('files_folder_share_load_users_error', 'Failed to load users'),
+        });
     },
 
     async inviteUsersToFolder(folderId, userIds, shareType = 'live') {
@@ -1030,22 +1012,30 @@ const FolderShareModal = {
         linkMode.hidden = !showLinkMode;
         inviteMode.hidden = showLinkMode;
 
+        this.inviteUserPicker?.dispose();
+        this.inviteUserPicker = null;
         if (!showLinkMode) {
-            this.loadPublicUsers();
+            void this.loadPublicUsers();
         }
     },
 
     async loadPublicUsers() {
+        this.inviteUserPicker?.dispose();
         const userList = document.getElementById('folderInviteUserList');
-        userList.innerHTML = `<div class="notes-share-user-loading">${FolderRenderer.escapeHtml(fileFoldersT('files_folder_share_loading_users', 'Loading users...'))}</div>`;
-        try {
-            const users = await FolderAPI.fetchPublicUsers();
-            FileFoldersState.publicUsers = users;
-            this.renderInviteUserList(users);
-        } catch (error) {
-            console.error('Failed to load public users:', error);
-            userList.innerHTML = `<div class="notes-share-user-empty">${FolderRenderer.escapeHtml(fileFoldersT('files_folder_share_load_users_error', 'Failed to load users'))}</div>`;
-        }
+        if (!userList) return;
+        this.inviteUserPicker = window.PublicUsers.createPicker({
+            list: userList,
+            fetchPage: (options) => FolderAPI.fetchPublicUsers(options),
+            render: (users) => this.renderInviteUserList(users),
+            onUsers: (users) => {
+                FileFoldersState.publicUsers = users;
+                this.updateSelectedUsersUI();
+            },
+            selectedUsers: () => FileFoldersState.publicUsers.filter((user) => FileFoldersState.selectedUserIds.includes(user.id)),
+            loadingMessage: fileFoldersT('files_folder_share_loading_users', 'Loading users...'),
+            errorMessage: fileFoldersT('files_folder_share_load_users_error', 'Failed to load users'),
+        });
+        await this.inviteUserPicker.search(document.getElementById('folderInviteUserSearch')?.value || '', { immediate: true });
     },
 
     renderInviteUserList(users) {
@@ -1136,15 +1126,8 @@ const FolderShareModal = {
         }
     },
 
-    filterInviteUsers(searchTerm) {
-        const term = searchTerm.toLowerCase().trim();
-        const filtered = term
-            ? FileFoldersState.publicUsers.filter(u =>
-                u.display_name.toLowerCase().includes(term) ||
-                false
-              )
-            : FileFoldersState.publicUsers;
-        this.renderInviteUserList(filtered);
+    filterInviteUsers(searchTerm = '') {
+        this.inviteUserPicker?.search(searchTerm);
     },
 
     showInviteSelectionError() {
@@ -1337,6 +1320,8 @@ const FolderShareModal = {
     },
 
     hideShareModal() {
+        this.inviteUserPicker?.dispose();
+        this.inviteUserPicker = null;
         const overlay = document.getElementById('folderShareOverlay');
         if (overlay) {
             overlay.classList.remove('active');

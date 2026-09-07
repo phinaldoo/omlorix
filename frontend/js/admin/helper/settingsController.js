@@ -553,24 +553,7 @@ function createSettingsPageController({
         if (!isFieldEffectivelyVisible(dependencyKey, seen)) return false;
         const currentValue = getFieldValue(dependencyKey);
 
-        if (Array.isArray(requiredValue)) {
-            const normalizedRequiredValues = requiredValue.map((value) => String(value));
-            if (Array.isArray(currentValue)) {
-                return normalizedRequiredValues.some((value) => currentValue.includes(value));
-            }
-            return normalizedRequiredValues.includes(String(currentValue));
-        }
-
-        // For array values (multi-select), check if required value is included
-        if (Array.isArray(currentValue)) {
-            return currentValue.includes(String(requiredValue));
-        }
-        // For boolean comparison
-        if (typeof requiredValue === 'boolean') {
-            return currentValue === requiredValue;
-        }
-        // For string/other comparison
-        return String(currentValue) === String(requiredValue);
+        return window.SchemaDependencyUtils.matchesDependencyValue(currentValue, requiredValue);
     };
 
     /**
@@ -844,36 +827,7 @@ function createSettingsPageController({
         };
 
         normalizedSections.forEach((section) => {
-            const sectionEl = document.createElement('section');
-            sectionEl.classList.add('settings-section');
-
-            if (section.title || section.description) {
-                const headerEl = document.createElement('div');
-                headerEl.classList.add('settings-section-header');
-
-                if (section.title) {
-                    const titleEl = document.createElement('h3');
-                    titleEl.classList.add('settings-section-title');
-                    titleEl.textContent = (section.i18n_title && typeof window.getTranslation === 'function')
-                        ? window.getTranslation(section.i18n_title, section.title)
-                        : section.title;
-                    headerEl.appendChild(titleEl);
-                }
-
-                if (section.description) {
-                    const descEl = document.createElement('p');
-                    descEl.classList.add('settings-section-description');
-                    descEl.textContent = (section.i18n_description && typeof window.getTranslation === 'function')
-                        ? window.getTranslation(section.i18n_description, section.description)
-                        : section.description;
-                    headerEl.appendChild(descEl);
-                }
-
-                sectionEl.appendChild(headerEl);
-            }
-
-            const bodyEl = document.createElement('div');
-            bodyEl.classList.add('settings-section-body');
+            const { sectionEl, bodyEl } = createSchemaSection(section);
 
             const fieldKeys = [];
             section.fields.forEach((field) => {
@@ -894,7 +848,6 @@ function createSettingsPageController({
                 fieldKeys.push(field.key);
             });
 
-            sectionEl.appendChild(bodyEl);
             state.sections.push({ element: sectionEl, fieldKeys });
             if (section.group_title) {
                 if (!activeGroup || activeGroup.key !== section.group_title) {

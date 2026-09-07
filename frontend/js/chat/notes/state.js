@@ -90,8 +90,6 @@ const NotesState = {
     currentShareType: 'live',
     currentCanEdit: false,
     publicUsers: [],
-    publicUsersLoaded: false,
-    publicUsersLoading: false,
     selectedUserIds: [],
     markdownEditor: null,
     markdownEditorEditable: null,

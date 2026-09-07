@@ -54,56 +54,8 @@
         }
     };
 
-    const API_BASE = '/api/v1/admin';
-
-    async function apiFetch(path, opts = {}) {
-        const init = { method: opts.method || 'GET', ...opts };
-        if (opts.body && typeof opts.body !== 'string') {
-            init.body = JSON.stringify(opts.body);
-            init.headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
-        }
-        if (abortController) {
-            init.signal = abortController.signal;
-        }
-        const res = await window.authedFetch(API_BASE + path, init);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-    }
-
-    function showStatus(msg, type = 'error') {
-        if (!msg) return;
-        if (type === 'success') return window.notifySuccess?.(msg);
-        if (type === 'warning' || type === 'info') return window.notifyWarning?.(msg);
-        window.notifyError?.(msg);
-    }
-
-    function setSelectMessage(select, message) {
-        select.innerHTML = '';
-        const option = document.createElement('option');
-        option.value = '';
-        option.textContent = message;
-        select.appendChild(option);
-    }
-
-    function readFieldValue(field, control) {
-        if (field.type === 'boolean') {
-            return Boolean(control.checked);
-        }
-        if (field.type === 'number') {
-            return control.value === '' ? null : Number(control.value);
-        }
-        return control.value;
-    }
-
-    function applyFieldValue(field, control, rawValue) {
-        if (field.type === 'boolean') {
-            control.checked = typeof rawValue === 'string'
-                ? ['1', 'true', 'yes', 'on'].includes(rawValue.trim().toLowerCase())
-                : Boolean(rawValue);
-            return;
-        }
-        control.value = rawValue == null ? '' : String(rawValue);
-    }
+    const apiFetch = UI.createApiClient(() => abortController?.signal);
+    const { showStatus, setSelectMessage } = UI;
 
     function renderModelSettingsRows(fields, target, pageState, onValueChange) {
         UI.clearContainer(target);
@@ -121,37 +73,9 @@
                 currentValues.provider_id === pageState.providerId && currentValues.model_name === pageState.modelName
                     ? currentValues[field.key] ?? field.default
                     : field.default;
-            let control;
-            let valueControl;
+            const { control, valueControl } = UI.buildFieldControl(field);
 
-            if (field.type === 'boolean') {
-                const toggle = UI.buildToggle();
-                control = toggle.wrap;
-                valueControl = toggle.input;
-            } else if (field.type === 'select' && field.options) {
-                control = UI.buildSelect();
-                valueControl = control;
-                for (const option of field.options) {
-                    const optionEl = document.createElement('option');
-                    optionEl.value = option.value;
-                    optionEl.textContent = option.label || option.value;
-                    control.appendChild(optionEl);
-                }
-            } else {
-                control = UI.buildInput({
-                    type: field.type === 'number' ? 'number' : 'text',
-                    placeholder: field.placeholder || '',
-                    attributes: field.attributes,
-                });
-                valueControl = control;
-            }
-
-            applyFieldValue(field, valueControl, initialValue);
-            pageState.modelSettings[field.key] = readFieldValue(field, valueControl);
-            valueControl.addEventListener(field.type === 'select' || field.type === 'boolean' ? 'change' : 'input', () => {
-                pageState.modelSettings[field.key] = readFieldValue(field, valueControl);
-                onValueChange?.();
-            });
+            UI.bindFieldValue(field, valueControl, initialValue, pageState.modelSettings, onValueChange);
 
             target.appendChild(UI.buildSettingsRow({
                 title: getSettingLabel(field.key, field.label) || field.key,

@@ -1533,57 +1533,6 @@
         return numericValue === -1 ? '' : value;
     };
 
-    const coerceAttributeLength = (value) => {
-        if (value === null || value === undefined || value === '') {
-            return null;
-        }
-        const numeric = Number(value);
-        return Number.isFinite(numeric) && numeric >= 0 ? numeric : null;
-    };
-
-    const applyFieldAttributesToControl = (control, field) => {
-        if (!control || !field?.attributes) {
-            return;
-        }
-        const { attributes } = field;
-        const hasMin = attributes.min !== undefined && attributes.min !== null && attributes.min !== '';
-        const hasMax = attributes.max !== undefined && attributes.max !== null && attributes.max !== '';
-
-        const tagName = control.tagName?.toLowerCase();
-        const inputType = control.type;
-
-        const isNumberInput = tagName === 'input' && inputType === 'number';
-        if (isNumberInput) {
-            if (hasMin) {
-                control.min = attributes.min;
-            }
-            if (hasMax) {
-                control.max = attributes.max;
-            }
-            if (attributes.step !== undefined && attributes.step !== null && attributes.step !== '') {
-                control.step = attributes.step;
-            }
-            return;
-        }
-
-        const isTextInput = tagName === 'textarea' || (tagName === 'input' && inputType !== 'number');
-        if (!isTextInput) {
-            return;
-        }
-        if (hasMin) {
-            const minLength = coerceAttributeLength(attributes.min);
-            if (minLength !== null) {
-                control.minLength = minLength;
-            }
-        }
-        if (hasMax) {
-            const maxLength = coerceAttributeLength(attributes.max);
-            if (maxLength !== null) {
-                control.maxLength = maxLength;
-            }
-        }
-    };
-
     const createSchemaControl = (field, rawValue, options = {}) => {
         const { mixed = false, bulkMode = false } = options;
         const value = sanitizeUnlimitedFieldValue(field?.key, rawValue);
@@ -1805,25 +1754,7 @@
         if (!dependencyKey) return true;
         if (!editDependencyFieldExists(dependencyKey)) return true;
         const currentValue = getEditFieldValue(dependencyKey);
-        if (window.SchemaDependencyUtils?.matchesDependencyValue) {
-            return window.SchemaDependencyUtils.matchesDependencyValue(currentValue, requiredValue);
-        }
-
-        if (Array.isArray(requiredValue)) {
-            const normalizedRequiredValues = requiredValue.map((value) => String(value));
-            if (Array.isArray(currentValue)) {
-                return normalizedRequiredValues.some((value) => currentValue.includes(value));
-            }
-            return normalizedRequiredValues.includes(String(currentValue));
-        }
-
-        if (Array.isArray(currentValue)) {
-            return currentValue.includes(String(requiredValue));
-        }
-        if (typeof requiredValue === 'boolean') {
-            return currentValue === requiredValue;
-        }
-        return String(currentValue) === String(requiredValue);
+        return window.SchemaDependencyUtils.matchesDependencyValue(currentValue, requiredValue);
     };
 
     /**
@@ -2284,36 +2215,7 @@
         }
         const fragment = document.createDocumentFragment();
         sections.forEach((section) => {
-            const sectionEl = document.createElement('section');
-            sectionEl.classList.add('settings-section');
-
-            if (section.title || section.description) {
-                const headerEl = document.createElement('div');
-                headerEl.classList.add('settings-section-header');
-
-                if (section.title) {
-                    const titleEl = document.createElement('h3');
-                    titleEl.classList.add('settings-section-title');
-                    titleEl.textContent = (section.i18n_title && typeof window.getTranslation === 'function')
-                        ? window.getTranslation(section.i18n_title, section.title)
-                        : section.title;
-                    headerEl.appendChild(titleEl);
-                }
-
-                if (section.description) {
-                    const descEl = document.createElement('p');
-                    descEl.classList.add('settings-section-description');
-                    descEl.textContent = (section.i18n_description && typeof window.getTranslation === 'function')
-                        ? window.getTranslation(section.i18n_description, section.description)
-                        : section.description;
-                    headerEl.appendChild(descEl);
-                }
-
-                sectionEl.appendChild(headerEl);
-            }
-
-            const bodyEl = document.createElement('div');
-            bodyEl.classList.add('settings-section-body');
+            const { sectionEl, bodyEl } = createSchemaSection(section);
 
             section.fields.forEach((field) => {
                 if (!field?.key) {
@@ -2329,7 +2231,6 @@
                 bodyEl.appendChild(row);
             });
 
-            sectionEl.appendChild(bodyEl);
             fragment.appendChild(sectionEl);
         });
         dom.editSchemaFields.appendChild(fragment);

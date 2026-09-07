@@ -4,6 +4,8 @@ Open **Settings > Shared Items** to review **Shared by me** and **Shared with me
 
 This page manages share records that already exist; it does not create a new share. Start from the source item's **Share**, **Share chat**, **Share canvas**, or **Share Folder** action. For a Note, open its menu and select **Share**. Each source can offer links, invitations, or both.
 
+When inviting people to a Note, Todo list, Skill, Folder, or Prompt, search by display name or select **Load more** to see additional people. The picker loads users in pages, and people you already selected remain selected when you search again. Only publicly discoverable users allowed by your sharing policy appear.
+
 ## Manage access
 
 For items shared by you, available actions can open or copy a link, change supported link settings, rotate a project link, or **Unshare** it. Some source pages call this action **Delete** or stop sharing for one mode. Ending a link immediately blocks future use of that link, but it cannot remove copies already made by recipients.

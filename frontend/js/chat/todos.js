@@ -54,8 +54,6 @@ const TodosState = {
     currentShareType: 'live',
     currentCanEdit: false,
     publicUsers: [],
-    publicUsersLoaded: false,
-    publicUsersLoading: false,
     selectedUserIds: [],
     // Accept modal state
     pendingShareId: null,
@@ -504,31 +502,12 @@ const TodosAPI = {
         return response.json();
     },
 
-    async fetchPublicUsers() {
-        const users = [];
-        const seenUserIds = new Set();
-        let offset = 0;
-        const limit = 100;
-        while (true) {
-            const response = await this.request(`/api/v1/users/public-users?limit=${limit}&offset=${offset}`, {
-                method: 'GET',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-            });
-            if (!response.ok) throw new Error(todosT('todos_share_load_users_failed', 'Failed to load users.'));
-            const page = await response.json();
-            const pageUsers = Array.isArray(page) ? page : [];
-            pageUsers.forEach((user) => {
-                const userId = String(user?.id || '').trim();
-                if (!userId || seenUserIds.has(userId)) return;
-                seenUserIds.add(userId);
-                users.push(user);
-            });
-            const hasMore = String(response.headers.get('X-Has-More') || '').toLowerCase() === 'true';
-            if (!hasMore || pageUsers.length === 0) break;
-            offset += pageUsers.length;
-        }
-        return users;
+    fetchPublicUsers(options = {}) {
+        return window.PublicUsers.fetchPage({
+            ...options,
+            request: (url, init) => this.request(url, init),
+            errorMessage: todosT('todos_share_load_users_failed', 'Failed to load users.'),
+        });
     },
 
     async inviteUsersToList(listId, userIds, shareType = 'live') {
@@ -3919,6 +3898,8 @@ const TodosManager = {
     },
 
     renderShareModal(list) {
+        this.inviteUserPicker?.dispose();
+        this.inviteUserPicker = null;
         const overlay = document.getElementById('todosShareOverlay');
         if (!overlay || !list) return;
 
@@ -3994,7 +3975,7 @@ const TodosManager = {
                                 <input type="text" id="todosInviteUserSearch" class="cs-input cs-invite-search-input" placeholder="${TodosRender.escapeHtml(todosT('todos_share_search_users_placeholder', 'Search users...'))}" aria-describedby="todosInviteUserError" aria-invalid="false">
                             </div>
                             <p class="cs-field-error" id="todosInviteUserError" role="alert" hidden></p>
-                            <div class="cs-invite-user-list" id="todosInviteUserList"><div class="cs-invite-state">${TodosRender.escapeHtml(TodosState.publicUsersLoaded ? todosT('todos_share_no_users_available', 'No users available to invite.') : todosT('todos_share_loading_users', 'Loading users...'))}</div></div>
+                            <div class="cs-invite-user-list" id="todosInviteUserList"><div class="cs-invite-state">${TodosRender.escapeHtml(todosT('todos_share_loading_users', 'Loading users...'))}</div></div>
                             <div class="cs-invite-selected" id="todosSelectedUsers" hidden>
                                 <div class="cs-invite-selected-head">${TodosRender.escapeHtml(todosT('todos_share_selected_label', 'Selected'))} (<span id="todosSelectedCount">0</span>)</div>
                                 <div class="cs-invite-selected-list" id="todosSelectedUsersList"></div>
@@ -4052,29 +4033,27 @@ const TodosManager = {
             if (TodosState.selectedUserIds.length) this.clearInviteSelectionError();
         });
         if (TodosState.shareAction === 'invite') {
-            if (TodosState.publicUsersLoaded) {
-                this.filterInviteUsers(inviteSearch?.value || '');
-            } else {
-                void this.loadPublicUsers();
-            }
+            void this.loadPublicUsers();
         }
     },
 
     async loadPublicUsers() {
+        this.inviteUserPicker?.dispose();
         const userList = document.getElementById('todosInviteUserList');
-        if (!userList || TodosState.publicUsersLoading || TodosState.publicUsersLoaded) return;
-        TodosState.publicUsersLoading = true;
-        userList.innerHTML = `<div class="cs-invite-state">${TodosRender.escapeHtml(todosT('todos_share_loading_users', 'Loading users...'))}</div>`;
-        try {
-            TodosState.publicUsers = await TodosAPI.fetchPublicUsers();
-            TodosState.publicUsersLoaded = true;
-            this.filterInviteUsers('');
-        } catch (error) {
-            console.error('Failed to load public users:', error);
-            userList.innerHTML = `<div class="cs-invite-state">${TodosRender.escapeHtml(todosT('todos_share_load_users_failed', 'Failed to load users.'))}</div>`;
-        } finally {
-            TodosState.publicUsersLoading = false;
-        }
+        if (!userList) return;
+        this.inviteUserPicker = window.PublicUsers.createPicker({
+            list: userList,
+            fetchPage: (options) => TodosAPI.fetchPublicUsers(options),
+            render: (users) => this.renderInviteUserList(users),
+            onUsers: (users) => {
+                TodosState.publicUsers = users;
+                this.updateSelectedUsersUI();
+            },
+            selectedUsers: () => TodosState.publicUsers.filter((user) => TodosState.selectedUserIds.includes(user.id)),
+            loadingMessage: todosT('todos_share_loading_users', 'Loading users...'),
+            errorMessage: todosT('todos_share_load_users_failed', 'Failed to load users.'),
+        });
+        await this.inviteUserPicker.search(document.getElementById('todosInviteUserSearch')?.value || '', { immediate: true });
     },
 
     renderInviteUserList(users) {
@@ -4089,7 +4068,7 @@ const TodosManager = {
             const isSelected = TodosState.selectedUserIds.includes(user.id);
             const initials = this.getUserInitials(user);
             return `
-                <button type="button" class="cs-invite-user-item ${isSelected ? 'is-selected' : ''}" data-user-id="${TodosRender.escapeHtml(user.id)}">
+                <button type="button" class="cs-invite-user-item ${isSelected ? 'is-selected' : ''}" data-user-id="${TodosRender.escapeHtml(user.id)}" aria-pressed="${isSelected}">
                     <span class="cs-invite-avatar">${TodosRender.escapeHtml(initials)}</span>
                     <span class="cs-invite-user-info">
                         <span class="cs-invite-user-name">${TodosRender.escapeHtml(user.display_name)}</span>
@@ -4164,6 +4143,7 @@ const TodosManager = {
 
         document.querySelectorAll('#todosInviteUserList .cs-invite-user-item').forEach((item) => {
             item.classList.toggle('is-selected', TodosState.selectedUserIds.includes(item.dataset.userId));
+            item.setAttribute('aria-pressed', String(TodosState.selectedUserIds.includes(item.dataset.userId)));
         });
 
         if (!TodosState.selectedUserIds.length) {
@@ -4192,15 +4172,8 @@ const TodosManager = {
         }
     },
 
-    filterInviteUsers(searchTerm) {
-        const term = String(searchTerm || '').toLowerCase().trim();
-        const filtered = term
-            ? TodosState.publicUsers.filter((user) =>
-                (user.display_name && user.display_name.toLowerCase().includes(term)) ||
-                false)
-            : TodosState.publicUsers;
-        this.renderInviteUserList(filtered);
-        this.updateSelectedUsersUI();
+    filterInviteUsers(searchTerm = '') {
+        this.inviteUserPicker?.search(searchTerm);
     },
 
     async sendInvitations() {
@@ -4330,6 +4303,8 @@ const TodosManager = {
     },
 
     hideShareModal() {
+        this.inviteUserPicker?.dispose();
+        this.inviteUserPicker = null;
         const overlay = document.getElementById('todosShareOverlay');
         if (overlay) {
             overlay.classList.remove('cs-active');
