@@ -70,6 +70,8 @@ const splitScreenInternalState = {
     rightSettingsSchema: null,
     leftThinkingState: null,
     rightThinkingState: null,
+    leftAcpState: {},
+    rightAcpState: {},
     leftLoadToken: 0,
     rightLoadToken: 0,
 };
@@ -235,6 +237,7 @@ function splitScreenInternalHydrateSharedSplitIcons() {
         more: 'ellipsisVertical',
         share: 'share',
         settings: 'settings',
+        terminal: 'terminal',
         temporary: 'clock',
         download: 'download',
         check: 'check',
@@ -830,6 +833,7 @@ function splitScreenInternalClearPanelState(side) {
         splitScreenInternalState.leftSettings = {};
         splitScreenInternalState.leftSettingsSchema = null;
         splitScreenInternalState.leftThinkingState = null;
+        splitScreenInternalResetPanelAcpState('left');
     } else {
         splitScreenInternalState.rightChatId = null;
         splitScreenInternalState.rightProjectId = null;
@@ -846,6 +850,7 @@ function splitScreenInternalClearPanelState(side) {
         splitScreenInternalState.rightSettings = {};
         splitScreenInternalState.rightSettingsSchema = null;
         splitScreenInternalState.rightThinkingState = null;
+        splitScreenInternalResetPanelAcpState('right');
     }
     splitScreenInternalRenderPanelThinkingControl(side);
     splitScreenInternalSetPanelLoadStatus(side, 'idle');
@@ -1082,6 +1087,11 @@ function splitScreenInternalUpdatePanelActionsMenu(side) {
         settingsButton.hidden = !splitScreenInternalShouldShowPanelModelSettings() || !splitScreenInternalGetPanelModelId(side);
     }
 
+    const terminalButton = menu.querySelector('[data-split-panel-action="terminal"]');
+    if (terminalButton) {
+        terminalButton.hidden = !splitScreenInternalPanelSupportsAcpTerminal(side);
+    }
+
     const temporaryButton = menu.querySelector('[data-split-panel-action="temporary"]');
     if (temporaryButton) {
         const temporaryAllowed = splitScreenInternalIsTemporaryChatAllowedForSplit();
@@ -1109,6 +1119,16 @@ async function splitScreenInternalRunPanelAction(side, actionButton) {
         splitScreenInternalSetPanelActionsMenuOpen(side, false);
         splitScreenInternalSwitchSettingsTab(side);
         window.openModelSettingsSidebar?.();
+        return;
+    }
+    if (action === 'terminal') {
+        const model = splitScreenInternalGetPanelModel(side);
+        if (!splitScreenInternalPanelSupportsAcpTerminal(side) || !model) return;
+        splitScreenInternalSetPanelActionsMenuOpen(side, false);
+        window.AcpSshTerminal?.openForModel?.(model, {
+            side,
+            returnFocus: splitScreenInternalGetPanelActionsButton(side),
+        });
         return;
     }
     if (action === 'temporary') {
@@ -1225,6 +1245,70 @@ function splitScreenInternalCloneSettings(settings) {
 
 function splitScreenInternalGetPanelModelId(side) {
     return side === 'left' ? splitScreenInternalState.leftModelId : splitScreenInternalState.rightModelId;
+}
+
+/** Return the complete selected model so capability-gated panel actions stay independent. */
+function splitScreenInternalGetPanelModel(side) {
+    return side === 'left' ? splitScreenInternalState.leftModel : splitScreenInternalState.rightModel;
+}
+
+/** ACP terminals are opt-in per model, even when the provider itself is ACP. */
+function splitScreenInternalPanelSupportsAcpTerminal(side) {
+    const model = splitScreenInternalGetPanelModel(side);
+    const provider = String(model?.provider || model?.provider_type || '').trim().toLowerCase();
+    return provider === 'acp' && model?.acp_terminal_available === true;
+}
+
+function splitScreenInternalGetPanelAcpState(side) {
+    return side === 'left' ? splitScreenInternalState.leftAcpState : splitScreenInternalState.rightAcpState;
+}
+
+function splitScreenInternalResetPanelAcpState(side) {
+    if (side === 'left') {
+        splitScreenInternalState.leftAcpState = {};
+    } else {
+        splitScreenInternalState.rightAcpState = {};
+    }
+}
+
+function splitScreenInternalUpdatePanelAcpState(side, controls = {}) {
+    if (!controls || typeof controls !== 'object') return;
+    const current = splitScreenInternalGetPanelAcpState(side);
+    const next = {
+        ...current,
+        modelId: controls.acp_model_id ?? controls.current_model_id ?? current.modelId,
+        sessionId: controls.acp_session_id ?? current.sessionId,
+        securityLevel: controls.acp_security_level
+            ?? controls.current_security_level
+            ?? current.securityLevel,
+        reasoningEffort: controls.acp_reasoning_effort
+            ?? controls.current_reasoning_effort
+            ?? current.reasoningEffort,
+    };
+    if (side === 'left') {
+        splitScreenInternalState.leftAcpState = next;
+    } else {
+        splitScreenInternalState.rightAcpState = next;
+    }
+}
+
+function splitScreenInternalRestorePanelAcpStateFromMessages(side, messages) {
+    splitScreenInternalResetPanelAcpState(side);
+    if (!Array.isArray(messages)) return;
+    for (let messageIndex = messages.length - 1; messageIndex >= 0; messageIndex -= 1) {
+        let content = messages[messageIndex]?.content;
+        if (typeof content === 'string') {
+            try { content = JSON.parse(content); } catch (_) { content = []; }
+        }
+        if (!Array.isArray(content)) continue;
+        for (let blockIndex = content.length - 1; blockIndex >= 0; blockIndex -= 1) {
+            const metadata = content[blockIndex]?.meta;
+            if (metadata?.acp_session_id) {
+                splitScreenInternalUpdatePanelAcpState(side, metadata);
+                return;
+            }
+        }
+    }
 }
 
 function splitScreenInternalGetPanelSettings(side) {

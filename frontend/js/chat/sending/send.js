@@ -426,6 +426,18 @@ async function sendMessage(message="", attaching=false, attachGenerationId=null,
             payload: {
                 generation_id: generationRequestId,
                 model_id: byokPayload ? '' : modelId,
+                acp_model_id: Object.prototype.hasOwnProperty.call(sendOptions, 'acpModelId')
+                    ? sendOptions.acpModelId
+                    : window.getSelectedAcpModelId?.() || null,
+                acp_session_id: Object.prototype.hasOwnProperty.call(sendOptions, 'acpSessionId')
+                    ? sendOptions.acpSessionId
+                    : window.getSelectedAcpSessionId?.() || null,
+                acp_security_level: Object.prototype.hasOwnProperty.call(sendOptions, 'acpSecurityLevel')
+                    ? sendOptions.acpSecurityLevel
+                    : window.getSelectedAcpSecurityLevel?.() || null,
+                acp_reasoning_effort: Object.prototype.hasOwnProperty.call(sendOptions, 'acpReasoningEffort')
+                    ? sendOptions.acpReasoningEffort
+                    : window.getSelectedAcpReasoningEffort?.() || null,
                 message,
                 chat_id: tempModeActive ? '' : (chatId || ''),
                 image_ids: payloadImageIds,
@@ -1011,6 +1023,11 @@ async function sendMessage(message="", attaching=false, attachGenerationId=null,
                 }
                 appendAssistantError(messageId, detail, last_appended_message_type, obj);
                 appendAssistantDone(messageId, "");
+            } else if (obj.t === "acp_config") {
+                window.applyAcpConfigUpdate?.(obj.d || {});
+            } else if (obj.t === "acp_permission") {
+                clearMediaGenPlaceholderForNonFileEvent(messageId);
+                await window.handleAcpPermissionRequest?.(obj.d || {});
             } else if (obj.t === "w") {
                 const warningFallback = obj.c ?? obj.d ?? obj.message ?? '';
                 const warningMessage = obj.i18n_key

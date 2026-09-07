@@ -135,6 +135,8 @@ class ImportUserPayload(BaseModel):
     prompts: List[Dict[str, Any]] | None = None
     shared_prompt_subscriptions: List[Dict[str, Any]] | None = None
     user_connections: List[Dict[str, Any]] | None = None
+    ssh_connections: List[Dict[str, Any]] | None = None
+    user_acp_profiles: List[Dict[str, Any]] | None = None
     connection_oauth_states: List[Dict[str, Any]] | None = None
     mcp_servers: List[Dict[str, Any]] | None = None
     model_setting_presets: List[Dict[str, Any]] | None = None
@@ -952,6 +954,85 @@ def _bulk_insert_user_connections(
         ],
         overrides={"user_id": user_id},
     )
+
+
+def _bulk_insert_remote_connections(
+    db,
+    user_id: str,
+    connections: List[Dict[str, Any]],
+    profiles: List[Dict[str, Any]],
+) -> None:
+    """Restore secret-free definitions disabled and remap profile dependencies."""
+    from app.remote_connections.models import SshConnection
+    from app.remote_connections.schemas import AcpProfileInput
+    from app.remote_connections.service import save_acp_profile
+
+    source_id_counts: Dict[str, int] = {}
+    for row in connections:
+        if not isinstance(row, dict):
+            continue
+        source_id = str(row.get("id") or "").strip()
+        if source_id:
+            source_id_counts[source_id] = source_id_counts.get(source_id, 0) + 1
+
+    id_map: Dict[str, str] = {}
+    for row in connections:
+        if not isinstance(row, dict):
+            continue
+        source_id = str(row.get("id") or "").strip()
+        if source_id and source_id_counts.get(source_id, 0) > 1:
+            # Ambiguous definitions are skipped entirely so dependencies can
+            # never attach to whichever duplicate happened to appear first.
+            continue
+        imported = SshConnection(
+            user_id=user_id,
+            name=str(row.get("name") or "Imported SSH device")[:120],
+            icon=sanitize_icon_input(row.get("icon"), fallback="server"),
+            host=str(row.get("host") or ""),
+            port=int(row.get("port") or 22),
+            username=str(row.get("username") or ""),
+            host_key=str(row.get("host_key") or ""),
+            config={
+                "workspace_root": str(row.get("workspace_root") or "/"),
+                "connect_timeout_seconds": int(
+                    row.get("connect_timeout_seconds") or 15
+                ),
+            },
+            secrets={},
+            enabled=False,
+            status={
+                "state": "imported",
+                "last_error": "Add a new private key before enabling this connection.",
+            },
+        )
+        db.add(imported)
+        db.flush()
+        if source_id:
+            id_map[source_id] = imported.id
+
+    for row in profiles:
+        if not isinstance(row, dict):
+            continue
+        source_connection_id = str(row.get("ssh_connection_id") or "").strip()
+        if not source_connection_id or source_connection_id not in id_map:
+            continue
+        payload = AcpProfileInput(
+            name=row.get("name") or "Imported ACP agent",
+            icon=sanitize_icon_input(row.get("icon"), fallback="terminal"),
+            ssh_connection_id=id_map[source_connection_id],
+            executable=row.get("executable") or "opencode",
+            arguments=row.get("arguments") or ["acp"],
+            workspace_root=row.get("workspace_root") or "/",
+            cwd=row.get("cwd") or ".",
+            additional_directories=row.get("additional_directories") or [],
+            mode=row.get("mode"),
+            permission_mode=row.get("permission_mode") or "ask",
+            permission_timeout_seconds=row.get("permission_timeout_seconds") or 300,
+            prompt_timeout_seconds=row.get("prompt_timeout_seconds") or 1800,
+            enabled=False,
+        )
+        save_acp_profile(db, user_id, payload, commit=False)
+    db.commit()
 
 
 def _bulk_insert_connection_oauth_states(
@@ -2107,6 +2188,16 @@ def _restore_user_archive_sections(
     ):
         if rows:
             restore_section(section_name, importer, db, user_id, rows)
+
+    if validated.ssh_connections or validated.user_acp_profiles:
+        restore_section(
+            "remote_connections",
+            _bulk_insert_remote_connections,
+            db,
+            user_id,
+            validated.ssh_connections or [],
+            validated.user_acp_profiles or [],
+        )
 
     # Automation selections may reference both restored connection-backed
     # servers and portable personal MCP definitions. Restore those dependencies

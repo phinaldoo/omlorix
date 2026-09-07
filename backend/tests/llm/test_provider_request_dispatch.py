@@ -69,6 +69,46 @@ def test_chat_dispatch_forwards_openai_compatible_provider_type():
     assert calls[0]["chat_id"] == "chat-1"
 
 
+def test_chat_dispatch_routes_acp_provider_without_openai_arguments():
+    """ACP uses its dedicated stream adapter with the shared request context."""
+    calls = []
+
+    def fake_acp_chat(**kwargs):
+        calls.append(kwargs)
+        return iter(['{"t":"d"}\n'])
+
+    model = SimpleNamespace(
+        provider="acp", model_name="default", provider_id="provider-1"
+    )
+    stream = call_provider_chat(
+        ProviderRequest(
+            request_type=REQUEST_TYPE_CHAT,
+            db=object(),
+            provider=model.provider,
+            model=model,
+            chat_history=[{"role": "user", "content": "hello"}],
+            user_id="user-1",
+            extra={
+                "chat_id": "chat-1",
+                "acp_model_id": "gpt-5.6-sol",
+                "acp_session_id": "session-1",
+                "acp_security_level": "agent",
+                "acp_reasoning_effort": "high",
+                "provider_callables": {"acp": fake_acp_chat},
+            },
+        )
+    )
+
+    assert list(stream) == ['{"t":"d"}\n']
+    assert calls[0]["db_model"] is model
+    assert calls[0]["chat_id"] == "chat-1"
+    assert calls[0]["acp_model_id"] == "gpt-5.6-sol"
+    assert calls[0]["acp_session_id"] == "session-1"
+    assert calls[0]["acp_security_level"] == "agent"
+    assert calls[0]["acp_reasoning_effort"] == "high"
+    assert "openai_provider_type" not in calls[0]
+
+
 def test_async_chat_dispatch_uses_native_provider_adapter():
     calls = []
 

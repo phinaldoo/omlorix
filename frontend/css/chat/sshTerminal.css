@@ -1,0 +1,274 @@
+/* Bottom-docked terminal for user-owned, SSH-backed ACP models. */
+.acp-terminal-panel {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    width: 100%;
+    height: 0;
+    min-height: 0;
+    max-height: 70dvh;
+    background: var(--background);
+    border-top: 0 solid transparent;
+    overflow: hidden;
+    position: relative;
+    visibility: hidden;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(24px);
+    transition:
+        height 280ms cubic-bezier(0.32, 0.72, 0, 1),
+        transform 280ms cubic-bezier(0.32, 0.72, 0, 1),
+        opacity 180ms ease,
+        border-top-width 180ms ease,
+        border-top-color 180ms ease,
+        visibility 0s linear 280ms;
+    will-change: height, transform, opacity;
+}
+
+.acp-terminal-panel.is-open {
+    height: var(--acp-terminal-target-height, min(38dvh, 360px));
+    visibility: visible;
+    pointer-events: auto;
+    opacity: 1;
+    transform: translateY(0);
+    border-top-width: 1px;
+    border-top-color: var(--border-color);
+    transition-delay: 0s;
+}
+
+.acp-terminal-panel.is-closing {
+    /*
+     * Keep the last terminal frame visible while height collapses. JavaScript
+     * disposes xterm only after this transition has completed.
+     */
+    visibility: visible;
+    pointer-events: none;
+}
+
+.acp-terminal-panel.is-resizing {
+    /*
+     * Pointer dragging must track the hand directly; open/close and keyboard
+     * height changes retain the smooth transition.
+     */
+    transition: none;
+}
+
+.acp-terminal-panel.is-open .acp-terminal-toolbar,
+.acp-terminal-panel.is-open .acp-terminal-host {
+    animation: acp-terminal-content-reveal 220ms cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+.chat-container.acp-terminal-is-open {
+    overflow: hidden;
+}
+
+.chat-container.acp-terminal-is-open > .chat-container-main {
+    /*
+     * The terminal is a sibling below the main viewport. Allow the main region
+     * to consume exactly the remaining parent height as the terminal animates,
+     * instead of retaining its normal full-viewport minimum height.
+     */
+    flex: 1 1 0;
+    min-height: 0;
+    max-height: none;
+    overflow: hidden;
+}
+
+.chat-container.acp-terminal-is-open > .chat-container-main > .chat-area,
+.chat-container.acp-terminal-is-open > .chat-container-main > .split-screen-wrapper {
+    min-height: 0;
+}
+
+.chat-container.acp-terminal-fullscreen > .chat-container-main {
+    /*
+     * The panel's animated 100% height naturally collapses this flexible
+     * sibling. Removing the remaining border lets the terminal use every pixel
+     * of the chat workspace below the application header.
+     */
+    border-top-width: 0;
+}
+
+.chat-container.acp-terminal-fullscreen > .acp-terminal-panel.is-open {
+    height: 100%;
+    max-height: none;
+}
+
+.chat-container.acp-terminal-fullscreen .acp-terminal-resize-handle {
+    /*
+     * A full-workspace panel cannot be resized. JavaScript also removes this
+     * separator from the tab order until the normal panel size is restored.
+     */
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.acp-terminal-resize-handle {
+    position: absolute;
+    z-index: 2;
+    top: -4px;
+    left: 0;
+    width: 100%;
+    height: 9px;
+    cursor: row-resize;
+    touch-action: none;
+}
+
+.acp-terminal-resize-handle::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: calc(50% - 24px);
+    width: 48px;
+    height: 3px;
+    border-radius: 999px;
+    background: var(--border-color);
+}
+
+.acp-terminal-resize-handle:focus-visible::after {
+    background: var(--primary-color);
+}
+
+.acp-terminal-toolbar {
+    display: flex;
+    align-items: center;
+    min-height: 38px;
+    padding: 0 8px 0 12px;
+    gap: 8px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-color);
+}
+
+.acp-terminal-tab {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 7px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.acp-terminal-tab-icon,
+.acp-terminal-tab-icon svg,
+.acp-terminal-action svg {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 auto;
+}
+
+.acp-terminal-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.acp-terminal-status {
+    min-width: 0;
+    margin-inline-start: auto;
+    color: var(--text-color-secondary);
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.acp-terminal-status.is-connected {
+    color: var(--success-color, var(--primary-color));
+}
+
+.acp-terminal-status.is-error {
+    color: var(--error-color, var(--danger-color));
+}
+
+.acp-terminal-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    color: var(--text-color-secondary);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .acp-terminal-action:hover {
+        color: var(--text-color);
+        background: var(--hover);
+    }
+}
+
+.acp-terminal-host {
+    /*
+     * Keep terminal metrics independent from Omlorix's application font. Courier
+     * New leaves unusually large side bearings on macOS and made normal terminal
+     * output look as though spaces had been inserted between every character.
+     */
+    --acp-terminal-font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    flex: 1;
+    min-height: 0;
+    padding: 8px 10px 6px;
+    background: var(--background);
+    overflow: hidden;
+    /*
+     * xterm 6 scrolls a logical viewport rather than a native overflow box.
+     * Keep vertical touch gestures inside the JavaScript terminal adapter and
+     * stop boundary scroll chaining/rubber-banding from reaching Safari's page.
+     * Horizontal browser gestures and pinch zoom remain available.
+     */
+    touch-action: pan-x pinch-zoom;
+    overscroll-behavior: none;
+}
+
+.acp-terminal-host .xterm,
+.acp-terminal-host .xterm-scrollable-element {
+    /* Cover both xterm's public root and its version-6 virtual scrollbar. */
+    overscroll-behavior: none;
+}
+
+.acp-terminal-host .xterm,
+.acp-terminal-host .xterm * {
+    /*
+     * Omlorix intentionally applies its UI font and border-box sizing globally.
+     * Reset both inside xterm because its character measurement and renderer
+     * must use identical, unmodified typography and content-box dimensions.
+     */
+    box-sizing: content-box;
+    font-family: var(--acp-terminal-font-family);
+    font-kerning: none;
+    font-variant-ligatures: none;
+    font-feature-settings: "liga" 0, "calt" 0;
+    letter-spacing: 0;
+    word-spacing: 0;
+}
+
+.acp-terminal-host .xterm,
+.acp-terminal-host .xterm-viewport {
+    height: 100%;
+}
+
+.acp-terminal-host .xterm-viewport {
+    scrollbar-color: var(--text-color-tertiary) transparent;
+}
+
+@media (max-width: 700px) {
+    .acp-terminal-panel.is-open {
+        height: var(--acp-terminal-target-height, min(44dvh, 360px));
+        max-height: 75dvh;
+    }
+
+    .acp-terminal-toolbar {
+        padding-inline: 8px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .acp-terminal-panel {
+        transition: none;
+        transform: none;
+    }
+
+    .acp-terminal-panel.is-open .acp-terminal-toolbar,
+    .acp-terminal-panel.is-open .acp-terminal-host {
+        animation: none;
+    }
+}

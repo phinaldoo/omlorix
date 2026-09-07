@@ -285,6 +285,19 @@ def call_provider_chat(request: ProviderRequest) -> Generator[str, None, Any]:
 
             call = aistudio_chat
         return call(**kwargs)
+    if provider == "acp":
+        call = overrides.get(provider)
+        if call is None:
+            from app.llm.acp.utils import acp_chat
+
+            call = acp_chat
+        # ACP's agent-side model and reusable session are protocol controls,
+        # not generic generation parameters shared with the other providers.
+        kwargs["acp_model_id"] = request.extra.get("acp_model_id")
+        kwargs["acp_session_id"] = request.extra.get("acp_session_id")
+        kwargs["acp_security_level"] = request.extra.get("acp_security_level")
+        kwargs["acp_reasoning_effort"] = request.extra.get("acp_reasoning_effort")
+        return call(**kwargs)
     if provider == "ollama":
         call = overrides.get(provider)
         if call is None:

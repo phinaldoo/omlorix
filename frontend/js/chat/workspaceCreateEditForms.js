@@ -372,6 +372,287 @@
         ].join('');
     }
 
+    /** Render a two-column remote-connection field group. */
+    function renderRemoteGrid(fields) {
+        return `<div class="remote-connection-form-grid">${fields.join('')}</div>`;
+    }
+
+    /** Render an IconPicker mount with translated guidance. */
+    function renderRemoteIconField({ pickerId, helpKey, helpFallback }) {
+        return renderer.renderField({
+            label: { key: 'workspace_remote_icon_label', fallback: 'Icon' },
+            contentHtml: `
+                ${translated('p', helpKey, helpFallback, { className: 'remote-connection-field-help' })}
+                <div class="remote-connection-icon-picker" id="${pickerId}"></div>`,
+        });
+    }
+
+    /** Render the Enabled setting shared by SSH and ACP editors. */
+    function renderRemoteEnabledToggle({ id, helpKey, helpFallback }) {
+        return renderer.renderToggleCard({
+            className: 'memories-card remote-connection-toggle-card',
+            id,
+            label: { key: 'workspace_connections_enabled', fallback: 'Enabled' },
+            description: { key: helpKey, fallback: helpFallback },
+            inputAttributes: { checked: true },
+        });
+    }
+
+    /** Render an inline destructive confirmation without using browser dialogs. */
+    function renderRemoteDeleteConfirmation({ kind, titleKey, titleFallback, textKey, textFallback }) {
+        return `
+            <div class="remote-connection-inline-confirmation" id="${kind}DeleteConfirmation" hidden>
+                <div>
+                    ${translated('strong', titleKey, titleFallback)}
+                    ${translated('p', textKey, textFallback)}
+                </div>
+                <div class="remote-connection-inline-actions">
+                    ${translated('button', 'common_cancel', 'Cancel', {
+                        className: 'om-button border',
+                        id: `cancelDelete${kind[0].toUpperCase()}${kind.slice(1)}Btn`,
+                        attributes: { type: 'button' },
+                    })}
+                    ${translated('button', 'workspace_connections_remove', 'Remove', {
+                        className: 'om-button border danger',
+                        id: `confirmDelete${kind[0].toUpperCase()}${kind.slice(1)}Btn`,
+                        attributes: { type: 'button' },
+                    })}
+                </div>
+            </div>`;
+    }
+
+    /** Build the SSH connection editor body. */
+    function renderSshEditorBody() {
+        const hostKeyField = renderer.renderControlField({
+            label: { key: 'workspace_ssh_host_key', fallback: 'Pinned host key' },
+            control: {
+                tag: 'textarea',
+                id: 'sshHostKey',
+                className: 'projects-create-textarea connections-secret-textarea',
+                placeholder: 'ssh-ed25519 AAAA...',
+                placeholderKey: 'workspace_ssh_host_key_placeholder',
+                attributes: { required: true, rows: 3 },
+            },
+            afterControlHtml: `
+                <div class="remote-connection-inline-actions">
+                    ${translated('button', 'workspace_ssh_discover_key', 'Discover host keys', {
+                        className: 'om-button border',
+                        id: 'discoverSshKeyBtn',
+                        attributes: { type: 'button' },
+                    })}
+                    ${translated('span', 'workspace_ssh_verify_key_help', 'Compare the fingerprint with the device before saving.', { className: 'remote-connection-field-help' })}
+                </div>
+                <div id="sshDiscoveredKeys" class="connections-tool-list" aria-live="polite"></div>`,
+        });
+        const privateKeyField = renderer.renderControlField({
+            label: { key: 'workspace_ssh_private_key', fallback: 'Private key' },
+            control: {
+                tag: 'textarea',
+                id: 'sshPrivateKey',
+                className: 'projects-create-textarea connections-secret-textarea',
+                attributes: {
+                    rows: 7,
+                    autocomplete: 'off',
+                    spellcheck: 'false',
+                    'aria-describedby': 'sshPrivateKeyHelp sshPrivateKeyStatus',
+                },
+            },
+            afterControlHtml: `
+                <div class="remote-private-key-actions">
+                    ${translated('button', 'workspace_ssh_choose_key_file', 'Choose key file', {
+                        className: 'om-button border',
+                        id: 'chooseSshPrivateKeyBtn',
+                        attributes: { type: 'button' },
+                    })}
+                    <input id="sshPrivateKeyFile" type="file" hidden tabindex="-1">
+                    <span class="remote-private-key-status" id="sshPrivateKeyStatus" role="status" aria-live="polite"></span>
+                </div>
+                ${translated('p', 'workspace_ssh_private_key_help', 'Use a dedicated, unencrypted automation key. It is encrypted before storage.', {
+                    className: 'remote-connection-field-help',
+                    id: 'sshPrivateKeyHelp',
+                })}`,
+        });
+        const actions = renderer.renderActions({
+            className: 'projects-create-buttons',
+            buttons: [
+                { id: 'cancelSshEditorBtn', className: 'om-button border', key: 'common_cancel', fallback: 'Cancel' },
+                { id: 'testSshBtn', className: 'om-button border', key: 'workspace_ssh_test', fallback: 'Test connection' },
+                { id: 'deleteSshBtn', className: 'om-button border danger', key: 'workspace_connections_remove', fallback: 'Remove', hidden: true },
+                { id: 'saveSshBtn', className: 'om-button border submit', key: 'workspace_connections_save_changes', fallback: 'Save changes', type: 'submit' },
+            ],
+        });
+
+        return [
+            renderer.renderDescription({
+                className: 'projects-create-description',
+                titleClass: 'projects-create-description-title',
+                title: { key: 'workspace_ssh_editor_description_title', fallback: 'Connect a device you control' },
+                textClass: 'projects-create-description-text',
+                paragraphs: [{
+                    key: 'workspace_ssh_editor_description_text',
+                    fallback: 'Use a dedicated SSH key and verify the host fingerprint before saving. This connection can power your personal ACP agents and terminal sessions.',
+                }],
+            }),
+            renderRemoteIconField({
+                pickerId: 'sshIconPicker',
+                helpKey: 'workspace_ssh_icon_help',
+                helpFallback: 'Choose the device type that makes this connection easy to recognize.',
+            }),
+            renderer.renderControlField({
+                label: { key: 'workspace_connections_display_name', fallback: 'Display name' },
+                control: { id: 'sshName', attributes: { required: true, maxlength: 120, autocomplete: 'off' } },
+            }),
+            renderRemoteGrid([
+                renderer.renderControlField({
+                    label: { key: 'workspace_ssh_host', fallback: 'Host' },
+                    control: { id: 'sshHost', attributes: { required: true, maxlength: 255, autocomplete: 'off' } },
+                }),
+                renderer.renderControlField({
+                    className: 'projects-create-input-group remote-connection-port-field',
+                    label: { key: 'workspace_ssh_port', fallback: 'Port' },
+                    control: { id: 'sshPort', type: 'number', value: '22', attributes: { min: 1, max: 65535, required: true } },
+                }),
+            ]),
+            renderRemoteGrid([
+                renderer.renderControlField({
+                    label: { key: 'workspace_ssh_username', fallback: 'Username' },
+                    control: { id: 'sshUsername', attributes: { required: true, maxlength: 128, autocomplete: 'username' } },
+                }),
+                renderer.renderControlField({
+                    label: { key: 'workspace_ssh_workspace', fallback: 'Default remote workspace' },
+                    control: {
+                        id: 'sshWorkspace',
+                        placeholder: '/Users/me/projects',
+                        placeholderKey: 'workspace_ssh_workspace_placeholder',
+                        attributes: { required: true, maxlength: 4096 },
+                    },
+                }),
+            ]),
+            hostKeyField,
+            privateKeyField,
+            renderRemoteEnabledToggle({
+                id: 'sshEnabled',
+                helpKey: 'workspace_ssh_enabled_help',
+                helpFallback: 'Allow ACP profiles and terminal sessions to use this device.',
+            }),
+            renderRemoteDeleteConfirmation({
+                kind: 'ssh',
+                titleKey: 'workspace_ssh_delete_title',
+                titleFallback: 'Remove this SSH device?',
+                textKey: 'workspace_ssh_delete_text',
+                textFallback: 'This cannot be undone. Remove dependent ACP agents first.',
+            }),
+            actions,
+            '<p class="remote-connection-test-feedback" id="sshConnectionFeedback" role="status" aria-live="polite" hidden></p>',
+        ].join('');
+    }
+
+    /** Build the ACP profile editor body. */
+    function renderAcpEditorBody() {
+        const permissionOptions = [
+            ['ask', 'acp_permission_mode_ask', 'Ask the user'],
+            ['deny', 'acp_permission_mode_deny', 'Deny automatically'],
+            ['allow', 'acp_permission_mode_allow', 'Allow automatically'],
+        ].map(([value, key, fallback]) => `<option value="${value}" data-i18n="${key}">${fallback}</option>`).join('');
+        const advanced = `
+            <details class="connections-advanced">
+                ${translated('summary', 'workspace_acp_advanced', 'Advanced settings')}
+                <div class="remote-connection-advanced-content">
+                    ${renderer.renderControlField({
+                        label: { key: 'workspace_acp_additional_dirs', fallback: 'Additional workspace directories (one per line)' },
+                        control: { tag: 'textarea', id: 'acpAdditionalDirectories', attributes: { rows: 3 } },
+                    })}
+                    ${renderer.renderControlField({
+                        label: { key: 'workspace_acp_mode', fallback: 'Agent mode' },
+                        control: { id: 'acpMode', attributes: { maxlength: 128 } },
+                    })}
+                    ${renderRemoteGrid([
+                        renderer.renderControlField({
+                            label: { key: 'workspace_acp_permission_timeout', fallback: 'Permission timeout (seconds)' },
+                            control: { id: 'acpPermissionTimeout', type: 'number', value: '300', attributes: { min: 15, max: 3600 } },
+                        }),
+                        renderer.renderControlField({
+                            label: { key: 'workspace_acp_prompt_timeout', fallback: 'Prompt timeout (seconds)' },
+                            control: { id: 'acpPromptTimeout', type: 'number', value: '1800', attributes: { min: 30, max: 7200 } },
+                        }),
+                    ])}
+                </div>
+            </details>`;
+        const actions = renderer.renderActions({
+            className: 'projects-create-buttons',
+            buttons: [
+                { id: 'cancelAcpEditorBtn', className: 'om-button border', key: 'common_cancel', fallback: 'Cancel' },
+                { id: 'testAcpBtn', className: 'om-button border', key: 'workspace_acp_test', fallback: 'Test ACP agent', hidden: true },
+                { id: 'deleteAcpBtn', className: 'om-button border danger', key: 'workspace_connections_remove', fallback: 'Remove', hidden: true },
+                { id: 'saveAcpBtn', className: 'om-button border submit', key: 'workspace_connections_save_changes', fallback: 'Save changes', type: 'submit' },
+            ],
+        });
+
+        return [
+            renderer.renderDescription({
+                className: 'projects-create-description',
+                titleClass: 'projects-create-description-title',
+                title: { key: 'workspace_acp_editor_description_title', fallback: 'Add a personal coding agent' },
+                textClass: 'projects-create-description-text',
+                paragraphs: [{
+                    key: 'workspace_acp_editor_description_text',
+                    fallback: 'Launch an ACP-compatible agent through one of your SSH devices and make it available in the model picker.',
+                }],
+            }),
+            renderRemoteIconField({
+                pickerId: 'acpIconPicker',
+                helpKey: 'workspace_acp_icon_help',
+                helpFallback: 'Choose an agent logo or paste safe custom SVG code.',
+            }),
+            renderer.renderControlField({
+                label: { key: 'workspace_connections_display_name', fallback: 'Display name' },
+                control: { id: 'acpName', attributes: { required: true, maxlength: 120, autocomplete: 'off' } },
+            }),
+            renderer.renderControlField({
+                label: { key: 'workspace_acp_ssh_device', fallback: 'SSH device' },
+                control: { tag: 'select', id: 'acpSsh', contentHtml: '', attributes: { required: true } },
+            }),
+            renderRemoteGrid([
+                renderer.renderControlField({
+                    label: { key: 'workspace_acp_executable', fallback: 'Remote executable' },
+                    control: { id: 'acpExecutable', attributes: { required: true, maxlength: 1024 } },
+                }),
+                renderer.renderControlField({
+                    label: { key: 'workspace_acp_permissions', fallback: 'Permissions' },
+                    control: { tag: 'select', id: 'acpPermission', contentHtml: permissionOptions },
+                }),
+            ]),
+            renderer.renderControlField({
+                label: { key: 'workspace_acp_arguments', fallback: 'Arguments (one per line)' },
+                control: { tag: 'textarea', id: 'acpArguments', attributes: { rows: 3 } },
+            }),
+            renderRemoteGrid([
+                renderer.renderControlField({
+                    label: { key: 'workspace_acp_workspace', fallback: 'Workspace root' },
+                    control: { id: 'acpWorkspace', attributes: { required: true, maxlength: 4096 } },
+                }),
+                renderer.renderControlField({
+                    label: { key: 'workspace_acp_cwd', fallback: 'Working directory' },
+                    control: { id: 'acpCwd', value: '.', attributes: { required: true, maxlength: 4096 } },
+                }),
+            ]),
+            advanced,
+            renderRemoteEnabledToggle({
+                id: 'acpEnabled',
+                helpKey: 'workspace_acp_enabled_help',
+                helpFallback: 'Show this agent in the model picker and allow new sessions.',
+            }),
+            renderRemoteDeleteConfirmation({
+                kind: 'acp',
+                titleKey: 'workspace_acp_delete_title',
+                titleFallback: 'Remove this ACP agent?',
+                textKey: 'workspace_acp_delete_text',
+                textFallback: 'The personal model entry and its saved configuration will be deleted.',
+            }),
+            actions,
+        ].join('');
+    }
+
     renderer.mountPages({
         containerId: 'workspaceSectionSkills',
         pages: [
@@ -419,4 +700,31 @@
         }],
     });
 
+    renderer.mountPages({
+        containerId: 'workspaceSectionConnections',
+        pages: [
+            {
+                id: 'sshConnectionEditorPage',
+                contentClass: 'projects-content remote-connection-editor-page',
+                pageAttributes: { 'aria-hidden': 'true' },
+                titleId: 'sshConnectionEditorTitle',
+                title: { key: 'workspace_ssh_create_title', fallback: 'Add SSH device' },
+                formTag: 'form',
+                formId: 'sshConnectionForm',
+                formClass: 'projects-create-form remote-connection-editor-form',
+                bodyHtml: renderSshEditorBody(),
+            },
+            {
+                id: 'acpConnectionEditorPage',
+                contentClass: 'projects-content remote-connection-editor-page',
+                pageAttributes: { 'aria-hidden': 'true' },
+                titleId: 'acpConnectionEditorTitle',
+                title: { key: 'workspace_acp_create_title', fallback: 'Add ACP agent' },
+                formTag: 'form',
+                formId: 'acpProfileForm',
+                formClass: 'projects-create-form remote-connection-editor-form',
+                bodyHtml: renderAcpEditorBody(),
+            },
+        ],
+    });
 })(window);

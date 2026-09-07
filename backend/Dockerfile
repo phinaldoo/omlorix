@@ -49,6 +49,7 @@ RUN apt-get update \
        ffmpeg \
        fonts-noto-core \
        libstdc++6 \
+       openssh-client \
        postgresql-client-18 \
        tesseract-ocr \
     && apt-get purge -y --auto-remove \

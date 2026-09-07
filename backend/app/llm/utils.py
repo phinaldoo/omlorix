@@ -7,6 +7,9 @@ from datetime import datetime, timezone
 from typing import Any
 
 from app.groups.init import get_user_group_setting_value
+from app.llm.provider_request import (
+    ProviderRequest,
+)
 from app.llm.anthropic.utils import list_anthropic_models
 from app.llm.google_aistudio.utils import list_models_google_aistudio
 from app.llm.ollama.utils import list_models_ollama, list_models_all as list_models_all_ollama
@@ -328,6 +331,29 @@ def _get_group_model_select_connection_catalog(db, user_id: str) -> list[dict[st
     ]
 
 
+def _has_user_acp_terminal(provider: str, meta: dict) -> bool:
+    """Expose terminal capability only for a user-owned SSH-backed ACP model."""
+    return bool(
+        provider == "acp"
+        and meta.get("user_managed") is True
+        and meta.get("acp_profile_id")
+    )
+
+
+def _user_can_use_custom_acp(db, user_id: str) -> bool:
+    """Require both effective group gates for user-owned ACP connections."""
+    allow_ssh = bool(
+        get_user_group_setting_value(
+            user_id, "tools_mcp", "allow_ssh_connections", db
+        )
+    )
+    return allow_ssh and bool(
+        get_user_group_setting_value(
+            user_id, "tools_mcp", "allow_custom_acp_connections", db
+        )
+    )
+
+
 def _list_user_models(
     db,
     user_id: str,
@@ -344,6 +370,7 @@ def _list_user_models(
     are never mixed into the user response based solely on the caller's role.
     """
     user = get_user(db, user_id)
+    allow_custom_acp = _user_can_use_custom_acp(db, user_id)
     group_connection_catalog = _get_group_model_select_connection_catalog(db, user_id)
 
     provider_info_cache: dict[str, dict[str, Any]] = {}
@@ -387,6 +414,18 @@ def _list_user_models(
 
     def _allowed(m) -> bool:
         meta = m.meta if isinstance(getattr(m, "meta", None), dict) else {}
+        provider_type = normalize_provider_value(getattr(m, "provider", None))
+        if provider_type == ProviderEnum.acp.value:
+            # ACP models are valid only when created from a caller-owned SSH
+            # profile. Legacy administrator-created ACP rows remain inert and
+            # must never reappear in a model picker.
+            if meta.get("user_managed") is not True or not meta.get("acp_profile_id"):
+                return False
+            # Personal ACP model records remain stored when access is disabled,
+            # but must disappear from every model consumer until re-enabled.
+            if not allow_custom_acp:
+                return False
+            return str(meta.get("owner_user_id") or "") == str(user_id)
         if meta.get("user_managed") is True:
             return str(meta.get("owner_user_id") or "") == str(user_id)
         if user and is_admin_role(getattr(user, "role", None)):
@@ -471,6 +510,13 @@ def _list_user_models(
             "increased_errors": bool(meta.get("increased_errors", False)),
             "has_fixed_skill": has_fixed_skill,
             "model_kind": "base",
+            # This deliberately reveals only capability, never the backing
+            # profile or SSH connection identifier. The WebSocket endpoint
+            # resolves ownership again from the selected model ID.
+            "acp_terminal_available": bool(
+                allow_custom_acp
+                and _has_user_acp_terminal(normalized_provider, meta)
+            ),
         }
         if include_admin_fields:
             model_payload.update(
@@ -554,6 +600,9 @@ def _list_user_models(
                         or _normalize_model_select_string_list(base_settings.get("skill_ids"))
                         or _normalize_model_select_string_list(base_settings.get("skill_id"))
                     ),
+                    # ACP terminal sessions are tied to base model records, not
+                    # agent wrapper IDs, so agent summaries never advertise it.
+                    "acp_terminal_available": False,
                 }
                 if is_shared:
                     agent_summary["is_shared"] = True
@@ -615,7 +664,11 @@ def list_admin_models(db, user_id: str):
         include_agents=False,
         include_admin_fields=True,
     )
-    return models
+    return [
+        model
+        for model in models
+        if normalize_provider_value(model.get("provider")) != ProviderEnum.acp.value
+    ]
 
 # -------------------
 # Ensure user access to model
@@ -635,7 +688,15 @@ def ensure_user_access_to_model(user_id: str, model_id: str, db) -> bool:
     except HTTPException:
         candidate_model = None
     candidate_meta = candidate_model.meta if candidate_model and isinstance(candidate_model.meta, dict) else {}
-    if candidate_meta.get("user_managed") is True and str(candidate_meta.get("owner_user_id") or "") != str(user_id):
+    if candidate_model and normalize_provider_value(candidate_model.provider) == ProviderEnum.acp.value:
+        if (
+            candidate_meta.get("user_managed") is not True
+            or not candidate_meta.get("acp_profile_id")
+            or str(candidate_meta.get("owner_user_id") or "") != str(user_id)
+            or not _user_can_use_custom_acp(db, user_id)
+        ):
+            raise HTTPException(status_code=404, detail="You do not have access to this model")
+    elif candidate_meta.get("user_managed") is True and str(candidate_meta.get("owner_user_id") or "") != str(user_id):
         raise HTTPException(status_code=404, detail="You do not have access to this model")
 
     # Admins have access to shared administrator-managed models.
@@ -1374,12 +1435,13 @@ def get_provider_schema(db, provider: ProviderEnum, provider_id: str | None = No
 
     return populate_sections_with_values(schema_copy, provider_payload)
 
-from app.llm.google_aistudio.utils import aistudio_create_model, list_models_google_aistudio
-from app.llm.openai.utils import openai_create_model, list_models_openai
-from app.llm.openrouter.utils import create_open_router_model, list_models_openrouter
-from app.llm.ollama.utils import ollama_create_model, list_models_ollama
-from app.llm.lmstudio.utils import lmstudio_create_model, list_models_lmstudio
-from app.llm.anthropic.utils import list_anthropic_models, create_anthropic_model
+from app.llm.openrouter.utils import get_model_providers
+from app.llm.google_aistudio.utils import aistudio_create_model, list_models_google_aistudio, create_aistudio_provider
+from app.llm.openai.utils import create_openai_provider, openai_create_model, list_models_openai
+from app.llm.openrouter.utils import create_open_router_provider, create_open_router_model, list_models_openrouter
+from app.llm.ollama.utils import create_ollama_provider, ollama_create_model, list_models_ollama
+from app.llm.lmstudio.utils import create_lmstudio_provider, lmstudio_create_model, list_models_lmstudio
+from app.llm.anthropic.utils import list_anthropic_models, create_anthropic_model, create_anthropic_provider
 
 
 

@@ -1,6 +1,8 @@
 import logging
+import json
 
 from fastapi import APIRouter, Depends, Query, HTTPException, Request
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc, case, cast, Float, Integer, or_, exists
 from datetime import datetime, timezone, timedelta
@@ -36,8 +38,8 @@ def _admin_llm_query(
 ):
     """Build the administrator statistics query with private models hidden.
 
-    User-managed providers use the shared generation-statistics table, but
-    their names and usage belong to a private per-user configuration and must not
+    User-managed ACP providers use the shared generation-statistics table, but
+    their names and usage belong to a private per-user connection and must not
     appear in global, user, or group administrator dashboards. Destructive
     maintenance operations can opt in so hidden rows are still deletable.
     """

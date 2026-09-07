@@ -939,6 +939,24 @@ def _export_user_connections(user_id: str, db) -> Dict[str, Any]:
     }
 
 
+def _export_user_remote_connections(user_id: str, db) -> Dict[str, Any]:
+    """Export SSH/ACP definitions without reusable private-key material."""
+    from app.remote_connections.models import SshConnection, UserAcpProfile
+    from app.remote_connections.service import serialize_acp_profile
+    from app.remote_connections.ssh import serialize_ssh_connection
+
+    ssh_rows = db.query(SshConnection).filter(SshConnection.user_id == user_id).all()
+    profile_rows = (
+        db.query(UserAcpProfile).filter(UserAcpProfile.user_id == user_id).all()
+    )
+    # Imported targets are intentionally disabled until the owner supplies a
+    # fresh private key; an account archive must never contain SSH credentials.
+    return {
+        "ssh_connections": [serialize_ssh_connection(row) for row in ssh_rows],
+        "user_acp_profiles": [serialize_acp_profile(row) for row in profile_rows],
+    }
+
+
 def _stream_user_connections_json_array(user_id: str, db) -> Iterator[str]:
     from app.connections.models import VALID_CONNECTION_PROVIDERS, UserConnection
 
@@ -956,6 +974,32 @@ def _stream_user_connections_json_array(user_id: str, db) -> Iterator[str]:
         for row in _iter_query_rows(query)
         if getattr(row, "provider", None) in VALID_CONNECTION_PROVIDERS
     )
+
+
+def _stream_ssh_connections_json_array(user_id: str, db) -> Iterator[str]:
+    """Stream secret-free SSH definitions for large account exports."""
+    from app.remote_connections.models import SshConnection
+    from app.remote_connections.ssh import serialize_ssh_connection
+
+    query = (
+        db.query(SshConnection)
+        .filter(SshConnection.user_id == user_id)
+        .order_by(SshConnection.created_at.asc())
+    )
+    yield from _stream_model_query_json_array(query, transform=serialize_ssh_connection)
+
+
+def _stream_user_acp_profiles_json_array(user_id: str, db) -> Iterator[str]:
+    """Stream personal ACP definitions without their generated model rows."""
+    from app.remote_connections.models import UserAcpProfile
+    from app.remote_connections.service import serialize_acp_profile
+
+    query = (
+        db.query(UserAcpProfile)
+        .filter(UserAcpProfile.user_id == user_id)
+        .order_by(UserAcpProfile.created_at.asc())
+    )
+    yield from _stream_model_query_json_array(query, transform=serialize_acp_profile)
 
 
 def _export_user_mcp_servers(user_id: str, db) -> List[Dict[str, Any]]:
@@ -1855,6 +1899,8 @@ def _build_user_data_export_coverage() -> Dict[str, Any]:
         "prompts",
         "shared_prompt_subscriptions",
         "user_connections",
+        "ssh_connections",
+        "user_acp_profiles",
         "mcp_servers",
         "model_setting_presets",
         "usage_stats",
@@ -1866,6 +1912,10 @@ def _build_user_data_export_coverage() -> Dict[str, Any]:
         {
             "section": "social_auth_identities",
             "reason": "Social sign-in bindings are credentials and must be proven again with the provider rather than restored from an archive.",
+        },
+        {
+            "section": "ssh_private_keys",
+            "reason": "SSH private keys are credentials and must be replaced by the owner after import.",
         },
         {
             "section": "connection_oauth_states",

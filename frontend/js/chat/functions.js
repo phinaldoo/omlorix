@@ -139,7 +139,9 @@ function initWorkspaceConnections(policy = {}) {
         : { allow_mcp: policy === true };
     const allowPersonalMcp = normalizedPolicy.allow_mcp === true;
     const allowManagedConnections = normalizedPolicy.allow_workspace_connections === true;
-    const isAllowed = allowManagedConnections || allowPersonalMcp;
+    const allowSsh = normalizedPolicy.allow_ssh_connections === true;
+    const allowCustomAcp = allowSsh && normalizedPolicy.allow_custom_acp_connections === true;
+    const isAllowed = allowManagedConnections || allowPersonalMcp || allowSsh;
     updateWorkspaceFeatureVisibility('connections', isAllowed);
     if (typeof window !== 'undefined') {
         window.enableConnectionsFeature = isAllowed;
@@ -149,6 +151,12 @@ function initWorkspaceConnections(policy = {}) {
         }
         if (typeof window.ConnectionsWorkspace?.setPolicy === 'function') {
             window.ConnectionsWorkspace.setPolicy(allowManagedConnections);
+        }
+        if (typeof window.RemoteConnectionsWorkspace?.setPolicy === 'function') {
+            window.RemoteConnectionsWorkspace.setPolicy({
+                allow_ssh_connections: allowSsh,
+                allow_custom_acp_connections: allowCustomAcp,
+            });
         }
     }
 }

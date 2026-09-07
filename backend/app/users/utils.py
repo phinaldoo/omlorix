@@ -363,6 +363,8 @@ def iter_user_data_export_json(
             True,
         ),
         ("user_connections", _stream_user_connections_json_array(user_id, db), True),
+        ("ssh_connections", _stream_ssh_connections_json_array(user_id, db), True),
+        ("user_acp_profiles", _stream_user_acp_profiles_json_array(user_id, db), True),
         ("mcp_servers", _export_user_mcp_servers(user_id, db), False),
         (
             "model_setting_presets",
@@ -478,6 +480,8 @@ def build_user_data_export_audit_details(
         "usage_stats",
         "user",
         "user_connections",
+        "ssh_connections",
+        "user_acp_profiles",
         "user_id",
     ]
     sections.append("memories")
@@ -2151,6 +2155,14 @@ def user_settings_init(user_id, db):
         allow_self_deletion = False
     allow_byok = get_user_group_setting_value(user_id, "chat", "allow_byok", db)
     allow_mcp = get_user_group_setting_value(user_id, "tools_mcp", "enable_mcp", db)
+    allow_ssh_connections = bool(
+        get_user_group_setting_value(user_id, "tools_mcp", "allow_ssh_connections", db)
+    )
+    allow_custom_acp_connections = allow_ssh_connections and bool(
+        get_user_group_setting_value(
+            user_id, "tools_mcp", "allow_custom_acp_connections", db
+        )
+    )
     enable_projects = get_user_group_setting_value(
         user_id, "projects", "enable_projects", db
     )
@@ -2287,6 +2299,8 @@ def user_settings_init(user_id, db):
         "render_assistant_messages_markdown": render_assistant_messages_markdown,
         "allow_byok": bool(allow_byok),
         "allow_mcp": bool(allow_mcp),
+        "allow_ssh_connections": allow_ssh_connections,
+        "allow_custom_acp_connections": allow_custom_acp_connections,
         "enable_projects": coerce_bool(enable_projects, default=False),
         "enable_automations": coerce_bool(enable_automations, default=False),
         "byok_title_generation_model_id": byok_title_generation_model_id or "",
@@ -2346,6 +2360,7 @@ from app.users.data_export import (
     _export_user_model_setting_presets,
     _export_user_notes,
     _export_user_prompts,
+    _export_user_remote_connections,
     _export_user_skills,
     _export_user_slide_presentations,
     _export_user_todos,
@@ -2406,8 +2421,10 @@ from app.users.data_export import (
     _stream_skill_file_entry_json,
     _stream_slide_presentation_artifacts_json_array,
     _stream_slide_presentation_json,
+    _stream_ssh_connections_json_array,
     _stream_todo_list_export_json,
     _stream_tool_call_stats_export_json,
+    _stream_user_acp_profiles_json_array,
     _stream_user_activity_logs_json,
     _stream_user_agent_assets_json_array,
     _stream_user_chats_json_array,
@@ -2470,6 +2487,7 @@ from app.users.data_import import (
     _bulk_insert_model_setting_presets,
     _bulk_insert_projects,
     _bulk_insert_prompts,
+    _bulk_insert_remote_connections,
     _bulk_insert_shared_agent_subscriptions,
     _bulk_insert_shared_file_folder_subscriptions,
     _bulk_insert_shared_prompt_subscriptions,

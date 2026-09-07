@@ -113,12 +113,15 @@ test('all project-style create and edit surfaces use the shared content shell', 
     const dynamicWorkspaceSurfaceIds = [
         'skillsContentCreate',
         'skillsContentEdit',
+        'sshConnectionEditorPage',
+        'acpConnectionEditorPage',
         'promptLibraryEditorContent',
     ];
 
     for (const id of dynamicWorkspaceSurfaceIds) {
         assert.match(workspaceCreateEditFormsSource, new RegExp(`id: '${id}'`), `${id} must be rendered dynamically`);
     }
+    assert.match(workspaceCreateEditFormsSource, /contentClass: 'projects-content remote-connection-editor-page'/);
     assert.match(
         fs.readFileSync(path.join(__dirname, '..', 'common', 'createEditFormRenderer.js'), 'utf8'),
         /contentClass = 'projects-content'/,

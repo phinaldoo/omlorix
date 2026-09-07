@@ -114,6 +114,8 @@ DEFAULT_GROUP_SETTINGS = {
     },
     "tools_mcp": {
         "enable_mcp": True,
+        "allow_ssh_connections": True,
+        "allow_custom_acp_connections": True,
         "allow_file_storage_connections": True,
         "enabled_connections": [],
     },

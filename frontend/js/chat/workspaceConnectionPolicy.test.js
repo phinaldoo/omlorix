@@ -16,6 +16,7 @@ function loadWorkspacePolicyRuntime() {
         visibility: [],
         managed: [],
         personal: [],
+        remote: [],
     };
     const windowObject = {
         addEventListener() {},
@@ -27,6 +28,11 @@ function loadWorkspacePolicyRuntime() {
         ConnectionsWorkspace: {
             setPolicy(allowed) {
                 calls.managed.push(allowed);
+            },
+        },
+        RemoteConnectionsWorkspace: {
+            setPolicy(policy) {
+                calls.remote.push(policy);
             },
         },
     };
@@ -61,6 +67,8 @@ test('workspace connection families keep managed and personal policies independe
             policy: { allow_workspace_connections: true, allow_mcp: false },
             managed: true,
             personal: false,
+            ssh: false,
+            customAcp: false,
             visible: true,
         },
         {
@@ -68,6 +76,8 @@ test('workspace connection families keep managed and personal policies independe
             policy: { allow_workspace_connections: false, allow_mcp: true },
             managed: false,
             personal: true,
+            ssh: false,
+            customAcp: false,
             visible: true,
         },
         {
@@ -75,6 +85,22 @@ test('workspace connection families keep managed and personal policies independe
             policy: { allow_workspace_connections: true, allow_mcp: true },
             managed: true,
             personal: true,
+            ssh: false,
+            customAcp: false,
+            visible: true,
+        },
+        {
+            name: 'SSH only',
+            policy: {
+                allow_workspace_connections: false,
+                allow_mcp: false,
+                allow_ssh_connections: true,
+                allow_custom_acp_connections: true,
+            },
+            managed: false,
+            personal: false,
+            ssh: true,
+            customAcp: true,
             visible: true,
         },
         {
@@ -82,11 +108,13 @@ test('workspace connection families keep managed and personal policies independe
             policy: { allow_workspace_connections: false, allow_mcp: false },
             managed: false,
             personal: false,
+            ssh: false,
+            customAcp: false,
             visible: false,
         },
     ];
 
-    cases.forEach(({ name, policy, managed, personal, visible }) => {
+    cases.forEach(({ name, policy, managed, personal, ssh, customAcp, visible }) => {
         const runtime = loadWorkspacePolicyRuntime();
         runtime.context.initWorkspaceConnections(policy);
 
@@ -95,6 +123,17 @@ test('workspace connection families keep managed and personal policies independe
             runtime.calls.personal.map((entry) => entry.allow_mcp),
             [personal],
             `${name}: personal policy`,
+        );
+        assert.deepEqual(
+            runtime.calls.remote.map((entry) => ({
+                allow_ssh_connections: entry.allow_ssh_connections,
+                allow_custom_acp_connections: entry.allow_custom_acp_connections,
+            })),
+            [{
+                allow_ssh_connections: ssh,
+                allow_custom_acp_connections: customAcp,
+            }],
+            `${name}: SSH and ACP policy`,
         );
         assert.deepEqual(
             runtime.calls.visibility,

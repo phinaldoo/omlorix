@@ -120,6 +120,8 @@
     <link rel="stylesheet" href="/css/chat/workspace-skill-import.css">
     <link rel="stylesheet" href="/css/chat/workspace-memories.css">
     <link rel="stylesheet" href="/css/chat/connections.css">
+    <link rel="stylesheet" href="/css/vendor/xterm/xterm.css">
+    <link rel="stylesheet" href="/css/chat/sshTerminal.css">
     <link rel="stylesheet" href="/css/chat/todos.css">
     <link rel="stylesheet" href="/css/chat/notes.css">
     <link rel="stylesheet" href="/css/chat/dragNDrop.css">
@@ -226,6 +228,7 @@
     <script src="/js/chat/workspace.js" defer></script>
     <script src="/js/chat/workspaceNotifications.js" defer></script>
     <script src="/js/chat/workspaceConnections.js" defer></script>
+    <script src="/js/chat/workspaceRemoteConnections.js" defer></script>
     <script src="/js/chat/todos.js" defer></script>
     <script src="/js/chat/notesConflict.js" defer></script>
     <script src="/js/chat/notes/state.js" defer></script>
@@ -251,6 +254,10 @@
     <script src="/js/chat/userSettings/mcp.js" defer></script>
     <script src="/js/chat/modelSelect.js" defer></script>
     <script src="/js/chat/subagentTargets.js" defer></script>
+    <script src="/js/chat/acpModelSelect.js" defer></script>
+    <script src="/js/vendor/xterm/xterm.js" defer></script>
+    <script src="/js/vendor/xterm/addon-fit.js" defer></script>
+    <script src="/js/chat/sshTerminal.js" defer></script>
     <script src="/js/chat/sidebar.js" defer></script>
     <script src="/js/chat/profilePicture.js" defer></script>
     <script src="/js/chat/stream.js" defer></script>
@@ -668,6 +675,8 @@
                     <div class="split-screen-main-header-slot" id="splitScreenHeaderRight" data-split-header-panel="right" role="group" aria-label="Right chat controls" data-i18n-attr="aria-label:split_screen_right_controls_aria"></div>
                 </div>
                 <div class="main-header-div main-header-actions">
+                    <button class="om-button" id="headerAcpTerminalButton" type="button" aria-label="Open SSH terminal" title="Open SSH terminal" aria-controls="acpTerminalPanel" aria-expanded="false" aria-pressed="false" data-i18n-attr="aria-label:acp_terminal_open;title:acp_terminal_open" hidden>
+                    </button>
                     <button class="om-button" id="headerSplitScreenButton" type="button" aria-label="Toggle split screen" title="Toggle split screen" aria-pressed="false" data-i18n-attr="aria-label:split_screen_toggle_aria;title:split_screen_toggle_aria">
                         <span data-omlorix-icon="splitScreen" width="20" height="20"></span>
                     </button>
@@ -991,10 +1000,34 @@
                             <section class="connections-personal-section" id="connectionsPersonalSection" style="display:none;">
                                 <div id="connectionsPersonalMcpRoot"></div>
                             </section>
+                            <div class="connections-remote-section" id="connectionsRemoteSection">
+                                <div class="connections-remote-group" id="connectionsSshSection">
+                                    <div class="projects-header connections-shell-header connections-action-header">
+                                        <div>
+                                            <p class="projects-header-title" data-i18n="workspace_ssh_title">SSH connections</p>
+                                        </div>
+                                        <div class="connections-header-actions">
+                                            <button type="button" class="om-button border" id="addSshConnectionBtn" data-i18n="workspace_ssh_add">Add SSH device</button>
+                                        </div>
+                                    </div>
+                                    <div class="connections-grid" id="sshConnectionsGrid" aria-live="polite"></div>
+                                </div>
+                                <div class="connections-remote-group" id="connectionsAcpSection">
+                                    <div class="projects-header connections-shell-header connections-action-header">
+                                        <div>
+                                            <p class="projects-header-title" data-i18n="workspace_acp_title">ACP connections</p>
+                                        </div>
+                                        <div class="connections-header-actions">
+                                            <button type="button" class="om-button border" id="addAcpProfileBtn" data-i18n="workspace_acp_add">Add ACP agent</button>
+                                        </div>
+                                    </div>
+                                    <div class="connections-grid" id="acpProfilesGrid" aria-live="polite"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <!-- Managed providers use the same full-page editor pattern as
-                         custom MCP connections. JavaScript renders
+                         custom MCP, SSH, and ACP connections. JavaScript renders
                          the selected provider here and restores focus on return. -->
                     <div class="projects-content managed-connection-page" id="managedConnectionPage" style="display: none;" aria-hidden="true" hidden>
                         <div id="managedConnectionPageRoot"></div>
@@ -1587,6 +1620,10 @@
                                                 <span class="split-panel-action-icon" data-split-panel-action-icon="settings" aria-hidden="true"></span>
                                                 <span data-i18n="header_open_model_settings">Open Model Settings</span>
                                             </button>
+                                            <button class="select-dropdown-button" type="button" role="menuitem" aria-controls="acpTerminalPanel" data-split-panel-action="terminal" hidden>
+                                                <span class="split-panel-action-icon" data-split-panel-action-icon="terminal" aria-hidden="true"></span>
+                                                <span data-i18n="acp_terminal_open">Open SSH terminal</span>
+                                            </button>
                                             <button class="select-dropdown-button split-panel-temporary-action" type="button" role="menuitemcheckbox" aria-checked="false" data-split-panel-action="temporary">
                                                 <span class="split-panel-action-icon" data-split-panel-action-icon="temporary" aria-hidden="true"></span>
                                                 <span data-i18n="split_screen_temporary_chat">Temporary chat</span>
@@ -1661,6 +1698,10 @@
                                             <button class="select-dropdown-button" type="button" role="menuitem" data-split-panel-action="settings">
                                                 <span class="split-panel-action-icon" data-split-panel-action-icon="settings" aria-hidden="true"></span>
                                                 <span data-i18n="header_open_model_settings">Open Model Settings</span>
+                                            </button>
+                                            <button class="select-dropdown-button" type="button" role="menuitem" aria-controls="acpTerminalPanel" data-split-panel-action="terminal" hidden>
+                                                <span class="split-panel-action-icon" data-split-panel-action-icon="terminal" aria-hidden="true"></span>
+                                                <span data-i18n="acp_terminal_open">Open SSH terminal</span>
                                             </button>
                                             <button class="select-dropdown-button split-panel-temporary-action" type="button" role="menuitemcheckbox" aria-checked="false" data-split-panel-action="temporary">
                                                 <span class="split-panel-action-icon" data-split-panel-action-icon="temporary" aria-hidden="true"></span>
@@ -1849,6 +1890,32 @@
                                 <input type="file" id="chatBoxFileInput" multiple style="display: none;">
                                 <input type="file" id="chatBoxMeetingFileInput" accept="audio/*,video/*" style="display: none;">
                                 <div class="chat-box-bottom-div">
+                                    <div class="chat-box-bottom-div" id="chatBoxAcpSessionControls" role="group" aria-label="ACP session controls" data-i18n-attr="aria-label:acp_session_controls_label" hidden>
+                                        <div class="chat-box-dropdown" id="chatBoxAcpModelContainer" hidden>
+                                            <span class="sr-only" id="chatBoxAcpModelLabel" data-i18n="acp_model_select_label">ACP model</span>
+                                            <button class="om-button" id="chatBoxAcpModelTrigger" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="chatBoxAcpModelMenu" aria-labelledby="chatBoxAcpModelLabel chatBoxAcpModelValue" disabled>
+                                                <span id="chatBoxAcpModelValue" data-i18n="acp_control_loading">Loading…</span>
+                                                <svg class="chevron" width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                            </button>
+                                            <div class="select-dropdown chat-box-thinking-menu" id="chatBoxAcpModelMenu" role="menu" aria-hidden="true"></div>
+                                        </div>
+                                        <div class="chat-box-dropdown" id="chatBoxAcpReasoningContainer" hidden>
+                                            <span class="sr-only" id="chatBoxAcpReasoningLabel" data-i18n="acp_reasoning_effort_select_label">ACP reasoning effort</span>
+                                            <button class="om-button" id="chatBoxAcpReasoningTrigger" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="chatBoxAcpReasoningMenu" aria-labelledby="chatBoxAcpReasoningLabel chatBoxAcpReasoningValue" disabled>
+                                                <span id="chatBoxAcpReasoningValue" data-i18n="acp_control_loading">Loading…</span>
+                                                <svg class="chevron" width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                            </button>
+                                            <div class="select-dropdown chat-box-thinking-menu" id="chatBoxAcpReasoningMenu" role="menu" aria-hidden="true"></div>
+                                        </div>
+                                        <div class="chat-box-dropdown" id="chatBoxAcpSecurityContainer" hidden>
+                                            <span class="sr-only" id="chatBoxAcpSecurityLabel" data-i18n="acp_security_select_label">ACP security level</span>
+                                            <button class="om-button" id="chatBoxAcpSecurityTrigger" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="chatBoxAcpSecurityMenu" aria-labelledby="chatBoxAcpSecurityLabel chatBoxAcpSecurityValue" disabled>
+                                                <span id="chatBoxAcpSecurityValue" data-i18n="acp_control_loading">Loading…</span>
+                                                <svg class="chevron" width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                            </button>
+                                            <div class="select-dropdown chat-box-thinking-menu" id="chatBoxAcpSecurityMenu" role="menu" aria-hidden="true"></div>
+                                        </div>
+                                    </div>
                                     <button class="om-button" id="chatBoxVoiceButton" data-i18n-attr="aria-label:chat_voice_input" aria-label="Voice input">
                                         <span data-omlorix-icon="microphone" width="20" height="20" aria-label class="icon" font-size="inherit"></span>
                                     </button>
@@ -1877,6 +1944,26 @@
                         </div>
                     </div>
                 </div>
+                <section class="acp-terminal-panel" id="acpTerminalPanel" role="region" aria-label="SSH terminal" aria-hidden="true" data-i18n-attr="aria-label:acp_terminal_panel">
+                    <div class="acp-terminal-resize-handle" id="acpTerminalResizeHandle" role="separator" aria-orientation="horizontal" aria-label="Resize terminal" aria-valuemin="160" aria-valuemax="700" aria-valuenow="320" tabindex="0" data-i18n-attr="aria-label:acp_terminal_resize"></div>
+                    <div class="acp-terminal-toolbar">
+                        <div class="acp-terminal-tab" aria-hidden="true">
+                            <span class="acp-terminal-tab-icon" id="acpTerminalTabIcon"></span>
+                            <span class="acp-terminal-title" id="acpTerminalTitle" data-i18n="acp_terminal_title">Terminal</span>
+                        </div>
+                        <span class="acp-terminal-status" id="acpTerminalStatus" role="status" aria-live="polite" data-i18n="acp_terminal_disconnected">Disconnected</span>
+                        <button class="acp-terminal-action" id="acpTerminalReconnectButton" type="button" aria-label="Reconnect terminal" title="Reconnect terminal" data-i18n-attr="aria-label:acp_terminal_reconnect;title:acp_terminal_reconnect" hidden>
+                            <span id="acpTerminalReconnectIcon" aria-hidden="true"></span>
+                        </button>
+                        <button class="acp-terminal-action" id="acpTerminalFullscreenButton" type="button" aria-label="Maximize terminal" title="Maximize terminal" aria-pressed="false" data-i18n-attr="aria-label:acp_terminal_fullscreen;title:acp_terminal_fullscreen">
+                            <span id="acpTerminalFullscreenIcon" aria-hidden="true"></span>
+                        </button>
+                        <button class="acp-terminal-action" id="acpTerminalCloseButton" type="button" aria-label="Close terminal" title="Close terminal" data-i18n-attr="aria-label:acp_terminal_close;title:acp_terminal_close">
+                            <span id="acpTerminalCloseIcon" aria-hidden="true"></span>
+                        </button>
+                    </div>
+                    <div class="acp-terminal-host" id="acpTerminalHost"></div>
+                </section>
             </div>
             </div>
             <div class="right-sidebar" id="modelSettingsSidebar" aria-hidden="true" inert>

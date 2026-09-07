@@ -17,6 +17,24 @@
     flex-direction: column;
 }
 
+/* Remote editor validation mirrors the accessible settings-form pattern. */
+.remote-connection-editor-form .is-invalid {
+    border-color: var(--error-color) !important;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--error-color) 18%, transparent) !important;
+}
+
+.remote-connection-editor-form .projects-create-input-group.has-error > label,
+.remote-field-error {
+    color: var(--error-color);
+}
+
+.remote-field-error {
+    margin: 6px 0 0;
+    font-size: 12.5px;
+    line-height: 1.4;
+    font-weight: 500;
+}
+
 /* Header */
 .connections-shell-header {
     display: flex;
@@ -48,6 +66,8 @@
 
 .connections-action-header .om-button.border {
     max-width: 100%;
+    width: fit-content;
+    white-space: nowrap;
 }
 
 .connections-search-wrapper {
@@ -72,14 +92,157 @@
     gap: 18px;
 }
 
-.connection-inline-actions {
+.connections-remote-section {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.connections-remote-section[hidden],
+.connections-remote-group[hidden] {
+    display: none;
+}
+
+/* Policy wrappers preserve the original spacing while allowing SSH and ACP
+   subsections to be independently removed from layout and the accessibility tree. */
+.connections-remote-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.connections-secret-textarea {
+    min-height: 92px;
+    resize: vertical;
+    font-family: monospace;
+}
+
+.connections-advanced {
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+}
+
+.connections-advanced summary {
+    color: var(--text-color);
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.connections-advanced[open] summary {
+    margin-bottom: 14px;
+}
+
+/* Full-page SSH and ACP editors intentionally reuse the project form shell.
+   These additions only describe the connection-specific layout and keep the
+   page comfortable on both a wide workspace and a narrow phone. */
+.remote-connection-editor-page {
+    width: 100%;
+}
+
+.remote-connection-editor-form {
+    width: min(100%, 860px);
+    margin-inline: auto;
+}
+
+.remote-connection-form-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 16px;
+}
+
+.remote-connection-form-grid > * {
+    min-width: 0;
+}
+
+.remote-connection-form-grid:has(.remote-connection-port-field) {
+    grid-template-columns: minmax(0, 1fr) minmax(112px, 0.28fr);
+}
+
+.remote-connection-field-help {
+    margin: 0;
+    color: var(--text-color-secondary);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.remote-connection-icon-picker {
+    min-width: 0;
+}
+
+.remote-connection-icon-picker .icon-picker {
+    max-width: 100%;
+}
+
+.remote-connection-inline-actions {
     display: flex;
     align-items: center;
     gap: 10px;
     min-width: 0;
 }
 
-.connection-inline-confirmation {
+.remote-connection-inline-actions .remote-connection-field-help {
+    flex: 1;
+    min-width: 0;
+}
+
+.remote-private-key-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.remote-private-key-status {
+    min-width: 0;
+    color: var(--text-color-secondary);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.remote-private-key-status.is-success {
+    color: var(--success-color);
+}
+
+.remote-private-key-status.is-error {
+    color: var(--error-color);
+}
+
+.remote-connection-test-feedback {
+    margin: -4px 0 0;
+    padding: 10px 12px;
+    color: var(--text-color);
+    font-size: 13px;
+    line-height: 1.45;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--hover);
+}
+
+.remote-connection-test-feedback[hidden] {
+    display: none;
+}
+
+.remote-connection-test-feedback.is-success {
+    color: var(--success-color);
+    border-color: color-mix(in srgb, var(--success-color) 34%, var(--border-color));
+}
+
+.remote-connection-test-feedback.is-error {
+    color: var(--error-color);
+    border-color: color-mix(in srgb, var(--error-color) 34%, var(--border-color));
+}
+
+.remote-connection-toggle-card {
+    margin: 0;
+    cursor: pointer;
+}
+
+.remote-connection-toggle-card:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+.remote-connection-inline-confirmation {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -90,20 +253,45 @@
     background: color-mix(in srgb, var(--error-color) 7%, var(--background));
 }
 
-.connection-inline-confirmation[hidden] {
+.remote-connection-inline-confirmation[hidden] {
     display: none;
 }
 
-.connection-inline-confirmation strong {
+.remote-connection-inline-confirmation strong {
     color: var(--text-color);
 }
 
-.connection-inline-confirmation p {
+.remote-connection-inline-confirmation p {
     margin: 4px 0 0;
     color: var(--text-color-secondary);
     font-size: 13px;
     line-height: 1.45;
 }
+
+.remote-connection-advanced-content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.remote-connection-card-icon svg,
+.remote-connection-card-icon img {
+    width: 26px;
+    height: 26px;
+    object-fit: cover;
+}
+
+.remote-connection-card-icon img {
+    border-radius: 50%;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .remote-connection-toggle-card:hover {
+        border-color: color-mix(in srgb, var(--primary-color) 34%, var(--border-color));
+    }
+}
+
+
 
 /* Empty / loading states */
 .connections-empty-state {
@@ -271,6 +459,171 @@
 
 .status-error .connection-card-status-dot {
     background: #ef4444;
+}
+
+/* ============================================
+   SSH / ACP cards (remote connections)
+
+   These cards carry a second, technical detail line (user@host:port or the
+   agent launch command) that can be arbitrarily long. A two-row grid keeps
+   the layout stable: the icon spans both rows, the name and status badge
+   share the first row, and the detail line spans the remaining width on the
+   second row with single-line truncation.
+   ============================================ */
+
+.remote-connection-card {
+    display: grid;
+    /* minmax(0, 55%) sizes the badge column to its content but caps it at
+       55% of the card and lets it shrink to zero, so a long translated label
+       ("Available in model picker") truncates instead of crushing the
+       connection name or blowing the card wider than its grid track. */
+    grid-template-columns: auto minmax(0, 1fr) minmax(0, 55%);
+    grid-template-rows: auto auto;
+    align-items: center;
+    column-gap: 14px;
+    row-gap: 3px;
+}
+
+.remote-connection-card .connection-card-logo {
+    grid-row: 1 / span 2;
+}
+
+.remote-connection-card .connection-card-title {
+    grid-column: 2;
+    grid-row: 1;
+    display: block;
+    align-self: end;
+    min-width: 0;
+}
+
+.remote-connection-card .connection-card-status-badge {
+    grid-column: 3;
+    grid-row: 1;
+    justify-self: end;
+    min-width: 0;
+    max-width: 100%;
+}
+
+/* The badge is inline-flex, so ellipsis must live on an inner block-level
+   label span rather than on the badge itself. */
+.remote-connection-card .connection-card-status-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Detail line: monospace, secondary, truncated to a single line. */
+.remote-connection-card .connection-card-desc {
+    grid-column: 2 / -1;
+    grid-row: 2;
+    display: block;
+    align-self: start;
+    min-width: 0;
+    font-family: var(--font-mono, monospace);
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--text-color-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Disabled / not-tested cards still need a readable badge here (the catalog
+   cards hide the idle badge entirely, remote cards should not). */
+.remote-connection-card .connection-card-status-badge.status-idle {
+    background: var(--hover);
+    color: var(--text-color-secondary);
+}
+
+.remote-connection-card .status-idle .connection-card-status-dot {
+    background: var(--text-color-secondary);
+    opacity: 0.55;
+}
+
+/* Shared compact button used by SSH host-key choices. Managed provider pages
+   use the project page buttons so all connection editors feel consistent. */
+.connections-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 38px;
+    padding: 0 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border: 1px solid var(--border-color);
+    background: var(--background);
+    color: var(--text-color);
+    white-space: nowrap;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .connections-btn:hover {
+        background: var(--hover);
+        border-color: var(--text-color-secondary);
+    }
+}
+
+.connections-btn.primary {
+    background: var(--primary-color);
+    color: #fff;
+    border-color: var(--primary-color);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .connections-btn.primary:hover {
+        filter: brightness(1.08);
+    }
+}
+
+.connections-btn.danger {
+    border-color: rgba(239, 68, 68, 0.25);
+    color: #ef4444;
+    background: transparent;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .connections-btn.danger:hover {
+        background: rgba(239, 68, 68, 0.06);
+        border-color: rgba(239, 68, 68, 0.4);
+    }
+}
+
+.connections-btn.full-width {
+    width: 100%;
+}
+
+.ssh-host-key-option {
+    align-items: flex-start;
+    flex-direction: column;
+    height: auto;
+    min-width: 0;
+    min-height: 54px;
+    padding-block: 9px;
+    text-align: left;
+    white-space: normal;
+}
+
+.ssh-host-key-option span,
+.ssh-host-key-option code {
+    display: block;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+.ssh-host-key-option code {
+    color: var(--text-color-secondary);
+    font-size: 11px;
+}
+
+.connections-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 /* ============================================
@@ -641,6 +994,7 @@
         grid-template-columns: 1fr;
     }
 
+    .remote-connection-editor-form,
     .managed-connection-form {
         width: 100%;
     }
@@ -654,6 +1008,10 @@
 
     .connections-action-header .connections-header-actions {
         margin-left: 0;
+        width: 100%;
+    }
+
+    .connections-btn {
         width: 100%;
     }
 
@@ -700,6 +1058,27 @@
     }
 
     .connection-inline-confirmation {
+        gap: 14px;
+    }
+
+    .remote-connection-form-grid,
+    .remote-connection-form-grid:has(.remote-connection-port-field) {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 18px;
+    }
+
+    .remote-connection-inline-actions,
+    .remote-connection-inline-confirmation {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .remote-connection-inline-actions .om-button.border {
+        justify-content: center;
+        width: 100%;
+    }
+
+    .remote-connection-inline-confirmation {
         gap: 14px;
     }
 }

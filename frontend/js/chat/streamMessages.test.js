@@ -1052,7 +1052,7 @@ test('title-only reasoning creates a chronological step after a tool call', () =
             ensureInitialThinkingStep() {},
             applyAssistantMessageAccessibility() {},
         },
-        { filename: 'streamMessages.reasoningOrder.js' },
+        { filename: 'streamMessages.acpReasoningOrder.js' },
     );
 
     const assistantContainer = new FakeElement('div');
@@ -1086,7 +1086,7 @@ test('title-only reasoning creates a chronological step after a tool call', () =
     );
     assert.equal(reasoningStep.querySelector('.thinking-step-content').textContent, '');
 
-    // A provider may split a subsequent title across protocol chunks. It must
+    // ACP commonly splits a subsequent title across protocol chunks. It must
     // become a new step after the existing title, not raw Markdown appended to
     // an earlier reasoning body.
     helpers.appendAssistantReasoning('message-1', '**', 'r', 1);
@@ -2107,7 +2107,7 @@ test('refreshed transcripts replay persisted blocks in database order', () => {
         },
     };
     vm.runInNewContext(source, context, {
-        filename: 'chatTranscriptRenderer.persistedOrder.js',
+        filename: 'chatTranscriptRenderer.acpOrder.js',
     });
 
     window.renderChatTranscript([

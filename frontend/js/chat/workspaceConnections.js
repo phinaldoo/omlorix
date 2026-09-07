@@ -695,12 +695,12 @@
                     <div id="managedConnectionToolResults">${renderToolResults()}</div>
                 `}
 
-                <div class="connection-inline-confirmation managed-connection-remove-confirmation" id="managedConnectionRemoveConfirmation" ${state.removeConfirmationOpen ? '' : 'hidden'}>
+                <div class="remote-connection-inline-confirmation managed-connection-remove-confirmation" id="managedConnectionRemoveConfirmation" ${state.removeConfirmationOpen ? '' : 'hidden'}>
                     <div>
                         <strong>${escapeHtml(tf('workspace_connections_remove_title', 'Remove {title}', { title: item.title }))}</strong>
                         <p>${tf('workspace_connections_remove_confirm', 'Remove <strong>{title}</strong>? This cannot be undone.', { title: escapeHtml(item.title) })}</p>
                     </div>
-                    <div class="connection-inline-actions">
+                    <div class="remote-connection-inline-actions">
                         <button type="button" class="om-button border" data-action="cancel-remove">${escapeHtml(t('workspace_connections_cancel', 'Cancel'))}</button>
                         <button type="button" class="om-button border danger" data-action="confirm-remove" data-connection-id="${escapeHtml(connection.id)}">${escapeHtml(t('workspace_connections_remove_connection', 'Remove connection'))}</button>
                     </div>
@@ -739,6 +739,8 @@
         // never reveals a cached/stored count or a stale checked-at timestamp.
         state.toolPreview = { status: 'idle', tools: [], error: '' };
         setPageVisibility(dom.root, false);
+        setPageVisibility(document.getElementById('sshConnectionEditorPage'), false);
+        setPageVisibility(document.getElementById('acpConnectionEditorPage'), false);
         setPageVisibility(dom.page, true);
         renderActivePage();
         window.requestAnimationFrame?.(() => document.getElementById('managedConnectionPageTitle')?.focus());
@@ -1033,9 +1035,16 @@
 
     function show() {
         init();
+        window.RemoteConnectionsWorkspace?.setPolicy?.({
+            allow_ssh_connections: window.chatSetup?.allow_ssh_connections === true,
+            allow_custom_acp_connections: window.chatSetup?.allow_custom_acp_connections === true,
+        });
+        window.RemoteConnectionsWorkspace?.show?.();
         window.MCPSettings?.show?.();
         if (state.view !== 'list') {
             setPageVisibility(dom.root, false);
+            setPageVisibility(document.getElementById('sshConnectionEditorPage'), false);
+            setPageVisibility(document.getElementById('acpConnectionEditorPage'), false);
             setPageVisibility(dom.page, true);
             renderActivePage({ preserveForm: true });
         }

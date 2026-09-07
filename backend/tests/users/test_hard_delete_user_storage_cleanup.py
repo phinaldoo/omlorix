@@ -65,7 +65,7 @@ class _FakeDb:
         self._events.append(("db_delete", getattr(obj, "id", None)))
 
     def flush(self):
-        """Mirror the SQLAlchemy Session flush method used during cleanup."""
+        """Mirror the SQLAlchemy Session method used before deleting SSH rows."""
 
     def commit(self):
         self._events.append(("commit", None))

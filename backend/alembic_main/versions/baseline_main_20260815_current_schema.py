@@ -2896,6 +2896,36 @@ def upgrade() -> None:
         schema=_app_schema(),
     )
     op.create_table(
+        "ssh_connections",
+        sa.Column("id", sa.String(), nullable=False),
+        sa.Column("user_id", sa.String(), nullable=False),
+        sa.Column("name", sa.String(length=120), nullable=False),
+        sa.Column("icon", sa.Text(), nullable=False),
+        sa.Column("host", sa.String(length=255), nullable=False),
+        sa.Column("port", sa.Integer(), nullable=False),
+        sa.Column("username", sa.String(length=128), nullable=False),
+        sa.Column("host_key", sa.String(length=4096), nullable=False),
+        sa.Column("config", sa.JSON(), nullable=False),
+        sa.Column("secrets", EncryptedJSON(), nullable=False),
+        sa.Column("enabled", sa.Boolean(), nullable=False),
+        sa.Column("status", sa.JSON(), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["user_id"], [f"{_app_schema()}.users.id"], ondelete="CASCADE"
+        ),
+        sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("id"),
+        schema=_app_schema(),
+    )
+    op.create_index(
+        "ix_ssh_connections_user_id",
+        "ssh_connections",
+        ["user_id"],
+        unique=False,
+        schema=_app_schema(),
+    )
+    op.create_table(
         "todos",
         sa.Column("id", sa.String(), nullable=False),
         sa.Column("todo_list", sa.String(), nullable=False),
@@ -3281,6 +3311,66 @@ def upgrade() -> None:
         schema=_app_schema(),
     )
     op.create_table(
+        "user_acp_profiles",
+        sa.Column("id", sa.String(), nullable=False),
+        sa.Column("user_id", sa.String(), nullable=False),
+        sa.Column("ssh_connection_id", sa.String(), nullable=False),
+        sa.Column("name", sa.String(length=120), nullable=False),
+        sa.Column("icon", sa.Text(), nullable=False),
+        sa.Column("executable", sa.String(length=1024), nullable=False),
+        sa.Column("arguments", sa.JSON(), nullable=False),
+        sa.Column("workspace_root", sa.String(length=4096), nullable=False),
+        sa.Column("cwd", sa.String(length=4096), nullable=False),
+        sa.Column("additional_directories", sa.JSON(), nullable=False),
+        sa.Column("mode", sa.String(length=128), nullable=True),
+        sa.Column("permission_mode", sa.String(length=16), nullable=False),
+        sa.Column("permission_timeout_seconds", sa.Integer(), nullable=False),
+        sa.Column("prompt_timeout_seconds", sa.Integer(), nullable=False),
+        sa.Column("enabled", sa.Boolean(), nullable=False),
+        sa.Column("provider_id", sa.String(), nullable=True),
+        sa.Column("model_id", sa.String(), nullable=True),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["model_id"], [f"{_app_schema()}.models.id"], ondelete="SET NULL"
+        ),
+        sa.ForeignKeyConstraint(
+            ["provider_id"], [f"{_app_schema()}.llm_provider.id"], ondelete="SET NULL"
+        ),
+        sa.ForeignKeyConstraint(
+            ["ssh_connection_id"],
+            [f"{_app_schema()}.ssh_connections.id"],
+            ondelete="RESTRICT",
+        ),
+        sa.ForeignKeyConstraint(
+            ["user_id"], [f"{_app_schema()}.users.id"], ondelete="CASCADE"
+        ),
+        sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("id"),
+        schema=_app_schema(),
+    )
+    op.create_index(
+        "ix_user_acp_profiles_model_id",
+        "user_acp_profiles",
+        ["model_id"],
+        unique=False,
+        schema=_app_schema(),
+    )
+    op.create_index(
+        "ix_user_acp_profiles_ssh_connection_id",
+        "user_acp_profiles",
+        ["ssh_connection_id"],
+        unique=False,
+        schema=_app_schema(),
+    )
+    op.create_index(
+        "ix_user_acp_profiles_user_id",
+        "user_acp_profiles",
+        ["user_id"],
+        unique=False,
+        schema=_app_schema(),
+    )
+    op.create_table(
         "canvas_asset_grants",
         sa.Column("id", sa.String(), nullable=False),
         sa.Column("canvas_file_id", sa.String(), nullable=False),
@@ -3623,6 +3713,22 @@ def downgrade() -> None:
     )
     op.drop_table("canvas_asset_grants", schema=_app_schema())
     op.drop_index(
+        "ix_user_acp_profiles_user_id",
+        table_name="user_acp_profiles",
+        schema=_app_schema(),
+    )
+    op.drop_index(
+        "ix_user_acp_profiles_ssh_connection_id",
+        table_name="user_acp_profiles",
+        schema=_app_schema(),
+    )
+    op.drop_index(
+        "ix_user_acp_profiles_model_id",
+        table_name="user_acp_profiles",
+        schema=_app_schema(),
+    )
+    op.drop_table("user_acp_profiles", schema=_app_schema())
+    op.drop_index(
         "ix_refresh_token_history_user",
         table_name="refresh_token_history",
         schema=_app_schema(),
@@ -3724,6 +3830,10 @@ def downgrade() -> None:
     )
     op.drop_index(op.f("ix_app_todos_id"), table_name="todos", schema=_app_schema())
     op.drop_table("todos", schema=_app_schema())
+    op.drop_index(
+        "ix_ssh_connections_user_id", table_name="ssh_connections", schema=_app_schema()
+    )
+    op.drop_table("ssh_connections", schema=_app_schema())
     op.drop_index(
         "ix_social_auth_identities_user",
         table_name="social_auth_identities",

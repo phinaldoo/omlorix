@@ -451,6 +451,14 @@ Icons.getConnectionProviderIconKey = (provider) => {
     return Icons.connectionProviderIconKeys[normalizedProvider] || '';
 };
 
+// ACP runtimes use a terminal-style identity while reusing the established
+// code glyph so all provider icon rendering stays centralized in this file.
+Icons.terminal = Icons.code;
+Icons.laptop = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.33" y="2.5" width="13.34" height="10.83" rx="1.5"/><path d="M1.67 15h16.66l-1.25 2.5H2.92L1.67 15Z"/></svg>';
+Icons.pc = Icons.desktop;
+Icons.codex = Icons.openai;
+Icons.opencode = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7.5 5-5 5 5 5"/><path d="m12.5 5 5 5-5 5"/><path d="m11.5 3.33-3 13.34"/></svg>';
+
 const folderIconOptions = {
     // Folder
     folder: Icons.folder,

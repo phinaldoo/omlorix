@@ -31,6 +31,9 @@ Sections and feature names are sorted alphabetically.
 
 | Feature | Description |
 | --- | --- |
+| ACP model discovery and selection | Discover remote Agent Client Protocol models and persist the selected ACP model for a user profile or chat. |
+| ACP permission controls | Present, approve, or deny pending ACP tool permissions with configurable ask/allow/deny behavior. |
+| ACP session controls | Configure ACP security level and reasoning effort, preserve session metadata, and recover or recreate interrupted sessions. |
 | Agent asset library | Upload new agent assets, attach existing user files, reuse inherited shared files, list assets, and remove them. |
 | Agent authoring | Create, edit, list, and delete agents with private instructions, base models, skills, icons, access controls, attachments, and model-picker integration. |
 | Agent sharing and cloning | Create share links, invite collaborators, preview or accept shared agents, clone them, revoke links, and unsubscribe. |
@@ -42,6 +45,9 @@ Sections and feature names are sorted alphabetically.
 | MCP server administration | Create, test, update, delete, import, export, and inspect globally managed remote MCP servers over streamable HTTP or SSE, with namespaces, tool allowlists, timeouts, header secrets, and optional OAuth. |
 | MCP tool discovery and calls | Discover namespaced MCP tools, preview availability, enforce per-model constraints, and execute structured calls. |
 | Personal MCP servers | Let users create, test, update, delete, and inspect their own MCP servers when policy permits. |
+| Remote ACP profiles | Create, test, edit, and remove personal ACP profiles backed by saved SSH connections. |
+| Remote SSH connections | Discover and pin host keys, encrypt private keys, test saved or unsaved targets, rotate settings, and remove connections. |
+| Remote SSH terminal | Open a verified persistent WebSocket terminal, reconnect or resize it, and use fullscreen terminal controls. |
 | Skill authoring and drafts | Create and edit reusable instruction skills with compatibility, license, and metadata fields; save in-progress drafts and preview them before publishing. |
 | Skill file bundles | Manage the `scripts`, `references`, and `assets` folders for personal and managed skills with scoped upload/list/delete operations. |
 | Skill import and export | Import packaged skills, Markdown definitions with supporting files, or explicitly reviewed unverified URL payloads, and export portable skill catalogs. |
@@ -126,7 +132,7 @@ Sections and feature names are sorted alphabetically.
 | Streaming responses | Stream text, thinking, nested generation, tools, citations, media placeholders, and terminal events with interruption handling. |
 | Temporary chats | Start non-persistent or retention-limited conversations, save them explicitly, and optionally make temporary mode the default. |
 | Title generation | Generate conversation titles from the first message using the current or a configured title model and instruction. |
-| Tool-call lifecycle | Display live inputs, approvals, results, errors, created artifacts, and follow-up calls for built-in, MCP, and custom tools. |
+| Tool-call lifecycle | Display live inputs, approvals, results, errors, created artifacts, and follow-up calls for built-in, MCP, ACP, and custom tools. |
 | YouTube embeds | Recognize safe YouTube links and render embedded video players inside messages. |
 
 ## Collaboration, Sharing, and Workspaces
@@ -202,9 +208,9 @@ Sections and feature names are sorted alphabetically.
 | Backup schedules | Create, edit, delete, and run recurring backup schedules immediately. |
 | Chat interoperability | Let users import validated ChatGPT ZIP exports with branch, attachment, and duplicate handling; let administrators import Open WebUI archives; and export Omlorix conversations for migration or personal use. |
 | Data erasure cleanup | Remove owned data, files, sessions, shares, references, statistics, and policy-governed audit/auth records during hard deletion. Existing full-instance backup archives remain governed by their configured retention lifecycle. |
-| Entity-level portability | Canonical user archives round-trip retained chats and bookmarks, including embedded Subagent and Deep Research run histories, plus owned files/folders, projects, Note history, Todo lists, Skills/assets, Agents, Prompts, Automations, slide presentations, personal Memories, connection metadata, MCP definitions, model presets, and portable settings. Project memberships and shared project Memories are absent. Group/authentication metadata, activity logs, feedback, usage statistics, and shared Agent subscriptions are export-only; Notifications remain instance-owned. |
+| Entity-level portability | Canonical user archives round-trip retained chats and bookmarks, including embedded Subagent and Deep Research run histories, plus owned files/folders, projects, Note history, Todo lists, Skills/assets, Agents, Prompts, Automations, slide presentations, personal Memories, connection metadata, remote SSH/ACP profile metadata, MCP definitions, model presets, and portable settings. Project memberships and shared project Memories are absent. Group/authentication metadata, activity logs, feedback, usage statistics, and shared Agent subscriptions are export-only; Notifications remain instance-owned. |
 | File-backend migration | Move stored files between local, S3-compatible, GCS, Azure Blob, and WebDAV backends with dry-run and provenance options. |
-| Full user bundles | Transfer a user's profile and supported content through streamed self-service or administrator-managed bundles with a coverage manifest. Exclude passwords and reset/session credentials, social bindings, OAuth handshake and authoritative SCIM provisioning state, instance-managed notifications, queued email, pending email/authentication proofs, trusted-device notification markers, reusable connection/MCP credentials, and browser-local BYOK setup. Require review of imported Skill and ordinary-folder share identifiers, administrator-restored Note share identifiers, and retained SSO/LDAP linkage metadata. |
+| Full user bundles | Transfer a user's profile and supported content through streamed self-service or administrator-managed bundles with a coverage manifest. Exclude passwords and reset/session credentials, social bindings, OAuth handshake and authoritative SCIM provisioning state, instance-managed notifications, queued email, pending email/authentication proofs, trusted-device notification markers, reusable connection/MCP credentials, SSH private keys, and browser-local BYOK setup. Require review of imported Skill and ordinary-folder share identifiers, administrator-restored Note share identifiers, and retained SSO/LDAP linkage metadata. |
 | Open WebUI bulk migration | Import one or many Open WebUI chat archives through audited administrator workflows. |
 | Public legal documents | Serve legal-document availability, privacy policy, terms, disclosure metadata, revision state, and language metadata to public clients. |
 | Restore workflows | Restore an empty or explicitly confirmed in-place server from a job/URI or uploaded archive with preflight limits, tracked state, pre-restore backup, and rollback safeguards. |
@@ -287,7 +293,7 @@ Sections and feature names are sorted alphabetically.
 | OpenRouter routing | Discover a model's upstream providers and route by a specific provider, automatic strategy, price, throughput, or latency. |
 | Provider background synchronization | Refresh remote catalogs, add/update models, optionally remove missing models, and notify administrators about availability changes. |
 | Provider groups | Combine provider instances for common-model discovery, weighted/distributed selection, fallback, and policy-managed routing. |
-| Provider integrations | Support Anthropic and Anthropic-compatible endpoints, Azure OpenAI, Google AI Studio, LM Studio, Ollama, OpenAI Responses/Chat Completions-compatible APIs, OpenRouter, and xAI. |
+| Provider integrations | Support ACP, Anthropic and Anthropic-compatible endpoints, Azure OpenAI, Google AI Studio, LM Studio, Ollama, OpenAI Responses/Chat Completions-compatible APIs, OpenRouter, and xAI. |
 | Provider lifecycle | Create, edit, test, validate, delete, import, export, and inspect providers with custom base URLs, headers, icons, and masked credentials. |
 | Provider schemas | Generate explicit provider/model forms, validate typed settings, suggest common URLs, and expose schema-safe BYOK variants. |
 | Rate-limit policies | Create, inspect, update, and delete model/tool/dictation/realtime quotas and show affected users their current usage. |

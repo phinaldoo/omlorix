@@ -17,6 +17,13 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 50
+    # agent-client-protocol currently declares Python <3.15. Keep the backend
+    # runtime on a compatible Python release until that dependency supports it.
+    ignore:
+      - dependency-name: python
+        versions:
+          - ">= 3.15"
+
   - package-ecosystem: docker-compose
     directory: "/"
     schedule:

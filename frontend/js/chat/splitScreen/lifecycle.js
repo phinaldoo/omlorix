@@ -255,6 +255,8 @@ function splitScreenInternalResetPanels() {
     splitScreenInternalState.rightSettingsSchema = null;
     splitScreenInternalState.leftThinkingState = null;
     splitScreenInternalState.rightThinkingState = null;
+    splitScreenInternalResetPanelAcpState('left');
+    splitScreenInternalResetPanelAcpState('right');
     splitScreenInternalState.leftModelId = null;
     splitScreenInternalState.leftModel = null;
     splitScreenInternalState.leftModelName = null;
@@ -433,6 +435,7 @@ async function splitScreenInternalLoadChatIntoPanel(chatId, side, options = {}) 
         if (!splitScreenInternalIsPanelStillBoundToChat(side, normalizedChatId)) {
             return false;
         }
+        splitScreenInternalRestorePanelAcpStateFromMessages(side, messages);
         splitScreenInternalRenderMessagesIntoContainer(messages, container, {
             keepTrailingAssistantStreaming: Boolean(status?.active && status?.generation_id),
         });

@@ -119,6 +119,7 @@ function splitScreenInternalSelectModelForPanel(side, model) {
         splitScreenInternalState.leftSettings = {};
         splitScreenInternalState.leftSettingsSchema = null;
         splitScreenInternalState.leftThinkingState = null;
+        splitScreenInternalResetPanelAcpState('left');
     } else {
         splitScreenInternalState.rightModelId = modelId;
         splitScreenInternalState.rightModel = { ...model };
@@ -127,12 +128,14 @@ function splitScreenInternalSelectModelForPanel(side, model) {
         splitScreenInternalState.rightSettings = {};
         splitScreenInternalState.rightSettingsSchema = null;
         splitScreenInternalState.rightThinkingState = null;
+        splitScreenInternalResetPanelAcpState('right');
     }
 
     splitScreenInternalUpdatePanelHeader(side);
     splitScreenInternalRenderPanelThinkingControl(side);
     splitScreenInternalEnsurePanelSettingsSchema(side).catch(() => {});
     splitScreenInternalRefreshVisibleSettingsPanel();
+    window.AcpSshTerminal?.syncAvailability?.();
 }
 
 function splitScreenInternalSetupModelSelectListener() {

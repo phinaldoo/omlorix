@@ -869,6 +869,28 @@ GROUP_FORM_SCHEMA = GroupFormSchema(
                     default=_default_setting("tools_mcp.enable_mcp"),
                 ),
                 FieldSchema(
+                    key="settings.tools_mcp.allow_ssh_connections",
+                    label="Allow SSH connections",
+                    i18n_label="schema_group_field_settings_tools_mcp_allow_ssh_connections_label",
+                    description="Allow members to add and use SSH connections to devices they control.",
+                    i18n_description="schema_group_field_settings_tools_mcp_allow_ssh_connections_description",
+                    type="boolean",
+                    default=_default_setting("tools_mcp.allow_ssh_connections"),
+                ),
+                FieldSchema(
+                    key="settings.tools_mcp.allow_custom_acp_connections",
+                    label="Allow custom ACP connections",
+                    i18n_label="schema_group_field_settings_tools_mcp_allow_custom_acp_connections_label",
+                    description="Allow members to create and use personal ACP agents over their SSH connections.",
+                    i18n_description="schema_group_field_settings_tools_mcp_allow_custom_acp_connections_description",
+                    type="boolean",
+                    dependency="settings.tools_mcp.allow_ssh_connections",
+                    dependency_value=True,
+                    default=_default_setting(
+                        "tools_mcp.allow_custom_acp_connections"
+                    ),
+                ),
+                FieldSchema(
                     key="settings.tools_mcp.allow_file_storage_connections",
                     label="Allow file storage connections",
                     i18n_label="schema_group_field_settings_tools_mcp_allow_file_storage_connections_label",

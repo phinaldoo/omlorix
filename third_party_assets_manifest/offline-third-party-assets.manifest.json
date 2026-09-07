@@ -79,6 +79,34 @@
       "referenced_from": [{"path": "frontend/js/common/mermaidRuntime.js", "contains": "/js/vendor/mermaid.min.js?v=1"}]
     },
     {
+      "id": "xterm",
+      "name": "xterm.js",
+      "version": "6.0.0",
+      "purpose": "Displays interactive terminal sessions in the chat interface.",
+      "license": "MIT",
+      "source_url": "https://cdn.jsdelivr.net/npm/@xterm/xterm@6.0.0/",
+      "license_url": "https://github.com/xtermjs/xterm.js/blob/6.0.0/LICENSE",
+      "paths": ["frontend/js/vendor/xterm/xterm.js", "frontend/css/vendor/xterm/xterm.css", "frontend/js/vendor/xterm/LICENSE.xterm"],
+      "tree_sha256": "64dd5a7c54f84446db126ebf581d99ef79809af50fc3ea4306a50e728f462f66",
+      "served_paths": ["/js/vendor/xterm/xterm.js", "/css/vendor/xterm/xterm.css"],
+      "license_paths": ["frontend/js/vendor/xterm/LICENSE.xterm"],
+      "referenced_from": [{"path": "frontend/index.html", "contains": "/js/vendor/xterm/xterm.js"}]
+    },
+    {
+      "id": "xterm-addon-fit",
+      "name": "xterm.js Fit Addon",
+      "version": "0.11.0",
+      "purpose": "Resizes xterm.js terminal grids to their containers.",
+      "license": "MIT",
+      "source_url": "https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.11.0/",
+      "license_url": "https://github.com/xtermjs/xterm.js/blob/6.0.0/addons/addon-fit/LICENSE",
+      "paths": ["frontend/js/vendor/xterm/addon-fit.js", "frontend/js/vendor/xterm/LICENSE.addon-fit"],
+      "tree_sha256": "4ddef82a39ceef20d84b843ae16e9493c3a93ae5f8f58158dc898e157b0e1b64",
+      "served_paths": ["/js/vendor/xterm/addon-fit.js"],
+      "license_paths": ["frontend/js/vendor/xterm/LICENSE.addon-fit"],
+      "referenced_from": [{"path": "frontend/index.html", "contains": "/js/vendor/xterm/addon-fit.js"}]
+    },
+    {
       "id": "jszip",
       "name": "JSZip",
       "version": "3.10.1",

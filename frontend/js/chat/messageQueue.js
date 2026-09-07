@@ -480,6 +480,10 @@ function captureQueueDispatchContext() {
     customModelSettings: customModelSettings && typeof customModelSettings === 'object'
       ? { ...customModelSettings }
       : {},
+    acpModelId: window.getSelectedAcpModelId?.() || null,
+    acpSessionId: window.getSelectedAcpSessionId?.() || null,
+    acpSecurityLevel: window.getSelectedAcpSecurityLevel?.() || null,
+    acpReasoningEffort: window.getSelectedAcpReasoningEffort?.() || null,
     subagentTargets: Array.isArray(window.SubagentTargets?.getSelection?.())
       ? window.SubagentTargets.getSelection().map((target) => ({ ...target }))
       : null,
@@ -763,6 +767,10 @@ async function processNextQueuedMessage(options = {}) {
       restoreDraftOnFailure: false,
       modelId: nextItem.dispatchContext?.modelId || null,
       customModelSettings: nextItem.dispatchContext?.customModelSettings || null,
+      acpModelId: nextItem.dispatchContext?.acpModelId || null,
+      acpSessionId: nextItem.dispatchContext?.acpSessionId || null,
+      acpSecurityLevel: nextItem.dispatchContext?.acpSecurityLevel || null,
+      acpReasoningEffort: nextItem.dispatchContext?.acpReasoningEffort || null,
       subagentTargets: Array.isArray(nextItem.dispatchContext?.subagentTargets)
         ? nextItem.dispatchContext.subagentTargets.map((target) => ({ ...target }))
         : null,

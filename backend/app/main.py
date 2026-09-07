@@ -65,6 +65,7 @@ from app.auth.router import auth_router
 from app.auth.jwt_material import reconcile_jwt_signing_key
 from app.chats.router import chats_router
 from app.connections.router import connections_router
+from app.remote_connections.router import remote_connections_router
 from app.backups.router import backups_router
 from app.backups.service import ensure_backup_directories
 from app.chats.worker import (
@@ -616,6 +617,7 @@ app.include_router(backups_router)
 app.include_router(auth_router)
 app.include_router(chats_router)
 app.include_router(connections_router)
+app.include_router(remote_connections_router)
 app.include_router(file_folders_router)
 app.include_router(files_router)
 app.include_router(group_management_router)

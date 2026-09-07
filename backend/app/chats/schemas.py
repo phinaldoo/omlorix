@@ -677,6 +677,26 @@ class SendChatRequest(BaseModel):
         description="Client-created generation ID used for streaming and immediate cancellation.",
     )
     model_id: str | None = None # Field(None, description="ID of the model to use for the chat message")
+    acp_model_id: Optional[str] = Field(
+        default=None,
+        max_length=255,
+        description="Optional agent-side model advertised by the selected ACP connection.",
+    )
+    acp_session_id: Optional[str] = Field(
+        default=None,
+        max_length=512,
+        description="Optional ACP session created while discovering agent-side models.",
+    )
+    acp_security_level: Optional[str] = Field(
+        default=None,
+        max_length=255,
+        description="Optional security level advertised by the selected ACP session.",
+    )
+    acp_reasoning_effort: Optional[str] = Field(
+        default=None,
+        max_length=255,
+        description="Optional reasoning effort advertised by the selected ACP session.",
+    )
     message: str = Field(..., description="User message content to send to the model")
     chat_id: Optional[str] = Field("", description="Existing chat ID; empty string to start a new chat")
     image_ids: Optional[list[str]] = Field(
@@ -1156,6 +1176,26 @@ class RegenerateMessageRequest(BaseModel):
     chat_id: str = Field(..., description="The ID of the chat")
     user_message_id: str = Field(..., description="The ID of the user message to regenerate response for")
     model_id: Optional[str] = Field(default=None, description="Optional model ID to use for regeneration (uses current selected model)")
+    acp_model_id: Optional[str] = Field(
+        default=None,
+        max_length=255,
+        description="Optional agent-side ACP model to use for regeneration.",
+    )
+    acp_session_id: Optional[str] = Field(
+        default=None,
+        max_length=512,
+        description="Optional reusable ACP session selected by the composer.",
+    )
+    acp_security_level: Optional[str] = Field(
+        default=None,
+        max_length=255,
+        description="Optional ACP security level to use for regeneration.",
+    )
+    acp_reasoning_effort: Optional[str] = Field(
+        default=None,
+        max_length=255,
+        description="Optional ACP reasoning effort to use for regeneration.",
+    )
     skill_id: Optional[str] = Field(default=None, description="Optional single skill ID to apply (legacy compatibility)")
     skill_ids: Optional[list[str]] = Field(
         default=None,

@@ -131,7 +131,7 @@ from app.llm.models import (
 )
 from app.llm.openai.model_list import OPENAI_LIVE_TRANSCRIPTION_MODELS
 from app.llm.openai.realtime import get_openai_realtime_models
-from app.llm.schemas import ProviderEnum
+from app.llm.schemas import ProviderEnum, normalize_provider_value
 from app.llm.speech import (
     OPENAI_COMPATIBLE_TTS_PROVIDER_TYPES,
     TRANSCRIPTION_PROVIDER_TYPES,
@@ -4893,6 +4893,11 @@ def _get_public_model_options(db: Session) -> List[Dict[str, str]]:
     rows = list_active_models(db)
     options: List[Dict[str, str]] = []
     for row in rows:
+        if (
+            normalize_provider_value(getattr(row, "provider", None))
+            == ProviderEnum.acp.value
+        ):
+            continue
         access = row.access or {}
         if isinstance(access, dict) and access.get("everyone"):
             label = (row.name or row.model_name or row.id or "").strip() or row.id
@@ -4911,6 +4916,11 @@ def _get_admin_managed_model_options(db: Session) -> List[Dict[str, str]]:
     rows = list_active_models(db)
     options: List[Dict[str, str]] = []
     for row in rows:
+        if (
+            normalize_provider_value(getattr(row, "provider", None))
+            == ProviderEnum.acp.value
+        ):
+            continue
         metadata = row.meta if isinstance(getattr(row, "meta", None), dict) else {}
         if metadata.get("user_managed") is True:
             continue

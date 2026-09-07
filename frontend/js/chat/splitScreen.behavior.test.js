@@ -282,7 +282,7 @@ test('split-screen exposes panel-targeted chat actions without visible side/titl
     assert.match(html, /id="splitScreenHeaderRight"[^>]+data-split-header-panel="right"/);
     assert.equal((html.match(/data-split-panel-action="share"/g) || []).length, 2);
     assert.equal((html.match(/data-split-panel-action="settings"/g) || []).length, 2);
-    assert.doesNotMatch(html, /data-split-panel-action="terminal"/);
+    assert.equal((html.match(/data-split-panel-action="terminal"/g) || []).length, 2);
     assert.equal((html.match(/data-split-panel-action="temporary"/g) || []).length, 2);
     assert.equal((html.match(/data-split-download-format=/g) || []).length, 10);
     assert.doesNotMatch(html, /split-screen-panel-identity/);
@@ -301,10 +301,12 @@ test('split-screen exposes panel-targeted chat actions without visible side/titl
     assert.doesNotMatch(css, /body\.split-screen-active #modelSelect\s*[,\{]/);
     assert.match(splitSource, /mode: 'split',[\s\S]*side,[\s\S]*anchorEl: trigger/);
     assert.match(splitSource, /onSelect: async \(model\)[\s\S]*selectModelForPanel\(side, model\)/);
+    assert.match(css, /body\.split-screen-active #headerAcpTerminalButton/);
     assert.match(css, /body\.split-screen-active #headerSplitScreenButton/);
     assert.match(splitSource, /'headerCanvasButtonWrap',[\s\S]*'headerTempChatButton',[\s\S]*'headerDotsButtonDropdown'/);
     assert.match(splitSource, /ChatShareModal\?\.openForChat\?\.\(chatId\)/);
     assert.match(splitSource, /switchSettingsTab\(side\);[\s\S]*openModelSettingsSidebar/);
+    assert.match(splitSource, /panelSupportsAcpTerminal\(side\)[\s\S]*AcpSshTerminal\?\.openForModel\?\.\(model/);
     assert.match(splitSource, /window\.downloadChat\(format, \{[\s\S]*chatId,[\s\S]*title:/);
     assert.match(splitSource, /function isPanelTemporary\(side\)/);
     assert.match(splitSource, /tempChatHistory = \(!chatId && isPanelTemporary\(side\)\)/);
@@ -543,12 +545,14 @@ test('accepted split stream failures restore the full untouched composer context
     );
 });
 
-test('clearing a split panel removes its project scope', () => {
+test('clearing a split panel removes its project and ACP request scope', () => {
     const splitSource = read(SPLIT_PATH);
     const clearPanelSource = readNamedFunction(splitSource, 'clearPanelState');
 
     assert.match(clearPanelSource, /state\.leftProjectId = null/);
     assert.match(clearPanelSource, /state\.rightProjectId = null/);
+    assert.match(clearPanelSource, /resetPanelAcpState\('left'\)/);
+    assert.match(clearPanelSource, /resetPanelAcpState\('right'\)/);
 });
 
 test('project navigation waits for cancellable split-screen exits', () => {

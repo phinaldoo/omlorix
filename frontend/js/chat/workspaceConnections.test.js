@@ -149,6 +149,8 @@ function loadConnectionsRuntime({
         'connectionsSearchInput',
         'managedConnectionPage',
         'managedConnectionPageRoot',
+        'sshConnectionEditorPage',
+        'acpConnectionEditorPage',
     ];
     const elements = new Map(elementIds.map((id) => [id, new MockElement(id)]));
     const fetchCalls = [];

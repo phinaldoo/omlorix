@@ -835,6 +835,8 @@ def hard_delete_user(
         _delete_deep_research_runs_for_user,
     )
     from app.connections.models import ConnectionOAuthState, UserConnection
+    from app.remote_connections.models import SshConnection, UserAcpProfile
+    from app.llm.models import LLMProvider, Models
     from app.feedback.models import ModelFeedback
     from app.file_folders.models import FileFolders, SharedFileFolderSubscription
     from app.files.models import FileArtifactShare, Files
@@ -1205,6 +1207,24 @@ def hard_delete_user(
             synchronize_session=False
         )
         db.query(Automation).filter(Automation.user_id == user_id).delete(
+            synchronize_session=False
+        )
+        # ACP profiles own private provider/model rows, so remove them through
+        # the feature service before deleting their reusable SSH transports.
+        for remote_profile in (
+            db.query(UserAcpProfile).filter(UserAcpProfile.user_id == user_id).all()
+        ):
+            if remote_profile.model_id:
+                db.query(Models).filter(Models.id == remote_profile.model_id).delete(
+                    synchronize_session=False
+                )
+            if remote_profile.provider_id:
+                db.query(LLMProvider).filter(
+                    LLMProvider.id == remote_profile.provider_id
+                ).delete(synchronize_session=False)
+            db.delete(remote_profile)
+        db.flush()
+        db.query(SshConnection).filter(SshConnection.user_id == user_id).delete(
             synchronize_session=False
         )
         db.query(UserConnection).filter(UserConnection.user_id == user_id).delete(

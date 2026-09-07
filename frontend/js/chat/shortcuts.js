@@ -85,6 +85,7 @@
             '.CodeMirror',
             '.cm-editor',
             '.monaco-editor',
+            '.xterm',
             '[role="textbox"][aria-multiline="true"]',
         ].join(', ')));
     }
