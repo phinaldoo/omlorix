@@ -992,7 +992,18 @@ def _get_realtime_provider_rows(db: Session) -> list[LLMProvider]:
         ProviderEnum.google_aistudio.value,
         ProviderEnum.xai.value,
     }
-    return list_llm_providers(db, provider_types=provider_values)
+    rows = list_llm_providers(db, provider_types=provider_values)
+    return [
+        row
+        for row in rows
+        if not (
+            row.provider == ProviderEnum.google_aistudio.value
+            and _coerce_bool(
+                (row.settings if isinstance(row.settings, dict) else {}).get("vertexai"),
+                False,
+            )
+        )
+    ]
 
 
 def _get_realtime_provider_options(db: Session) -> list[dict[str, str]]:

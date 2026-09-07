@@ -175,6 +175,9 @@ def _impl_aistudio_chat(
             db,
             api_key=byok.get("api_key"),
             api_version=byok.get("api_version"),
+            vertexai=byok.get("vertexai", False),
+            project=byok.get("project"),
+            location=byok.get("location"),
         )
     else:
         from app.llm.provider_groups import resolve_provider_for_request
