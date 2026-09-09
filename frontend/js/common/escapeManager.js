@@ -21,10 +21,6 @@
             return null;
         }
 
-        if (typeof candidate.id === 'string' && handlers.has(candidate.id)) {
-            handlers.delete(candidate.id);
-        }
-
         const handlerId = typeof candidate.id === 'string'
             ? candidate.id
             : `escape-handler-${++sequence}`;
@@ -42,9 +38,6 @@
     };
 
     const unregister = (id) => {
-        if (!id) {
-            return;
-        }
         handlers.delete(id);
     };
 
@@ -68,9 +61,7 @@
             }
 
             event.preventDefault();
-            if (typeof event.stopImmediatePropagation === 'function') {
-                event.stopImmediatePropagation();
-            }
+            event.stopImmediatePropagation();
             event.stopPropagation();
 
             try {
@@ -86,8 +77,8 @@
 
     const api = { register, unregister };
     window.escapeManager = api;
-    window.registerEscapeHandler = (handler) => register(handler);
-    window.unregisterEscapeHandler = (id) => unregister(id);
+    window.registerEscapeHandler = register;
+    window.unregisterEscapeHandler = unregister;
 
     if (Array.isArray(window.__escapeManagerQueue)) {
         window.__escapeManagerQueue.forEach(register);

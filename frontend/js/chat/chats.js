@@ -196,9 +196,7 @@ function scrollChatToBottom() {
         scrollHost.scrollTop = scrollHost.scrollHeight;
     }
     // Update scroll button visibility after scrolling
-    if (typeof updateScrollButtonVisibility === 'function') {
-        requestAnimationFrame(updateScrollButtonVisibility);
-    }
+    requestAnimationFrame(updateScrollButtonVisibility);
 }
 
 function scrollChatToBottomAfterImagesLoad({ focusMessageId = '', isCurrent = null } = {}) {
@@ -329,9 +327,7 @@ function focusChatMessage(messageId, { highlight = true, moveFocus = true } = {}
         }, 1800);
     }
 
-    if (typeof updateScrollButtonVisibility === 'function') {
-        requestAnimationFrame(updateScrollButtonVisibility);
-    }
+    requestAnimationFrame(updateScrollButtonVisibility);
     return true;
 }
 
@@ -436,7 +432,7 @@ function scrollUserMessageToTop(messageId, options = {}) {
         return false;
     }
     const started = window.ChatScrollCoordinator.alignUserMessage(messageId, options);
-    if (started && typeof updateScrollButtonVisibility === 'function') {
+    if (started) {
         setTimeout(updateScrollButtonVisibility, 400);
     }
     return started;
@@ -571,9 +567,7 @@ async function loadChatView(chatId, already_streaming=false, options = {}) {
     }
 
     // Reset scroll state (hide button, remove spacer) when loading any chat
-    if (typeof resetChatScrollState === 'function') {
-        resetChatScrollState();
-    }
+    resetChatScrollState();
 
     const currentChatId = chatContainerEl.getAttribute('data-chat-id');
     const isSwitchingChats = currentChatId && currentChatId !== normalizedChatId;

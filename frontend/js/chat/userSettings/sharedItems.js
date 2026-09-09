@@ -327,11 +327,6 @@
         return capabilities.password || capabilities.expiry || capabilities.share_type || capabilities.rotate_link;
     }
 
-    function itemHasAnyAdvancedState(item) {
-        const capabilities = getCapabilities(item);
-        return capabilities.password || capabilities.expiry || capabilities.share_type || capabilities.rotate_link;
-    }
-
     function getCapabilityBadges(item) {
         const capabilities = getCapabilities(item);
         const badges = [];
@@ -760,11 +755,7 @@
         overlay.inert = true;
         overlay.setAttribute('aria-hidden', 'true');
         if (focusTarget && typeof focusTarget.focus === 'function') {
-            try {
-                focusTarget.focus();
-            } catch (_) {
-                // The originating row may have disappeared after unsharing.
-            }
+            focusTarget.focus();
         }
 
         setTimeout(() => {

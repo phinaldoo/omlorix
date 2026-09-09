@@ -996,19 +996,19 @@ async function completePasskeyLogin2FA(otpType) {
         }
         hide2FAOverlay(overlayId);
     } else if (result.status === 'otp_setup') {
-        if (typeof set2FAContext === 'function') set2FAContext(result);
+        set2FAContext(result);
         if (isTotpProvider(result.provider)) {
             if (result.qrcode && typeof renderQrCode === 'function') {
                 renderQrCode(result.qrcode);
-            } else if (typeof refresh2FASetupCopyState === 'function') {
+            } else {
                 refresh2FASetupCopyState({ secret: result.secret || '', otpauthUri: '' });
             }
-        } else if (typeof refresh2FASetupCopyState === 'function') {
+        } else {
             refresh2FASetupCopyState({ secret: result.secret || '', otpauthUri: '' });
         }
         show2FASetup();
     } else if (result.status === 'otp_required_already_setup') {
-        if (typeof set2FAContext === 'function') set2FAContext(result);
+        set2FAContext(result);
         show2FAVerify();
     } else if (result.status === 'error') {
         notify2FAError(
@@ -1048,19 +1048,19 @@ async function completeSocialLogin2FA(otpType) {
         }
         hide2FAOverlay(overlayId);
     } else if (result.status === 'otp_setup') {
-        if (typeof set2FAContext === 'function') set2FAContext(result);
+        set2FAContext(result);
         if (isTotpProvider(result.provider)) {
             if (result.qrcode && typeof renderQrCode === 'function') {
                 renderQrCode(result.qrcode);
-            } else if (typeof refresh2FASetupCopyState === 'function') {
+            } else {
                 refresh2FASetupCopyState({ secret: result.secret || '', otpauthUri: '' });
             }
-        } else if (typeof refresh2FASetupCopyState === 'function') {
+        } else {
             refresh2FASetupCopyState({ secret: result.secret || '', otpauthUri: '' });
         }
         show2FASetup();
     } else if (result.status === 'otp_required_already_setup') {
-        if (typeof set2FAContext === 'function') set2FAContext(result);
+        set2FAContext(result);
         show2FAVerify();
     } else if (result.status === 'error') {
         notify2FAError(
@@ -1101,19 +1101,19 @@ async function completeEnterpriseSSO2FA(otpType) {
         }
         hide2FAOverlay(overlayId);
     } else if (result.status === 'otp_setup') {
-        if (typeof set2FAContext === 'function') set2FAContext(result);
+        set2FAContext(result);
         if (isTotpProvider(result.provider)) {
             if (result.qrcode && typeof renderQrCode === 'function') {
                 renderQrCode(result.qrcode);
-            } else if (typeof refresh2FASetupCopyState === 'function') {
+            } else {
                 refresh2FASetupCopyState({ secret: result.secret || '', otpauthUri: '' });
             }
-        } else if (typeof refresh2FASetupCopyState === 'function') {
+        } else {
             refresh2FASetupCopyState({ secret: result.secret || '', otpauthUri: '' });
         }
         show2FASetup();
     } else if (result.status === 'otp_required_already_setup') {
-        if (typeof set2FAContext === 'function') set2FAContext(result);
+        set2FAContext(result);
         show2FAVerify();
     } else if (result.status === 'error') {
         notify2FAError(

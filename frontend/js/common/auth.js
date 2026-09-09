@@ -980,9 +980,7 @@ async function authedFetch(input, init = {}) {
         }
 
         if (!authSessionReady) {
-            if (typeof redirectToLogin === 'function') {
-                redirectToLogin();
-            }
+            redirectToLogin();
             if (!shouldSuppressAuthBootstrapErrors() && typeof notifyError === 'function') {
                 notifyError(typeof window.getTranslation === 'function'
                     ? window.getTranslation('auth_missing_session_error', 'Your session is unavailable. Please sign in again.')
@@ -1093,9 +1091,7 @@ async function authedFetch(input, init = {}) {
             }
 
             authSessionReady = false;
-            if (typeof redirectToLogin === 'function') {
-                redirectToLogin();
-            }
+            redirectToLogin();
         }
 
         return response;

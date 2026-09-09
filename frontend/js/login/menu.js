@@ -63,9 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
         focusDelay: 50,
         focusOnOpen: () => themeButtons[0] || languageSelect,
         onOpen: () => {
-            if (typeof getCurrentMode === 'function' && typeof updateActiveThemeButton === 'function') {
-                updateActiveThemeButton(getCurrentMode());
-            }
+            updateActiveThemeButton(getCurrentMode());
         },
     });
 

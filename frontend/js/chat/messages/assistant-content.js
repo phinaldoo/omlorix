@@ -729,9 +729,7 @@ function cancelScheduledStreamingRender() {
 /** Run deferred Markdown enhancements once a response container is stable. */
 function finalizeStreamingMarkdownInContainer(container) {
     if (!container) return;
-    if (typeof flushAssistantStreamingContentInContainer === 'function') {
-        flushAssistantStreamingContentInContainer(container);
-    }
+    flushAssistantStreamingContentInContainer(container);
     cancelScheduledStreamingRender();
     flushPendingRenders();
     container.querySelectorAll([
@@ -741,9 +739,7 @@ function finalizeStreamingMarkdownInContainer(container) {
         const raw = element.getAttribute('data-raw-content') || '';
         renderAssistantMessageContent(element, raw);
     });
-    if (typeof clearAssistantStreamingPresentation === 'function') {
-        clearAssistantStreamingPresentation(container);
-    }
+    clearAssistantStreamingPresentation(container);
 }
 
 /**

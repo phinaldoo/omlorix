@@ -929,46 +929,6 @@
         return true;
     }
 
-    function extractFieldValue(field, control) {
-        switch (field.type) {
-            case 'boolean':
-                return Boolean(control.checked);
-            case 'number': {
-                const raw = control.value.trim();
-                if (!raw) {
-                    return null;
-                }
-                const parsed = Number(raw);
-                if (Number.isNaN(parsed)) {
-                    notifyError(formatT(
-                        'admin_field_must_be_valid_number',
-                        '{field} must be a valid number.',
-                        { field: field.label || field.key },
-                    ));
-                    throw new Error('Invalid number');
-                }
-                return parsed;
-            }
-            case 'string_list': {
-                if (control.dataset.keywordTags !== undefined) {
-                    try {
-                        return JSON.parse(control.dataset.keywordTags || '[]');
-                    } catch (error) {
-                        return [];
-                    }
-                }
-                return control.value
-                    .split('\n')
-                    .map((line) => line.trim())
-                    .filter(Boolean);
-            }
-            case 'select':
-            case 'string':
-            default:
-                return control.value?.trim() ?? '';
-        }
-    }
-
     function setNestedValue(target, segments, value, ensureRoot = false) {
         if (!segments.length) {
             return;

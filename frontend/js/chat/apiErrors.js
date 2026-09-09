@@ -375,8 +375,6 @@ function restoreChatDraftAfterFailedSend(message) {
     if (typeof window.focusChatInput === 'function') {
         window.focusChatInput({ defer: false });
     } else {
-        try {
-            input.focus();
-        } catch (_) {}
+        input.focus();
     }
 }

@@ -77,9 +77,9 @@ function splitScreenInternalEnable(options = {}) {
     ['left', 'right'].forEach((side) => {
         if (!splitScreenInternalGetPanelChatId(side) && !splitScreenInternalHasUnsavedTemporaryPanelConversation(side)) {
             if (side === 'left') {
-                splitScreenInternalState.leftTemporary = splitScreenInternalGetDefaultPanelTemporaryMode();
+                splitScreenInternalState.leftTemporary = splitScreenInternalIsTemporaryModeEnabled();
             } else {
-                splitScreenInternalState.rightTemporary = splitScreenInternalGetDefaultPanelTemporaryMode();
+                splitScreenInternalState.rightTemporary = splitScreenInternalIsTemporaryModeEnabled();
             }
         }
     });
@@ -231,8 +231,8 @@ function splitScreenInternalResetPanels() {
     splitScreenInternalState.rightProjectId = null;
     splitScreenInternalState.leftChatTitle = null;
     splitScreenInternalState.rightChatTitle = null;
-    splitScreenInternalState.leftTemporary = splitScreenInternalGetDefaultPanelTemporaryMode();
-    splitScreenInternalState.rightTemporary = splitScreenInternalGetDefaultPanelTemporaryMode();
+    splitScreenInternalState.leftTemporary = splitScreenInternalIsTemporaryModeEnabled();
+    splitScreenInternalState.rightTemporary = splitScreenInternalIsTemporaryModeEnabled();
     splitScreenInternalState.leftLoadToken += 1;
     splitScreenInternalState.rightLoadToken += 1;
     splitScreenInternalState.leftGenerationId = null;

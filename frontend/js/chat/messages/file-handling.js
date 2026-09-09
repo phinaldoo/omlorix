@@ -180,10 +180,6 @@ function registerGeneratedAssistantFile(fileId, fileData = null, fallbackName = 
     return true;
 }
 
-function attachPreviewToInlineImage(element, file) {
-    attachPreviewToInlineFile(element, file);
-}
-
 function attachPreviewToInlineFile(element, file) {
     if (!element) {
         return;
@@ -640,16 +636,12 @@ function expandLoading(messageId, assistantReasoningCount) {
     headerBtn.appendChild(headerTitleDiv);
     loadingContainer.appendChild(headerBtn);
 
-    try {
-        if (typeof toggleThinking === 'function') {
-            headerBtn.addEventListener('click', () => toggleThinking(headerBtn));
-        } else {
-            headerBtn.addEventListener('click', () => {
-                loadingContainer.classList.toggle('collapsed');
-            });
-        }
-    } catch (_) {
-        // Ignore toggle binding errors
+    if (typeof toggleThinking === 'function') {
+        headerBtn.addEventListener('click', () => toggleThinking(headerBtn));
+    } else {
+        headerBtn.addEventListener('click', () => {
+            loadingContainer.classList.toggle('collapsed');
+        });
     }
 
     return targetIndex;

@@ -336,7 +336,7 @@ function applyFieldErrorDisplay(fieldResults, shouldShowErrors) {
 }
 
 function setFieldAccessibilityState(target, hasError, errorId) {
-    if (!target || typeof target.setAttribute !== 'function') {
+    if (!target) {
         return;
     }
 
@@ -421,7 +421,7 @@ function focusCurrentStepHeading() {
     }
 
     const heading = activeStep.querySelector('.step-title, .splash-title, .complete-title');
-    if (!heading || typeof heading.focus !== 'function') {
+    if (!heading) {
         return;
     }
 

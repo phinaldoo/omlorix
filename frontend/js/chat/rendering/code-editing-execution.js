@@ -159,7 +159,7 @@ function getRunCodeButtonMarkup(isRunning = false) {
         ? '<span class="code-action-btn-spinner" aria-hidden="true"></span>'
         : MARKDOWN_RUN_SVG;
     const { key, fallback } = getRunCodeButtonTextConfig(isRunning);
-    const label = escapeHtml(getCodeBlockActionLabel(key, fallback));
+    const label = escapeHtml(getChatPreviewTranslation(key, fallback));
     return `${iconHtml}<span class="code-action-btn-label" data-i18n="${key}">${label}</span>`;
 }
 
@@ -178,7 +178,7 @@ function setRunCodeButtonState(button, isRunning) {
     button.setAttribute('aria-busy', running ? 'true' : 'false');
     button.setAttribute('aria-disabled', disabled ? 'true' : 'false');
     const { key, fallback } = getRunCodeButtonA11yConfig(running, streamLocked);
-    const title = getCodeBlockActionLabel(key, fallback);
+    const title = getChatPreviewTranslation(key, fallback);
     button.setAttribute('title', title);
     button.setAttribute('aria-label', title);
     button.setAttribute('data-i18n-attr', `aria-label:${key};title:${key}`);
@@ -291,7 +291,7 @@ function createCodeExecutionImagePreview(file) {
     wrapper.appendChild(downloadBtn);
 
     try {
-        attachPreviewToInlineImage?.(wrapper, normalizedFile);
+        attachPreviewToInlineFile?.(wrapper, normalizedFile);
     } catch (_) {}
 
     if (typeof loadAssistantImageWithAuth === 'function') {

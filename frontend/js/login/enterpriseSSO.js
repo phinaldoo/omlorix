@@ -436,33 +436,4 @@
         handleSSOCallback,
     };
 
-    function renderQrCodeWhenVisible(uri, retries = 5) {
-        const container = document.getElementById('tfaQrCode');
-        if (!container) return;
-        
-        const isReady = container.offsetParent !== null && container.clientWidth > 0 && container.clientHeight > 0;
-        if (!isReady && retries > 0) {
-            requestAnimationFrame(() => renderQrCodeWhenVisible(uri, retries - 1));
-            return;
-        }
-        renderQrCode(uri);
-    }
-
-    function safeDecodeQrPayload(value) {
-        if (!value) return '';
-        
-        const hasEncodedBytes = (text) => /%[0-9a-fA-F]{2}/.test(text);
-        let attempts = 0;
-        let current = value;
-        
-        while (attempts < 5 && hasEncodedBytes(current)) {
-            try {
-                current = decodeURIComponent(current);
-            } catch (err) {
-                return '';
-            }
-            attempts += 1;
-        }
-        return current;
-    }
 })();

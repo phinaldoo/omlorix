@@ -563,7 +563,7 @@
                 return;
             }
             const control = state.controls.get(key);
-            if (!(control instanceof HTMLElement) || typeof control.closest !== 'function') {
+            if (!(control instanceof HTMLElement)) {
                 return;
             }
             const row = control.closest('.settings-row');

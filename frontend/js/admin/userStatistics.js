@@ -805,6 +805,8 @@
         } catch (err) {
             console.error('Failed to load detail overview:', err);
         }
+        updateTokenChart();
+        updateSuccessErrorChart();
     }
 
     async function loadTimelineData() {
@@ -1340,24 +1342,6 @@
             </tr>
         `).join('');
     }
-
-    // Also update token and success/error charts when overview loads
-    function updateAllCharts() {
-        updateTimelineChart();
-        updateTokenChart();
-        updateProviderChart();
-        updateCategoryChart();
-        updateSuccessErrorChart();
-        updateToolChart();
-    }
-
-    // Extend loadOverviewData to also update charts after KPI data loads
-    const _baseLoadOverviewData = loadOverviewData;
-    loadOverviewData = async function() {
-        await _baseLoadOverviewData();
-        updateTokenChart();
-        updateSuccessErrorChart();
-    };
 
     // Chart helpers
     function destroyChart(name) {

@@ -399,11 +399,7 @@
         // teardown path.
         iframe.removeAttribute('srcdoc');
         iframe.removeAttribute('src');
-        try {
-            iframe.src = 'about:blank';
-        } catch (_) {
-            // Some test doubles and older browsers expose a read-only iframe src.
-        }
+        iframe.src = 'about:blank';
     }
 
     function _setIframeDocumentUrl(entry, frameUrl) {

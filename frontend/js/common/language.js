@@ -157,13 +157,9 @@
   }
 
   function getBuildMarker() {
-    try {
-      const meta = document.querySelector(`meta[name="${BUILD_MARKER_META_NAME}"]`);
-      const metaValue = meta ? meta.getAttribute("content") : "";
-      if (metaValue) return metaValue;
-    } catch (e) {
-      // Ignore DOM lookup issues and fall back to URL params.
-    }
+    const meta = document.querySelector(`meta[name="${BUILD_MARKER_META_NAME}"]`);
+    const metaValue = meta ? meta.getAttribute("content") : "";
+    if (metaValue) return metaValue;
 
     try {
       const currentUrl = new URL(window.location.href);

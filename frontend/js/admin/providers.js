@@ -633,7 +633,7 @@ function populateProviderFilterOptions(providers = []) {
     const previousValue = providerFilterSelect.value || 'all';
     const providerTypes = [...new Set(providers.map((provider) => provider?.provider).filter(Boolean))].sort();
     const options = ['all', ...providerTypes]
-        .map((type) => `<option value="${type}">${type === 'all' ? t('providers_filter_all', 'All providers') : formatProviderType(type)}</option>`)
+        .map((type) => `<option value="${type}">${type === 'all' ? t('providers_filter_all', 'All providers') : resolveProviderLabel(type)}</option>`)
         .join('');
     providerFilterSelect.innerHTML = options;
     providerFilterSelect.value = providerTypes.includes(previousValue) ? previousValue : 'all';
@@ -781,7 +781,7 @@ function renderProvidersList(providers = [], options = {}) {
         }
 
         const providerKey = (provider.provider || '').toLowerCase();
-        const providerLabel = formatProviderType(provider.provider);
+        const providerLabel = resolveProviderLabel(provider.provider);
 
         const iconCell = document.createElement('div');
         iconCell.className = 'provider-icon';
@@ -875,14 +875,6 @@ function renderProvidersList(providers = [], options = {}) {
 
     listContainer.appendChild(fragment);
 }
-
-
-function formatProviderType(providerKey = '') {
-    return resolveProviderLabel(providerKey);
-}
-
-
-
 
 
 function setupProviderActions() {

@@ -710,15 +710,10 @@
     }
 
     const {
-        updateShareButtonState, requestShareApi, setTranslatedText, toIso,
-        toLocalDateTimeValue, formatShareTimestamp, isShareExpired, getDefaultShareExpiryIso,
-        getRequiredShareExpiryIso, getShareLinkById, isVisibleElement, getFocusableElements,
-        trapFocus, setShareBusy, showShareNotice, showShareControlError,
-        hideShareControlError, showSharePasswordError, hideSharePasswordError, showShareExpiryError,
-        hideShareExpiryError, runShareWithBusy, renderShareLinkCard, renderShareLinks,
-        loadShareLinks, refreshExistingShareLinksForButton, applyShareMode, resetShareFormForCreate,
-        populateShareFormFromLink, enterShareCreateMode, enterShareEditMode, enterShareListMode,
-        validateShareForm, createShareLink, copyShareUrl, updateShareLink,
+        updateShareButtonState, toLocalDateTimeValue, getDefaultShareExpiryIso, getShareLinkById,
+        trapFocus, showSharePasswordError, hideSharePasswordError, hideShareExpiryError,
+        runShareWithBusy, refreshExistingShareLinksForButton, applyShareMode, enterShareCreateMode,
+        enterShareEditMode, enterShareListMode, createShareLink, copyShareUrl, updateShareLink,
         deleteShareLink, openShareModal, openShareDialogForFile, closeShareModal,
     } = canvasWidgetModules.sharing.create({
         escapeHtml, formatT, isShareableFileContext, notifyShareError,
@@ -752,18 +747,15 @@
         set previewVisible(value) { previewVisible = value; },
     });
     const {
-        clearPreviewRenderTimer, clearAutoSaveTimer, destroyActiveMarkdownEditor, destroyActiveSpreadsheetEditor,
-        schedulePreviewRender, getDraftEditState, syncDraftEditStateFromServer, getRenderableContentForDraft,
-        isDraftPersistable, isDraftEditorInteractive, setButtonDisabledState, updateEditorActionButtons,
+        clearPreviewRenderTimer, destroyActiveMarkdownEditor, destroyActiveSpreadsheetEditor,
+        schedulePreviewRender, getDraftEditState, syncDraftEditStateFromServer,
+        getRenderableContentForDraft, isDraftEditorInteractive, updateEditorActionButtons,
         updateDraftEditStateFromInput, getPreviewStatusText, getPreviewStatusKind, buildFileDownloadUrl,
-        buildCanvasAssetUrl, getApiErrorMessage, renderLatexPdfSource, saveCanvasFileContent,
-        renderSavedLatexDraft, migrateDraftClientState, queueAutoSaveForDraft, saveSpreadsheetFileContent,
-        performSpreadsheetDraftSave, performActiveDraftSave, saveActiveDraftEdits, revertActiveDraftEdits,
-        getScrollState, resetScrollState, getMarkdownEditorScrollElement, getMarkdownSourceScrollElement,
-        captureScrollState, getStoredMarkdownScrollTop, rememberCanvasScrollForToolCall, restoreCanvasScrollForToolEdit,
-        isDraftStreaming, shouldAutoScrollDraft, isElementVisible, runWithProgrammaticScroll,
-        attachScrollListeners, handlePreviewTrackPointerDown, handleUserGestureEvent, handleUserScrollEvent,
-        applyScrollState, restoreScrollAfterMarkdownStream,
+        buildCanvasAssetUrl, renderSavedLatexDraft, migrateDraftClientState, queueAutoSaveForDraft,
+        saveActiveDraftEdits, revertActiveDraftEdits, getScrollState, resetScrollState,
+        captureScrollState, getStoredMarkdownScrollTop, rememberCanvasScrollForToolCall,
+        restoreCanvasScrollForToolEdit, isDraftStreaming, runWithProgrammaticScroll,
+        attachScrollListeners, applyScrollState, restoreScrollAfterMarkdownStream,
     } = canvasWidgetModules.editorPersistence.create({
         AUTO_SAVE_DELAY_MS, SPREADSHEET_CONTENT_TYPES, autoSaveTimers, canvasFileIds,
         clearHtmlExternalResourcePromptTimer: (...args) => clearHtmlExternalResourcePromptTimer(...args),
@@ -799,12 +791,7 @@
         set pendingCanvasToolScrollSnapshot(value) { pendingCanvasToolScrollSnapshot = value; },
     });
     const {
-        parseJsonSafe,
-        extractCanvasArgs,
-        readJsonStringField,
-        extractCanvasArgsFromBuffer,
-        hasCanvasContentArgument,
-        classifyCanvasResultKind,
+        parseJsonSafe, extractCanvasArgs, extractCanvasArgsFromBuffer, classifyCanvasResultKind,
     } = canvasWidgetModules.arguments.create({
         normalizeContentType,
         hasExplicitCanvasContentType,
@@ -994,27 +981,23 @@
     }
 
     /* ── CSV Parsing and Rendering ── */
-    const { parseCSV, renderCSVInto } = canvasWidgetModules.csv;
+    const { renderCSVInto } = canvasWidgetModules.csv;
     delete globalThis.__omlorixCanvasWidgetModules;
 
     const {
-        renderMarkdownInto, renderMermaidPreviewInto, getHtmlPreviewPermissions, getHtmlExternalResources,
-        clearHtmlExternalResourcePromptTimer, closeHtmlExternalResourceModal, openHtmlExternalResourceModal, scheduleHtmlExternalResourcePrompt,
-        resolveHtmlExternalResourceConsent, setHtmlCapabilityToggleState, getHtmlSettingsMenuItems, setHtmlSettingsMenuOpen,
-        updateHtmlCapabilityControls, renderHTMLPreviewInto, reloadHtmlPreview, getIframeFragmentHref,
-        handleIframeFragmentNavigation, bindIframePreviewNavigation, renderContentPreview, getCanvasCodeLineCount,
-        syncCanvasCodeGutter, insertCanvasCodeText, createLatexPreviewNotice, createCanvasFileLoadErrorView,
-        renderLatexPreviewInto, createEditableCanvasView, refreshActiveMarkdownDraftAfterSave, refreshActiveHtmlDraftAfterSave,
-        renderStreamingMarkdownHtml, reconcileStreamingMarkdown, syncStreamingMarkdownChrome, renderStreamingMarkdownDraft,
-        clearMarkdownStreamingRenderSchedule, flushMarkdownStreamingRender, scheduleMarkdownStreamingRender, renderSpreadsheetDraft,
-        renderDraft, clearHtmlRenderTimer, scheduleHtmlStreamingRender, resetSelectablePdfPreviewRendering,
-        renderSelectablePdfPreviewInto, HTML_PREVIEW_SRCDOC_URL,
+        getHtmlPreviewPermissions, getHtmlExternalResources, clearHtmlExternalResourcePromptTimer,
+        closeHtmlExternalResourceModal, resolveHtmlExternalResourceConsent, getHtmlSettingsMenuItems,
+        setHtmlSettingsMenuOpen, updateHtmlCapabilityControls, renderHTMLPreviewInto, reloadHtmlPreview,
+        refreshActiveMarkdownDraftAfterSave, refreshActiveHtmlDraftAfterSave,
+        clearMarkdownStreamingRenderSchedule, scheduleMarkdownStreamingRender, renderDraft,
+        clearHtmlRenderTimer, scheduleHtmlStreamingRender, resetSelectablePdfPreviewRendering,
+        HTML_PREVIEW_SRCDOC_URL,
     } = canvasWidgetModules.rendering.create({
         MARKDOWN_STREAM_RENDER_INTERVAL_MS, RENDER_DEBOUNCE_MS, SPREADSHEET_CONTENT_TYPES,
         addMarkedSelectionAsReference, applyScrollState,
         attachScrollListeners, buildCopyContextLabel, buildFileDownloadUrl, canvasWidgetModules,
         captureScrollState, clearPreviewRenderTimer, destroyActiveMarkdownEditor, destroyActiveSpreadsheetEditor,
-        draftEditStateMap, draftMap, formatT, getDraftEditState, getPreviewHeaderIcon,
+        draftMap, formatT, getDraftEditState, getPreviewHeaderIcon,
         getPreviewStatusKind, getPreviewStatusText, getRenderableContentForDraft, getScrollState,
         getStoredMarkdownScrollTop, getTypeLabel, hasAdjacentChatComposer, hasCurrentLatexPdf,
         hideReferenceToolbar, htmlExternalContentBtn,
@@ -1543,22 +1526,13 @@
     }
 
     const {
-        CANVAS_FILE_PREVIEW_MAX_BYTES,
-        CanvasPreviewTooLargeError,
-        getCanvasFilePreviewMaxBytes,
-        loadContentFromFile,
-        loadSpreadsheetFromFile,
-        loadCanvasFileRecord,
-        getCanvasFileLoadFailureStatus,
+        CanvasPreviewTooLargeError, getCanvasFilePreviewMaxBytes, loadContentFromFile,
+        loadSpreadsheetFromFile, loadCanvasFileRecord, getCanvasFileLoadFailureStatus,
         detectContentTypeFromFileName,
     } = canvasWidgetModules.fileLoading.create({ t, formatT, hasHtmlFileExtension });
     const {
-        replaceOmlorixFileUrls,
-        normalizeCanvasHtmlSource,
-        prepareInteractiveHtmlPreviewSource,
-        rewriteCanvasHtmlPreviewHtml,
-        withIframeSecurityGuard,
-        renderHtmlCanvasPngBlob,
+        replaceOmlorixFileUrls, normalizeCanvasHtmlSource, prepareInteractiveHtmlPreviewSource,
+        withIframeSecurityGuard, renderHtmlCanvasPngBlob,
     } = canvasWidgetModules.htmlDocuments.create({
         buildCanvasAssetUrl,
         getActiveDraft: () => ({
@@ -1957,7 +1931,7 @@
             fileName: resolveDisplayCanvasFileName(extracted.fileName, contentType),
             status: formatT('canvas_status_writing_type', 'Writing {type}…', { type: typeLabel }),
             statusKind: 'generating',
-            allowHtmlPreview: contentType === 'html' ? false : true,
+            allowHtmlPreview: contentType === 'html',
             hasExplicitContentType: hasExplicitCanvasContentType(argsFromDescriptor),
             resultKind,
         }, { activate: resultKind !== 'view' && hasRenderableInitialArgs });
@@ -2046,7 +2020,7 @@
                 fileName: resolveDisplayCanvasFileName(extracted.fileName || current.fileName, contentType),
                 status: formatT('canvas_streaming_type', 'Streaming {type}...', { type: getContentLabel(contentType) }),
                 statusKind: 'generating',
-                allowHtmlPreview: contentType === 'html' ? false : true,
+                allowHtmlPreview: contentType === 'html',
                 hasExplicitContentType,
                 resultKind,
             }, { activate: false });
@@ -2070,7 +2044,7 @@
                 fileName: resolveDisplayCanvasFileName(streamingExtracted.fileName || current.fileName, contentType),
                 status: formatT('canvas_streaming_type', 'Streaming {type}...', { type: getContentLabel(contentType) }),
                 statusKind: 'generating',
-                allowHtmlPreview: contentType === 'html' ? false : true,
+                allowHtmlPreview: contentType === 'html',
                 hasExplicitContentType,
                 resultKind,
             }, { activate: false });

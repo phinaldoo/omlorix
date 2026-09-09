@@ -61,16 +61,6 @@
         ];
     }
 
-    function fieldLabel(fieldId) {
-        const labels = {
-            mcpField_name: t('workspace_connections_mcp_field_name', 'Server name'),
-            mcpField_url: t('workspace_connections_mcp_field_url', 'Server URL'),
-            mcpField_headers: t('workspace_connections_mcp_field_headers', 'Headers'),
-            mcpField_timeout_seconds: t('workspace_connections_mcp_field_timeout', 'Timeout'),
-        };
-        return labels[fieldId] || fieldId;
-    }
-
     function getRoot() {
         return document.getElementById('connectionsPersonalMcpRoot');
     }
@@ -118,15 +108,6 @@
         };
     }
 
-    function parseJsonInput(raw, label, fallback = {}) {
-        if (!raw || !String(raw).trim()) return fallback;
-        try {
-            return JSON.parse(raw);
-        } catch (_) {
-            throw new Error(tf('workspace_connections_mcp_json_valid_error', '{label} must be valid JSON.', { label }));
-        }
-    }
-
     async function fetchJson(url, options = {}) {
         const response = await window.authedFetch(url, options);
         if (!response.ok) {
@@ -143,11 +124,6 @@
      */
     function requestActiveModelSettingsRefresh() {
         window.dispatchEvent?.(new CustomEvent('modelSettings:refreshRequested'));
-    }
-
-    function formatTransport(value) {
-        const match = getTransportOptions().find((option) => option.value === value);
-        return match ? match.label : String(value || t('workspace_connections_mcp_transport_unknown', 'Unknown transport'));
     }
 
     function currentServer() {

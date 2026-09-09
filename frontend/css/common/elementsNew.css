@@ -5,6 +5,7 @@
     position: relative;
     gap: 8px;
     height: 36px;
+    min-width: 36px;
     padding: 8px;
     border-radius: 8px;
     color: var(--text-color);

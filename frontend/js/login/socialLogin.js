@@ -223,7 +223,7 @@
             if (typeof show2FASetup === 'function') {
                 show2FASetup();
             }
-            if (result.qrcode && typeof renderQrCodeWhenVisible === 'function') {
+            if (result.qrcode) {
                 const decodedQr = safeDecodeQrPayload(result.qrcode);
                 if (decodedQr) {
                     renderQrCodeWhenVisible(decodedQr);

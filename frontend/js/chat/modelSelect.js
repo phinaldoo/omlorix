@@ -1374,7 +1374,7 @@ if (modelSelectToggleBtn) {
 function setModelSelectLeaderboardAccess(hasAccess) {
     const footer = document.getElementById('modelSelectLeaderboardFooter');
     if (!footer) return;
-    footer.hidden = !Boolean(hasAccess);
+    footer.hidden = !hasAccess;
 }
 
 window.setModelSelectLeaderboardAccess = setModelSelectLeaderboardAccess;

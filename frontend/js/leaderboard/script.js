@@ -249,10 +249,6 @@
             .replace(/\b\w/g, c => c.toUpperCase());
     }
 
-    function formatToolName(tool) {
-        return formatTitleCase(tool);
-    }
-
     function clearTooltips() {
         ['leaderboard-capability', 'leaderboard-training', 'tool-category'].forEach(origin => {
             document.querySelectorAll(`.tooltip[data-tooltip-origin="${origin}"]`).forEach(el => el.remove());
@@ -355,7 +351,7 @@
                     <div class="tools-tooltip-section-title">${escapeHtml(uncategorizedTitle)}</div>
                     <div class="tools-tooltip-uncategorized">
                         ${uncategorized.map(tool => {
-                            const display = formatToolName(tool);
+                            const display = formatTitleCase(tool);
                             return `<span class="tools-tooltip-tool" title="${escapeHtml(tool)}">${escapeHtml(display)}</span>`;
                         }).join('')}
                     </div>

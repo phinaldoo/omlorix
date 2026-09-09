@@ -186,7 +186,7 @@
 
     function setDownloadBusy(options = {}) {
         const busy = Boolean(options.busy);
-        const disabled = busy || !Boolean(options.enabled);
+        const disabled = busy || !options.enabled;
         const button = options.button;
 
         setElementDisabled(button, disabled, {

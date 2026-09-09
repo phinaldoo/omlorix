@@ -282,6 +282,6 @@
     };
 
     window.unsavedChangesManager = api;
-    window.registerUnsavedChangesHandler = (handler) => register(handler);
-    window.unregisterUnsavedChangesHandler = (id) => unregister(id);
+    window.registerUnsavedChangesHandler = register;
+    window.unregisterUnsavedChangesHandler = unregister;
 })();

@@ -687,21 +687,14 @@ function setChatSendTooltipEnabled(enabled) {
 
 function getChatI18nString(key, fallback) {
   if (typeof window.getTranslation === 'function') {
-    try {
-      const value = window.getTranslation(key, fallback);
-      if (typeof value === 'string' && value.trim().length) {
-        return value;
-      }
-    } catch (_) {}
+    return window.getTranslation(key, fallback);
   }
   return fallback;
 }
 
 function formatChatI18nString(key, fallback, vars = {}) {
   if (typeof window.formatTranslation === 'function') {
-    try {
-      return window.formatTranslation(key, fallback, vars);
-    } catch (_) {}
+    return window.formatTranslation(key, fallback, vars);
   }
   return String(getChatI18nString(key, fallback)).replace(/\{(\w+)\}/g, (_, token) => {
     const value = vars[token];
@@ -726,9 +719,7 @@ function setSendButtonRequestingCancel(enabled) {
   if (!sendButton) {
     return;
   }
-  try {
-    sendButton.classList.toggle('requesting-cancel', Boolean(enabled));
-  } catch (_) {}
+  sendButton.classList.toggle('requesting-cancel', Boolean(enabled));
 }
 
 function applyChatStopButtonMode({ isGeneratingNow = isCurrentSendContextGenerating(), hasQueueableInput = hasQueueableChatContent() } = {}) {
@@ -759,9 +750,7 @@ function applyChatStopButtonMode({ isGeneratingNow = isCurrentSendContextGenerat
 
 function formatChatTranscriptionErrorMessage(payload, fallbackMessage, statusCode) {
   if (typeof omlorixFormatTranscriptionErrorMessage === 'function') {
-    try {
-      return omlorixFormatTranscriptionErrorMessage(payload, fallbackMessage, statusCode);
-    } catch (_) {}
+    return omlorixFormatTranscriptionErrorMessage(payload, fallbackMessage, statusCode);
   }
   const normalizedStatus = Number(statusCode);
   if (Number.isFinite(normalizedStatus) && normalizedStatus > 0) {
@@ -964,9 +953,7 @@ function applyChatBoxFeatureVisibility() {
     callButton.dataset.featureEnabled = showCallInput ? 'true' : 'false';
   }
 
-  if (typeof toggleInputButtons === 'function') {
-    toggleInputButtons();
-  }
+  toggleInputButtons();
   document.querySelectorAll('.js-chat-files-menu').forEach(updateChatFilesMenuElementVisibility);
 }
 
@@ -1264,9 +1251,7 @@ function ensureUploadUI(element) {
 
 function teardownUploadUI(element) {
   if (!element || !element.__uploadOverlay) return;
-  try {
-    element.__uploadOverlay.remove();
-  } catch (_) { /* noop */ }
+  element.__uploadOverlay.remove();
   element.__uploadOverlay = null;
   element.__uploadFill = null;
   delete element.dataset.uploading;
@@ -1976,11 +1961,9 @@ window.startGenerationUI = function startGenerationUI() {
   callButton.style.display = 'none';
   sendButton.style.display = 'flex';
   // Ensure it's clickable and on top
-  try {
-    sendButton.disabled = false;
-    sendButton.style.pointerEvents = 'auto';
-    sendButton.style.zIndex = '1000';
-  } catch (_) {}
+  sendButton.disabled = false;
+  sendButton.style.pointerEvents = 'auto';
+  sendButton.style.zIndex = '1000';
   applySendButtonMode();
 };
 
@@ -1990,10 +1973,8 @@ window.endGenerationUI = function endGenerationUI() {
   resetDoubleEnterTimer();
   window.chatWakeLock?.release?.('generation');
   if (!sendButton || !callButton) return;
-  try {
-    sendButton.style.pointerEvents = '';
-    sendButton.style.zIndex = '';
-  } catch (_) { /* no-op */ }
+  sendButton.style.pointerEvents = '';
+  sendButton.style.zIndex = '';
   // Restore normal toggle behavior based on input
   toggleInputButtons();
 };

@@ -646,10 +646,6 @@
         renderRoot();
     }
 
-    function getAdminModels() {
-        return Array.isArray(state.adminModels) ? state.adminModels.slice() : [];
-    }
-
     function getAllSelectableModels(adminModels) {
         const normalizedAdmin = (Array.isArray(adminModels) ? adminModels : []).map((model) => ({
             ...model,

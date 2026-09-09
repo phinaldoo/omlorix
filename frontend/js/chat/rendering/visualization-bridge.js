@@ -411,12 +411,8 @@ function getChatPreviewTranslation(key, fallback) {
     return fallback;
 }
 
-function getCodeBlockActionLabel(key, fallback) {
-    return getChatPreviewTranslation(key, fallback);
-}
-
 function getCodeBlockActionA11yAttrs(key, fallback) {
-    const label = escapeHtml(getCodeBlockActionLabel(key, fallback));
+    const label = escapeHtml(getChatPreviewTranslation(key, fallback));
     return `title="${label}" aria-label="${label}" data-i18n-attr="aria-label:${key};title:${key}"`;
 }
 
@@ -424,7 +420,7 @@ function setCodeBlockActionButtonLabel(button, key, fallback) {
     if (!(button instanceof Element)) {
         return;
     }
-    const label = getCodeBlockActionLabel(key, fallback);
+    const label = getChatPreviewTranslation(key, fallback);
     button.title = label;
     button.setAttribute('aria-label', label);
     button.setAttribute('data-i18n-attr', `aria-label:${key};title:${key}`);
@@ -595,7 +591,7 @@ function syncVegaExternalResourceControl(wrapper, source = '', knownSources = nu
         ? 'code_block_vega_external_resources_revoke'
         : 'code_block_vega_external_resources_review';
     const fallback = enabled ? 'Block external connections' : 'Review external connections';
-    const label = getCodeBlockActionLabel(key, fallback);
+    const label = getChatPreviewTranslation(key, fallback);
 
     button.hidden = !visible;
     button.setAttribute('aria-hidden', visible ? 'false' : 'true');

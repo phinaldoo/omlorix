@@ -919,7 +919,7 @@
 
         try {
             const response = await window.rateLimitsApi.updateRateLimit(rateLimit.id, {
-                is_active: !Boolean(rateLimit.is_active),
+                is_active: !rateLimit.is_active,
             });
             const conflicts = Array.isArray(response?.conflicts) ? response.conflicts : [];
             if (conflicts.length) {

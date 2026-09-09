@@ -908,14 +908,8 @@ if (chatInput) {
     const clipboardFiles = Array.from(event.clipboardData.files || []).filter((file) => file && file.size > 0);
     if (clipboardFiles.length) {
       event.preventDefault();
-      try {
-        if (typeof event.stopPropagation === 'function') {
-          event.stopPropagation();
-        }
-        if (typeof event.stopImmediatePropagation === 'function') {
-          event.stopImmediatePropagation();
-        }
-      } catch (_) {}
+      event.stopPropagation();
+      event.stopImmediatePropagation();
       if (typeof window.handleChatFileSelection === 'function') {
         try {
           const result = window.handleChatFileSelection(clipboardFiles);

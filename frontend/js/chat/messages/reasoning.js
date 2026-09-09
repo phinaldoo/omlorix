@@ -171,16 +171,12 @@ function appendAssistantReasoning(messageId, reasoning, last_appended_message_ty
         if (chatAreaContainer && assistantMessageContainer && !assistantMessageContainer.parentElement) {
             chatAreaContainer.appendChild(assistantMessageContainer);
         }
-        try {
-            if (typeof toggleThinking === 'function') {
-                headerBtn.addEventListener('click', () => toggleThinking(headerBtn));
-            } else {
-                headerBtn.addEventListener('click', () => {
-                    thinkingContainer.classList.toggle('collapsed');
-                });
-            }
-        } catch (_) {
-            // No-op if thinking.js not available
+        if (typeof toggleThinking === 'function') {
+            headerBtn.addEventListener('click', () => toggleThinking(headerBtn));
+        } else {
+            headerBtn.addEventListener('click', () => {
+                thinkingContainer.classList.toggle('collapsed');
+            });
         }
         if (parsedReasoning && parsedReasoning.title) {
             setAssistantThinkingHeaderTitle(thinkingContainer, parsedReasoning.title);

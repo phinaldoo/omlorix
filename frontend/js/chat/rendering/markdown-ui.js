@@ -391,7 +391,7 @@ function renderMarkdownContent(element, content) {
             runEnhancer(() => renderMermaidBlocks(element), 'renderMermaidBlocks');
             runEnhancer(() => enhanceMarkdownTaskLists(element), 'enhanceMarkdownTaskLists');
             runEnhancer(() => {
-                if (typeof requestAnimationFrame === 'function' && typeof updateVisibleCodeBlockHeights === 'function') {
+                if (typeof requestAnimationFrame === 'function') {
                     requestAnimationFrame(() => {
                         try {
                             updateVisibleCodeBlockHeights(element);
@@ -1266,7 +1266,7 @@ function downloadCodeSnippet(content, filename, button) {
             const rect = button.getBoundingClientRect();
             const x = rect.left + window.scrollX + rect.width / 2;
             const y = rect.top + window.scrollY - 12;
-            showTooltip(getCodeBlockActionLabel('code_block_downloaded_code', 'Code downloaded'), x, y);
+            showTooltip(getChatPreviewTranslation('code_block_downloaded_code', 'Code downloaded'), x, y);
         }
     } catch (error) {
         console.error('Download failed:', error);

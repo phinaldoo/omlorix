@@ -14,22 +14,10 @@
       : fallback;
   }
 
-  function getPasswordRequirementUtils() {
-    return window.passwordRequirementUtils || {};
-  }
-
-  function getPasswordRequirementIcon(name) {
-    // Resolve icons when they are rendered instead of caching them during
-    // module evaluation. The login page loads the shared icon bundle first,
-    // while this late lookup also keeps the component resilient if script
-    // loading changes in the future.
-    return window.Icons?.[name] || '';
-  }
-
   function setChecklistIcon(iconWrapper, iconName, stateClassName) {
     if (!iconWrapper) return;
 
-    iconWrapper.innerHTML = getPasswordRequirementIcon(iconName);
+    iconWrapper.innerHTML = window.Icons?.[iconName] || '';
     const svg = iconWrapper.querySelector('svg');
     if (!svg) return;
 
@@ -50,42 +38,15 @@
 
   function renderRequirementsView(requirements) {
     if (!checklistEl) return;
-    const utils = getPasswordRequirementUtils();
-    if (typeof utils.renderChecklist === 'function') {
-      utils.renderChecklist({
-        checklistEl,
-        requirements,
-        wrapperEl: requirementsEl,
-        itemClassName: 'pw-item',
-        textClassName: 'pw-text',
-        createIconElement: createChecklistIcon,
-        translateFn: translate,
-      });
-      return;
-    }
-
-    checklistEl.innerHTML = '';
-    const visibleItems = typeof utils.getVisibleItems === 'function'
-      ? utils.getVisibleItems(requirements, translate)
-      : [];
-
-    visibleItems.forEach(({ key, label }) => {
-      const item = document.createElement('div');
-      item.className = 'pw-item';
-      item.dataset.key = key;
-      item.appendChild(createChecklistIcon());
-
-      const text = document.createElement('span');
-      text.className = 'pw-text';
-      text.textContent = label;
-
-      item.appendChild(text);
-      checklistEl.appendChild(item);
+    window.passwordRequirementUtils.renderChecklist({
+      checklistEl,
+      requirements,
+      wrapperEl: requirementsEl,
+      itemClassName: 'pw-item',
+      textClassName: 'pw-text',
+      createIconElement: createChecklistIcon,
+      translateFn: translate,
     });
-
-    if (requirementsEl) {
-      requirementsEl.style.display = visibleItems.length === 0 ? 'none' : '';
-    }
   }
 
   function toggleInputGroupElevation(isActive) {
@@ -98,21 +59,7 @@
 
   function countChars(str) {
     const specialRaw = req?.special_characters ?? '';
-    const utils = getPasswordRequirementUtils();
-    if (utils && typeof utils.countChars === 'function') {
-      return utils.countChars(str, specialRaw, defaultSpecialCharacters);
-    }
-
-    // ASCII-only fallback (keeps page functional if common/passwordRequirements.js is not loaded)
-    let upper = 0, lower = 0, num = 0, special = 0;
-    const specialCharacters = new Set(Array.from(specialRaw || defaultSpecialCharacters));
-    for (const ch of str) {
-      if (specialCharacters.has(ch)) special++;
-      else if (/[A-Z]/.test(ch)) upper++;
-      else if (/[a-z]/.test(ch)) lower++;
-      else if (/[0-9]/.test(ch)) num++;
-    }
-    return { upper, lower, num, special, len: Array.from(str).length };
+    return window.passwordRequirementUtils.countChars(str, specialRaw, defaultSpecialCharacters);
   }
 
   function updateChecklist() {
@@ -167,10 +114,6 @@
     const confirmVal = confirmEl.value || '';
     if (!confirmVal) return false;
     return newVal === confirmVal;
-  }
-
-  function updateSubmitState() {
-    updateChecklist();
   }
 
   // Tooltip positioning & visibility
@@ -245,7 +188,7 @@
         special_characters: typeof data?.special_characters === 'string' ? data.special_characters : defaultSpecialCharacters,
       };
       renderRequirementsView(req);
-      updateSubmitState();
+      updateChecklist();
     } catch (e) {
       console.warn('Unable to load password requirements for signup', e);
     }
@@ -253,20 +196,16 @@
 
   function bindEvents() {
     if (passwordEl) {
-      passwordEl.addEventListener('input', () => updateSubmitState());
+      passwordEl.addEventListener('input', updateChecklist);
       // The requirements tooltip is intentionally controlled by the adjacent
       // info button. Opening it on input focus makes a pointer click briefly
       // show the tooltip before the outside-click handler closes it again.
-      passwordEl.addEventListener('blur', () => {
-        hideTooltip();
-      });
+      passwordEl.addEventListener('blur', hideTooltip);
     }
     
     if (confirmEl) {
-      confirmEl.addEventListener('input', () => updateSubmitState());
-      confirmEl.addEventListener('focus', () => {
-        hideTooltip();
-      });
+      confirmEl.addEventListener('input', updateChecklist);
+      confirmEl.addEventListener('focus', hideTooltip);
     }
 
     // Info button interactions
@@ -283,7 +222,7 @@
       });
 
       // Hover for desktop
-      infoBtn.addEventListener('mouseenter', () => showTooltip());
+      infoBtn.addEventListener('mouseenter', showTooltip);
       infoBtn.addEventListener('mouseleave', (e) => {
         // Don't hide if moving to tooltip
         const related = e.relatedTarget;
@@ -308,7 +247,7 @@
       tooltipEl.addEventListener('mouseenter', () => {
         if (tooltipVisible) showTooltip();
       });
-      tooltipEl.addEventListener('mouseleave', () => hideTooltip());
+      tooltipEl.addEventListener('mouseleave', hideTooltip);
     }
 
     // Close tooltip when clicking outside
@@ -330,7 +269,7 @@
     document.addEventListener('i18n:updated', () => {
       if (!req) return;
       renderRequirementsView(req);
-      updateSubmitState();
+      updateChecklist();
     });
 
     // Form submission validation
@@ -360,19 +299,17 @@
 
     // Expose global API
     window.signupPw = {
-      checkAndDisplay(display) {
+      checkAndDisplay() {
         const reqOk = updateChecklist();
         const matchOk = passwordsMatch();
-        return !!reqOk && !!matchOk;
+        return reqOk && matchOk;
       },
-      meetsRequirements() {
-        return !!updateChecklist();
-      }
+      meetsRequirements: updateChecklist,
     };
 
     bindEvents();
     fetchRequirements();
-    updateSubmitState();
+    updateChecklist();
   }
 
   if (document.readyState === 'loading') {

@@ -630,7 +630,7 @@ function createAssistantInlineImage(fileId, fileData, onError) {
     imageWrapper.appendChild(img);
     imageWrapper.appendChild(downloadBtn);
 
-    attachPreviewToInlineImage(imageWrapper, fileData);
+    attachPreviewToInlineFile(imageWrapper, fileData);
 
     // Fetch image data with auth headers to avoid 401s
     loadAssistantImageWithAuth(img, fileId);

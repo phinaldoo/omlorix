@@ -193,20 +193,12 @@
             activeAbortController = null;
         }
         if (activeAudio) {
-            try {
-                activeAudio.pause();
-            } catch (_) {
-                // Ignore pause failures
-            }
+            activeAudio.pause();
             activeAudio.src = '';
             activeAudio = null;
         }
         if (activeObjectUrl) {
-            try {
-                URL.revokeObjectURL(activeObjectUrl);
-            } catch (_) {
-                // Ignore object URL cleanup failures
-            }
+            URL.revokeObjectURL(activeObjectUrl);
             activeObjectUrl = null;
         }
     };

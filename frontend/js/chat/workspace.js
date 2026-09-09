@@ -963,9 +963,7 @@ const PromptLibraryManager = {
             '',
             '/workspace/prompts',
         );
-        if (typeof showWorkspaceContainer === 'function') {
-            showWorkspaceContainer({ tab: 'prompts' });
-        }
+        showWorkspaceContainer({ tab: 'prompts' });
         this.init();
         window.setTimeout(() => void this.resumePendingPromptShare(), 0);
         return true;
@@ -2022,15 +2020,7 @@ const PromptLibraryManager = {
     },
 
     ensurePromptLibraryVisible() {
-        if (typeof showWorkspaceContainer === 'function') {
-            showWorkspaceContainer({ tab: 'prompts' });
-            return;
-        }
-
-        if (typeof WorkspaceManager !== 'undefined') {
-            WorkspaceManager.setActiveTab('prompts');
-            WorkspaceManager.show();
-        }
+        showWorkspaceContainer({ tab: 'prompts' });
     },
 
     openCreateFromContent(content, options = {}) {

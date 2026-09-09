@@ -1,10 +1,6 @@
 (() => {
     const unhide = () => {
-        try {
-            document.body.classList.remove('js-hidden');
-        } catch (_error) {
-            // Ignore transient DOM state errors.
-        }
+        document.body?.classList.remove('js-hidden');
     };
 
     if (document.readyState === 'loading') {

@@ -310,12 +310,8 @@ function updateMermaidPreviewViewport(surface, nextScale, options = {}) {
     }
 }
 
-function setMermaidSurfaceScale(surface, nextScale, options = {}) {
-    updateMermaidPreviewViewport(surface, nextScale, options);
-}
-
 function resetMermaidSurfaceViewport(surface) {
-    setMermaidSurfaceScale(surface, getMermaidSurfaceFitScale(surface), { resetViewport: true });
+    updateMermaidPreviewViewport(surface, getMermaidSurfaceFitScale(surface), { resetViewport: true });
 }
 
 function bindMermaidPreviewScrollbar(surface, axis, ac) {
@@ -411,11 +407,11 @@ function bindMermaidPreviewSurface(surface, { allowExpand = true } = {}) {
         const action = actionButton.dataset.mermaidAction || '';
         const currentScale = Number(surface.dataset.mermaidScale || 1);
         if (action === 'zoom-in') {
-            setMermaidSurfaceScale(surface, currentScale + MERMAID_PREVIEW_BUTTON_STEP);
+            updateMermaidPreviewViewport(surface, currentScale + MERMAID_PREVIEW_BUTTON_STEP);
             return;
         }
         if (action === 'zoom-out') {
-            setMermaidSurfaceScale(surface, currentScale - MERMAID_PREVIEW_BUTTON_STEP);
+            updateMermaidPreviewViewport(surface, currentScale - MERMAID_PREVIEW_BUTTON_STEP);
             return;
         }
         if (action === 'reset') {
@@ -446,7 +442,7 @@ function bindMermaidPreviewSurface(surface, { allowExpand = true } = {}) {
             event.preventDefault();
             const currentScale = Number(surface.dataset.mermaidScale || 1);
             const nextScale = currentScale * Math.exp(-event.deltaY * MERMAID_PREVIEW_WHEEL_SENSITIVITY);
-            setMermaidSurfaceScale(surface, nextScale, {
+            updateMermaidPreviewViewport(surface, nextScale, {
                 anchorClientX: event.clientX,
                 anchorClientY: event.clientY,
             });
@@ -462,7 +458,7 @@ function bindMermaidPreviewSurface(surface, { allowExpand = true } = {}) {
                 gestureStartScale = Number(surface.dataset.mermaidScale || 1);
             }
             event.preventDefault();
-            setMermaidSurfaceScale(surface, gestureStartScale * Number(event.scale || 1), {
+            updateMermaidPreviewViewport(surface, gestureStartScale * Number(event.scale || 1), {
                 anchorClientX: Number.isFinite(event.clientX) ? event.clientX : undefined,
                 anchorClientY: Number.isFinite(event.clientY) ? event.clientY : undefined,
             });
@@ -544,7 +540,7 @@ async function mountMermaidPreview(target, source, options = {}) {
         const initialScale = Number.isFinite(options.initialScale)
             ? options.initialScale
             : getMermaidSurfaceFitScale(surface);
-        setMermaidSurfaceScale(surface, initialScale, { resetViewport: true });
+        updateMermaidPreviewViewport(surface, initialScale, { resetViewport: true });
         updateMermaidPreviewScrollbars(surface);
     } else {
         surface.classList.add('has-error');

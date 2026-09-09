@@ -9,7 +9,7 @@
             addMarkedSelectionAsReference, applyScrollState,
             attachScrollListeners, buildCopyContextLabel, buildFileDownloadUrl, canvasWidgetModules,
             captureScrollState, clearPreviewRenderTimer, destroyActiveMarkdownEditor, destroyActiveSpreadsheetEditor,
-            draftEditStateMap, draftMap, formatT, getDraftEditState, getPreviewHeaderIcon,
+            draftMap, formatT, getDraftEditState, getPreviewHeaderIcon,
             getPreviewStatusKind, getPreviewStatusText, getRenderableContentForDraft, getScrollState,
             getStoredMarkdownScrollTop, getTypeLabel, hasAdjacentChatComposer, hasCurrentLatexPdf,
             hideReferenceToolbar, htmlExternalContentBtn,

@@ -880,16 +880,6 @@
         }
     }
 
-    function resetFormValues(prefix) {
-        const snapshot = prefix === 'mcpServerCreate' ? state.createInitialSnapshot : state.editInitialSnapshot;
-        if (snapshot) {
-            const parsed = JSON.parse(snapshot);
-            applyFormValues(parsed, prefix);
-        } else {
-            applyFormValues(getDefaultServerValues(), prefix);
-        }
-    }
-
     async function loadServers() {
         if (state.loading) return;
         state.loading = true;

@@ -216,12 +216,8 @@ function cancelPendingAutoPasskeyAttempt() {
     signinFlowState.autoPasskeyPending = false;
 }
 
-async function canAutoPromptPasskeyOnThisDevice() {
-    return supportsPasskeyAuth();
-}
-
 function passesAutoPromptPasskeyBaseGates(identifier) {
-    if (!Boolean(signinFlowState.serverMethods.passkey)) {
+    if (!signinFlowState.serverMethods.passkey) {
         return false;
     }
     if (signinFlowState.stage !== 'methods') {
@@ -258,8 +254,7 @@ async function maybeAutoPromptPasskey(identifier) {
         return false;
     }
 
-    const canAutoPrompt = await canAutoPromptPasskeyOnThisDevice();
-    if (!canAutoPrompt) {
+    if (!supportsPasskeyAuth()) {
         return false;
     }
 

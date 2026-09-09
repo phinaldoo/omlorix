@@ -775,7 +775,7 @@ const WorkspaceDropUpload = {
     },
 
     isActiveWorkspaceView() {
-    return typeof isFilesViewVisible === 'function' ? isFilesViewVisible() : false;
+    return isFilesViewVisible();
     },
 
     canUploadFiles() {
@@ -1378,7 +1378,7 @@ updateUploadAvailability() {
     if (uploadButton) {
     if (disable) {
         uploadButton.style.display = 'none';
-    } else if (typeof isFilesViewVisible === 'function' ? isFilesViewVisible() : true) {
+    } else if (isFilesViewVisible()) {
         uploadButton.style.display = 'flex';
     }
     }

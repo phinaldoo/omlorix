@@ -9,8 +9,6 @@
     let checkInterval = null;
     let countdownInterval = null;
     let isCheckingAccess = false;
-    let previousBodyOverflow = null;
-    let previousFocus = null;
     const CHECK_INTERVAL_MS = 60000; // Check every minute
 
     const dom = {
@@ -123,8 +121,6 @@
         }
 
         // Show overlay
-        previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-        if (previousBodyOverflow === null) previousBodyOverflow = document.body.style.overflow;
         document.body.style.overflow = 'hidden';
         dom.overlay.classList.add('active');
         dom.overlay.setAttribute('aria-hidden', 'false');
@@ -164,27 +160,6 @@
 
         updateCountdown();
         countdownInterval = setInterval(updateCountdown, 1000);
-    }
-
-    function hideAccessBlockedOverlay() {
-        if (!dom.overlay) return;
-        
-        dom.overlay.classList.remove('active');
-        dom.overlay.setAttribute('aria-hidden', 'true');
-        if (previousBodyOverflow !== null) {
-            document.body.style.overflow = previousBodyOverflow;
-            previousBodyOverflow = null;
-        }
-        previousFocus?.focus?.();
-        previousFocus = null;
-        
-        if (countdownInterval) {
-            clearInterval(countdownInterval);
-            countdownInterval = null;
-        }
-
-        // Resume periodic checks
-        startPeriodicCheck();
     }
 
     function startPeriodicCheck() {

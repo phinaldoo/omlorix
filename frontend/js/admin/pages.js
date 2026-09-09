@@ -12,14 +12,7 @@
             return;
         }
 
-        let reduceMotion = false;
-        if (typeof window.matchMedia === 'function') {
-            try {
-                reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-            } catch (_error) {
-                // Smooth scrolling remains the safe fallback when media queries are unavailable.
-            }
-        }
+        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
         element.scrollIntoView({
             behavior: reduceMotion ? 'auto' : 'smooth',
@@ -313,8 +306,8 @@
 
     headerLogoButton?.addEventListener('click', () => activate('dashboard'));
 
-    window.activateAdminPage = (pageKey, options) => activate(pageKey, options);
-    window.showPage = (pageKey, options) => activate(pageKey, options);
+    window.activateAdminPage = activate;
+    window.showPage = activate;
 
     registerToolsEscapeShortcut();
 

@@ -97,8 +97,6 @@ function splitScreenInternalGetLeftContainer()  { return splitScreenInternalEl('
 function splitScreenInternalGetRightContainer() { return splitScreenInternalEl('splitChatAreaContainerRight'); }
 function splitScreenInternalGetLeftArea()       { return splitScreenInternalEl('splitChatAreaLeft'); }
 function splitScreenInternalGetRightArea()      { return splitScreenInternalEl('splitChatAreaRight'); }
-function splitScreenInternalGetLeftEmpty()      { return splitScreenInternalEl('splitLeftEmpty'); }
-function splitScreenInternalGetRightEmpty()     { return splitScreenInternalEl('splitRightEmpty'); }
 function splitScreenInternalGetPanelStatus(side) { return splitScreenInternalEl(side === 'left' ? 'splitLeftStatus' : 'splitRightStatus'); }
 function splitScreenInternalGetPanelThinkingContainer(side) { return splitScreenInternalEl(side === 'left' ? 'splitLeftThinkingContainer' : 'splitRightThinkingContainer'); }
 function splitScreenInternalGetPanelThinkingButton(side) { return splitScreenInternalEl(side === 'left' ? 'splitLeftThinkingButton' : 'splitRightThinkingButton'); }
@@ -778,12 +776,10 @@ function splitScreenInternalDetachMainChatStreamForSplit(chatId) {
             clearVisibilityReconnectState();
         } catch (_) {}
     }
-    try {
-        if (String(window.currentGenerationId || '').trim() === activeGenerationId) {
-            window.currentGenerationId = null;
-        }
-        window.pendingCancelGeneration = false;
-    } catch (_) {}
+    if (String(window.currentGenerationId || '').trim() === activeGenerationId) {
+        window.currentGenerationId = null;
+    }
+    window.pendingCancelGeneration = false;
     return activeGenerationId;
 }
 
@@ -822,7 +818,7 @@ function splitScreenInternalClearPanelState(side) {
         splitScreenInternalState.leftChatId = null;
         splitScreenInternalState.leftProjectId = null;
         splitScreenInternalState.leftChatTitle = null;
-        splitScreenInternalState.leftTemporary = splitScreenInternalGetDefaultPanelTemporaryMode();
+        splitScreenInternalState.leftTemporary = splitScreenInternalIsTemporaryModeEnabled();
         splitScreenInternalState.leftLoadToken += 1;
         splitScreenInternalState.leftGenerationId = null;
         splitScreenInternalState.leftGenerationToken = null;
@@ -838,7 +834,7 @@ function splitScreenInternalClearPanelState(side) {
         splitScreenInternalState.rightChatId = null;
         splitScreenInternalState.rightProjectId = null;
         splitScreenInternalState.rightChatTitle = null;
-        splitScreenInternalState.rightTemporary = splitScreenInternalGetDefaultPanelTemporaryMode();
+        splitScreenInternalState.rightTemporary = splitScreenInternalIsTemporaryModeEnabled();
         splitScreenInternalState.rightLoadToken += 1;
         splitScreenInternalState.rightGenerationId = null;
         splitScreenInternalState.rightGenerationToken = null;
@@ -893,10 +889,6 @@ function splitScreenInternalIsTemporaryChatAllowedForSplit() {
  * header toggle made the hidden main-chat control silently affect both
  * conversations and prevented users from choosing different behavior.
  */
-function splitScreenInternalGetDefaultPanelTemporaryMode() {
-    return splitScreenInternalIsTemporaryModeEnabled();
-}
-
 function splitScreenInternalIsPanelTemporary(side) {
     if (splitScreenInternalGetPanelChatId(side)) {
         return false;
@@ -1233,11 +1225,6 @@ function splitScreenInternalCloneSettings(settings) {
 
 function splitScreenInternalGetPanelModelId(side) {
     return side === 'left' ? splitScreenInternalState.leftModelId : splitScreenInternalState.rightModelId;
-}
-
-/** Return the complete selected model so capability-gated panel actions stay independent. */
-function splitScreenInternalGetPanelModel(side) {
-    return side === 'left' ? splitScreenInternalState.leftModel : splitScreenInternalState.rightModel;
 }
 
 function splitScreenInternalGetPanelSettings(side) {

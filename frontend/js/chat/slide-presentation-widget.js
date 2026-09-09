@@ -84,7 +84,6 @@
     let slidePresentationSlides = [];          // completed slide HTML strings
     let slidePresentationStyles = '';
     let slidePresentationCurrentIndex = 0;     // index of the slide currently centered
-    let slidePresentationHtmlBuffer = '';
     let slidePresentationPreviewVisible = false;
     let slidePresentationFileId = null;
     let slidePresentationPresentationId = null;
@@ -129,7 +128,6 @@
     let ssRuntimeChannel = null;
     let ssRuntimeReadyTimer = null;
     let ssOpen = false;
-    let ssNavigationToken = 0;
     let ssPreviouslyFocused = null;
     let _ssHideTimer = null;
 
@@ -889,7 +887,6 @@
         slidePresentationSlides = [];
         slidePresentationStyles = '';
         slidePresentationCurrentIndex = 0;
-        slidePresentationHtmlBuffer = '';
         slidePresentationFileId = null;
         slidePresentationPresentationId = null;
         slidePresentationRenderedRevision = 0;
@@ -978,12 +975,6 @@
         }
     }
 
-    function _syncPreviewSidebarToggleState() {
-        if (!previewSidebarToggle) return;
-        const isCollapsed = previewSidebar ? previewSidebar.classList.contains('collapsed') : true;
-        _setPreviewSidebarCollapsed(isCollapsed);
-    }
-
     function _beginGenerationPreview(title) {
         if (!_generationInProgress) {
             _generationInProgress = true;
@@ -1013,7 +1004,6 @@
         _disconnectScaleObservers();
         slidePresentationSlides = [];
         slidePresentationStyles = '';
-        slidePresentationHtmlBuffer = '';
         slidePresentationCurrentIndex = 0;
         slidePresentationFileId = null;
         slidePresentationPresentationId = null;
@@ -1043,8 +1033,6 @@
         // changed while the presentation slideshow itself was closed.
         if (ssOpen || ssOverlay?.classList.contains('open')) {
             closeSlideshow();
-        } else {
-            ssNavigationToken += 1;
         }
         _removeGeneratingCard(_activeMessageId);
         _activeMessageId = null;
@@ -1364,7 +1352,6 @@
                 _previewRuntimeFrame = frame;
                 _previewRuntimeChannel = payload.channel_id;
                 _previewSourceHtml = html;
-                slidePresentationHtmlBuffer = html;
                 slidePresentationStyles = [...doc.querySelectorAll('style')].map(style => style.textContent).join('\n');
                 slidePresentationSlides = slides.map(slide => slide.outerHTML);
                 _slideItems = [item];
@@ -1485,10 +1472,6 @@
             const iframe = thumb.querySelector('iframe');
             if (iframe) _scaleThumbnailIframeWithRetry(iframe, thumb);
         });
-        _selectThumbnail();
-    }
-
-    function _selectThumbnail() {
         _syncSelectedSlideState();
     }
 
@@ -2229,7 +2212,6 @@
         if (!ssOpen) ssPreviouslyFocused = options.returnFocus || document.activeElement;
         ssOpen = true;
         _setInteractivePreviewVisibility(false);
-        ssNavigationToken += 1;
         ssSlideCount = 0;
         ssStep = ssStepCount = 0;
         ssIndex = Math.max(0, Number(options.slideIndex ?? slidePresentationCurrentIndex) || 0);
@@ -2282,7 +2264,6 @@
     function closeSlideshow() {
         ssOpen = false;
         _setInteractivePreviewVisibility(slidePresentationPreviewVisible);
-        ssNavigationToken += 1;
         if (ssOverlay) {
             ssOverlay.classList.remove('open');
             ssOverlay.classList.remove('is-fullscreen');

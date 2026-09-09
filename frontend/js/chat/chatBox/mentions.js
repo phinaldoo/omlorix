@@ -941,6 +941,7 @@ function renderMentionCategoryDetail(categoryKey, items) {
   back.addEventListener('mousedown', (event) => event.preventDefault());
   back.addEventListener('click', (event) => {
     event.preventDefault();
+    event.stopPropagation();
     renderMentionDropdown(
       filterSkills(''),
       filterNotes(''),

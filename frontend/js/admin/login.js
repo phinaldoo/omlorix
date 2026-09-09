@@ -311,7 +311,7 @@
         }
 
         const isUploaded = Boolean(statusPayload?.uploaded);
-        const hasManualPath = Boolean(statusPayload?.configured_path) && !Boolean(statusPayload?.using_managed_path);
+        const hasManualPath = Boolean(statusPayload?.configured_path) && !statusPayload?.using_managed_path;
 
         if (isUploaded && content) {
             const title = document.createElement('div');

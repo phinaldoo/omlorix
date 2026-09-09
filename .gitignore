@@ -119,3 +119,6 @@ __snapshots__/
 # large for source control. Keep verified copies in protected backup storage.
 *.tar.zst
 *.tar.zst.enc
+
+# temp
+slide_presentation_app/

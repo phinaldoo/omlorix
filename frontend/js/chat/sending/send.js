@@ -771,14 +771,10 @@ async function sendMessage(message="", attaching=false, attachGenerationId=null,
                 if (normalizedId) {
                     trackedGenerationId = normalizedId;
                     window.ChatAttention?.trackGeneration(chatId, normalizedId);
-                    try {
-                        window.currentGenerationId = normalizedId;
-                    } catch (_) {}
+                    window.currentGenerationId = normalizedId;
                 }
                 if (window.pendingCancelGeneration) {
-                    try {
-                        window.pendingCancelGeneration = false;
-                    } catch (_) {}
+                    window.pendingCancelGeneration = false;
                     if (typeof window.cancelGeneration === 'function') {
                         try {
                             window.cancelGeneration();

@@ -394,9 +394,7 @@ function closeAssistantRegeneratePopover(popover, { restoreFocus = false } = {})
     popover.classList.remove('open');
     popover.__regeneratePopoverTrigger?.setAttribute('aria-expanded', 'false');
     if (restoreFocus) {
-        try {
-            popover.__regeneratePopoverTrigger?.focus();
-        } catch (_) {}
+        popover.__regeneratePopoverTrigger?.focus();
     }
 
     if (!wasOpen) {
@@ -490,9 +488,7 @@ function openAssistantRegeneratePopover(popover, trigger) {
     popover.__regeneratePopoverParent = popover.__regeneratePopoverParent || popover.parentElement;
     popover.__regeneratePopoverTrigger = trigger;
     closeAllAssistantRegeneratePopovers(popover);
-    if (typeof closeAllMoreMenuDropdowns === 'function') {
-        closeAllMoreMenuDropdowns();
-    }
+    closeAllMoreMenuDropdowns();
     positionAssistantRegeneratePopover(popover);
     popover.classList.add('open');
     trigger.setAttribute('aria-expanded', 'true');
@@ -784,9 +780,7 @@ function updateAssistantRegenerateButton(container, listDiv = null, messageId = 
                 refreshActions();
                 openAssistantRegeneratePopover(popover, regenerateBtn);
                 requestAnimationFrame(() => {
-                    try {
-                        customInput.focus();
-                    } catch (_) {}
+                    customInput.focus();
                 });
             } else {
                 closeAssistantRegeneratePopover(popover, { restoreFocus: true });
@@ -1123,9 +1117,7 @@ function isChatMenuScrollCloseTarget(target) {
 
 function closeFloatingMessageMenus() {
     closeAllMoreMenuDropdowns();
-    if (typeof closeAllAssistantRegeneratePopovers === 'function') {
-        closeAllAssistantRegeneratePopovers();
-    }
+    closeAllAssistantRegeneratePopovers();
 }
 
 function ensureMessageMenusCloseOnChatScroll() {
@@ -1259,9 +1251,7 @@ function openMoreMenuDropdown(dropdown, trigger) {
     dropdown.__moreMenuTrigger = trigger;
 
     closeAllMoreMenuDropdowns(dropdown);
-    if (typeof closeAllAssistantRegeneratePopovers === 'function') {
-        closeAllAssistantRegeneratePopovers();
-    }
+    closeAllAssistantRegeneratePopovers();
     positionMoreMenuDropdown(dropdown);
     dropdown.classList.add('open');
     trigger.setAttribute('aria-expanded', 'true');

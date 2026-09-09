@@ -1300,7 +1300,7 @@
             }
         }, 180);
         if (lastFocused && typeof lastFocused.focus === 'function') {
-            try { lastFocused.focus(); } catch (_) {}
+            lastFocused.focus();
         }
         lastFocused = null;
     }

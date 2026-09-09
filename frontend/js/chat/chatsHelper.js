@@ -641,9 +641,7 @@ function bindChatSidebarDropdownActionHandlers(row, chat, options = {}) {
     };
 
     const refreshChatLists = async () => {
-        if (typeof initChatList === 'function') {
-            await initChatList();
-        }
+        await initChatList();
         if (afterListRefresh) {
             await afterListRefresh();
         }
@@ -1534,9 +1532,7 @@ function applyChatSidebarTitle(chatId, title) {
     if (existingProjectRow && typeof window.addOrUpdateProjectChatRow === 'function') {
         window.addOrUpdateProjectChatRow(normalizedChatId, normalizedTitle);
     }
-    if (typeof updateTabTitleIfActive === 'function') {
-        updateTabTitleIfActive(normalizedChatId);
-    }
+    updateTabTitleIfActive(normalizedChatId);
 }
 
 

@@ -1463,7 +1463,7 @@ function createQueueItemElement(item, index) {
   editBtn.appendChild(indexBadge);
   editBtn.appendChild(content);
   editBtn.addEventListener('click', () => {
-    editQueueItem(item);
+    restoreQueueItemToComposer(item);
   });
 
   const actions = document.createElement('div');
@@ -1579,11 +1579,6 @@ function createQueueItemElement(item, index) {
   element.appendChild(actions);
 
   return element;
-}
-
-// Edit queue item (removes from queue and puts in input)
-function editQueueItem(item) {
-  restoreQueueItemToComposer(item);
 }
 
 // Truncate message for display

@@ -588,15 +588,11 @@ function createProjectChatRowElement(chat, isActive) {
         bindChatSidebarDropdownActionHandlers(row, chat, {
             getTitle: () => row.dataset.chatTitle || projectSidebarT('sidebar_untitled_chat', 'Untitled chat'),
             closePanel: () => {
-                if (!isDesktopViewport() && typeof closeProjectSidebarPanel === 'function') {
+                if (!isDesktopViewport()) {
                     closeProjectSidebarPanel();
                 }
             },
-            afterListRefresh: async () => {
-                if (typeof refreshProjectSidebarChats === 'function') {
-                    await refreshProjectSidebarChats();
-                }
-            },
+            afterListRefresh: refreshProjectSidebarChats,
         });
     }
 

@@ -567,7 +567,7 @@ function initializeAdminSingleSelect(select, field) {
 }
 
 function upgradeAdminSingleSelect(select, options) {
-    if (!select || typeof initializeAdminSingleSelect !== 'function') {
+    if (!select) {
         return null;
     }
 
@@ -590,7 +590,7 @@ function upgradeAdminSingleSelect(select, options) {
 }
 
 function upgradeAdminMultiSelect(select, options) {
-    if (!select || typeof initializeAdminMultiSelect !== 'function') {
+    if (!select) {
         return null;
     }
 

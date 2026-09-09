@@ -118,16 +118,12 @@ function ensureAssistantToolThinkingContainer(messageId, last_appended_message_t
 
         appendBeforeAssistantList(assistantMessageContainer, thinkingContainer);
 
-        try {
-            if (typeof toggleThinking === 'function') {
-                headerBtn.addEventListener('click', () => toggleThinking(headerBtn));
-            } else {
-                headerBtn.addEventListener('click', () => {
-                    thinkingContainer.classList.toggle('collapsed');
-                });
-            }
-        } catch (_) {
-            // ignore toggle failures
+        if (typeof toggleThinking === 'function') {
+            headerBtn.addEventListener('click', () => toggleThinking(headerBtn));
+        } else {
+            headerBtn.addEventListener('click', () => {
+                thinkingContainer.classList.toggle('collapsed');
+            });
         }
     }
 
@@ -669,28 +665,15 @@ function processAssistantToolDeltaStreamEvent(messageId, lastAppendedMessageType
         nextAssistantReasoningCount = expandLoading(messageId, nextAssistantReasoningCount);
     }
 
-    if (typeof appendAssistantToolDelta === 'function') {
-        const toolDeltaUpdate = appendAssistantToolDelta(
-            messageId,
-            wasLoading ? 'r' : lastAppendedMessageType,
-            nextAssistantReasoningCount,
-            toolMeta
-        );
-        const appended = typeof toolDeltaUpdate === 'object'
-            ? Boolean(toolDeltaUpdate.appended)
-            : toolDeltaUpdate !== nextAssistantReasoningCount;
-        nextAssistantReasoningCount = typeof toolDeltaUpdate === 'object'
-            ? toolDeltaUpdate.assistantReasoningCount
-            : toolDeltaUpdate;
-        return {
-            assistantReasoningCount: nextAssistantReasoningCount,
-            lastAppendedMessageType: appended ? 't' : lastAppendedMessageType,
-        };
-    }
-
+    const toolDeltaUpdate = appendAssistantToolDelta(
+        messageId,
+        wasLoading ? 'r' : lastAppendedMessageType,
+        nextAssistantReasoningCount,
+        toolMeta
+    );
     return {
-        assistantReasoningCount: nextAssistantReasoningCount,
-        lastAppendedMessageType,
+        assistantReasoningCount: toolDeltaUpdate.assistantReasoningCount,
+        lastAppendedMessageType: toolDeltaUpdate.appended ? 't' : lastAppendedMessageType,
     };
 }
 

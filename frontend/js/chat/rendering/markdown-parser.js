@@ -646,9 +646,9 @@ function getMarkdownRenderer() {
         const displayLang = previewKind && previewLabel !== 'Code'
             ? previewLabel
             : defaultDisplayLang;
-        const codeBlockViewLabel = getCodeBlockActionLabel('code_block_view_mode_label', 'Code block view');
-        const codeTabLabel = getCodeBlockActionLabel('code_block_tab_code', 'Code');
-        const previewTabLabel = getCodeBlockActionLabel('code_block_tab_preview', 'Preview');
+        const codeBlockViewLabel = getChatPreviewTranslation('code_block_view_mode_label', 'Code block view');
+        const codeTabLabel = getChatPreviewTranslation('code_block_tab_code', 'Code');
+        const previewTabLabel = getChatPreviewTranslation('code_block_tab_preview', 'Preview');
         const codeTabId = `${blockId}-tab-code`;
         const previewTabId = `${blockId}-tab-preview`;
         const codePanelId = `${blockId}-panel-code`;
@@ -702,10 +702,10 @@ function getMarkdownRenderer() {
                     <button type="button" class="code-action-btn code-block-html-settings-trigger" aria-haspopup="dialog" aria-expanded="false" aria-controls="${htmlSettingsMenuId}" ${getCodeBlockActionA11yAttrs('canvas_html_preview_settings', 'HTML preview settings')}>
                         ${MARKDOWN_SETTINGS_SVG}
                     </button>
-                    <div class="code-block-html-settings-menu" id="${htmlSettingsMenuId}" role="dialog" aria-label="${escapeHtml(getCodeBlockActionLabel('canvas_html_preview_settings', 'HTML preview settings'))}" data-i18n-attr="aria-label:canvas_html_preview_settings" hidden>
+                    <div class="code-block-html-settings-menu" id="${htmlSettingsMenuId}" role="dialog" aria-label="${escapeHtml(getChatPreviewTranslation('canvas_html_preview_settings', 'HTML preview settings'))}" data-i18n-attr="aria-label:canvas_html_preview_settings" hidden>
                         <label class="code-block-html-settings-menu-item" for="${htmlExternalContentToggleId}">
                             <span class="code-block-html-settings-menu-icon" aria-hidden="true">${MARKDOWN_EXTERNAL_CONTENT_SVG}</span>
-                            <span class="code-block-html-settings-menu-label" data-i18n="canvas_html_external_content">${escapeHtml(getCodeBlockActionLabel('canvas_html_external_content', 'External content'))}</span>
+                            <span class="code-block-html-settings-menu-label" data-i18n="canvas_html_external_content">${escapeHtml(getChatPreviewTranslation('canvas_html_external_content', 'External content'))}</span>
                             <span class="toggle-switch">
                                 <input class="toggle-input html-preview-capability-toggle html-preview-external-content-toggle" id="${htmlExternalContentToggleId}" type="checkbox" role="switch" data-html-preview-permission="external-content">
                                 <span class="toggle-slider" aria-hidden="true"></span>
@@ -713,7 +713,7 @@ function getMarkdownRenderer() {
                         </label>
                         <label class="code-block-html-settings-menu-item" for="${htmlScriptsToggleId}">
                             <span class="code-block-html-settings-menu-icon" aria-hidden="true">${MARKDOWN_RUN_SVG}</span>
-                            <span class="code-block-html-settings-menu-label" data-i18n="canvas_html_interactions">${escapeHtml(getCodeBlockActionLabel('canvas_html_interactions', 'Interactions (requires external content)'))}</span>
+                            <span class="code-block-html-settings-menu-label" data-i18n="canvas_html_interactions">${escapeHtml(getChatPreviewTranslation('canvas_html_interactions', 'Interactions (requires external content)'))}</span>
                             <span class="toggle-switch">
                                 <input class="toggle-input html-preview-capability-toggle html-preview-scripts-toggle" id="${htmlScriptsToggleId}" type="checkbox" role="switch" data-html-preview-permission="scripts">
                                 <span class="toggle-slider" aria-hidden="true"></span>
