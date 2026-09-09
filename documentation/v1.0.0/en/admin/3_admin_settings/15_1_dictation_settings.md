@@ -23,3 +23,7 @@ Provider-specific controls appear after selection. **Transcript delay** trades f
 Fallback can send the same audio to another service. Document that transfer in your privacy and processor records before enabling it.
 
 Dictation is separate from browser or provider speech playback and from low-latency voice conversations. See [Read aloud settings](15_2_text_to_speech_settings.md) and [Realtime call settings](15_3_realtime_settings.md).
+
+## Troubleshoot Live Connection Failures
+
+If live dictation is ready but the microphone starts file recording, inspect the browser console and the frontend container logs. A WebSocket handshake failure can trigger the file fallback before live audio capture starts. A `502` response with `no resolver defined to resolve realtime_gateway` in nginx means the frontend cannot resolve the gateway for its variable-based proxy route. The bundled configuration uses Docker's DNS resolver (`127.0.0.11`) for this route. Update and recreate the frontend container to apply the corrected configuration; changing the transcription model will not resolve this proxy failure.

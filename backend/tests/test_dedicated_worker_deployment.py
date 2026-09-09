@@ -215,7 +215,11 @@ def test_extended_worker_migration_and_realtime_proxy_boundary_exist():
     assert "ck_audit_event_outbox_unindexed_safe" in erasure_migration
     assert "ck_logs_subject_fenced" in audit_gate_migration
     assert "location ^~ /api/v1/realtime/" in nginx
-    assert "realtime_gateway:8001" in nginx
+    realtime_location = nginx.split("location ^~ /api/v1/realtime/ {", 1)[1].split("\n    }", 1)[0]
+    # Variable-based proxy_pass needs an explicit resolver, otherwise even a
+    # healthy gateway returns 502 before the WebSocket handshake reaches it.
+    assert "resolver 127.0.0.11 valid=10s ipv6=off;" in realtime_location
+    assert "proxy_pass http://realtime_gateway:8001$request_uri;" in realtime_location
     assert "_REALTIME_PREFIX" in gateway
     assert "from app.main" not in gateway
     assert "app.include_router(realtime_router)" in gateway
