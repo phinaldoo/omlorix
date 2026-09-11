@@ -106,6 +106,7 @@ const normalizePromptId = (promptId) => {
 let skillMentionDropdown = null;
 let skillMentionBody = null;
 let activeMentionCategory = null;
+let mentionMenuHeightFrame = null;
 
 const featureBodiesForMentions = typeof featureIconBodies !== 'undefined' ? featureIconBodies : Icons.featureIconBodies;
 
@@ -206,15 +207,41 @@ function createSkillMentionDropdown() {
   skillMentionDropdown = dropdown;
   skillMentionBody = body;
 
+  window.addEventListener('resize', syncMentionMenuHeight);
+  window.addEventListener('scroll', (event) => {
+    if (!dropdown.contains(event.target)) syncMentionMenuHeight();
+  }, true);
+  window.visualViewport?.addEventListener('resize', syncMentionMenuHeight);
+  window.visualViewport?.addEventListener('scroll', syncMentionMenuHeight);
+  new ResizeObserver(syncMentionMenuHeight).observe(chatBox);
+
   return dropdown;
 }
 
 /** Resize the glass card to the active overview or detail content. */
 function syncMentionMenuHeight() {
-  if (!skillMentionDropdown || !skillMentionBody) return;
-  requestAnimationFrame(() => {
-    const maxHeight = Math.max(180, Math.min(430, window.innerHeight - 110));
-    const naturalHeight = Math.max(92, Math.min(maxHeight, skillMentionBody.scrollHeight));
+  if (!skillMentionDropdown || !skillMentionBody || !skillMentionState.isOpen || mentionMenuHeightFrame !== null) return;
+  mentionMenuHeightFrame = requestAnimationFrame(() => {
+    mentionMenuHeightFrame = null;
+    if (!skillMentionState.isOpen) return;
+    const viewport = window.visualViewport;
+    const viewportTop = viewport?.offsetTop || 0;
+    const viewportBottom = viewportTop + (viewport?.height || window.innerHeight);
+    const chatBoxTop = skillMentionDropdown.parentElement.getBoundingClientRect().top;
+    // The menu opens upward with an 8px gap. Reserve a 12px viewport gutter,
+    // including when zoom or the on-screen keyboard reduces the visible area.
+    const maxHeight = Math.max(0, Math.min(430, Math.min(chatBoxTop - 8, viewportBottom) - viewportTop - 12));
+    // A 100%-height body's scrollHeight cannot shrink below the current card.
+    // Measure unconstrained content, then restore the scroll viewport before paint.
+    const previousHeight = skillMentionBody.style.height;
+    skillMentionBody.style.height = 'auto';
+    const contentHeight = skillMentionBody.scrollHeight;
+    skillMentionBody.style.height = previousHeight;
+    const style = window.getComputedStyle(skillMentionDropdown);
+    const borderHeight = parseFloat(style.borderTopWidth) + parseFloat(style.borderBottomWidth);
+    const naturalHeight = Math.min(maxHeight, Math.max(92, contentHeight + borderHeight));
+    // Apply the cap immediately even while the height transition is running.
+    skillMentionDropdown.style.maxHeight = `${maxHeight}px`;
     skillMentionDropdown.style.height = `${naturalHeight}px`;
   });
 }
