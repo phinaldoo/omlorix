@@ -1,4 +1,5 @@
 import base64
+import re
 from io import BytesIO
 
 from openai import Client
@@ -14,6 +15,38 @@ from app.utils.schemas import (
 )
 
 
+GPT_IMAGE_25_IDS = {
+    "gpt-image-2.5-sunburst", "gpt-image-2.5-sunburst-2026-09-08",
+    "gpt-image-2.5-flare", "gpt-image-2.5-flare-2026-09-08",
+}
+IMAGE_OUTPUT_FORMATS = {"png": "image/png", "jpeg": "image/jpeg", "webp": "image/webp"}
+
+
+def validate_gpt_image_size(size: str) -> bool:
+    """Validate the documented GPT Image 2.5 custom resolution bounds."""
+    if size == "auto":
+        return True
+    match = re.fullmatch(r"([1-9][0-9]{0,3})x([1-9][0-9]{0,3})", size)
+    if not match:
+        return False
+    width, height = map(int, match.groups())
+    return (
+        width % 16 == height % 16 == 0
+        and max(width, height) <= 3840
+        and max(width, height) <= 3 * min(width, height)
+        and 655_360 <= width * height <= 8_294_400
+    )
+
+
+def _image_output_options(model: str, options: dict | None) -> dict:
+    """Forward supported output options, checking combinations before an API call."""
+    if model not in GPT_IMAGE_25_IDS:
+        return {}
+    from app.llm.openai.image_settings import ImageOutputSettings
+
+    return ImageOutputSettings.model_validate(options or {}).model_dump(exclude_none=True)
+
+
 def _resolve_openai_image_bytes(response) -> bytes:
     """Resolve OpenAI image bytes."""
     data = getattr(response, "data", None) or []
@@ -27,7 +60,7 @@ def _resolve_openai_image_bytes(response) -> bytes:
 def _build_openai_cost_payload(response, model: str, quality: str | None, size: str) -> tuple[float, dict]:
     """Build OpenAI cost payload."""
     usage = getattr(response, "usage", None)
-    effective_quality = quality or "standard"
+    effective_quality = quality or ("auto" if model in GPT_IMAGE_25_IDS else "standard")
     cost = 0.0
     cost_details = {}
     try:
@@ -63,9 +96,14 @@ def generate_image_openai(
     size: str,
     quality: str | None = None,
     custom_headers: dict[str, str] | list[str] | None = None,
+    output_options: dict | None = None,
+    base_url: str | None = None,
 ):
     """Generate image using OpenAI."""
+    validated_output_options = _image_output_options(model, output_options)
     client_kwargs = {"api_key": api_key}
+    if base_url:
+        client_kwargs["base_url"] = base_url
     default_headers = custom_headers_to_dict(custom_headers)
     if default_headers:
         client_kwargs["default_headers"] = default_headers
@@ -76,12 +114,16 @@ def generate_image_openai(
         "n": 1,
         "size": size,
     }
+    payload.update(validated_output_options)
     if quality and model.lower() != "dall-e-2":
         payload["quality"] = quality
 
     if model.lower() in {"dall-e-2", "dall-e-3"}:
         payload["response_format"] = "b64_json"
-    img = client.images.generate(**payload)
+    try:
+        img = client.images.generate(**payload)
+    finally:
+        client.close()
     image_bytes = _resolve_openai_image_bytes(img)
     cost, cost_details = _build_openai_cost_payload(img, model, quality, size)
 
@@ -89,6 +131,7 @@ def generate_image_openai(
         "image_bytes": image_bytes,
         "cost": cost,
         "cost_details": cost_details,
+        "file_type": IMAGE_OUTPUT_FORMATS[payload.get("output_format", "png")],
     }
 
 
@@ -100,8 +143,11 @@ def edit_image_openai(
     reference_images: list[dict | bytes],
     quality: str | None = None,
     custom_headers: dict[str, str] | list[str] | None = None,
+    output_options: dict | None = None,
+    base_url: str | None = None,
 ):
     """Edit image using OpenAI."""
+    validated_output_options = _image_output_options(model, output_options)
     if not reference_images:
         raise ValueError("reference_images is required for image edit")
 
@@ -124,6 +170,8 @@ def edit_image_openai(
         raise ValueError("No valid reference images were provided for image edit")
 
     client_kwargs = {"api_key": api_key}
+    if base_url:
+        client_kwargs["base_url"] = base_url
     default_headers = custom_headers_to_dict(custom_headers)
     if default_headers:
         client_kwargs["default_headers"] = default_headers
@@ -135,6 +183,7 @@ def edit_image_openai(
         "size": size,
         "image": image_streams[0] if len(image_streams) == 1 else image_streams,
     }
+    payload.update(validated_output_options)
     if quality and model.lower() != "dall-e-2":
         payload["quality"] = quality
 
@@ -144,6 +193,7 @@ def edit_image_openai(
     try:
         img = client.images.edit(**payload)
     finally:
+        client.close()
         for stream in image_streams:
             try:
                 stream.close()
@@ -157,6 +207,7 @@ def edit_image_openai(
         "image_bytes": image_bytes,
         "cost": cost,
         "cost_details": cost_details,
+        "file_type": IMAGE_OUTPUT_FORMATS[payload.get("output_format", "png")],
     }
 
 
@@ -187,6 +238,26 @@ def get_openai_image_generation_models(provider: LLMProvider):
 
 # Pricing per million tokens in usd
 IMAGE_GEN_MODELS = [
+    {
+        "name": "GPT Image 2.5 Sunburst",
+        "ids": ["gpt-image-2.5-sunburst", "gpt-image-2.5-sunburst-2026-09-08"],
+        "quality": ["auto", "low", "medium", "high", "xhigh", "max"],
+        "size": ["auto", "1024x1024", "1536x1024", "1024x1536", "2560x1440", "1440x2560", "3840x2160", "2160x3840"],
+        "pricing": {
+            "text_tokens": {"input": 5.0, "cached_input": 1.25, "output": 0.0},
+            "image_tokens": {"input": 8.0, "cached_input": 2.0, "output": 30.0},
+        },
+    },
+    {
+        "name": "GPT Image 2.5 Flare",
+        "ids": ["gpt-image-2.5-flare", "gpt-image-2.5-flare-2026-09-08"],
+        "quality": ["auto", "low", "medium", "high", "xhigh", "max"],
+        "size": ["auto", "1024x1024", "1536x1024", "1024x1536", "2560x1440", "1440x2560", "3840x2160", "2160x3840"],
+        "pricing": {
+            "text_tokens": {"input": 5.0, "cached_input": 1.25, "output": 0.0},
+            "image_tokens": {"input": 8.0, "cached_input": 2.0, "output": 30.0},
+        },
+    },
     {
         "name": "ChatGPT Image Latest",
         "ids": ["chatgpt-image-latest"],
@@ -289,6 +360,7 @@ IMAGE_GEN_MODELS = [
 
 
 OPENAI_IMAGE_EDIT_SUPPORTED_MODEL_IDS = {
+    *GPT_IMAGE_25_IDS,
     "chatgpt-image-latest",
     "gpt-image-1",
     "gpt-image-1.5",
@@ -374,7 +446,17 @@ def get_image_generation_schema_part_2(model_name: str):
         return None
 
     def _to_options(values: list[str]):
-        return [Option(value=value, label=value) for value in values or []]
+        quality_keys = {
+            "auto": "llm.shared.settings.quality.option.auto",
+            "low": "llm.shared.settings.quality.option.low",
+            "medium": "llm.shared.settings.quality.option.medium",
+            "high": "llm.shared.settings.quality.option.high",
+            "xhigh": "openai_image_quality_xhigh",
+            "max": "openai_image_quality_max",
+            "standard": "llm.shared.settings.quality.option.standard",
+            "hd": "llm.shared.settings.quality.option.hd",
+        }
+        return [Option(value=value, label=value, i18n_label=quality_keys.get(value)) for value in values or []]
 
     def _default_value(options: list[Option], preferred: str | None) -> str | None:
         if not options:
@@ -385,7 +467,7 @@ def get_image_generation_schema_part_2(model_name: str):
 
     model_config = _find_model_config(model_name)
     quality_options = _to_options(model_config.get("quality", []) if model_config else [])
-    quality_default = _default_value(quality_options, "medium")
+    quality_default = _default_value(quality_options, "auto" if model_name in GPT_IMAGE_25_IDS else "medium")
     image_edit_supported = openai_model_supports_image_edit(model_name)
 
     fields = [
@@ -402,6 +484,10 @@ def get_image_generation_schema_part_2(model_name: str):
             default=quality_default,
         ),
     ]
+    if model_name in GPT_IMAGE_25_IDS:
+        from app.llm.openai.image_settings import image_output_fields
+
+        fields.extend(image_output_fields())
     if image_edit_supported:
         fields.append(
             FieldSchema(

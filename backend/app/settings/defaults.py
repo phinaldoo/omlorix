@@ -302,6 +302,7 @@ DEFAULT_SETTINGS = {
         "realtime_enabled": False,
         "realtime_provider_id": "",
         "realtime_model": "",
+        "realtime_live_backend_model": "gpt-5.6-terra",
         "realtime_voice": "alloy",
         "realtime_tools": [],
         "realtime_temperature": None,

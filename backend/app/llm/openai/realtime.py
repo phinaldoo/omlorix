@@ -7,6 +7,7 @@ from app.llm.openai.model_list import (
     OPENAI_REALTIME_TRANSCRIPTION_ONLY_MODELS,
 )
 from app.llm.openai.utils import _close_openai_client, _resolve_openai_client_kwargs
+from app.llm.openai.live import LIVE_VOICES, LIVE_BACKEND_MODELS, is_openai_live_model
 from app.llm.schemas import ProviderEnum
 from fastapi import HTTPException
 from openai import Client
@@ -68,7 +69,7 @@ def get_openai_realtime_models(
             # its shutdown date. Deprecation is authoritative in Omlorix, so do
             # not expose those identifiers in settings or runtime validation.
             if (
-                "realtime" in normalized
+                ("realtime" in normalized or is_openai_live_model(model_id))
                 and model_id not in deprecated_models
                 and model_id not in transcription_only_models
                 and model_id not in discovered
@@ -83,7 +84,7 @@ def get_openai_realtime_models(
     return discovered
 
 
-def get_realtime_settings_schema(*, tool_options: list[dict] | None = None):
+def get_realtime_settings_schema(*, model_name: str | None = None, tool_options: list[dict] | None = None):
     """Return only controls consumed by OpenAI-compatible realtime sessions."""
 
     from app.llm.realtime_schema import (
@@ -91,7 +92,25 @@ def get_realtime_settings_schema(*, tool_options: list[dict] | None = None):
         tools_field,
         voice_field,
     )
-    from app.utils.schemas import Section, Sections
+    from app.utils.schemas import FieldSchema, Option, Section, Sections
+
+    if is_openai_live_model(model_name):
+        return Sections(sections=[Section(
+            title="GPT-Live", description="",
+            fields=[
+                voice_field(
+                    [Option(value=voice, label=voice.title(), translatable=False) for voice in LIVE_VOICES],
+                    description="Voice used for GPT-Live speech.",
+                ),
+                FieldSchema(
+                    key="realtime_live_backend_model", label="Reasoning model", description="Model used for reasoning and tools during voice calls. Billed separately.",
+                    i18n_label="openai_live_backend_model", i18n_description="openai_live_backend_model_help",
+                    type="select", default=LIVE_BACKEND_MODELS[0],
+                    options=[Option(value=model, label=model, translatable=False) for model in LIVE_BACKEND_MODELS],
+                ),
+                tools_field(tool_options or []),
+            ],
+        )])
 
     return Sections(
         sections=[

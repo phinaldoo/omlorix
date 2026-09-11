@@ -568,6 +568,7 @@ def persist_realtime_turn(
         turn_id=payload.turn_id,
         user_transcript=payload.user_transcript or "",
         assistant_transcript=payload.assistant_transcript or "",
+        transcript_fragments=[fragment.model_dump(exclude_none=True) for fragment in payload.transcript_fragments],
         file_ids=payload.file_ids or [],
         interrupted=payload.interrupted,
         error_message=payload.error_message,

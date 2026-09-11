@@ -206,8 +206,11 @@ def get_image_generation_schema_part_1(db, provider_id: str):
     return schema
 
 
-def get_image_generation_schema_part_2():
+def get_image_generation_schema_part_2(model_name: str | None = None):
     """Return model settings shared by OpenAI-compatible image providers."""
+    from app.llm.openai.image_generation import GPT_IMAGE_25_IDS, get_image_generation_schema_part_2 as native_schema
+    if model_name in GPT_IMAGE_25_IDS:
+        return native_schema(model_name)
     fields = [
         FieldSchema(
             key="settings.quality",

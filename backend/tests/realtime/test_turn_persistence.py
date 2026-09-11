@@ -100,6 +100,23 @@ def _insert_chat(db) -> None:
     db.commit()
 
 
+def test_live_caption_windows_preserve_timing_without_client_billing():
+    import json
+    db = _db()
+    _insert_chat(db)
+    runtime = _runtime()
+    runtime.realtime_model = "gpt-live-1"
+    fragments = [{"role": "user", "delta": "Hello", "start_ms": 100, "end_ms": 500}, {"role": "assistant", "delta": "Hi", "start_ms": 300, "end_ms": 600}]
+    persist_runtime_turn(db, runtime, turn_id="window-1", user_transcript="Hello", assistant_transcript="Hi", transcript_fragments=fragments, usage={"input_tokens": 100000})
+    assert db.query(LLMGenerationStatistic).count() == 0
+    messages = db.query(ChatMessages).all()
+    assert len(messages) == 2
+    for message in messages:
+        meta = json.loads(message.content)[0]["meta"]["realtime"]
+        assert meta["caption_window"] is True
+        assert meta["transcript_fragments"] == fragments
+
+
 def test_persist_runtime_turn_is_idempotent_for_retries():
     db = _db()
     _insert_chat(db)

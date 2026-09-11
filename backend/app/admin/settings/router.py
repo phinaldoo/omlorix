@@ -1383,7 +1383,7 @@ def admin_get_image_generation_model_settings(
                 get_image_generation_schema_part_2,
             )
 
-            schema = get_image_generation_schema_part_2()
+            schema = get_image_generation_schema_part_2(model_name)
         elif provider_type == "openrouter":
             from app.llm.openrouter.image_generation import (
                 get_image_generation_schema_part_2,

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 import json
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -100,7 +100,24 @@ class RealtimePendingToolCallRequest(BaseModel):
     tool_name: str = Field(min_length=1, max_length=MAX_REALTIME_ID_LENGTH)
 
 
+class RealtimeTranscriptFragment(BaseModel):
+    role: Literal["user", "assistant"]
+    delta: str = Field(max_length=16_000)
+    start_ms: int = Field(ge=0, le=86_400_000)
+    end_ms: int = Field(ge=0, le=86_400_000)
+    event_id: str | None = Field(default=None, max_length=MAX_REALTIME_ID_LENGTH)
+
+
 class PersistRealtimeTurnRequest(BaseModel):
+    transcript_fragments: list[RealtimeTranscriptFragment] = Field(default_factory=list, max_length=4096)
+
+    @model_validator(mode="after")
+    def validate_caption_window(self):
+        if sum(len(fragment.delta) for fragment in self.transcript_fragments) > 2 * MAX_REALTIME_TEXT_LENGTH:
+            raise ValueError("Realtime transcript is too large")
+        if any(fragment.end_ms < fragment.start_ms for fragment in self.transcript_fragments):
+            raise ValueError("Invalid realtime transcript interval")
+        return self
     turn_id: str = Field(
         description="Client-generated idempotency key for this realtime turn.",
         min_length=1,

@@ -267,6 +267,18 @@ def validate_image_generation_settings_size(
         return
 
     normalized_provider = str(provider_type or "").strip().lower()
+    if normalized_provider in {"openai", "openai_responses", "openai_chat_completions"}:
+        from app.llm.openai.image_generation import GPT_IMAGE_25_IDS, validate_gpt_image_size
+        if model_name in GPT_IMAGE_25_IDS:
+            from app.llm.openai.image_settings import ImageOutputSettings
+            ImageOutputSettings.model_validate(settings)
+            if settings.get("quality") not in {None, "", "auto", "low", "medium", "high", "xhigh", "max"}:
+                raise ValueError("Invalid image quality")
+            for key in ("size", "custom_size"):
+                value = str(settings.get(key) or "").strip()
+                if value and not validate_gpt_image_size(value):
+                    raise ValueError(f"Unsupported image size '{value}' for the configured image model.")
+            return
     size_keys = (
         ("aspect_ratio", "aspectRatio")
         if normalized_provider == "google_aistudio"

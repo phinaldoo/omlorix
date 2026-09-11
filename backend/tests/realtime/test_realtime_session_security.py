@@ -62,6 +62,61 @@ def _runtime(**overrides):
     return SimpleNamespace(**payload)
 
 
+def test_live_configuration_separates_voice_and_delegated_instructions():
+    runtime = _runtime(realtime_model="gpt-live-1", settings={"live_backend_model": "gpt-5.6-luna"})
+    config = realtime_service.build_realtime_session_config(runtime)
+    assert config["model"] == "gpt-live-1"
+    assert config["audio"]["output"]["voice"] == "marin"
+    assert "admin agent policy" not in config["instructions"]
+    assert "admin agent policy" in config["delegation"]["responses"]["instructions"]
+    assert config["delegation"]["responses"]["model"] == "gpt-5.6-luna"
+    assert config["store"] is False
+    client = realtime_service.build_realtime_client_session_config(runtime)
+    assert "delegation" not in client
+    assert "instructions" not in client
+
+
+def test_live_sideband_retains_usage_not_media(monkeypatch):
+    import json
+    from app.realtime import live_usage
+    recorder = MagicMock()
+    monkeypatch.setattr(live_usage, "record_live_usage", recorder)
+    monkeypatch.setattr(realtime_proxy.asyncio, "sleep", AsyncMock())
+    async def events():
+        for event in [
+            {"type": "session.output_audio.delta", "delta": "unused audio"},
+            {"type": "session.usage.updated", "usage": {"seconds": 12}},
+            {"type": "response.event", "event": {"type": "response.completed", "response": {"id": "response-1", "usage": {"input_tokens": 10}}}},
+            {"type": "session.closed", "usage": {"seconds": 17}},
+        ]:
+            yield json.dumps(event)
+    asyncio.run(realtime_proxy._observe_openai_realtime_events(events(), "session-1"))
+    assert recorder.call_count == 3
+    assert recorder.call_args.kwargs == {"seconds": 17, "finalized": True}
+    assert recorder.call_args_list[0].args[1]["id"] == "response-1"
+
+
+def test_live_signaling_and_hangup_use_opaque_session_id(monkeypatch):
+    from app.llm.openai import live
+    runtime = _runtime(realtime_model="gpt-live-1", chat_id="chat-1")
+    answer = "v=0\r\no=answer\r\n"
+    response = MagicMock(is_success=True, content=b"json", headers={})
+    response.json.return_value = {"session": {"id": "live_session_ABC"}, "transport": {"type": "webrtc", "sdp": answer}}
+    post = MagicMock(return_value=response)
+    monkeypatch.setattr(realtime_service.httpx, "post", post)
+    monkeypatch.setattr(realtime_service, "_load_openai_realtime_request_settings", lambda *args, **kwargs: {"api_key": "secret", "base_url": "https://api.openai.com/v1"})
+    monkeypatch.setattr(realtime_service, "_build_realtime_safety_identifier", lambda *args: "user")
+    monkeypatch.setattr(realtime_service, "persist_realtime_runtime_state", lambda *args, **kwargs: None)
+    monkeypatch.setattr(live, "build_live_history", lambda *args: [])
+    assert realtime_service.exchange_realtime_webrtc_offer(MagicMock(), runtime, offer_sdp="v=0\r\n") == answer
+    assert runtime.provider_session_handle == "live_session_ABC"
+    assert post.call_args.args[0] == "https://api.openai.com/v1/live/sessions"
+    assert post.call_args.kwargs["json"]["transport"]["sdp"] == "v=0\r\n"
+    assert "files" not in post.call_args.kwargs
+    assert realtime_service.terminate_openai_realtime_call(MagicMock(), runtime)
+    assert post.call_args.args[0] == "https://api.openai.com/v1/live/sessions/live_session_ABC/hangup"
+
+
 def test_openai_client_session_config_redacts_instructions():
     runtime = _runtime()
 

@@ -1,4 +1,5 @@
 {
+  "chat_realtime_live_finalization_incomplete": "Вызов завершился до подтверждения финализации. Последние субтитры или данные об использовании могут быть неполными.",
   "assistant_tool_error_canvas_file": "Для просмотра или редактирования нужен существующий файл Canvas. Для создания укажите содержимое и задайте edits значение null.",
   "assistant_tool_error_canvas_revision": "Для редактирования нужна текущая ревизия Canvas. Прочитайте файл и повторите попытку.",
   "assistant_tool_error_canvas_content": "Для создания или замены Canvas необходимо содержимое.",

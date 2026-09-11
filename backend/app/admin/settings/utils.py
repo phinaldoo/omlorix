@@ -1718,7 +1718,7 @@ def _configure_realtime_fields_for_selection(
     if provider.provider in openai_provider_types:
         from app.llm.openai.realtime import get_realtime_settings_schema
 
-        fragment = get_realtime_settings_schema(tool_options=tool_options)
+        fragment = get_realtime_settings_schema(model_name=model_id, tool_options=tool_options)
     elif provider.provider == ProviderEnum.google_aistudio.value:
         from app.llm.google_aistudio.realtime import get_realtime_settings_schema
 

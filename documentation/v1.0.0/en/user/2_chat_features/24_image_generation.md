@@ -10,6 +10,8 @@ For an edit, attach the source image, identify the change precisely, and state w
 
 Ask for focused revisions. Each result is a new file and can use more storage and provider allowance.
 
+When your administrator enables OpenAI GPT Image 2.5 Sunburst or Flare, both generation and reference-image editing are available. Output quality, dimensions, PNG/JPEG/WebP format, and transparency follow the administrator's image settings; transparent backgrounds require PNG or WebP.
+
 ## Save and review
 
 Generated images appear in the chat and **Workspace > Files**. Check text, people, hands, objects, logos, dates, and factual details before use. An AI-generated image is not evidence that an event occurred.

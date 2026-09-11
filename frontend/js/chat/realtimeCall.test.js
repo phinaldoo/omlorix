@@ -11,6 +11,44 @@ const chatsSource = fs.readFileSync(path.join(__dirname, 'chats.js'), 'utf8');
 const chatsHelperSource = fs.readFileSync(path.join(__dirname, 'chatsHelper.js'), 'utf8');
 const callCssSource = fs.readFileSync(path.resolve(__dirname, '../../css/chat/realtimeCall.css'), 'utf8');
 
+test('GPT-Live keeps overlapping captions separate from backend responses', async () => {
+    const state = {
+        currentTurn: { userTranscript: '', assistantTranscript: '', transcriptFragments: [] },
+        livePendingTools: 0, liveDelegations: new Map(), liveToolQueue: Promise.resolve(),
+    };
+    const events = [];
+    let finishTool;
+    const handler = loadFunctionWithDependencies('handleOpenaiLiveEvent', 'handleProviderEvent', {
+        state, scheduleLiveCaptionSave: () => {}, renderLiveUserTranscript: () => {}, renderLiveAssistantTranscript: () => {},
+        persistCurrentTurn: async () => true, isCurrentProviderEventOrigin: () => true,
+        executeToolCall: () => new Promise((resolve) => { finishTool = resolve; }),
+        sendRealtimeEvent: (event) => events.push(event), notify: () => {}, t: (_key, fallback) => fallback,
+    });
+    await handler({ type: 'response.event', delegation_id: 'd1', event: { type: 'response.created' } }, {});
+    await handler({ type: 'response.event', delegation_id: 'd1', event: { type: 'response.output_item.done', item: { type: 'function_call', call_id: 'c1' } } }, {});
+    await Promise.resolve();
+    await handler({ type: 'session.input_transcript.delta', delta: 'Hello', start_ms: 100, end_ms: 500, event_id: 'u1' }, {});
+    await handler({ type: 'session.output_transcript.delta', delta: 'Hi', start_ms: 300, end_ms: 600, event_id: 'a1' }, {});
+    await handler({ type: 'response.event', delegation_id: 'd1', event: { type: 'response.completed', response: { output: [] } } }, {});
+    assert.equal(state.currentTurn.userTranscript, 'Hello');
+    assert.equal(state.currentTurn.assistantTranscript, 'Hi');
+    assert.equal(state.currentTurn.transcriptFragments.length, 2);
+    assert.equal(events.length, 0, 'continuation must wait for tool output');
+    finishTool();
+    await state.liveToolQueue;
+    assert.deepEqual(events, [{ type: 'response.create' }]);
+    assert.equal(state.livePendingTools, 0);
+});
+
+test('GPT-Live has independent readiness, ICE gathering, and graceful close', () => {
+    const peer = getFunctionSource('startPeerConnection', 'requestRealtimeConnection');
+    assert.match(peer, /icegatheringstatechange/);
+    assert.match(source, /parsed.type === 'session.started'/);
+    assert.match(source, /type: 'session.close'/);
+    assert.match(source, /type: isOpenaiLiveTransport\(\) \? 'response.item.create'/);
+    assert.doesNotMatch(getFunctionSource('handleOpenaiLiveEvent', 'handleProviderEvent'), /response\.done/);
+});
+
 
 function getFunctionSource(functionName, nextFunctionName) {
     const asyncStart = source.indexOf(`async function ${functionName}(`);
@@ -644,7 +682,7 @@ test('OpenAI WebRTC negotiates one bidirectional audio section', () => {
     assert.doesNotMatch(peerSource, /addTransceiver\(['"]audio['"]/);
     assert.match(peerSource, /window\.authedFetch\(normalizedSignalingUrl/);
     assert.match(peerSource, /'Content-Type': 'application\/json'/);
-    assert.match(peerSource, /JSON\.stringify\(\{ sdp: offer\.sdp \}\)/);
+    assert.match(peerSource, /JSON\.stringify\(\{ sdp: isOpenaiLiveTransport\(\) \? pc\.localDescription\.sdp : offer\.sdp \}\)/);
     assert.doesNotMatch(peerSource, /Authorization:/);
     assert.doesNotMatch(peerSource, /clientSecret/);
 });

@@ -44,6 +44,7 @@ from app.llm.models import (
 )
 from app.llm.models import get_llm_provider
 from app.llm.openai.realtime import get_openai_realtime_models
+from app.llm.openai.live import build_live_session_config, is_openai_live_model, normalize_live_voice, LIVE_PROTOCOL
 from app.llm.openai.utils import _resolve_openai_client_kwargs, upload_files
 from app.llm.xai.realtime import (
     build_xai_realtime_session_config,
@@ -533,6 +534,7 @@ def _normalize_settings_record(record_data: dict[str, Any] | None) -> dict[str, 
         "enabled": _coerce_bool(data.get("realtime_enabled"), False),
         "provider_id": str(data.get("realtime_provider_id") or "").strip() or None,
         "model": str(data.get("realtime_model") or "").strip() or None,
+        "live_backend_model": str(data.get("realtime_live_backend_model") or "gpt-5.6-terra"),
         "voice": str(data.get("realtime_voice") or "alloy").strip() or "alloy",
         "tools": realtime_tools,
         "temperature": _coerce_float(data.get("realtime_temperature")),
@@ -845,7 +847,7 @@ def build_realtime_input_parts(
     if not file_ids:
         return parts
 
-    if realtime_model_supports_native_multimodal_inputs(runtime.realtime_model):
+    if realtime_model_supports_native_multimodal_inputs(runtime.realtime_model) or is_openai_live_model(runtime.realtime_model):
         # Realtime conversation items support native image input, while the
         # shared Responses helper can also emit input_file parts that are not
         # part of the Realtime conversation contract. Keep documents on the
@@ -1961,6 +1963,8 @@ def build_realtime_instructions(runtime: RealtimeSessionRuntime) -> str:
 
 
 def build_realtime_session_config(runtime: RealtimeSessionRuntime) -> dict[str, Any]:
+    if runtime.provider in OPENAI_REALTIME_PROVIDER_TYPES and is_openai_live_model(runtime.realtime_model):
+        return build_live_session_config(runtime, build_realtime_instructions(runtime))
     if runtime.provider == ProviderEnum.google_aistudio.value:
         native_google_search_enabled = bool(
             runtime.model_settings.get("native_websearch")
@@ -2019,6 +2023,8 @@ def build_realtime_client_session_config(runtime: RealtimeSessionRuntime) -> dic
     needs non-sensitive protocol metadata, so privileged instructions are
     removed from both response paths.
     """
+    if runtime.provider in OPENAI_REALTIME_PROVIDER_TYPES and is_openai_live_model(runtime.realtime_model):
+        return {"model": runtime.realtime_model, "voice": normalize_live_voice(runtime.voice)}
     if runtime.provider == ProviderEnum.google_aistudio.value:
         return build_google_aistudio_live_client_setup(
             model_name=runtime.realtime_model,
@@ -2098,12 +2104,23 @@ def exchange_realtime_webrtc_offer(
     persist_realtime_runtime_state(db, runtime, provider_state_authoritative=True)
 
     try:
-        response = httpx.post(
-            build_realtime_call_url(request_settings.get("base_url")),
-            headers=headers,
-            files=multipart_body,
-            timeout=20.0,
-        )
+        if is_openai_live_model(runtime.realtime_model):
+            from app.llm.openai.live import build_live_history
+            live_config = build_realtime_session_config(runtime)
+            live_config["input"] = build_live_history(db, runtime.chat_id)
+            response = httpx.post(
+                f"{_resolve_realtime_http_base_url(request_settings.get('base_url'))}/live/sessions",
+                headers=headers,
+                json={"session": live_config, "transport": {"type": "webrtc", "sdp": provider_offer_sdp}},
+                timeout=20.0,
+            )
+        else:
+            response = httpx.post(
+                build_realtime_call_url(request_settings.get("base_url")),
+                headers=headers,
+                files=multipart_body,
+                timeout=20.0,
+            )
     except httpx.HTTPError as exc:
         runtime.provider_connection_state = REALTIME_PROVIDER_CONNECTION_IDLE
         persist_realtime_runtime_state(db, runtime, provider_state_authoritative=True)
@@ -2125,6 +2142,9 @@ def exchange_realtime_webrtc_offer(
 
     location = str(response.headers.get("Location") or response.headers.get("location") or "").strip()
     call_id = location.rstrip("/").rsplit("/", 1)[-1] if location else ""
+    if is_openai_live_model(runtime.realtime_model):
+        session_data = data.get("session") if isinstance(data, dict) else None
+        call_id = str(session_data.get("id") or "") if isinstance(session_data, dict) else ""
     if not _OPENAI_REALTIME_CALL_ID_PATTERN.fullmatch(call_id):
         # Never hand an answer to the browser when Omlorix cannot retain an
         # authoritative termination handle for the resulting provider call.
@@ -2139,6 +2159,9 @@ def exchange_realtime_webrtc_offer(
     # browser's SDP parser should receive the same terminating line ending that
     # the provider emitted.
     answer_sdp = str(response.text or "")
+    if is_openai_live_model(runtime.realtime_model):
+        transport_data = data.get("transport") if isinstance(data, dict) else None
+        answer_sdp = str(transport_data.get("sdp") or "") if isinstance(transport_data, dict) else ""
     if not answer_sdp.strip():
         runtime.provider_connection_state = REALTIME_PROVIDER_CONNECTION_ACTIVE
         runtime.provider_session_handle = call_id
@@ -2162,6 +2185,13 @@ def exchange_realtime_webrtc_offer(
     runtime.provider_connection_last_seen_at = now
     runtime.last_activity_at = now
     persist_realtime_runtime_state(db, runtime, provider_state_authoritative=True)
+    if is_openai_live_model(runtime.realtime_model):
+        from app.realtime.live_usage import record_live_usage
+        try:
+            record_live_usage(runtime.id, seconds=0, db=db)
+        except Exception:
+            db.rollback()
+            logger.exception("Failed to record Live initialization usage for session %s", runtime.id)
     reservation_is_valid = (
         not runtime.rate_limit_admission_id
         or touch_duration_rate_limit_admission(
@@ -2204,6 +2234,8 @@ def terminate_openai_realtime_call(
         f"{_resolve_realtime_http_base_url(request_settings.get('base_url'))}"
         f"/realtime/calls/{quote(call_id, safe='')}/hangup"
     )
+    if is_openai_live_model(runtime.realtime_model):
+        hangup_url = f"{_resolve_realtime_http_base_url(request_settings.get('base_url'))}/live/sessions/{quote(call_id, safe='')}/hangup"
     try:
         response = httpx.post(
             hangup_url,
@@ -2283,7 +2315,7 @@ def build_realtime_connection_response(
 
     return {
         "transport": "webrtc",
-        "protocol_version": "webrtc-server-signaled-v1",
+        "protocol_version": LIVE_PROTOCOL if is_openai_live_model(runtime.realtime_model) else "webrtc-server-signaled-v1",
         "websocket_url": None,
         "signaling_url": f"/api/v1/realtime/session/{quote(runtime.id, safe='')}/webrtc-offer",
         "session": build_realtime_client_session_config(runtime),
@@ -2805,6 +2837,7 @@ def persist_runtime_turn(
     error_message: str | None = None,
     usage: dict[str, Any] | None = None,
     provider_interactions: list[dict[str, Any]] | None = None,
+    transcript_fragments: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     normalized_turn_id = str(turn_id or "").strip()
     if not normalized_turn_id:
@@ -2843,6 +2876,9 @@ def persist_runtime_turn(
     }
     if runtime.agent_id:
         realtime_meta["agent_id"] = runtime.agent_id
+    if transcript_fragments:
+        realtime_meta["transcript_fragments"] = transcript_fragments
+        realtime_meta["caption_window"] = True
     if runtime.base_model_id:
         realtime_meta["base_model_id"] = runtime.base_model_id
     attachment_fields = build_realtime_attachment_fields(
@@ -2922,6 +2958,9 @@ def persist_runtime_turn(
                 }
             ]
 
+        if is_openai_live_model(runtime.realtime_model):
+            # Live billing comes from the authenticated sideband, never the browser.
+            interactions = []
         for interaction_index, interaction in enumerate(interactions):
             is_final_interaction = interaction_index == len(interactions) - 1
             completed_at = _clamp_realtime_completed_at(

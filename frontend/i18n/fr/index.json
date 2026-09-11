@@ -1,4 +1,5 @@
 {
+  "chat_realtime_live_finalization_incomplete": "L’appel s’est terminé avant la confirmation de sa finalisation. Les derniers sous-titres ou les données d’utilisation peuvent être incomplets.",
   "assistant_tool_error_canvas_file": "Un fichier Canvas existant est nécessaire pour consulter ou modifier son contenu. Pour en créer un, fournissez du contenu et définissez edits sur null.",
   "assistant_tool_error_canvas_revision": "La révision actuelle du Canvas est nécessaire pour le modifier. Lisez le fichier et réessayez.",
   "assistant_tool_error_canvas_content": "Du contenu est nécessaire pour créer ou remplacer un Canvas.",

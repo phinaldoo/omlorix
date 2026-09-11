@@ -18,6 +18,7 @@ class RealtimeSettings(BaseModel):
     realtime_enabled: bool = False
     realtime_provider_id: str | None = None
     realtime_model: str | None = None
+    realtime_live_backend_model: Literal["gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.6-sol", "gpt-6-astra"] = "gpt-5.6-terra"
     realtime_voice: str | None = "alloy"
     realtime_tools: list[str] = Field(default_factory=list)
     realtime_temperature: float | None = Field(default=None, ge=0.0, le=2.0)

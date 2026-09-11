@@ -3,13 +3,21 @@
 from typing import Any, Dict
 
 from app.utils.schemas import FieldSchema, Section, Sections
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class ImageGenerationSettings(BaseModel):
     provider_id: str | None = None
     model_name: str | None = None
     settings: Dict[str, Any] | None = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def validate_image_model_settings(self):
+        from app.llm.openai.image_generation import GPT_IMAGE_25_IDS
+        if self.model_name in GPT_IMAGE_25_IDS:
+            from app.tools.image_generation.size_options import validate_image_generation_settings_size
+            validate_image_generation_settings_size("openai", self.model_name, self.settings)
+        return self
 
     @field_validator("provider_id", "model_name", mode="before")
     @classmethod

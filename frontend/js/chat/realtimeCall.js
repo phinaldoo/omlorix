@@ -73,6 +73,7 @@
             interrupted: false,
             usage: null,
             providerInteractions: [],
+            transcriptFragments: [],
             persistPromise: null,
             responseId: null,
             responseDone: false,
@@ -110,6 +111,13 @@
         currentTurn: createEmptyTurn(),
         ignoredResponseIds: new Set(),
         providerEventQueue: Promise.resolve(),
+        liveToolQueue: Promise.resolve(),
+        livePendingTools: 0,
+        liveDelegations: new Map(),
+        liveCaptionTimer: null,
+        liveCloseResolve: null,
+        liveClosing: false,
+        liveClosed: false,
         pendingRemotePlayback: false,
         audioUnlockPromise: null,
         audioOutputUnlocked: false,
@@ -562,6 +570,7 @@
         const orb = state.callOrb;
         if (!orb) return 0;
         if (orb.state === 'speaking') {
+            if (isOpenaiLiveTransport() && state.callOrbAudio?.remoteLevel != null) return state.callOrbAudio.remoteLevel;
             const gate = Math.max(0, Math.sin(timeSeconds * 1.7) + Math.sin(timeSeconds * 2.9) * 0.5) / 1.5;
             const wobble = 0.55 + 0.45 * Math.sin(timeSeconds * 13 + Math.sin(timeSeconds * 4.2) * 2);
             return Math.min(1, 0.15 + gate * wobble * 0.85);
@@ -768,6 +777,9 @@
         const audio = state.callOrbAudio;
         state.callOrbAudio = null;
         if (!audio) return;
+        if (audio.remoteTimer) window.clearInterval(audio.remoteTimer);
+        try { audio.remoteSource?.disconnect(); } catch (_) { /* already disconnected */ }
+        try { audio.remoteAnalyser?.disconnect(); } catch (_) { /* already disconnected */ }
         try { audio.source?.disconnect(); } catch (_) { /* already disconnected */ }
         try { audio.analyser?.disconnect(); } catch (_) { /* already disconnected */ }
         try { audio.silenceGain?.disconnect(); } catch (_) { /* already disconnected */ }
@@ -1755,6 +1767,7 @@
     }
 
     function sendRealtimeEvent(event) {
+        if (isOpenaiLiveTransport() && !event.event_id) event = { ...event, event_id: createRealtimeTurnId() };
         if (isXaiLiveTransport()) {
             if (!state.ws || state.ws.readyState !== WebSocket.OPEN) {
                 return false;
@@ -2174,6 +2187,7 @@
             interrupted: Boolean(turn.interrupted),
             error_message: errorMessage || null,
             usage: turn.usage || null,
+            transcript_fragments: turn.transcriptFragments,
             provider_interactions: Array.isArray(turn.providerInteractions)
                 ? turn.providerInteractions
                 : [],
@@ -2236,6 +2250,12 @@
     }
 
     function stopRemotePlaybackAndTruncate({ cancelResponse = true } = {}) {
+        if (isOpenaiLiveTransport()) {
+            // Live is full-duplex: stopping speech must not cancel backend actions.
+            sendRealtimeEvent({ type: 'session.instructions.append', content: 'Stop speaking now and listen to the user.' });
+            updateActivity('listening');
+            return;
+        }
         if (isGoogleLiveTransport()) {
             stopGooglePlayback();
             return;
@@ -2276,6 +2296,32 @@
         const alreadyAttached = stream.getAudioTracks().some((existingTrack) => existingTrack.id === audioTrack.id);
         if (!alreadyAttached) {
             stream.addTrack(audioTrack);
+        }
+        const audio = state.callOrbAudio;
+        if (isOpenaiLiveTransport() && audio && !audio.remoteAnalyser) {
+            try {
+                audio.remoteSource = audio.context.createMediaStreamSource(stream);
+                audio.remoteAnalyser = audio.context.createAnalyser();
+                audio.remoteAnalyser.fftSize = 256;
+                audio.remoteSource.connect(audio.remoteAnalyser);
+                audio.remoteAnalyser.connect(audio.silenceGain);
+                const samples = new Uint8Array(256);
+                let lastSpeechAt = 0;
+                // Live has no speech-turn completion event. Meter actual remote
+                // playback, independently of captions and backend responses.
+                audio.remoteTimer = window.setInterval(() => {
+                    if (!state.active || !state.ready || state.stopping) return;
+                    audio.remoteAnalyser.getByteTimeDomainData(samples);
+                    const rms = Math.sqrt(samples.reduce((sum, sample) => sum + ((sample - 128) / 128) ** 2, 0) / samples.length);
+                    audio.remoteLevel = Math.min(1, rms * 7);
+                    if (rms > 0.005 && !state.remoteAudio?.paused) lastSpeechAt = Date.now();
+                    const speaking = Date.now() - lastSpeechAt < 300;
+                    if (speaking !== state.assistantSpeaking) {
+                        state.assistantSpeaking = speaking;
+                        updateActivity(speaking ? 'speaking' : 'listening');
+                    }
+                }, 100);
+            } catch (_) { /* Audio playback remains available without a meter. */ }
         }
 
         audioTrack.addEventListener('ended', () => {
@@ -2402,6 +2448,7 @@
         }
 
         if (providerEventOrigin && !isCurrentProviderEventOrigin(providerEventOrigin)) return;
+        if (isOpenaiLiveTransport() && state.liveClosing) return;
         if (provider === 'google') {
             // A Google cancellation means the provider no longer accepts a
             // response for this call. The backend may already have completed,
@@ -2427,7 +2474,7 @@
         }
 
         sendRealtimeEvent({
-            type: 'conversation.item.create',
+            type: isOpenaiLiveTransport() ? 'response.item.create' : 'conversation.item.create',
             item: {
                 type: 'function_call_output',
                 call_id: callId,
@@ -2721,8 +2768,81 @@
         return persistCurrentTurn();
     }
 
+    function isOpenaiLiveTransport() {
+        return state.protocolVersion === 'openai-live-webrtc-v1';
+    }
+
+    function scheduleLiveCaptionSave(origin) {
+        if (state.liveCaptionTimer || state.stopping) return;
+        state.liveCaptionTimer = window.setTimeout(() => {
+            state.liveCaptionTimer = null;
+            state.providerEventQueue = state.providerEventQueue.catch(() => {}).then(async () => {
+                if (!isCurrentProviderEventOrigin(origin)) return;
+                if (state.livePendingTools || !(await persistCurrentTurn())) scheduleLiveCaptionSave(origin);
+            });
+        }, 10000);
+    }
+
+    async function handleOpenaiLiveEvent(event, origin) {
+        if (event.type === 'session.input_transcript.delta' || event.type === 'session.output_transcript.delta') {
+            const role = event.type === 'session.input_transcript.delta' ? 'user' : 'assistant';
+            const delta = String(event.delta || '');
+            if (!delta) return;
+            const fragments = state.currentTurn.transcriptFragments;
+            if (event.event_id && fragments.some((fragment) => fragment.event_id === event.event_id)) return;
+            fragments.push({ role, delta, start_ms: event.start_ms, end_ms: event.end_ms, event_id: event.event_id });
+            state.currentTurn[`${role}Transcript`] += delta;
+            if (role === 'user') renderLiveUserTranscript(state.currentTurn.userTranscript);
+            else renderLiveAssistantTranscript(state.currentTurn.assistantTranscript);
+            // These are timed caption windows, not conversational turns. Both
+            // speakers may contribute overlapping fragments to the same window.
+            scheduleLiveCaptionSave(origin);
+            if (fragments.length >= 256 && !state.livePendingTools) await persistCurrentTurn();
+            return;
+        }
+        if (event.type === 'response.event') {
+            const inner = event.event || {};
+            const id = String(event.delegation_id || '');
+            if (inner.type === 'response.created') state.liveDelegations.set(id, false);
+            if (inner.type === 'response.output_item.done' && inner.item?.type === 'function_call') {
+                state.liveDelegations.set(id, true);
+                state.livePendingTools += 1;
+                // Tool latency must never block caption processing.
+                state.liveToolQueue = state.liveToolQueue.catch(() => {}).then(() => executeToolCall(inner.item, {
+                    providerEventOrigin: origin, requestContinuation: false,
+                })).finally(() => {
+                    if (isCurrentProviderEventOrigin(origin)) state.livePendingTools -= 1;
+                });
+            }
+            if (['response.completed', 'response.failed', 'response.incomplete'].includes(inner.type)) {
+                const needsContinuation = state.liveDelegations.get(id);
+                state.liveDelegations.delete(id);
+                if (needsContinuation && inner.type === 'response.completed') {
+                    state.liveToolQueue = state.liveToolQueue.catch(() => {}).then(() => {
+                        if (isCurrentProviderEventOrigin(origin) && !state.liveClosing) sendRealtimeEvent({ type: 'response.create' });
+                    });
+                }
+            }
+            return;
+        }
+        if (event.type === 'session.closed') {
+            state.liveClosed = true;
+            state.liveCloseResolve?.();
+            if (!state.stopping) {
+                await persistCurrentTurn();
+                // Do not await stop inside the queue that stop itself drains.
+                stop({ silent: true, reason: 'provider_closed' }).catch(() => {});
+            }
+            return;
+        }
+        if (event.type === 'error') {
+            notify('error', event.error?.message || t('chat_realtime_send_failed', 'Failed to send realtime turn'));
+        }
+    }
+
     async function handleProviderEvent(event, providerEventOrigin) {
         if (!event || typeof event !== 'object' || !isCurrentProviderEventOrigin(providerEventOrigin)) return;
+        if (isOpenaiLiveTransport()) return handleOpenaiLiveEvent(event, providerEventOrigin);
 
         switch (event.type) {
             case 'session.created':
@@ -3012,10 +3132,11 @@
                 if (settled) return;
                 settled = true;
                 reject(new Error(t('chat_realtime_data_channel_timeout', 'Timed out waiting for realtime data channel')));
-            }, 12000);
+            }, isOpenaiLiveTransport() ? 45000 : 12000);
 
             dataChannel.addEventListener('open', async () => {
                 if (settled) return;
+                if (isOpenaiLiveTransport()) return;
                 // The ephemeral key is already bound to the complete session
                 // configuration by the backend. Sending another session update
                 // here can include immutable fields such as model and make an
@@ -3028,6 +3149,16 @@
             dataChannel.addEventListener('message', (messageEvent) => {
                 try {
                     const parsed = JSON.parse(messageEvent.data);
+                    if (!isCurrentProviderEventOrigin(providerEventOrigin)) return;
+                    if (isOpenaiLiveTransport() && parsed.type === 'session.started' && !settled) {
+                        settled = true;
+                        clearTimeout(timeout);
+                        resolve(true);
+                    }
+                    if (isOpenaiLiveTransport() && parsed.type === 'session.closed') {
+                        state.liveClosed = true;
+                        state.liveCloseResolve?.();
+                    }
                     queueProviderEvent(parsed, providerEventOrigin);
                 } catch (_) {
                     // no-op
@@ -3183,11 +3314,31 @@
             startGeneration: startAttemptId,
         });
         const dataChannelReady = setupDataChannel(dataChannel, providerEventOrigin);
+        // Signaling may fail before readiness is awaited; still observe the
+        // promise's rejection when teardown closes the data channel.
+        dataChannelReady.catch(() => {});
 
         const offer = await pc.createOffer();
         assertCurrentStartAttempt(startAttemptId);
         await pc.setLocalDescription(offer);
         assertCurrentStartAttempt(startAttemptId);
+        if (isOpenaiLiveTransport() && pc.iceGatheringState !== 'complete') {
+            await new Promise((resolve, reject) => {
+                const finish = () => {
+                    if (pc.iceGatheringState !== 'complete') return;
+                    clearTimeout(timer);
+                    pc.removeEventListener('icegatheringstatechange', finish);
+                    resolve();
+                };
+                const timer = setTimeout(() => {
+                    pc.removeEventListener('icegatheringstatechange', finish);
+                    reject(new Error(t('chat_realtime_data_channel_timeout', 'Timed out waiting for realtime data channel')));
+                }, 10000);
+                pc.addEventListener('icegatheringstatechange', finish);
+                finish();
+            });
+            assertCurrentStartAttempt(startAttemptId);
+        }
 
         // Omlorix owns provider signaling and retains the provider call ID. The
         // browser sends only its SDP offer to the authenticated same-origin
@@ -3197,7 +3348,7 @@
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ sdp: offer.sdp }),
+            body: JSON.stringify({ sdp: isOpenaiLiveTransport() ? pc.localDescription.sdp : offer.sdp }),
         });
         assertCurrentStartAttempt(startAttemptId);
         const sdpResponseBody = await sdpResponse.text();
@@ -3715,6 +3866,22 @@
     async function stop({ skipServerStop = false, silent = false, reason = 'client_stop', preserveCallRoute = false } = {}) {
         if (state.stopping) return true;
         state.stopping = true;
+        if (state.liveCaptionTimer) window.clearTimeout(state.liveCaptionTimer);
+        state.liveCaptionTimer = null;
+        if (isOpenaiLiveTransport() && state.ready) {
+            await Promise.race([state.liveToolQueue.catch(() => {}), new Promise((resolve) => setTimeout(resolve, 5000))]);
+            await state.providerEventQueue.catch(() => {});
+            await persistCurrentTurn();
+            state.liveClosing = true;
+            if (!state.liveClosed) await new Promise((resolve) => {
+                const timeout = setTimeout(resolve, 3000);
+                state.liveCloseResolve = () => { clearTimeout(timeout); resolve(); };
+                sendRealtimeEvent({ type: 'session.close' });
+            });
+            await state.providerEventQueue.catch(() => {});
+            if (!state.liveClosed && !silent) notify('warning', t('chat_realtime_live_finalization_incomplete', 'The call ended before finalization was confirmed. The last captions or usage may be incomplete.'));
+            state.liveCloseResolve = null;
+        }
         // Invalidate a getUserMedia request that may still be awaiting the
         // user's decision. If it later resolves, start() releases its stream
         // instead of continuing the stopped call.
@@ -3794,6 +3961,11 @@
             }
 
             state.active = false;
+            state.liveDelegations.clear();
+            state.livePendingTools = 0;
+            state.liveClosing = false;
+            state.liveClosed = false;
+            state.liveToolQueue = Promise.resolve();
             state.ready = false;
             state.connecting = false;
             state.transport = null;
@@ -3860,6 +4032,7 @@
         state.localStream.getAudioTracks().forEach((track) => {
             track.enabled = !state.isMuted;
         });
+        if (isOpenaiLiveTransport()) sendRealtimeEvent({ type: state.isMuted ? 'session.input_audio.mute' : 'session.input_audio.unmute' });
         if (state.isMuted && isGoogleLiveTransport()) {
             // With automatic VAD enabled, Google requires this marker when a
             // microphone is turned off. The stream reopens automatically when
@@ -3899,7 +4072,7 @@
             await state.providerEventQueue.catch(() => {});
             if (!state.active || !state.ready || !state.sessionId) return false;
 
-            if (state.assistantSpeaking || state.currentAssistantItemId || String(state.currentTurn.assistantTranscript || '').trim()) {
+            if (!isOpenaiLiveTransport() && (state.assistantSpeaking || state.currentAssistantItemId || String(state.currentTurn.assistantTranscript || '').trim())) {
                 await interruptForNewTurn();
             }
 
@@ -3938,9 +4111,11 @@
                 return false;
             }
 
-            state.currentTurn.userTranscript = displayText;
-            state.currentTurn.fileIds = resolvedFileIds;
-            renderLiveUserTranscript(displayText);
+            state.currentTurn.userTranscript = isOpenaiLiveTransport()
+                ? [state.currentTurn.userTranscript, displayText].filter(Boolean).join('\n') : displayText;
+            state.currentTurn.fileIds = isOpenaiLiveTransport()
+                ? [...new Set([...state.currentTurn.fileIds, ...resolvedFileIds])] : resolvedFileIds;
+            renderLiveUserTranscript(state.currentTurn.userTranscript);
 
             if (mode === 'realtime_input') {
                 sendGoogleRealtimeMessage({
@@ -3948,7 +4123,7 @@
                 });
             } else {
                 sendRealtimeEvent({
-                    type: 'conversation.item.create',
+                    type: isOpenaiLiveTransport() ? 'response.item.create' : 'conversation.item.create',
                     item: {
                         type: 'message',
                         role: 'user',

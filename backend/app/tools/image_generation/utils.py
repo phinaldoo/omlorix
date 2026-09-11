@@ -391,6 +391,10 @@ def _generate_via_openai(
     size = settings.get("size", "1024x1024")
     provider_settings = provider.settings if isinstance(provider.settings, dict) else {}
     custom_headers = provider_settings.get("custom_headers")
+    from app.llm.openai.image_generation import GPT_IMAGE_25_IDS
+    output_kwargs = {"output_options": settings} if model_name in GPT_IMAGE_25_IDS else {}
+    if provider_settings.get("base_url"):
+        output_kwargs["base_url"] = provider_settings["base_url"]
     if use_image_edit:
         result = edit_image_openai(
             api_key=provider.api_key,
@@ -400,6 +404,7 @@ def _generate_via_openai(
             quality=quality,
             reference_images=reference_images or [],
             custom_headers=custom_headers,
+            **output_kwargs,
         )
     else:
         result = generate_image_openai(
@@ -409,6 +414,7 @@ def _generate_via_openai(
             size=size,
             quality=quality,
             custom_headers=custom_headers,
+            **output_kwargs,
         )
     # result is a dict with image_bytes, cost, cost_details
     return result
@@ -441,6 +447,12 @@ def _generate_via_openai_responses(
         edit_image_openai_responses,
         generate_image_openai_responses,
     )
+    from app.llm.openai.image_generation import GPT_IMAGE_25_IDS
+    if model_name in GPT_IMAGE_25_IDS:
+        return _generate_via_openai(
+            provider, model_name, prompt, settings,
+            use_image_edit=use_image_edit, reference_images=reference_images,
+        )
 
     base_url = provider.settings.get("base_url", "") if provider.settings else ""
     custom_headers = provider.settings.get("custom_headers") if provider.settings else None
@@ -704,6 +716,10 @@ def image_generation(
         request_uses_references = bool(use_reference_images)
         should_use_image_edit = normalized_generation_type == "image_edit" or request_uses_references
         image_edit_enabled = _is_provider_image_edit_enabled(provider_type, settings, model_name)
+        if provider_type in {"openai", "openai_responses", "openai_chat_completions"}:
+            from app.llm.openai.image_generation import GPT_IMAGE_25_IDS
+            if model_name in GPT_IMAGE_25_IDS and settings.get("custom_size"):
+                settings["size"] = str(settings["custom_size"]).strip()
 
         # If the LLM chose a size (or width/height), inject it into settings so
         # the provider generator picks it up (overrides the admin-configured default).

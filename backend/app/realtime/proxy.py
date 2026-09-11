@@ -256,6 +256,13 @@ def _claim_openai_realtime_monitor(
                         "",
                     )
                 )
+                if realtime_service.is_openai_live_model(runtime.realtime_model):
+                    from urllib.parse import quote
+                    monitor_url = urlunparse((
+                        websocket_scheme, parsed_base_url.netloc,
+                        f"{parsed_base_url.path.rstrip('/')}/live/sessions/{quote(runtime.provider_session_handle, safe='')}/attach",
+                        "", "", "",
+                    ))
                 headers = realtime_service._build_realtime_headers(request_settings)
                 headers.pop("Content-Type", None)
 
@@ -417,10 +424,38 @@ async def _wait_for_thread_event(event: threading.Event) -> None:
         await asyncio.sleep(0.25)
 
 
-async def _observe_openai_realtime_events(upstream) -> None:
-    """Keep the sideband transport live while discarding provider events."""
-    async for _message in upstream:
-        pass
+async def _observe_openai_realtime_events(upstream, session_id: str | None = None) -> None:
+    """Discard reflected media immediately; retain authoritative Live usage."""
+    from app.realtime.live_usage import record_live_usage
+
+    seconds = 0.0
+    finalized = False
+    try:
+        async for message in upstream:
+            if not session_id:
+                continue
+            try:
+                event = json.loads(message)
+            except (ValueError, TypeError):
+                continue
+            if event.get("type") in {"session.usage.updated", "session.closed"}:
+                value = (event.get("usage") or {}).get("seconds")
+                if isinstance(value, (int, float)) and value >= 0:
+                    seconds = max(seconds, value)
+                if event["type"] == "session.closed":
+                    finalized = True
+                    await asyncio.to_thread(record_live_usage, session_id, seconds=seconds, finalized=True)
+                    # Give the peer a bounded opportunity to save its final
+                    # captions before operational runtime state is released.
+                    await asyncio.sleep(5)
+                    return
+            elif event.get("type") == "response.event":
+                inner = event.get("event") or {}
+                if inner.get("type") in {"response.completed", "response.failed", "response.incomplete"}:
+                    await asyncio.to_thread(record_live_usage, session_id, inner.get("response") or {})
+    finally:
+        if session_id:
+            await asyncio.to_thread(record_live_usage, session_id, seconds=seconds, finalized=finalized)
 
 
 async def _heartbeat_openai_realtime_monitor(
@@ -473,7 +508,7 @@ async def _run_openai_realtime_monitor(
             close_timeout=5,
         )
         provider_task = asyncio.create_task(
-            _observe_openai_realtime_events(upstream)
+            _observe_openai_realtime_events(upstream, session_id if "/live/sessions/" in monitor_url else None)
         )
         heartbeat_task = asyncio.create_task(
             _heartbeat_openai_realtime_monitor(

@@ -27,6 +27,30 @@ def _db(*tables):
     return sessionmaker(bind=engine)()
 
 
+def test_live_usage_is_cumulative_verified_and_separately_priced(monkeypatch):
+    from app.realtime import live_usage
+    from app.realtime.models import RealtimeSession, create_realtime_session
+    db = _db(LLMGenerationStatistic.__table__, RealtimeSession.__table__)
+    factory = sessionmaker(bind=db.get_bind())
+    monkeypatch.setattr(live_usage, "SessionLocal", factory)
+    create_realtime_session(db, session_id="live-app-session", user_id=None, chat_id="chat", model_id="model", model_name="gpt-live-1", provider="openai", provider_id="provider")
+    live_usage.record_live_usage("live-app-session", seconds=12)
+    live_usage.record_live_usage("live-app-session", seconds=18, finalized=True)
+    live_usage.record_live_usage("live-app-session", seconds=12)
+    live_usage.record_live_usage("live-app-session", {"id": "response-1", "model": "gpt-5.6-terra", "status": "completed", "usage": {"input_tokens": 100, "output_tokens": 25}})
+    live_usage.record_live_usage("live-app-session", {"id": "response-1", "model": "gpt-5.6-terra", "status": "completed", "usage": {"input_tokens": 100, "output_tokens": 25}})
+    rows = db.query(LLMGenerationStatistic).all()
+    assert len(rows) == 2
+    voice = next(row for row in rows if row.model_name == "gpt-live-1")
+    assert voice.meta["billable_voice_seconds"] == 18
+    assert voice.meta["total_costs"] == pytest.approx(0.015)
+    assert voice.meta["finalized"] is True
+    assert all(row.usage_verified and row.usage_source == "provider_server" for row in rows)
+    backend = next(row for row in rows if row.model_name != "gpt-live-1")
+    assert backend.counted_tokens == 125
+    assert backend.meta["total_costs"] > 0
+
+
 def test_realtime_usage_keeps_total_and_modality_counts_distinct():
     usage = normalize_realtime_interaction_usage(
         {

@@ -8,6 +8,8 @@ schema at once.
 """
 
 SCHEMA_TEXT_I18N_KEYS: dict[str, str] = {
+    'Voice used for GPT-Live speech.': 'openai_live_voice_help',
+    'Transparent backgrounds require PNG or WebP.': 'openai_image_transparent_error',
     '#ffffff': 'schema_backend_ffffff',
     '(&(objectClass=group)(member={user_dn}))': 'schema_backend_and_objectclass_group_member_user_dn',
     '(&(objectClass=person)(uid={identifier}))': 'schema_backend_and_objectclass_person_uid_identifier',

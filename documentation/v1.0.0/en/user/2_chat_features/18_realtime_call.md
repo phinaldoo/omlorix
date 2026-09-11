@@ -16,6 +16,8 @@ While connected, supported setups can accept typed messages and files. Prompts, 
 
 Omlorix saves completed text turns and visible tool activity when possible, not the call audio. Review the saved transcript because speech can be missing, misheard, or incomplete. It is not an authoritative meeting record.
 
+With GPT-Live 1, you and the assistant can speak at the same time while reasoning or tools continue in the background. Captions are saved in timed windows, including overlapping speech. A bounded selection of recent chat text is loaded at startup. Typed messages and images are handled by the separate reasoning model. Interrupting speech does not undo a tool action. Use **End call** and allow finalization to finish instead of closing the browser immediately.
+
 Voice, transcript text, and files may be processed by the selected provider. Follow your organization’s privacy rules before discussing personal or confidential information. Provider session limits or your realtime allowance can end a call.
 
 See [Voice Dictation](15_voice_dictation.md), [Meeting Transcripts](17_meeting_transcripts.md), and [Usage Limits](../3_user_settings/14_usage_limits.md).
