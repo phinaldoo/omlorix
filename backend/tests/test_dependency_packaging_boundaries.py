@@ -37,9 +37,9 @@ def test_runtime_lock_excludes_development_tools() -> None:
     assert "fakeredis" not in runtime_versions
     assert "ruff" not in runtime_versions
 
-    # c2pa-python 0.37.7 declares pytest as a runtime dependency. Keep that
-    # upstream packaging exception aligned with the explicit development pin.
-    assert runtime_versions["pytest"] == development_pins["pytest"]
+    # Development tools must stay out of the production image even when an
+    # upstream runtime dependency accidentally declares one of them.
+    assert "pytest" not in runtime_versions
 
     # Developers and CI still need the complete test toolchain, and lock
     # updates must follow the source pins instead of duplicated versions here.
