@@ -208,7 +208,7 @@ body.code-block-preview-modal-open {
     margin: 0;
     padding: 16px 20px 20px;
     border-top: 1px solid var(--search-modal-border);
-    background: color-mix(in srgb, var(--surface-elevated) 96%, transparent);
+    background: transparent;
 }
 
 .search-modal-footer .om-button.border,

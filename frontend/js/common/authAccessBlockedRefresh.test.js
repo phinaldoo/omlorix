@@ -1038,3 +1038,52 @@ test('login warning opens access-blocked modal from refresh redirect params', ()
     assert.equal(elements.accessBlockedBackButton.focusCalls, 1);
     assert.equal(cleanedUrl, '/login?redirect=%2Fchats');
 });
+
+test('server setup redirects survive auth bootstrap before and after completion', async () => {
+    const authPath = path.join(__dirname, 'auth.js');
+    for (const needsSetup of [true, false]) {
+        const pathname = needsSetup ? '/' : '/server_setup';
+        const navigations = [];
+        const context = {
+            console, URL, URLSearchParams, CustomEvent,
+            localStorage: { removeItem() {}, setItem() {} },
+            sessionStorage: { removeItem() {} },
+            document: {
+                title: 'Omlorix',
+                documentElement: { setAttribute() {} },
+                addEventListener() {},
+                body: { dataset: { page: needsSetup ? 'index' : 'server_setup' } },
+            },
+            fetch: async () => ({
+                ok: true,
+                status: 200,
+                json: async () => ({
+                    session_authenticated: true,
+                    needs_server_setup: needsSetup,
+                    is_admin: true,
+                }),
+            }),
+        };
+        context.window = {
+            location: {
+                origin: 'http://chat.example', pathname, search: '', hash: '',
+                get href() { return `http://chat.example${pathname}`; },
+                set href(value) { navigations.push(value); },
+            },
+            localStorage: context.localStorage,
+            sessionStorage: context.sessionStorage,
+            document: context.document,
+            fetch: context.fetch,
+            dispatchEvent() {},
+            AbortController, setTimeout, clearTimeout,
+        };
+        context.globalThis = context.window;
+        context.window.window = context.window;
+        context.window.globalThis = context.window;
+        vm.createContext(context);
+        vm.runInContext(fs.readFileSync(authPath, 'utf8'), context, { filename: authPath });
+
+        assert.equal(await context.window.__omlorixInitialAuthBootstrap, false);
+        assert.deepEqual(navigations, [needsSetup ? '/server_setup' : '/']);
+    }
+});

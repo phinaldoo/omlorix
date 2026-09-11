@@ -9,6 +9,7 @@ let initialAuthBootstrapFailed = false;
 let lastAccessTimeBlockedDetail = null;
 let termsAcceptanceRedirectPending = false;
 let passwordChangeRedirectPending = false;
+let serverSetupRedirectPending = false;
 const AUTH_REFRESH_LOCK_NAME = 'omlorix-auth-refresh';
 const AUTH_REFRESH_RACE_MAX_ATTEMPTS = 4;
 const AUTH_REFRESH_RACE_DEFAULT_DELAY_MS = 250;
@@ -598,6 +599,7 @@ async function runInitialAuthBootstrap() {
     authSessionReady = false;
     initialAuthBootstrapFailed = false;
     passwordChangeRedirectPending = false;
+    serverSetupRedirectPending = false;
     if (!refreshPromise) {
         refreshPromise = refreshToken();
     }
@@ -620,7 +622,7 @@ async function runInitialAuthBootstrap() {
     }
     // If user is on a protected page and not authenticated, go to login
     if (!pathMeta.isPublicAuthPage && !refreshed) {
-        if (termsAcceptanceRedirectPending || passwordChangeRedirectPending) {
+        if (termsAcceptanceRedirectPending || passwordChangeRedirectPending || serverSetupRedirectPending) {
             // ``refreshTokenWithoutLock`` already selected a prerequisite
             // route. Do not replace it with the ordinary login redirect while
             // that navigation is pending.
@@ -725,6 +727,7 @@ async function refreshTokenWithoutLock() {
             if (tokenData.needs_server_setup) {
                 const onServerSetup = window.location.pathname === '/server_setup' || window.location.pathname.endsWith('/server_setup');
                 if (!onServerSetup) {
+                    serverSetupRedirectPending = true;
                     window.location.href = resolvePostAuthRedirect({ needs_server_setup: true });
                     return false;
                 }
@@ -734,6 +737,7 @@ async function refreshTokenWithoutLock() {
             // when you are on the server_setup page, but server setup is complete, redirect to index.html
             const onServerSetupPage = window.location.pathname === '/server_setup' || window.location.pathname.endsWith('/server_setup');
             if (!tokenData.needs_server_setup && onServerSetupPage) {
+                serverSetupRedirectPending = true;
                 window.location.href = '/';
                 return false;
             }

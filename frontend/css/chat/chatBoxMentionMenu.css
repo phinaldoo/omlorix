@@ -14,6 +14,7 @@
     bottom: calc(100% + 8px);
     left: 0;
     display: block;
+    box-sizing: border-box;
     width: 100%;
     max-width: none;
     height: 0;
