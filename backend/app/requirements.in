@@ -55,7 +55,7 @@ tinycss2==1.5.1
 
 # --- Media & Files ---
 Pillow==12.3.0
-c2pa-python==0.37.8
+c2pa-python==0.37.10
 resvg_py==0.5.0
 reportlab==5.0.1
 uharfbuzz==0.56.1  # Apache-2.0; complex-script shaping for ReportLab PDF exports.
