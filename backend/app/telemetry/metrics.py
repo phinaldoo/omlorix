@@ -20,6 +20,7 @@ _METRIC_PROVIDER_LABELS = frozenset({
     "anthropic",
     "anthropic_base",
     "byok",
+    "deepgram",
     "elevenlabs",
     "google_aistudio",
     "lmstudio",

@@ -649,5 +649,15 @@
   "model_settings_system_instruction_placeholder": "Leave empty to use the administrator-configured system instruction.",
   "schema_group_field_settings_memories_memory_model_id_label": "Memory model",
   "schema_group_field_settings_memories_memory_model_id_description": "Dedicated model used to update member memories after each user message. Leave empty to use the current chat model.",
-  "schema_group_option_settings_memories_memory_model_id_current": "Use current chat model"
+  "schema_group_option_settings_memories_memory_model_id_current": "Use current chat model",
+  "llm.shared.section_choose_a_deepgram.description": "Choose a Deepgram model.",
+  "llm.shared.section_deepgram_audio.title": "Deepgram Audio",
+  "llm.shared.section_select_the_deepgram.description": "Select the Deepgram model to use.",
+  "schema_backend_configure_the_deepgram_api_key_used_for_speech_to_text_and_text": "Configure the Deepgram API key used for speech-to-text and text-to-speech requests.",
+  "schema_backend_deepgram_api_key_used_for_authenticating_requests": "Deepgram API key used for authenticating requests.",
+  "schema_backend_deepgram_requests_sent_by_omlorix_always_opt_out_of_model_improvement_data": "Deepgram requests sent by Omlorix always opt out of model improvement data usage.",
+  "schema_backend_display_name_for_this_deepgram_provider_configuration": "Display name for this Deepgram provider configuration.",
+  "schema_backend_e_g_my_deepgram_provider": "E.g. My Deepgram provider",
+  "schema_backend_name_how_this_deepgram_connection_appears_across_the_admin_ui": "Name how this Deepgram connection appears across the admin UI.",
+  "schema_backend_timeout_applied_to_deepgram_api_requests": "Timeout applied to Deepgram API requests."
 }

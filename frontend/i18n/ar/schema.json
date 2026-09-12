@@ -649,5 +649,15 @@
   "model_settings_system_instruction_placeholder": "اتركه فارغًا لاستخدام تعليمات النظام التي ضبطها المسؤول.",
   "schema_group_field_settings_memories_memory_model_id_label": "نموذج الذاكرة",
   "schema_group_field_settings_memories_memory_model_id_description": "نموذج مخصص يحدّث ذاكرة الأعضاء بعد كل رسالة مستخدم. اتركه فارغًا لاستخدام نموذج المحادثة الحالية.",
-  "schema_group_option_settings_memories_memory_model_id_current": "استخدام نموذج المحادثة الحالية"
+  "schema_group_option_settings_memories_memory_model_id_current": "استخدام نموذج المحادثة الحالية",
+  "llm.shared.section_choose_a_deepgram.description": "اختر نموذج Deepgram.",
+  "llm.shared.section_deepgram_audio.title": "صوت Deepgram",
+  "llm.shared.section_select_the_deepgram.description": "حدد نموذج Deepgram المطلوب استخدامه.",
+  "schema_backend_configure_the_deepgram_api_key_used_for_speech_to_text_and_text": "قم بتكوين مفتاح Deepgram API المستخدم لطلبات تحويل الكلام إلى نص وتحويل النص إلى كلام.",
+  "schema_backend_deepgram_api_key_used_for_authenticating_requests": "مفتاح Deepgram API المستخدم لمصادقة الطلبات.",
+  "schema_backend_deepgram_requests_sent_by_omlorix_always_opt_out_of_model_improvement_data": "تقوم طلبات Deepgram المرسلة بواسطة Omlorix دائمًا بإلغاء الاشتراك في استخدام بيانات تحسين النموذج.",
+  "schema_backend_display_name_for_this_deepgram_provider_configuration": "اسم العرض لتكوين موفر Deepgram هذا.",
+  "schema_backend_e_g_my_deepgram_provider": "على سبيل المثال. مزود Deepgram الخاص بي",
+  "schema_backend_name_how_this_deepgram_connection_appears_across_the_admin_ui": "قم بتسمية كيفية ظهور اتصال Deepgram عبر واجهة المستخدم الإدارية.",
+  "schema_backend_timeout_applied_to_deepgram_api_requests": "يتم تطبيق المهلة على طلبات Deepgram API."
 }

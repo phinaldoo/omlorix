@@ -92,6 +92,7 @@ def test_model_has_capability_requires_an_explicit_truthy_flag():
 
 
 def test_audio_generation_pricing_normalizes_models_and_formats_labels():
+    pricing = audio_generation_pricing.get_audio_generation_model_pricing("deepgram", "models/aura-2-thalia-en")
     label, metadata = audio_generation_pricing.build_audio_generation_model_option("openai", "tts-1", label="TTS")
     responses_label, responses_metadata = audio_generation_pricing.build_audio_generation_model_option(
         "openai_responses",
@@ -99,6 +100,8 @@ def test_audio_generation_pricing_normalizes_models_and_formats_labels():
         label="TTS",
     )
 
+    assert pricing["pricing_model"] == "per_thousand_characters"
+    assert pricing["pricing_label"] == "$0.03 / 1K chars"
     assert label == "TTS ($15.00 / 1M chars)"
     assert metadata["billing_unit"] == "characters"
     assert responses_label == "TTS ($15.00 / 1M chars)"

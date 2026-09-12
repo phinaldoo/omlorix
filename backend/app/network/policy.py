@@ -46,6 +46,7 @@ DEFAULT_PROVIDER_TARGETS: dict[str, str] = {
     "openrouter": "https://openrouter.ai/api/v1",
     "xai": "https://api.x.ai/v1",
     "elevenlabs": "https://api.elevenlabs.io",
+    "deepgram": "https://api.deepgram.com",
 }
 DEFAULT_WEBSEARCH_PROVIDER_TARGETS: dict[str, str] = {
     "duckduckgo": "https://duckduckgo.com",
@@ -644,7 +645,7 @@ def get_llm_provider_target(provider_type: str, settings: dict[str, Any] | None 
         if _coerce_bool(settings.get("eu_routing"), default=False):
             return OPENROUTER_EU_PROVIDER_TARGET
         return DEFAULT_PROVIDER_TARGETS[provider_key]
-    if provider_key in {"google_aistudio", "elevenlabs"}:
+    if provider_key in {"google_aistudio", "elevenlabs", "deepgram"}:
         return DEFAULT_PROVIDER_TARGETS[provider_key]
     if provider_key in {"ollama", "lmstudio"}:
         return str(settings.get("base_url") or "").strip() or None

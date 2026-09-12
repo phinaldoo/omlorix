@@ -291,11 +291,11 @@ Sections and feature names are sorted alphabetically.
 | Provider lifecycle | Create, edit, test, validate, delete, import, export, and inspect providers with custom base URLs, headers, icons, and masked credentials. |
 | Provider schemas | Generate explicit provider/model forms, validate typed settings, suggest common URLs, and expose schema-safe BYOK variants. |
 | Rate-limit policies | Create, inspect, update, and delete model/tool/dictation/realtime quotas and show affected users their current usage. |
-| Read-aloud speech | Read assistant messages through browser-native speech or configured ElevenLabs, Google, OpenAI, or xAI voices. |
+| Read-aloud speech | Read assistant messages through browser-native speech or configured Deepgram, ElevenLabs, Google, OpenAI, or xAI voices. |
 | Realtime calls | Start OpenAI, Google AI Studio, or xAI WebRTC/live sessions with microphone audio, text/orb views, interruption, proactive/affective options, tools, and transcripts. |
 | Realtime persistence and recovery | Heartbeat sessions, refresh connections, prepare input, persist turns/tool calls, resume sessions, compress context, and stop safely. |
 | Reasoning and thinking controls | Use a unified quick-thinking selector or detailed settings to configure effort/budget, summaries, visibility, verbosity, and provider-specific reasoning behavior when supported. |
-| Speech and media providers | Configure ElevenLabs, Google AI Studio, OpenAI/OpenRouter-compatible, and xAI capabilities for transcription, speech, image, audio, music, or video where supported. |
+| Speech and media providers | Configure Deepgram, ElevenLabs, Google AI Studio, OpenAI/OpenRouter-compatible, and xAI capabilities for transcription, speech, image, audio, music, or video where supported. |
 | Usage metadata accounting | Normalize provider token/cache/reasoning/audio usage, request counts, durations, throughput, and pricing metadata. |
 
 ## Observability, Analytics, and Audit

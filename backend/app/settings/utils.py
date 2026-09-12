@@ -1226,6 +1226,7 @@ def get_chat_setup(user_id: str, db: Session):
                     ProviderEnum.openai_chat_completions.value,
                     ProviderEnum.google_aistudio.value,
                     ProviderEnum.elevenlabs.value,
+                    ProviderEnum.deepgram.value,
                     ProviderEnum.xai.value,
                 }
                 if provider and provider.provider in allowed_types and provider.api_key:

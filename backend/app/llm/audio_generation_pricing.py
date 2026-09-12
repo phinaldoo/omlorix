@@ -9,6 +9,7 @@ OPENAI_TTS_1_HD_DOCS_URL = "https://developers.openai.com/api/docs/models/tts-1-
 GOOGLE_AISTUDIO_TTS_PRICING_DOCS_URL = "https://ai.google.dev/gemini-api/docs/pricing"
 ELEVENLABS_TTS_PRICING_DOCS_URL = "https://elevenlabs.io/pricing/api"
 ELEVENLABS_TTS_MODELS_DOCS_URL = "https://elevenlabs.io/docs/overview/models"
+DEEPGRAM_TTS_PRICING_DOCS_URL = "https://deepgram.com/pricing"
 XAI_TTS_PRICING_DOCS_URL = "https://docs.x.ai/developers/model-capabilities/audio/text-to-speech"
 
 
@@ -122,6 +123,21 @@ ELEVENLABS_AUDIO_GENERATION_PRICING: dict[str, dict[str, Any]] = {
     },
 }
 
+DEEPGRAM_AUDIO_GENERATION_PRICING: dict[str, dict[str, Any]] = {
+    "aura-2": {
+        "pricing_model": "per_thousand_characters",
+        "input_characters": 0.03,
+        "currency": "USD",
+        "source_url": DEEPGRAM_TTS_PRICING_DOCS_URL,
+    },
+    "aura-1": {
+        "pricing_model": "per_thousand_characters",
+        "input_characters": 0.015,
+        "currency": "USD",
+        "source_url": DEEPGRAM_TTS_PRICING_DOCS_URL,
+    },
+}
+
 XAI_AUDIO_GENERATION_PRICING: dict[str, dict[str, Any]] = {
     "grok-tts": {
         "pricing_model": "per_million_characters",
@@ -134,6 +150,15 @@ XAI_AUDIO_GENERATION_PRICING: dict[str, dict[str, Any]] = {
 
 def _normalize_model_id(model_name: str | None) -> str:
     return str(model_name or "").strip().lower().replace("models/", "", 1)
+
+
+def _normalize_deepgram_model_id(model_name: str | None) -> str:
+    model_id = _normalize_model_id(model_name)
+    if model_id.startswith("aura-2"):
+        return "aura-2"
+    if model_id.startswith("aura-1"):
+        return "aura-1"
+    return model_id
 
 
 def _lookup_pricing_dict(provider_type: str | None, model_name: str | None) -> dict[str, Any] | None:
@@ -151,6 +176,10 @@ def _lookup_pricing_dict(provider_type: str | None, model_name: str | None) -> d
         pricing = GOOGLE_AISTUDIO_AUDIO_GENERATION_PRICING.get(normalized_model)
     elif normalized_provider == "elevenlabs":
         pricing = ELEVENLABS_AUDIO_GENERATION_PRICING.get(normalized_model)
+    elif normalized_provider == "deepgram":
+        pricing = DEEPGRAM_AUDIO_GENERATION_PRICING.get(
+            _normalize_deepgram_model_id(normalized_model)
+        )
     elif normalized_provider == "xai":
         pricing = XAI_AUDIO_GENERATION_PRICING.get(normalized_model)
     else:
