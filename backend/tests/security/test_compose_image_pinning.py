@@ -38,10 +38,14 @@ def test_release_image_version_is_pinned_to_app_release_version():
     env_version = _read_env_value(REPO_ROOT / ".env.example", "OMLORIX_VERSION")
     backend_version_source = (REPO_ROOT / "backend/app/version.py").read_text(encoding="utf-8")
     backend_version_match = re.search(r'^APP_VERSION = "([^"]+)"$', backend_version_source, re.MULTILINE)
+    helm_chart_source = (REPO_ROOT / "deploy/helm/omlorix/Chart.yaml").read_text(encoding="utf-8")
+    helm_version_match = re.search(r'^appVersion:\s*"([^"]+)"$', helm_chart_source, re.MULTILINE)
 
     assert backend_version_match is not None
+    assert helm_version_match is not None
     assert SEMVER_RE.fullmatch(env_version)
     assert env_version == backend_version_match.group(1)
+    assert env_version == helm_version_match.group(1)
 
 
 def test_launcher_package_version_is_pinned_to_lockfile_version():

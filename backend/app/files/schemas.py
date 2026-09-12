@@ -556,6 +556,7 @@ allowed_document_types = [
     "text/x-scheme",
     "text/x-ada",
     "text/x-terraform",
+    "text/x-kubernetes",
     "text/x-angular",
     "text/x-react",
 ]
@@ -791,6 +792,7 @@ EXTRACT_TEXT_MIME_TYPES = [
     "text/x-scheme",
     "text/x-ada",
     "text/x-terraform",
+    "text/x-kubernetes",
     "text/x-angular",
     "text/x-react",
 ]

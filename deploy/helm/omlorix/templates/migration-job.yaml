@@ -1,0 +1,46 @@
+{{- if .Values.migrationJob.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "omlorix.fullname" . }}-migrate-{{ .Release.Revision }}
+  labels:
+    {{- include "omlorix.labels" . | nindent 4 }}
+    app.kubernetes.io/component: migrate
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-10"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: {{ .Values.migrationJob.backoffLimit }}
+  activeDeadlineSeconds: {{ .Values.migrationJob.activeDeadlineSeconds }}
+  template:
+    metadata:
+      labels:
+        {{- include "omlorix.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: migrate
+    spec:
+      restartPolicy: Never
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: migrate
+          image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          command: ["python", "-m", "app.migrations.cli", "run"]
+          envFrom:
+            - configMapRef:
+                name: {{ include "omlorix.fullname" . }}-env
+            - secretRef:
+                name: {{ default (printf "%s-env" (include "omlorix.fullname" .)) .Values.existingSecretName }}
+          env:
+            - name: DB_MIGRATIONS_MODE
+              value: "run"
+          resources:
+            {{- toYaml .Values.migrationJob.resources | nindent 12 }}
+{{- end }}

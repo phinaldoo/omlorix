@@ -1,0 +1,22 @@
+api:
+  replicas: 2
+
+worker:
+  enabled: true
+  replicas: 1
+
+scheduler:
+  enabled: true
+  replicas: 1
+
+env:
+  DB_MIGRATIONS_MODE: "off"
+  FILE_STORAGE_PROVIDER: s3
+  FILE_STORAGE_S3_ENDPOINT_URL: https://minio.minio.svc.cluster.local:9000
+  FILE_STORAGE_S3_BUCKET: omlorix-user-files
+  FILE_STORAGE_S3_REGION: us-east-1
+  DATABASE_HOST: pgbouncer.database.svc.cluster.local
+  DATABASE_PORT: "5432"
+
+migrationJob:
+  enabled: true

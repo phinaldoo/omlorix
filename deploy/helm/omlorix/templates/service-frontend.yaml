@@ -1,0 +1,18 @@
+{{- if .Values.frontend.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "omlorix.fullname" . }}-frontend
+  labels:
+    {{- include "omlorix.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.frontendService.type }}
+  ports:
+    - name: http
+      port: {{ .Values.frontendService.port }}
+      targetPort: {{ .Values.frontendService.targetPort }}
+      protocol: TCP
+  selector:
+    {{- include "omlorix.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
+{{- end }}
