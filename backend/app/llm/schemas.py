@@ -80,6 +80,7 @@ from app.llm.base_settings import remove_custom_provider_timeout
 # All Providers
 # -------------------
 class ProviderEnum(str, Enum):
+    acp = "acp"
     openai = "openai"
     openai_responses = "openai_responses"
     openai_chat_completions = "openai_chat_completions"
@@ -104,6 +105,12 @@ def normalize_provider_value(provider: ProviderEnum | str | None) -> str:
     return raw_value
 
 
+# ACP providers are implementation records for user-owned, SSH-backed ACP
+# profiles. They deliberately remain a runtime provider type, but they are not
+# an administrator-configurable provider or model type.
+USER_MANAGED_ONLY_PROVIDER_VALUES = {ProviderEnum.acp.value}
+
+
 # Only provider protocols that are deliberately designed for third-party
 # compatible endpoints may choose their own provider icon. Native adapters
 # keep their brand icon even when they expose an endpoint setting (for example
@@ -117,6 +124,7 @@ CUSTOM_ICON_PROVIDER_VALUES = frozenset(
 )
 
 PROVIDER_DEFAULT_ICON_VALUES = {
+    ProviderEnum.acp.value: "terminal",
     ProviderEnum.openai.value: "openai",
     ProviderEnum.openai_responses.value: "openai",
     ProviderEnum.openai_chat_completions.value: "openai",
@@ -332,6 +340,9 @@ class TestProviderPayload(BaseModel):
     def validate_credentials(self):
         provider = self.provider
 
+        if provider.value in USER_MANAGED_ONLY_PROVIDER_VALUES:
+            raise ValueError(f"Unsupported provider '{provider.value}'.")
+
         base_url_value = None
         if isinstance(self.base_url, str):
             stripped = self.base_url.strip()
@@ -537,6 +548,7 @@ class UserModelSummary(BaseModel):
     tokens_per_second: float | None = None
     increased_errors: bool = False
     has_fixed_skill: bool = False
+    acp_terminal_available: bool = False
     owner_name: str | None = None
     is_shared: bool | None = None
 

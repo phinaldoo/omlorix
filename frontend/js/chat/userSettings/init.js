@@ -736,6 +736,8 @@ async function openUserSettings(initialSection = DEFAULT_USER_SETTINGS_SECTION) 
     if (typeof window.MCPSettings?.setPolicy === 'function') {
         window.MCPSettings.setPolicy(data);
     }
+    window.RemoteConnectionsWorkspace?.setPolicy?.(data);
+    window.RemoteConnectionsWorkspace?.setPolicy?.(data);
     loadActiveSessions();
     const passkeysEnabled = applyPasskeyVisibility(data?.enable_passkeys);
     if (passkeysEnabled && typeof window.loadPasskeys === 'function') {

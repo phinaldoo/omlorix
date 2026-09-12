@@ -43,16 +43,18 @@ test('Workspace create and edit pages mount before their behavior modules', () =
     for (const behaviorScript of [
         '/js/chat/skills.js',
         '/js/chat/workspace.js',
+        '/js/chat/workspaceRemoteConnections.js',
     ]) {
         assert.ok(formsScript < index.indexOf(behaviorScript), `${behaviorScript} must load after the forms`);
     }
-    assert.doesNotMatch(index, /id="(?:skillsContentCreate|skillsContentEdit|promptLibraryEditorContent)"/);
+    assert.doesNotMatch(index, /id="(?:skillsContentCreate|skillsContentEdit|promptLibraryEditorContent|sshConnectionEditorPage|acpConnectionEditorPage)"/);
 });
 
 test('the shared renderer produces all Workspace editor surfaces end to end', () => {
     const mounted = renderWorkspaceForms();
     const skills = mounted.workspaceSectionSkills;
     const prompts = mounted.workspaceSectionPrompts;
+    const connections = mounted.workspaceSectionConnections;
 
     assert.match(skills, /class="projects-content" id="skillsContentCreate"/);
     assert.match(skills, /class="projects-content" id="skillsContentEdit"/);
@@ -64,6 +66,11 @@ test('the shared renderer produces all Workspace editor surfaces end to end', ()
     assert.match(skills, /id="skillEditMetadataError"[^>]+hidden[^>]+aria-hidden="true"/);
     assert.match(prompts, /id="promptLibraryEditorContent"/);
     assert.match(prompts, /id="promptEditorTitleInput"[^>]+required/);
+    assert.match(connections, /id="sshConnectionEditorPage"[^>]+aria-hidden="true"/);
+    assert.match(connections, /<form id="sshConnectionForm"/);
+    assert.match(connections, /id="sshPrivateKeyStatus" role="status" aria-live="polite"/);
+    assert.match(connections, /id="acpConnectionEditorPage"[^>]+aria-hidden="true"/);
+    assert.match(connections, /<form id="acpProfileForm"/);
 });
 
 test('all generated Workspace editor IDs remain unique', () => {
@@ -71,6 +78,6 @@ test('all generated Workspace editor IDs remain unique', () => {
     const ids = [...markup.matchAll(/\sid="([^"]+)"/g)].map((match) => match[1]);
     const duplicates = ids.filter((id, index) => ids.indexOf(id) !== index);
 
-    assert.ok(ids.length > 30, 'expected the complete Skills and Prompt surfaces');
+    assert.ok(ids.length > 75, 'expected the complete Skills, Prompt, SSH, and ACP surfaces');
     assert.deepEqual([...new Set(duplicates)], []);
 });

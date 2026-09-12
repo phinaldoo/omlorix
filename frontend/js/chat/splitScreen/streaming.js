@@ -5,6 +5,7 @@
 async function splitScreenInternalSendToPanel(message, side, composerContext = {}, options = {}) {
     const chatId = side === 'left' ? splitScreenInternalState.leftChatId : splitScreenInternalState.rightChatId;
     const modelId = side === 'left' ? splitScreenInternalState.leftModelId : splitScreenInternalState.rightModelId;
+    const acpState = splitScreenInternalGetPanelAcpState(side);
     const container = side === 'left' ? splitScreenInternalGetLeftContainer() : splitScreenInternalGetRightContainer();
     const area = side === 'left' ? splitScreenInternalGetLeftArea() : splitScreenInternalGetRightArea();
     const panel = side === 'left' ? splitScreenInternalGetLeftPanel() : splitScreenInternalGetRightPanel();
@@ -86,6 +87,10 @@ async function splitScreenInternalSendToPanel(message, side, composerContext = {
             payload: {
                 generation_id: generationRequestId,
                 model_id: byokPayload ? '' : modelId,
+                acp_model_id: acpState.modelId || null,
+                acp_session_id: acpState.sessionId || null,
+                acp_security_level: acpState.securityLevel || null,
+                acp_reasoning_effort: acpState.reasoningEffort || null,
                 message,
                 chat_id: chatId || '',
                 image_ids: payloadImageIds,
@@ -729,6 +734,15 @@ async function splitScreenInternalProcessStream(res, side, message, container, a
                     appendAssistantDone(messageId, '');
                 }
 
+            } else if (obj.t === 'acp_config') {
+                splitScreenInternalUpdatePanelAcpState(side, obj.d || {});
+
+            } else if (obj.t === 'acp_permission') {
+                if (typeof clearMediaGenPlaceholderForNonFileEvent === 'function') {
+                    clearMediaGenPlaceholderForNonFileEvent(messageId);
+                }
+                await window.handleAcpPermissionRequest?.(obj.d || {});
+
             } else if (obj.t === 'w') {
                 const warningFallback = obj.c ?? obj.d ?? obj.message ?? '';
                 const warningMessage = obj.i18n_key
@@ -827,6 +841,7 @@ async function splitScreenInternalProcessStream(res, side, message, container, a
                     clearMediaGenPlaceholderForNonFileEvent(messageId);
                 }
                 const doneMetadata = obj.c;
+                splitScreenInternalUpdatePanelAcpState(side, doneMetadata || {});
                 if (typeof appendAssistantDone === 'function') {
                     appendAssistantDone(messageId, doneMetadata);
                 }

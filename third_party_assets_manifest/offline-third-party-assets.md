@@ -11,6 +11,8 @@ Omlorix vendors its browser libraries, plugins, styles, and fonts so the web UI 
 | CodeMirror | 5.65.16 | MIT | `frontend/js/vendor/codemirror/`, `frontend/css/vendor/codemirror/` | Provides source editing, syntax modes, and editor helpers for canvas content. |
 | D3 | 7.9.0 | ISC | `frontend/js/vendor/d3.min.js` | Builds interactive data visualizations in chat responses. |
 | Mermaid | 11.4.1 | MIT | `frontend/js/vendor/mermaid.min.js` | Renders Mermaid diagrams in chats and shared canvases. |
+| xterm.js | 6.0.0 | MIT | `frontend/js/vendor/xterm/xterm.js`, `frontend/css/vendor/xterm/xterm.css` | Displays interactive terminal sessions in the chat interface. |
+| xterm.js Fit Addon | 0.11.0 | MIT | `frontend/js/vendor/xterm/addon-fit.js` | Resizes xterm.js terminal grids to their containers. |
 | JSZip | 3.10.1 | MIT OR GPL-3.0-or-later | `frontend/js/vendor/jszip.min.js` | Creates and reads ZIP archives for data export and administration workflows. |
 | markdown-it | 13.0.1 | MIT | `frontend/js/vendor/markdown/markdown-it.min.js` | Parses Markdown for chat messages and canvas documents. |
 | markdown-it-abbr | 1.0.4 | MIT | `frontend/js/vendor/markdown/markdown-it-abbr.min.js` | Adds Markdown abbreviation syntax. |

@@ -184,6 +184,7 @@ const PROVIDER_LABEL_MAP = {
 };
 
 const DEFAULT_PROVIDER_ICON_KEYS = [
+    'terminal',
     'openai',
     'anthropic',
     'google_aistudio',
@@ -212,6 +213,7 @@ const CUSTOM_PROVIDER_ICON_KEYS = Object.freeze([
 ]);
 
 const PROVIDER_DEFAULT_ICON_MAP = Object.freeze({
+    acp: 'terminal',
     openai: 'openai',
     openai_responses: 'openai',
     openai_chat_completions: 'openai',

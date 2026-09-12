@@ -12,6 +12,12 @@ import pytest
 # function. Keeping this inventory explicit makes newly added provider modules
 # opt in to the same compatibility contract instead of silently bypassing it.
 PROVIDER_IMPLEMENTATION_MODULES = (
+    ("app.llm.acp.utils", "app.llm.acp.chat"),
+    ("app.llm.acp.runtime", "app.llm.acp.prompts"),
+    ("app.llm.acp.runtime", "app.llm.acp.metadata"),
+    ("app.llm.acp.runtime", "app.llm.acp.session_controls"),
+    ("app.llm.acp.runtime", "app.llm.acp.turn"),
+    ("app.llm.acp.runtime", "app.llm.acp.models"),
     ("app.llm.openai.utils", "app.llm.openai.usage"),
     ("app.llm.openai.utils", "app.llm.openai.models"),
     ("app.llm.openai.utils", "app.llm.openai.chat"),

@@ -122,6 +122,7 @@ USER_MODEL_SUMMARY_FIELDS = {
     "tokens_per_second",
     "increased_errors",
     "has_fixed_skill",
+    "acp_terminal_available",
 }
 
 
@@ -131,6 +132,8 @@ def _patch_common_model_dependencies(
     user,
     models,
     agents_enabled=False,
+    ssh_enabled=True,
+    custom_acp_enabled=True,
 ):
     monkeypatch.setattr("app.llm.utils.get_user", lambda db, user_id: user)
     monkeypatch.setattr("app.llm.utils.list_models", lambda db, **kwargs: models)
@@ -138,6 +141,10 @@ def _patch_common_model_dependencies(
     def _group_setting(_user_id, section, key, _db):
         if (section, key) == ("agents", "allow_agents"):
             return agents_enabled
+        if (section, key) == ("tools_mcp", "allow_ssh_connections"):
+            return ssh_enabled
+        if (section, key) == ("tools_mcp", "allow_custom_acp_connections"):
+            return custom_acp_enabled
         if (section, key) == ("tools_mcp", "enabled_connections"):
             return []
         return False
@@ -413,39 +420,60 @@ def test_user_model_payload_can_exclude_agents_for_admin_model_management(monkey
     assert payload[0]["is_last"] is False
 
 
-def test_foreign_user_managed_model_is_hidden(monkeypatch):
-    """A private model owned by another user must not leak into model lists."""
+def test_user_managed_acp_model_is_hidden_when_group_policy_is_disabled(monkeypatch):
+    """Stored personal ACP models must not leak into any model consumer."""
     user = SimpleNamespace(
-        id="user-1", role="user", group_id="group-1", last_model="personal-model"
+        id="user-1", role="user", group_id="group-1", last_model="personal-acp"
     )
     model = _shared_model(
-        id="personal-model",
-        provider="openai",
+        id="personal-acp",
+        provider="acp",
         access={},
         meta={
             "user_managed": True,
-            "owner_user_id": "user-2",
+            "owner_user_id": "user-1",
+            "acp_profile_id": "profile-one",
         },
     )
 
-    _patch_common_model_dependencies(monkeypatch, user=user, models=[model])
+    _patch_common_model_dependencies(
+        monkeypatch,
+        user=user,
+        models=[model],
+        custom_acp_enabled=False,
+    )
 
     assert list_user_models(db=SimpleNamespace(), user_id=user.id) == []
 
 
-def test_foreign_user_managed_model_access_is_rejected(monkeypatch):
-    """Direct authorization rejects a model owned by another user."""
+@pytest.mark.parametrize(
+    ("ssh_enabled", "custom_acp_enabled"),
+    [(False, True), (True, False)],
+)
+def test_user_managed_acp_model_access_rejects_revoked_group_policy(
+    monkeypatch,
+    ssh_enabled,
+    custom_acp_enabled,
+):
+    """Direct ACP authorization requires both effective group policy gates."""
     user = SimpleNamespace(id="user-1", role="user", group_id="group-1")
     model = _shared_model(
-        id="personal-model",
-        provider="openai",
+        id="personal-acp",
+        provider="acp",
         access={"everyone": False, "users": [user.id], "groups": []},
         meta={
             "user_managed": True,
-            "owner_user_id": "user-2",
+            "owner_user_id": user.id,
+            "acp_profile_id": "profile-one",
         },
     )
-    _patch_common_model_dependencies(monkeypatch, user=user, models=[model])
+    _patch_common_model_dependencies(
+        monkeypatch,
+        user=user,
+        models=[model],
+        ssh_enabled=ssh_enabled,
+        custom_acp_enabled=custom_acp_enabled,
+    )
     monkeypatch.setattr("app.llm.utils.get_model", lambda _db, _model_id: model)
 
     with pytest.raises(HTTPException) as exc_info:
@@ -455,17 +483,18 @@ def test_foreign_user_managed_model_access_is_rejected(monkeypatch):
     assert exc_info.value.detail == "You do not have access to this model"
 
 
-def test_user_managed_model_access_preserves_owner_access(monkeypatch):
-    """An owner can use their personal model."""
+def test_user_managed_acp_model_access_preserves_enabled_group_policy(monkeypatch):
+    """An owner can still use a personal ACP model while both policies allow it."""
     user = SimpleNamespace(id="user-1", role="user", group_id="group-1")
     model = _shared_model(
-        id="personal-model",
-        provider="openai",
-        provider_id="personal-provider",
+        id="personal-acp",
+        provider="acp",
+        provider_id="personal-acp-provider",
         access={"everyone": False, "users": [user.id], "groups": []},
         meta={
             "user_managed": True,
             "owner_user_id": user.id,
+            "acp_profile_id": "profile-one",
         },
     )
     _patch_common_model_dependencies(monkeypatch, user=user, models=[model])

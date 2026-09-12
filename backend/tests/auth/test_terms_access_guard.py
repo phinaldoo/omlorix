@@ -209,7 +209,7 @@ def test_verified_websocket_user_rejects_stale_terms_acceptance(monkeypatch):
 
     with pytest.raises(WebSocketException) as exc:
         dependencies.verified_websocket_user(
-            _websocket("/api/v1/realtime/session/session-1/google-live"),
+            _websocket("/api/v1/remote-connections/terminal"),
             db=object(),
         )
 

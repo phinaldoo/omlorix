@@ -667,11 +667,14 @@ function appendAssistantDone(messageId, metadata, regenerationInfo = null, trans
         { keys: ['timestamp'], labelKey: 'assistant_metadata_timestamp', label: 'Timestamp', formatter: formatTimestamp },
         { keys: ['status'], labelKey: 'assistant_metadata_status', label: 'Status', formatter: formatModel },
         {
-            keys: ['model_id', 'modelId', 'model', 'model_name', 'modelName'],
+            keys: ['acp_model_id', 'model_id', 'modelId', 'model', 'model_name', 'modelName'],
             labelKey: 'assistant_metadata_model',
             label: 'Model',
             formatter: formatModel,
         },
+        { keys: ['acp_session_id'], labelKey: 'assistant_metadata_acp_session', label: 'ACP Session', formatter: formatText },
+        { keys: ['acp_security_level'], labelKey: 'assistant_metadata_acp_security_level', label: 'ACP Security Level', formatter: formatText },
+        { keys: ['acp_reasoning_effort'], labelKey: 'assistant_metadata_acp_reasoning_effort', label: 'ACP Reasoning Effort', formatter: formatText },
         { keys: ['request_count'], labelKey: 'assistant_metadata_request_count', label: 'Request Count', formatter: formatInteger },
         { keys: ['input_tokens'], labelKey: 'assistant_metadata_input_tokens', label: 'Input Tokens', formatter: formatInteger },
         {

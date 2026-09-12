@@ -19,6 +19,8 @@ def determine_model_capabilities(
     tools_payload = tools
 
     match provider:
+        case ProviderEnum.acp:
+            capabilities = ["completion", "tools", "thinking"]
         case (
             ProviderEnum.openai
             | ProviderEnum.openai_responses

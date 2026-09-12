@@ -74,6 +74,15 @@ def test_determine_model_capabilities_falls_back_for_unknown_provider_result():
     ) == ["vision", "tools"]
 
 
+def test_acp_models_advertise_agent_stream_capabilities():
+    """ACP models surface the thinking and tool events supported by the bridge."""
+    assert capabilities.determine_model_capabilities(
+        ProviderEnum.acp,
+        {},
+        tools=[],
+    ) == ["completion", "tools", "thinking"]
+
+
 def test_has_configured_tools_understands_common_payload_shapes():
     assert capabilities.has_configured_tools({"web_search": False, "code": []}) is False
     assert capabilities.has_configured_tools({"web_search": True}) is True

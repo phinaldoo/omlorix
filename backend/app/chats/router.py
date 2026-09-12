@@ -722,6 +722,10 @@ def send(
                 reference_parts=payload.reference_parts,
                 chat_reference_ids=payload.chat_reference_ids,
                 user_role=user.role,
+                acp_model_id=payload.acp_model_id,
+                acp_session_id=payload.acp_session_id,
+                acp_security_level=payload.acp_security_level,
+                acp_reasoning_effort=payload.acp_reasoning_effort,
                 generation_id=client_generation_id,
                 subagent_targets=authorized_subagent_targets,
             )
@@ -1329,6 +1333,10 @@ def regenerate(
                 chat_reference_ids=payload.chat_reference_ids,
                 retry_guidance=payload.retry_guidance,
                 user_role=user.role,
+                acp_model_id=payload.acp_model_id,
+                acp_session_id=payload.acp_session_id,
+                acp_security_level=payload.acp_security_level,
+                acp_reasoning_effort=payload.acp_reasoning_effort,
                 generation_id=client_generation_id,
                 subagent_targets=authorized_subagent_targets,
             )

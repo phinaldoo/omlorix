@@ -12,6 +12,70 @@ function dispatchExternalChatMessage(payload = {}) {
     return sendMessage(message, false, null);
 }
 
+async function resolveAcpPermissionRequest(payload = {}) {
+    const permissionId = String(payload.permission_id || '').trim();
+    if (!permissionId) return false;
+
+    const options = Array.isArray(payload.options) ? payload.options : [];
+    const allowOption = options.find((option) => option?.kind === 'allow_once');
+    const rejectOption = options.find((option) => option?.kind === 'reject_once')
+        || options.find((option) => String(option?.kind || '').startsWith('reject'));
+    const toolCall = payload.tool_call && typeof payload.tool_call === 'object' ? payload.tool_call : {};
+    const toolTitle = String(toolCall.title || toolCall.kind || getChatPreviewTranslation('acp_permission_tool_fallback', 'Agent tool')).trim();
+    const rawInput = toolCall.rawInput ?? toolCall.raw_input;
+    let inputPreview = '';
+    if (rawInput !== undefined && rawInput !== null) {
+        try {
+            inputPreview = typeof rawInput === 'string' ? rawInput : JSON.stringify(rawInput, null, 2);
+        } catch (_) {
+            inputPreview = String(rawInput);
+        }
+    }
+    if (inputPreview.length > 1200) inputPreview = `${inputPreview.slice(0, 1200)}…`;
+
+    let confirmed = false;
+    if (allowOption && typeof window.showWarningConfirm === 'function') {
+        try {
+            confirmed = Boolean(await window.showWarningConfirm({
+                title: getChatPreviewTranslation('acp_permission_title', 'Allow agent action?'),
+                message: inputPreview ? `${toolTitle}\n\n${inputPreview}` : toolTitle,
+                confirmLabel: String(allowOption.name || getChatPreviewTranslation('acp_permission_allow', 'Allow once')),
+                cancelLabel: String(rejectOption?.name || getChatPreviewTranslation('acp_permission_deny', 'Deny')),
+                danger: false,
+                variant: 'warning',
+            }));
+        } catch (_promptError) {
+            confirmed = false;
+        }
+    }
+
+    const selected = confirmed && allowOption ? allowOption : rejectOption;
+    try {
+        const response = await window.authedFetch(`/api/v1/llm/acp/permissions/${encodeURIComponent(permissionId)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ option_id: selected?.optionId || selected?.option_id || null }),
+        });
+        if (!response.ok) {
+            throw new Error(getChatPreviewTranslation('acp_permission_expired', 'The agent permission request expired.'));
+        }
+        return true;
+    } catch (error) {
+        if (typeof notifyError === 'function') {
+            notifyError(error?.message || getChatPreviewTranslation('acp_permission_failed', 'Failed to send the permission decision.'));
+        }
+        return false;
+    }
+}
+
+let acpPermissionDecisionQueue = Promise.resolve();
+window.handleAcpPermissionRequest = function handleAcpPermissionRequest(payload = {}) {
+    const resolveRequest = () => resolveAcpPermissionRequest(payload);
+    const decision = acpPermissionDecisionQueue.then(resolveRequest, resolveRequest);
+    acpPermissionDecisionQueue = decision.catch(() => false);
+    return decision;
+};
+
 window.sendChatMessage = function(message = '') {
     return dispatchExternalChatMessage({ message });
 };
@@ -376,6 +440,18 @@ function buildRegenerationRequestBody({ chatId, userMessageId, modelId, generati
         chat_id: chatId,
         user_message_id: userMessageId,
         model_id: modelId,
+        acp_model_id: typeof window.getSelectedAcpModelId === 'function'
+            ? window.getSelectedAcpModelId()
+            : null,
+        acp_session_id: typeof window.getSelectedAcpSessionId === 'function'
+            ? window.getSelectedAcpSessionId()
+            : null,
+        acp_security_level: typeof window.getSelectedAcpSecurityLevel === 'function'
+            ? window.getSelectedAcpSecurityLevel()
+            : null,
+        acp_reasoning_effort: typeof window.getSelectedAcpReasoningEffort === 'function'
+            ? window.getSelectedAcpReasoningEffort()
+            : null,
     };
 
     const normalizedRetryGuidance = normalizeRetryGuidancePayload(retryGuidance);
@@ -822,6 +898,11 @@ async function processRegenerationStream(
                         if (obj.d && typeof bindAssistantContainerToServerMessage === 'function') {
                             bindAssistantContainerToServerMessage(targetMessageId, obj.d);
                         }
+                    } else if (obj.t === 'acp_config') {
+                        window.applyAcpConfigUpdate?.(obj.d || {});
+                    } else if (obj.t === 'acp_permission') {
+                        clearMediaGenPlaceholderForNonFileEvent(targetMessageId);
+                        await window.handleAcpPermissionRequest?.(obj.d || {});
                     } else if (obj.t === 'r') {
                         // Reasoning/thinking
                         const wasLoading = last_appended_message_type === 'loading';

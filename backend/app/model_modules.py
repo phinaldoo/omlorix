@@ -6,6 +6,7 @@ MODEL_MODULES = [
     "app.backups.models",
     "app.chats.models",
     "app.connections.models",
+    "app.remote_connections.models",
     "app.email.models",
     "app.feedback.models",
     "app.file_folders.models",

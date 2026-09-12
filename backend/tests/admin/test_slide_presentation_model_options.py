@@ -23,18 +23,20 @@ def test_global_model_options_exclude_user_managed_models():
             provider="openai",
             meta={},
         ),
+        # Legacy administrator-created ACP rows are no longer valid global
+        # choices now that ACP is exclusively user-owned and SSH-backed.
         SimpleNamespace(
-            id="admin-model",
-            name="Admin model",
-            model_name="admin-model",
-            provider="openai",
+            id="admin-acp-model",
+            name="Admin ACP",
+            model_name="admin-acp",
+            provider="acp",
             meta={},
         ),
         SimpleNamespace(
-            id="personal-model",
-            name="Personal model",
-            model_name="personal-model",
-            provider="openai",
+            id="personal-acp-model",
+            name="Personal ACP",
+            model_name="personal-acp",
+            provider="acp",
             meta={"user_managed": True, "owner_user_id": "user-1"},
         ),
     ]
@@ -55,7 +57,7 @@ def test_global_model_options_exclude_user_managed_models():
 
     options = admin_utils._get_admin_managed_model_options(DB())
 
-    assert [option["value"] for option in options] == ["shared-model", "admin-model"]
+    assert [option["value"] for option in options] == ["shared-model"]
 
 
 def test_slide_presentation_schema_drops_stored_personal_model(monkeypatch):
@@ -64,7 +66,7 @@ def test_slide_presentation_schema_drops_stored_personal_model(monkeypatch):
     monkeypatch.setattr(
         admin_utils,
         "get_settings_page_data",
-        lambda _db, _page: {"presentation_model_id": "personal-model"},
+        lambda _db, _page: {"presentation_model_id": "personal-acp-model"},
     )
     monkeypatch.setattr(
         admin_utils,
@@ -101,7 +103,7 @@ def test_slide_presentation_update_rejects_personal_model(monkeypatch):
     with pytest.raises(HTTPException) as exc_info:
         admin_utils.update_admin_settings_values_for_page(
             "slide_presentation",
-            {"presentation_model_id": "personal-model"},
+            {"presentation_model_id": "personal-acp-model"},
             object(),
         )
 

@@ -11,7 +11,7 @@ import uuid
 
 from app.llm.models import Models
 from app.llm.provider_request import ProviderRequest, REQUEST_TYPE_CHAT, call_provider_chat
-from app.llm.schemas import normalize_provider_value
+from app.llm.schemas import ProviderEnum, normalize_provider_value
 from app.tools.errors import ToolExecutionDiagnosticError
 
 
@@ -91,14 +91,17 @@ def stream_nested_generation(
             },
         )
     model_metadata = model.meta if isinstance(getattr(model, "meta", None), dict) else {}
-    if model_metadata.get("user_managed") is True:
+    if (
+        normalize_provider_value(model.provider) == ProviderEnum.acp.value
+        or model_metadata.get("user_managed") is True
+    ):
         # Nested feature models come from global administrator settings. A
         # private model cannot satisfy that contract because its runtime and
         # credentials belong to one user, even if its row remains active.
         raise ToolExecutionDiagnosticError(
             f"Nested model request failed during {phase}. "
-            f"Configured model ID: {model_id}. Cause: user-managed models are "
-            "not available for global feature configuration.",
+            f"Configured model ID: {model_id}. Cause: personal ACP and other "
+            "user-managed models are not available for global feature configuration.",
             statistic_meta={
                 "nested_generation": {
                     "phase": phase,

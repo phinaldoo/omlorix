@@ -18,6 +18,7 @@ body.split-screen-active #scrollToBottomBtn {
 }
 
 body.split-screen-active #modelSelectToggle,
+body.split-screen-active #headerAcpTerminalButton,
 body.split-screen-active #headerSplitScreenButton,
 body.split-screen-active #headerShareButton,
 body.split-screen-active #headerCanvasButtonWrap,

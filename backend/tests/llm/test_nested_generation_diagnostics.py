@@ -81,12 +81,12 @@ def test_nested_generation_rejects_user_managed_model_before_provider_call(monke
     """Stale global settings must never launch one user's private runtime."""
 
     model = SimpleNamespace(
-        id="personal-model",
-        name="Personal model",
-        model_name="private-runtime-model",
-        provider="openai",
+        id="personal-acp-model",
+        name="Personal ACP",
+        model_name="acp-profile:profile-id",
+        provider="acp",
         provider_id="personal-provider-id",
-        settings={},
+        settings={"acp_profile_id": "profile-id"},
         capabilities=["completion"],
         tools=[],
         access={"everyone": False, "users": ["owner-id"], "groups": []},
@@ -119,9 +119,9 @@ def test_nested_generation_rejects_user_managed_model_before_provider_call(monke
     assert raised.value.tool_statistic_meta["nested_generation"] == {
         "phase": "slide presentation HTML generation",
         "purpose": "slide-presentation-generate",
-        "model_id": "personal-model",
-        "model_name": "Personal model",
-        "provider": "openai",
+        "model_id": "personal-acp-model",
+        "model_name": "Personal ACP",
+        "provider": "acp",
     }
 
 

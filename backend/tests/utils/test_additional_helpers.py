@@ -63,7 +63,7 @@ def test_sanitize_icon_input_preserves_compact_preset_icon_payload():
 
 
 def test_sanitize_icon_input_preserves_inert_inline_svg():
-    """Allow path-only logos while still rejecting active SVG features."""
+    """Allow path-only ACP logos while still rejecting active SVG features."""
 
     raw = (
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" '

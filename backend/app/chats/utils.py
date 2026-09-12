@@ -1588,6 +1588,10 @@ def send_message(
     reference_parts: list[str] | None = None,
     chat_reference_ids: list[str] | None = None,
     user_role: str | None = None,
+    acp_model_id: str | None = None,
+    acp_session_id: str | None = None,
+    acp_security_level: str | None = None,
+    acp_reasoning_effort: str | None = None,
     generation_id: str | None = None,
     subagent_targets: list[dict[str, str]] | None = None,
 ):
@@ -2339,6 +2343,10 @@ def send_message(
                 user_role=user_role,
                 extra={
                     "chat_id": chat_id,
+                    "acp_model_id": acp_model_id,
+                    "acp_session_id": acp_session_id,
+                    "acp_security_level": acp_security_level,
+                    "acp_reasoning_effort": acp_reasoning_effort,
                     "provider_callables": {
                         "google_aistudio": aistudio_chat,
                         "ollama": ollama_chat,
@@ -4262,6 +4270,7 @@ def _serialize_chat_rows(
 
 
 _DISPLAY_MODEL_METADATA_KEYS = (
+    "acp_model_id",
     "model_id",
     "modelId",
     "model",
@@ -5175,6 +5184,10 @@ def regenerate_message(
     chat_reference_ids: list[str] | None = None,
     retry_guidance: RetryGuidance | None = None,
     user_role: str | None = None,
+    acp_model_id: str | None = None,
+    acp_session_id: str | None = None,
+    acp_security_level: str | None = None,
+    acp_reasoning_effort: str | None = None,
     generation_id: str | None = None,
     subagent_targets: list[dict[str, str]] | None = None,
 ):
@@ -5587,6 +5600,10 @@ def regenerate_message(
                 user_role=user_role,
                 extra={
                     "chat_id": chat_id,
+                    "acp_model_id": acp_model_id,
+                    "acp_session_id": acp_session_id,
+                    "acp_security_level": acp_security_level,
+                    "acp_reasoning_effort": acp_reasoning_effort,
                     "provider_callables": {
                         "google_aistudio": aistudio_chat,
                         "ollama": ollama_chat,

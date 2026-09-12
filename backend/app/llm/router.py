@@ -148,6 +148,12 @@ from app.llm.openrouter.schemas import get_openrouter_model_schema, get_openrout
 from app.llm.openrouter.utils import get_model_providers
 from app.llm.ollama.schemas import get_ollama_model_schema
 from app.llm.lmstudio.schemas import get_lmstudio_model_schema
+from app.llm.acp.schemas import (
+    AcpPermissionDecision,
+    AcpPermissionResolution,
+    get_acp_model_schema_parameter,
+)
+from app.llm.acp.permissions import acp_permission_registry
 from app.llm.google_aistudio.utils import list_models_google_aistudio, create_aistudio_provider
 from app.llm.openai.utils import create_openai_provider, list_models_openai
 from app.llm.openrouter.utils import create_open_router_provider, list_models_openrouter
@@ -416,6 +422,49 @@ def _coerce_bool(value) -> bool:
     if isinstance(value, str):
         return value.strip().lower() in {"1", "true", "yes", "on"}
     return bool(value) if value is not None else False
+
+
+def _require_admin_managed_provider_type(provider: ProviderEnum | str) -> None:
+    """Reject provider types that exist only for user-owned runtime records."""
+    if normalize_provider_value(provider) == ProviderEnum.acp.value:
+        raise HTTPException(status_code=404, detail="LLM provider not found")
+
+
+def _get_admin_managed_provider(db: Session, provider_id: str):
+    """Load an administrator-visible provider without exposing personal ACP rows."""
+    provider = get_llm_provider(db, provider_id)
+    _require_admin_managed_provider_type(provider.provider)
+    return provider
+
+
+def _get_admin_managed_model(db: Session, model_id: str):
+    """Load a model that is valid for administrator model management."""
+    model = get_model(db, model_id)
+    _require_admin_managed_provider_type(model.provider)
+    return model
+
+
+def _provider_group_is_admin_managed(db: Session, group) -> bool:
+    """Return whether a provider group contains no private ACP routing rows."""
+    for member in group.members or []:
+        provider_id = member.get("provider_id") if isinstance(member, dict) else None
+        if not provider_id:
+            continue
+        try:
+            provider = get_llm_provider(db, provider_id)
+        except HTTPException:
+            continue
+        if normalize_provider_value(provider.provider) == ProviderEnum.acp.value:
+            return False
+    return True
+
+
+def _get_admin_managed_provider_group(db: Session, group_id: str):
+    """Load a provider group without exposing legacy ACP groups to admins."""
+    group = get_provider_group(db, group_id)
+    if not _provider_group_is_admin_managed(db, group):
+        raise HTTPException(status_code=404, detail="Provider group not found")
+    return group
 
 
 def _build_rate_limit_payload(db: Session, rate_limit_obj) -> dict[str, Any]:
@@ -1208,8 +1257,9 @@ def _build_tool_settings_sections_for_model(
 # -------------------
 @llm_router.get("/provider", dependencies=[Depends(verified_admin)])
 def get_provider_schema_route(provider: ProviderEnum, provider_id: str | None = None, db: Session = Depends(get_db)):
+    _require_admin_managed_provider_type(provider)
     if provider_id:
-        get_llm_provider(db, provider_id)
+        _get_admin_managed_provider(db, provider_id)
     return get_provider_schema(db, provider, provider_id)
 
 
@@ -2311,7 +2361,7 @@ def update_provider_route(
     db_log: Session = Depends(get_db_log),
     admin_user = Depends(verified_admin),
 ):
-    current_provider = get_llm_provider(db, provider_id)
+    current_provider = _get_admin_managed_provider(db, provider_id)
     try:
         provider_enum = ProviderEnum(normalize_provider_value(current_provider.provider))
     except ValueError:
@@ -2395,7 +2445,7 @@ def update_provider_route(
 @llm_router.get("/provider/groups", dependencies=[Depends(verified_admin)])
 def get_provider_group_membership_route(provider_id: str, db: Session = Depends(get_db)):
     """Check if a provider belongs to any provider groups before deletion."""
-    get_llm_provider(db, provider_id)
+    _get_admin_managed_provider(db, provider_id)
     groups = get_provider_groups_for_provider(db, provider_id)
     return {"provider_id": provider_id, "groups": groups}
 
@@ -2416,7 +2466,7 @@ def delete_llm_provider_route(
     Delete a provider. If handle_groups=True, also remove the provider from any
     groups it belongs to (or delete groups that would have fewer than 2 members).
     """
-    provider = get_llm_provider(db, provider_id)
+    provider = _get_admin_managed_provider(db, provider_id)
     group_result = None
     if handle_groups:
         group_result = remove_provider_from_groups(db, provider_id)
@@ -2455,8 +2505,9 @@ def test_llm_provider_route(
     db_log: Session = Depends(get_db_log),
     admin_user=Depends(verified_admin),
 ):
+    _require_admin_managed_provider_type(payload.provider)
     if payload.provider_id:
-        get_llm_provider(db, payload.provider_id)
+        _get_admin_managed_provider(db, payload.provider_id)
     result = test_llm_provider(db, payload)
     _audit_llm_event(
         db_log,
@@ -2482,7 +2533,14 @@ def list_llm_providers_route(
     model_capable_only: bool = False,
     db: Session = Depends(get_db),
 ):
+    if provider is not None:
+        _require_admin_managed_provider_type(provider)
     providers = list_llm_provider(db, provider)
+    providers = [
+        entry
+        for entry in providers
+        if normalize_provider_value(entry.provider) != ProviderEnum.acp.value
+    ]
     if model_capable_only:
         allowed_provider_values = {entry.value for entry in MODEL_CAPABLE_PROVIDERS}
         providers = [
@@ -2609,9 +2667,10 @@ def get_model_schema_route(
 ):
     schema_obj = None
     provider = ProviderEnum(normalize_provider_value(provider))
-    get_llm_provider(db, provider_id)
+    _require_admin_managed_provider_type(provider)
+    _get_admin_managed_provider(db, provider_id)
     if model_id:
-        get_model(db, model_id, include_inactive=True)
+        _get_admin_managed_model(db, model_id)
     match provider:
         case ProviderEnum.openai:
             schema_obj = get_openai_model_schema(db, provider_id, model_name, model_id)
@@ -2683,7 +2742,8 @@ def create_provider_model_route(
     db_log: Session = Depends(get_db_log),
     admin_user = Depends(verified_admin),
 ):
-    get_llm_provider(db, payload.provider_id)
+    _require_admin_managed_provider_type(payload.provider)
+    _get_admin_managed_provider(db, payload.provider_id)
     result = create_provider_model(db, payload)
     provider = ProviderEnum(normalize_provider_value(payload.provider))
     MODEL_CREATE_METADATA = {
@@ -2734,7 +2794,7 @@ def update_model_values_route(
     admin_user = Depends(verified_admin),
 ):
     # TODO
-    model = get_model(db, model_id, include_inactive=True)
+    model = _get_admin_managed_model(db, model_id)
     try:
         provider_enum = ProviderEnum(normalize_provider_value(model.provider))
     except ValueError:
@@ -2902,6 +2962,7 @@ def bulk_update_models_route(
     prepared_updates = []
     for model_id in model_ids:
         model = models_by_id[model_id]
+        _require_admin_managed_provider_type(model.provider)
         prepared_updates.append((model, _prepare_model_update(db, model, payload, update_fields)))
 
     updated_models = []
@@ -2957,7 +3018,7 @@ def delete_model_route(
     admin_user=Depends(verified_admin),
 ):
     """Delete a model by its database ID (admin only)."""
-    get_model(db, model_id, include_inactive=True)
+    _get_admin_managed_model(db, model_id)
     result = delete_model(db, model_id)
     _audit_llm_event(
         db_log,
@@ -2986,7 +3047,7 @@ def duplicate_model_route(
     admin_user=Depends(verified_admin),
 ):
     """Duplicate a model (admin only). New model has identical fields; name gets a ' Copy' suffix."""
-    get_model(db, model_id, include_inactive=True)
+    _get_admin_managed_model(db, model_id)
     result = duplicate_model(db, model_id)
     _audit_llm_event(
         db_log,
@@ -3139,8 +3200,38 @@ def model_init_route(
 
             schema = get_lmstudio_model_schema_parameter(db, user.id, model_id, project_id)
             return _supported(schema)
+        case ProviderEnum.acp:
+            schema = get_acp_model_schema_parameter(db, user.id, model_id, project_id)
+            return _supported(schema)
         case _:
             raise HTTPException(status_code=400, detail="Unsupported provider")
+
+
+@llm_router.post("/acp/permissions/{permission_id}", response_model=AcpPermissionResolution)
+def resolve_acp_permission_route(
+    permission_id: str,
+    payload: AcpPermissionDecision,
+    request: Request,
+    user=Depends(verified_user),
+    db_log: Session = Depends(get_db_log),
+):
+    """Resolve an ACP tool permission ticket owned by the authenticated user."""
+    resolved = acp_permission_registry.resolve(
+        permission_id,
+        user_id=user.id,
+        option_id=payload.option_id,
+    )
+    if not resolved:
+        raise HTTPException(status_code=404, detail="ACP permission request is unavailable or expired")
+    _audit_llm_event(
+        db_log,
+        request,
+        user.id,
+        "ACP_PERMISSION_RESOLVED",
+        {"permission_id": permission_id, "option_selected": bool(payload.option_id)},
+        "llm_acp",
+    )
+    return {"resolved": True}
 
 
 
@@ -3155,7 +3246,7 @@ def model_init_route(
     response_model_exclude_unset=True,
 )
 def list_provider_models_route(request: Request, provider_id: str, db: Session = Depends(get_db), db_log: Session = Depends(get_db_log), admin_user = Depends(verified_admin)):
-    get_llm_provider(db, provider_id)
+    _get_admin_managed_provider(db, provider_id)
     models = list_provider_models(db, provider_id)
     create_audit_log(
         db_log=db_log,
@@ -3821,7 +3912,11 @@ def create_provider_group_route(
 # -------------------
 @llm_router.get("/provider-groups", response_model=List[ProviderGroupListItem])
 def list_provider_groups_route(db: Session = Depends(get_db), admin_user = Depends(verified_admin)):
-    groups = list_provider_groups(db)
+    groups = [
+        group
+        for group in list_provider_groups(db)
+        if _provider_group_is_admin_managed(db, group)
+    ]
     return [
         {
             "id": g.id,
@@ -3839,7 +3934,7 @@ def list_provider_groups_route(db: Session = Depends(get_db), admin_user = Depen
 # -------------------
 @llm_router.get("/provider-group")
 def get_provider_group_route(group_id: str, db: Session = Depends(get_db), admin_user = Depends(verified_admin)):
-    get_provider_group(db, group_id)
+    _get_admin_managed_provider_group(db, group_id)
     return get_group_with_provider_details(db, group_id)
 
 
@@ -3855,7 +3950,7 @@ def update_provider_group_route(
     db_log: Session = Depends(get_db_log),
     admin_user = Depends(verified_admin),
 ):
-    get_provider_group(db, group_id)
+    _get_admin_managed_provider_group(db, group_id)
     members_list = None
     if payload.members is not None:
         members_list = [{"provider_id": m.provider_id, "weight": m.weight} for m in payload.members]
@@ -3889,7 +3984,7 @@ def delete_provider_group_route(
     db_log: Session = Depends(get_db_log),
     admin_user = Depends(verified_admin),
 ):
-    get_provider_group(db, group_id)
+    _get_admin_managed_provider_group(db, group_id)
     result = delete_provider_group(db, group_id)
     
     create_audit_log(
@@ -3911,7 +4006,7 @@ def delete_provider_group_route(
 @llm_router.get("/provider-group/models")
 def get_provider_group_models_route(group_id: str, db: Session = Depends(get_db), admin_user = Depends(verified_admin)):
     """Get the list of models common to ALL providers in the group."""
-    get_provider_group(db, group_id)
+    _get_admin_managed_provider_group(db, group_id)
     return get_group_common_models(db, group_id)
 
 

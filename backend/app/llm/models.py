@@ -22,7 +22,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import ValidationError
 
-from app.database import Base, SessionLocal
+from app.database import AuditSessionLocal, Base, SessionLocal
 from app.groups.models import Group
 from app.settings.models import Settings
 from app.settings.utils import (
@@ -112,6 +112,11 @@ def _coerce_bool(value: Any, default: bool = False) -> bool:
 
 def provider_regular_requests_disabled(provider_or_settings: Any) -> bool:
     """Return whether recurring provider requests are disabled for a provider."""
+    # User-owned ACP profiles are interactive SSH sessions, not APIs that the
+    # administrator's background model synchronization worker should poll.
+    provider_type = getattr(provider_or_settings, "provider", None)
+    if normalize_provider_value(provider_type) == ProviderEnum.acp.value:
+        return True
     settings = provider_or_settings
     if not isinstance(settings, dict):
         settings = getattr(provider_or_settings, "settings", None)
@@ -530,8 +535,16 @@ current_llm_model_export_version = 1.0
 
 
 def export_llm_providers(db):
-    """Export administrator-managed LLM providers."""
-    providers = db.query(LLMProvider).all()
+    """Export administrator-managed LLM providers.
+
+    ACP provider rows are private implementation details of user-owned SSH
+    profiles and are backed up through the user-data export instead.
+    """
+    providers = [
+        provider
+        for provider in db.query(LLMProvider).all()
+        if normalize_provider_value(provider.provider) != ProviderEnum.acp.value
+    ]
     export_data = []
 
     for provider in providers:
@@ -676,7 +689,11 @@ def import_llm_providers(db, payload: dict):
 
 def export_llm_models(db):
     """Export administrator-managed LLM models only."""
-    models = db.query(Models).all()
+    models = [
+        model
+        for model in db.query(Models).all()
+        if normalize_provider_value(model.provider) != ProviderEnum.acp.value
+    ]
     export_data = []
 
     for model in models:
@@ -1463,6 +1480,11 @@ def _validate_provider_group_members(db, members: list) -> list:
         provider_type = normalize_provider_value(provider.provider)
         if not provider_type:
             raise HTTPException(status_code=400, detail=f"Provider '{provider_id}' is missing a provider type")
+        if normalize_provider_value(provider_type) == ProviderEnum.acp.value:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Provider '{provider_id}' is not available for administrator-managed groups",
+            )
         if provider_type not in model_capable_provider_values:
             raise HTTPException(
                 status_code=400,

@@ -1312,7 +1312,7 @@
         });
         if (typeof window !== 'undefined') {
             // Personal MCP access must never inherit the aggregate Connections
-            // workspace flag, which may be true for managed providers.
+            // workspace flag, which may be true for managed providers or SSH.
             state.allow = window.chatSetup?.allow_mcp === true;
         }
         applyVisibility();

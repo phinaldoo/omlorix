@@ -1074,6 +1074,16 @@ def get_chat_setup(user_id: str, db: Session):
     allow_byok = get_user_group_setting_value(user_id, "chat", "allow_byok", db)
     allow_mcp = get_user_group_setting_value(user_id, "tools_mcp", "enable_mcp", db)
     allow_workspace_connections = group_has_enabled_workspace_connections(user_id, db)
+    allow_ssh_connections = bool(
+        get_user_group_setting_value(
+            user_id, "tools_mcp", "allow_ssh_connections", db
+        )
+    )
+    allow_custom_acp_connections = allow_ssh_connections and bool(
+        get_user_group_setting_value(
+            user_id, "tools_mcp", "allow_custom_acp_connections", db
+        )
+    )
     byok_default_scrape_provider = get_user_group_setting_value(user_id, "chat", "byok_default_scrape_provider", db)
     byok_default_search_provider = get_user_group_setting_value(user_id, "chat", "byok_default_search_provider", db)
     byok_title_generation_model_id = get_user_group_setting_value(
@@ -1386,6 +1396,8 @@ def get_chat_setup(user_id: str, db: Session):
         "allow_byok": bool(allow_byok),
         "allow_mcp": bool(allow_mcp),
         "allow_workspace_connections": allow_workspace_connections,
+        "allow_ssh_connections": allow_ssh_connections,
+        "allow_custom_acp_connections": allow_custom_acp_connections,
         "byok_title_generation_model_id": byok_title_generation_model_id or "",
         "byok_default_scrape_provider": byok_default_scrape_provider or "",
         "byok_default_search_provider": byok_default_search_provider or "",

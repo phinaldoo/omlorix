@@ -168,6 +168,16 @@ def test_postgres_migration_runner_reaches_heads_and_ready_state():
     ) == _alembic_heads("alembic_audit.ini")
 
     _assert_table_exists(engine, DATABASE_SCHEMA, "users")
+    _assert_table_exists(engine, DATABASE_SCHEMA, "ssh_connections")
+    _assert_table_exists(engine, DATABASE_SCHEMA, "user_acp_profiles")
+    _assert_column_exists(engine, DATABASE_SCHEMA, "ssh_connections", "icon")
+    _assert_column_exists(engine, DATABASE_SCHEMA, "user_acp_profiles", "icon")
+    _assert_column_missing(
+        engine,
+        DATABASE_SCHEMA,
+        "ssh_connections",
+        "use_for_code_execution",
+    )
     _assert_table_exists(
         engine,
         DATABASE_SCHEMA,

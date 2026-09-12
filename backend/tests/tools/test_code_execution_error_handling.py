@@ -11,6 +11,15 @@ from app.tools.code_execution import utils as code_execution_utils
 from app.tools.errors import ToolErrorTracker
 
 
+def test_code_execution_has_no_user_ssh_transport():
+    """The tool must exclusively use administrator-configured services."""
+    source = Path(code_execution_utils.__file__).read_text(encoding="utf-8")
+
+    assert "_execute_code_over_ssh" not in source
+    assert "get_default_code_execution_connection" not in source
+    assert "run_ssh_command" not in source
+
+
 def test_code_execution_prefers_the_chat_bound_service_connection():
     connections = [
         {"id": "random-first", "base_url": "http://random.local"},

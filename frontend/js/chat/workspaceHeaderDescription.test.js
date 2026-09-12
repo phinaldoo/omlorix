@@ -35,6 +35,8 @@ test('workspace page headers keep their titles without visible descriptions', ()
         'workspace_skills_title',
         'workspace_notifications_title',
         'workspace_connections_title',
+        'workspace_ssh_title',
+        'workspace_acp_title',
         'workspace_memories_title',
         'workspace_prompts_title',
         'workspace_bookmarks_title',
