@@ -127,6 +127,9 @@ def _impl_google_aistudio_title_generation(
                 db,
                 api_key=byok.get("api_key"),
                 api_version=byok.get("api_version"),
+                vertexai=byok.get("vertexai", False),
+                project=byok.get("project"),
+                location=byok.get("location"),
             )
         else:
             client = get_aistudio_client(db, aistudio_provider_id)

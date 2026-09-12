@@ -59,6 +59,11 @@ def get_google_aistudio_live_models(
     db: Session,
     google_provider_id: str,
 ) -> list[str]:
+    provider = get_llm_provider(db, google_provider_id)
+    provider_settings = provider.settings if isinstance(provider.settings, dict) else {}
+    if bool(provider_settings.get("vertexai")):
+        return []
+
     discovered: list[str] = []
     try:
         models = list_models_google_aistudio(db, aistudio_provider_id=google_provider_id)
@@ -553,6 +558,12 @@ def mint_google_aistudio_live_ephemeral_token(
     session_config: types.LiveConnectConfig,
 ) -> str:
     provider = get_llm_provider(db, provider_id)
+    provider_settings = provider.settings if isinstance(provider.settings, dict) else {}
+    if bool(provider_settings.get("vertexai")):
+        raise HTTPException(
+            status_code=400,
+            detail="Realtime Google Live sessions are only supported for Google AI Studio Developer API providers.",
+        )
     if not provider.api_key:
         raise HTTPException(status_code=400, detail="Realtime provider API key is missing")
 
