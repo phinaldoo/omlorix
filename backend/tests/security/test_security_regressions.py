@@ -665,14 +665,14 @@ def test_file_previews_cap_large_content_before_materializing():
     assert "textPreviewMaxBytes: 1024 * 1024" in files_source
     assert "binaryPreviewMaxBytes: 25 * 1024 * 1024" in files_source
     assert "requestHeaders.Range = `bytes=0-${FilesPreview.textPreviewMaxBytes - 1}`" in files_source
-    assert "FilesPreview.readTextPreviewContent(response)" in files_source
+    assert "window.TextPreview.readTextPreviewContent(response, FilesPreview.textPreviewMaxBytes)" in files_source
     assert "FilesPreview.createPreviewTooLargeElement" in files_source
     assert "const textContent = await response.text();" not in files_source
 
     assert "const TEXT_PREVIEW_MAX_BYTES = 1024 * 1024" in share_source
     assert "const BINARY_PREVIEW_MAX_BYTES = 25 * 1024 * 1024" in share_source
     assert "Range: `bytes=0-${TEXT_PREVIEW_MAX_BYTES - 1}`" in share_source
-    assert "readTextPreviewContent(response)" in share_source
+    assert "window.TextPreview.readTextPreviewContent(response, TEXT_PREVIEW_MAX_BYTES)" in share_source
     assert "preview.createPreviewTooLarge(file)" in share_source
     assert "const text = await response.text();" not in share_source
 

@@ -1,4 +1,6 @@
 {
+  "provider_url_suggestions_custom": "Benutzerdefiniert",
+  "provider_url_suggestions_label": "Vorgeschlagene Anbieter-URL",
   "chat_realtime_live_finalization_incomplete": "Der Anruf wurde beendet, bevor der Abschluss bestätigt wurde. Die letzten Untertitel oder Nutzungsdaten sind möglicherweise unvollständig.",
   "assistant_tool_error_canvas_file": "Zum Anzeigen oder Bearbeiten ist eine vorhandene Canvas-Datei erforderlich. Zum Erstellen Inhalt angeben und edits auf null setzen.",
   "assistant_tool_error_canvas_revision": "Zum Bearbeiten ist die aktuelle Canvas-Revision erforderlich. Datei lesen und erneut versuchen.",

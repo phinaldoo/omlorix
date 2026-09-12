@@ -321,31 +321,12 @@ const NotesAPI = {
         return response.json();
     },
 
-    async fetchPublicUsers() {
-        const users = [];
-        const seenUserIds = new Set();
-        let offset = 0;
-        const limit = 100;
-        while (true) {
-            const response = await this.request(`/api/v1/users/public-users?limit=${limit}&offset=${offset}`, {
-                method: 'GET',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-            });
-            if (!response.ok) throw new Error(notesT('notes_share_load_users_failed', 'Failed to load users.'));
-            const page = await response.json();
-            const pageUsers = Array.isArray(page) ? page : [];
-            pageUsers.forEach((user) => {
-                const userId = String(user?.id || '').trim();
-                if (!userId || seenUserIds.has(userId)) return;
-                seenUserIds.add(userId);
-                users.push(user);
-            });
-            const hasMore = String(response.headers.get('X-Has-More') || '').toLowerCase() === 'true';
-            if (!hasMore || pageUsers.length === 0) break;
-            offset += pageUsers.length;
-        }
-        return users;
+    fetchPublicUsers(options = {}) {
+        return window.PublicUsers.fetchPage({
+            ...options,
+            request: (url, init) => this.request(url, init),
+            errorMessage: notesT('notes_share_load_users_failed', 'Failed to load users.'),
+        });
     },
 
     async inviteUsersToNote(noteId, userIds, shareType = 'live') {

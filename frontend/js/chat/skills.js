@@ -36,8 +36,6 @@ const SkillsState = {
     inviteShareType: 'live',
     inviteCanEdit: false,
     publicUsers: [],
-    publicUsersLoaded: false,
-    publicUsersLoading: false,
     selectedUserIds: [],
     create: {
         selectedIconId: 'tool',
@@ -216,34 +214,13 @@ const SkillsAPI = {
         return response.json();
     },
 
-    async fetchPublicUsers() {
-        const users = [];
-        const seenUserIds = new Set();
-        let offset = 0;
-        const limit = 100;
-        while (true) {
-            const response = await this.request(`/api/v1/users/public-users?limit=${limit}&offset=${offset}`, {
-                method: 'GET',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-            });
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(skillsTranslateBackendDetail(errorData.detail, skillsTranslate('workspace_skills_share_invite_load_users_error', 'Failed to load users')));
-            }
-            const page = await response.json();
-            const pageUsers = Array.isArray(page) ? page : [];
-            pageUsers.forEach((user) => {
-                const userId = String(user?.id || '').trim();
-                if (!userId || seenUserIds.has(userId)) return;
-                seenUserIds.add(userId);
-                users.push(user);
-            });
-            const hasMore = String(response.headers.get('X-Has-More') || '').toLowerCase() === 'true';
-            if (!hasMore || pageUsers.length === 0) break;
-            offset += pageUsers.length;
-        }
-        return users;
+    fetchPublicUsers(options = {}) {
+        return window.PublicUsers.fetchPage({
+            ...options,
+            request: (url, init) => this.request(url, init),
+            errorMessage: skillsTranslate('workspace_skills_share_invite_load_users_error', 'Failed to load users'),
+            resolveError: (payload, fallback) => skillsTranslateBackendDetail(payload.detail, fallback),
+        });
     },
 
     async inviteUsersToSkill(skillId, userIds, shareType = 'live') {
@@ -1962,6 +1939,8 @@ const SkillsManager = {
     },
 
     renderShareModal(skill) {
+        this.inviteUserPicker?.dispose();
+        this.inviteUserPicker = null;
         const overlay = document.getElementById('skillsShareOverlay');
         if (!overlay || !skill) return;
 
@@ -2059,7 +2038,7 @@ const SkillsManager = {
                             </div>
                             <p class="cs-field-error" id="skillsInviteUserError" role="alert" hidden></p>
                             <div class="cs-invite-user-list" id="skillsInviteUserList">
-                                <div class="cs-invite-state">${SkillsState.publicUsersLoaded ? SkillsUtils.escapeHtml(skillsTranslate('workspace_skills_share_invite_no_users', 'No users available to invite')) : SkillsUtils.escapeHtml(skillsTranslate('workspace_skills_share_invite_loading_users', 'Loading users...'))}</div>
+                                <div class="cs-invite-state">${SkillsUtils.escapeHtml(skillsTranslate('workspace_skills_share_invite_loading_users', 'Loading users...'))}</div>
                             </div>
                             <div class="cs-invite-selected" id="skillsSelectedUsers" hidden>
                                 <div class="cs-invite-selected-head">${SkillsUtils.escapeHtml(skillsTranslate('workspace_skills_share_invite_selected', 'Selected'))} (<span id="skillsSelectedCount">0</span>)</div>
@@ -2124,11 +2103,7 @@ const SkillsManager = {
             if (SkillsState.selectedUserIds.length) this.clearInviteSelectionError();
         });
         if (SkillsState.shareAction === 'invite') {
-            if (SkillsState.publicUsersLoaded) {
-                this.filterInviteUsers(inviteSearch?.value || '');
-            } else {
-                void this.loadPublicUsers();
-            }
+            void this.loadPublicUsers();
         }
     },
 
@@ -2200,21 +2175,22 @@ const SkillsManager = {
     },
 
     async loadPublicUsers() {
+        this.inviteUserPicker?.dispose();
         const userList = document.getElementById('skillsInviteUserList');
-        if (!userList || SkillsState.publicUsersLoading || SkillsState.publicUsersLoaded) return;
-
-        SkillsState.publicUsersLoading = true;
-        userList.innerHTML = `<div class="cs-invite-state">${SkillsUtils.escapeHtml(skillsTranslate('workspace_skills_share_invite_loading_users', 'Loading users...'))}</div>`;
-        try {
-            SkillsState.publicUsers = await SkillsAPI.fetchPublicUsers();
-            SkillsState.publicUsersLoaded = true;
-            this.filterInviteUsers('');
-        } catch (error) {
-            console.error('Failed to load public users:', error);
-            userList.innerHTML = `<div class="cs-invite-state">${SkillsUtils.escapeHtml(skillsTranslate('workspace_skills_share_invite_load_users_error', 'Failed to load users'))}</div>`;
-        } finally {
-            SkillsState.publicUsersLoading = false;
-        }
+        if (!userList) return;
+        this.inviteUserPicker = window.PublicUsers.createPicker({
+            list: userList,
+            fetchPage: (options) => SkillsAPI.fetchPublicUsers(options),
+            render: (users) => this.renderInviteUserList(users),
+            onUsers: (users) => {
+                SkillsState.publicUsers = users;
+                this.updateSelectedUsersUI();
+            },
+            selectedUsers: () => SkillsState.publicUsers.filter((user) => SkillsState.selectedUserIds.includes(user.id)),
+            loadingMessage: skillsTranslate('workspace_skills_share_invite_loading_users', 'Loading users...'),
+            errorMessage: skillsTranslate('workspace_skills_share_invite_load_users_error', 'Failed to load users'),
+        });
+        await this.inviteUserPicker.search(document.getElementById('skillsInviteUserSearch')?.value || '', { immediate: true });
     },
 
     renderInviteUserList(users = []) {
@@ -2229,7 +2205,7 @@ const SkillsManager = {
             const isSelected = SkillsState.selectedUserIds.includes(user.id);
             const label = user.display_name || user.id || skillsTranslate('workspace_skills_share_unknown_user', 'Unknown user');
             return `
-                <button type="button" class="cs-invite-user-item ${isSelected ? 'is-selected' : ''}" data-user-id="${SkillsUtils.escapeHtml(user.id)}">
+                <button type="button" class="cs-invite-user-item ${isSelected ? 'is-selected' : ''}" data-user-id="${SkillsUtils.escapeHtml(user.id)}" aria-pressed="${isSelected}">
                     <span class="cs-invite-avatar">${SkillsUtils.escapeHtml(this.getUserInitials(user))}</span>
                     <span class="cs-invite-user-info">
                         <span class="cs-invite-user-name">${SkillsUtils.escapeHtml(label)}</span>
@@ -2316,11 +2292,9 @@ const SkillsManager = {
         const userItems = document.querySelectorAll('#skillsInviteUserList .cs-invite-user-item');
 
         userItems.forEach(item => {
-            if (SkillsState.selectedUserIds.includes(item.dataset.userId)) {
-                item.classList.add('is-selected');
-            } else {
-                item.classList.remove('is-selected');
-            }
+            const selected = SkillsState.selectedUserIds.includes(item.dataset.userId);
+            item.classList.toggle('is-selected', selected);
+            item.setAttribute('aria-pressed', String(selected));
         });
 
         if (!SkillsState.selectedUserIds.length) {
@@ -2353,14 +2327,7 @@ const SkillsManager = {
     },
 
     filterInviteUsers(searchTerm = '') {
-        const term = searchTerm.toLowerCase().trim();
-        const filtered = term
-            ? SkillsState.publicUsers.filter(u =>
-                (u.display_name && u.display_name.toLowerCase().includes(term)) ||
-                false)
-            : SkillsState.publicUsers;
-        this.renderInviteUserList(filtered);
-        this.updateSelectedUsersUI();
+        this.inviteUserPicker?.search(searchTerm);
     },
 
     async sendInvitations() {
@@ -2455,6 +2422,8 @@ const SkillsManager = {
     },
 
     hideShareModal() {
+        this.inviteUserPicker?.dispose();
+        this.inviteUserPicker = null;
         const overlay = document.getElementById('skillsShareOverlay');
         if (overlay) {
             overlay.classList.remove('cs-active');

@@ -20,62 +20,8 @@
             ? window.getTranslation(key, fallback ?? key)
             : fallback ?? key);
 
-    const API_BASE = '/api/v1/admin';
-
-    async function apiFetch(path, opts = {}) {
-        const init = { method: opts.method || 'GET', ...opts };
-        if (opts.body && typeof opts.body !== 'string') {
-            init.body = JSON.stringify(opts.body);
-            init.headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
-        }
-        if (abortController) {
-            init.signal = abortController.signal;
-        }
-        const res = await window.authedFetch(API_BASE + path, init);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-    }
-
-    function showStatus(msg, type = 'error') {
-        if (!msg) return;
-        if (type === 'success') {
-            window.notifySuccess?.(msg);
-            return;
-        }
-        if (type === 'warning' || type === 'info') {
-            window.notifyWarning?.(msg);
-            return;
-        }
-        window.notifyError?.(msg);
-    }
-
-    function setSelectMessage(select, message) {
-        select.innerHTML = '';
-        const option = document.createElement('option');
-        option.value = '';
-        option.textContent = message;
-        select.appendChild(option);
-    }
-
-    function readFieldValue(field, control) {
-        if (field.type === 'boolean') {
-            return Boolean(control.checked);
-        }
-        if (field.type === 'number') {
-            return control.value === '' ? null : Number(control.value);
-        }
-        return control.value;
-    }
-
-    function applyFieldValue(field, control, rawValue) {
-        if (field.type === 'boolean') {
-            control.checked = typeof rawValue === 'string'
-                ? ['1', 'true', 'yes', 'on'].includes(rawValue.trim().toLowerCase())
-                : Boolean(rawValue);
-            return;
-        }
-        control.value = rawValue == null ? '' : String(rawValue);
-    }
+    const apiFetch = UI.createApiClient(() => abortController?.signal);
+    const { showStatus, setSelectMessage } = UI;
 
     function renderModelSettings(fields, target, pageState, onValueChange) {
         UI.clearContainer(target);
@@ -94,40 +40,12 @@
                 currentValues.provider_id === pageState.providerId && currentValues.model_name === pageState.modelName
                     ? currentValues[field.key] ?? field.default
                     : field.default;
-            let control;
-            let valueControl;
-
-            if (field.type === 'boolean') {
-                const toggle = UI.buildToggle();
-                control = toggle.wrap;
-                valueControl = toggle.input;
-            } else if (field.type === 'select' && Array.isArray(field.options)) {
-                control = UI.buildSelect();
-                valueControl = control;
-                field.options.forEach((option) => {
-                    const optionEl = document.createElement('option');
-                    optionEl.value = String(option.value ?? '');
-                    optionEl.textContent = option.label ?? option.value ?? '';
-                    control.appendChild(optionEl);
-                });
-            } else {
-                control = UI.buildInput({
-                    type: field.type === 'number' ? 'number' : 'text',
-                    placeholder: field.placeholder || '',
-                    attributes: field.attributes,
-                });
-                valueControl = control;
-                if (field.type === 'number' && !valueControl.step) {
-                    valueControl.step = field.input_type === 'float' ? 'any' : '1';
-                }
+            const { control, valueControl } = UI.buildFieldControl(field, { optionLabel: (option) => option.label ?? option.value ?? '' });
+            if (field.type === 'number' && !valueControl.step) {
+                valueControl.step = field.input_type === 'float' ? 'any' : '1';
             }
 
-            applyFieldValue(field, valueControl, initialValue);
-            pageState.modelSettings[field.key] = readFieldValue(field, valueControl);
-            valueControl.addEventListener(field.type === 'select' || field.type === 'boolean' ? 'change' : 'input', () => {
-                pageState.modelSettings[field.key] = readFieldValue(field, valueControl);
-                onValueChange?.();
-            });
+            UI.bindFieldValue(field, valueControl, initialValue, pageState.modelSettings, onValueChange);
 
             target.appendChild(UI.buildSettingsRow({
                 title: field.label || field.key,

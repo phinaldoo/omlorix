@@ -81,8 +81,6 @@
         (typeof window.getTranslation === 'function'
             ? window.getTranslation(key, fallback ?? key)
             : fallback ?? key));
-    const PROVIDER_URL_SUGGESTIONS_METADATA_KEY = 'provider_url_suggestions';
-    const CUSTOM_PROVIDER_URL_OPTION_VALUE = '__custom__';
 
     const formatT = window.adminFormatT || ((key, fallback, vars) => {
         if (typeof window.formatTranslation === 'function') {
@@ -129,91 +127,6 @@
             delete button.dataset.originalLabel;
         }
     });
-
-    const normalizeProviderUrl = (value) => String(value || '').trim().replace(/\/+$/, '');
-
-    const getProviderUrlSuggestions = (field = {}) => {
-        const suggestions = field?.metadata?.[PROVIDER_URL_SUGGESTIONS_METADATA_KEY];
-        if (!Array.isArray(suggestions)) {
-            return [];
-        }
-        return suggestions
-            .map((entry) => {
-                const name = String(entry?.name || '').trim();
-                const url = String(entry?.url || '').trim();
-                if (!name || !url) {
-                    return null;
-                }
-                return { name, url };
-            })
-            .filter(Boolean);
-    };
-
-    const createProviderUrlSuggestionSelect = (field, control) => {
-        const suggestions = getProviderUrlSuggestions(field);
-        if (!suggestions.length || !control || control.tagName !== 'INPUT') {
-            return null;
-        }
-
-        const wrapper = document.createElement('div');
-        wrapper.className = 'provider-url-suggestion-stack';
-
-        const select = document.createElement('select');
-        select.className = 'provider-form-control provider-url-suggestion-select';
-        select.setAttribute('aria-label', t('provider_url_suggestions_label', 'Suggested provider URL'));
-
-        const customOption = document.createElement('option');
-        customOption.value = CUSTOM_PROVIDER_URL_OPTION_VALUE;
-        customOption.textContent = t('provider_url_suggestions_custom', 'Custom');
-        select.appendChild(customOption);
-
-        suggestions.forEach((suggestion) => {
-            const option = document.createElement('option');
-            option.value = suggestion.url;
-            option.textContent = suggestion.name;
-            select.appendChild(option);
-        });
-
-        let singleSelectMeta = null;
-
-        const syncSelection = () => {
-            const currentUrl = normalizeProviderUrl(control.value);
-            const matched = suggestions.find((suggestion) => normalizeProviderUrl(suggestion.url) === currentUrl);
-            select.value = matched ? matched.url : CUSTOM_PROVIDER_URL_OPTION_VALUE;
-            singleSelectMeta?.syncFromSelect?.();
-        };
-
-        select.addEventListener('change', () => {
-            if (select.value === CUSTOM_PROVIDER_URL_OPTION_VALUE) {
-                syncSelection();
-                return;
-            }
-            if (control.value !== select.value) {
-                control.value = select.value;
-                control.dispatchEvent(new Event('input', { bubbles: true }));
-                control.dispatchEvent(new Event('change', { bubbles: true }));
-            } else {
-                syncSelection();
-            }
-        });
-
-        control.addEventListener('input', syncSelection);
-        control.addEventListener('change', syncSelection);
-        control._providerUrlSuggestionSync = syncSelection;
-
-        syncSelection();
-        wrapper.appendChild(select);
-
-        if (typeof window.upgradeAdminSingleSelect === 'function') {
-            singleSelectMeta = window.upgradeAdminSingleSelect(select, {
-                key: 'provider-url-suggestion-select',
-                placeholder: t('admin_select_placeholder_single', 'Select an option...'),
-            });
-            singleSelectMeta?.syncFromSelect?.();
-        }
-
-        return wrapper;
-    };
 
     const BASE_PROVIDER_SECTION = {
         title: 'Provider basics',

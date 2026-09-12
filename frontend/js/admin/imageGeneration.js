@@ -27,66 +27,8 @@
     let currentValues = {};
     let autoSaveTimer = null;
 
-    const API_BASE = '/api/v1/admin';
-
-    async function apiFetch(path, opts = {}) {
-        const init = { method: opts.method || 'GET', ...opts };
-        if (opts.body && typeof opts.body !== 'string') {
-            init.body = JSON.stringify(opts.body);
-            init.headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
-        }
-        if (abortController) {
-            init.signal = abortController.signal;
-        }
-        const res = await window.authedFetch(API_BASE + path, init);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-    }
-
-    function showStatus(msg, type = 'error') {
-        if (!msg) return;
-        if (type === 'success') return window.notifySuccess?.(msg);
-        if (type === 'warning' || type === 'info') return window.notifyWarning?.(msg);
-        window.notifyError?.(msg);
-    }
-
-    function setSelectMessage(select, message) {
-        select.innerHTML = '';
-        const option = document.createElement('option');
-        option.value = '';
-        option.textContent = message;
-        select.appendChild(option);
-    }
-
-    function readFieldValue(field, control) {
-        if (field.type === 'boolean') {
-            return Boolean(control.checked);
-        }
-        if (field.type === 'number') {
-            return control.value === '' ? null : Number(control.value);
-        }
-        if (field.type === 'select' && field.multiple) {
-            return Array.from(control.selectedOptions || []).map((option) => option.value);
-        }
-        return control.value;
-    }
-
-    function applyFieldValue(field, control, rawValue) {
-        if (field.type === 'boolean') {
-            control.checked = typeof rawValue === 'string'
-                ? ['1', 'true', 'yes', 'on'].includes(rawValue.trim().toLowerCase())
-                : Boolean(rawValue);
-            return;
-        }
-        if (field.type === 'select' && field.multiple) {
-            const selected = new Set(Array.isArray(rawValue) ? rawValue.map(String) : []);
-            Array.from(control.options || []).forEach((option) => {
-                option.selected = selected.has(String(option.value));
-            });
-            return;
-        }
-        control.value = rawValue == null ? '' : String(rawValue);
-    }
+    const apiFetch = UI.createApiClient(() => abortController?.signal);
+    const { showStatus, setSelectMessage, readFieldValue } = UI;
 
     function renderModelSettingsRows(fields, target, modelSettings, onValueChange) {
         UI.clearContainer(target);
@@ -107,45 +49,13 @@
         for (const field of fields) {
             const settingsKey = normalizeSettingsKey(field.key);
             const initialValue = field.value !== undefined ? field.value : field.default;
-            let control;
-            let valueControl;
-
-            if (field.type === 'boolean') {
-                const toggle = UI.buildToggle();
-                control = toggle.wrap;
-                valueControl = toggle.input;
-            } else if (field.type === 'select' && field.options) {
-                control = UI.buildSelect();
-                valueControl = control;
-                if (field.multiple) {
-                    control.multiple = true;
-                    control.size = Math.min(Math.max(field.options.length, 4), 8);
-                }
-                for (const option of field.options) {
-                    const optionEl = document.createElement('option');
-                    optionEl.value = option.value;
-                    optionEl.textContent = resolveOptionLabel(option);
-                    control.appendChild(optionEl);
-                }
-            } else {
-                control = UI.buildInput({
-                    type: field.type === 'number' ? 'number' : 'text',
-                    placeholder: field.placeholder || '',
-                    attributes: field.attributes,
-                });
-                valueControl = control;
-            }
+            const { control, valueControl } = UI.buildFieldControl(field, { optionLabel: resolveOptionLabel });
 
             // Schema rows provide the visible label; mirror it onto the native
             // control so toggles and upgraded selects have an accessible name.
             valueControl.id = `image-gen-setting-${settingsKey.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
             valueControl.setAttribute('aria-label', resolveFieldLabel(field, settingsKey));
-            applyFieldValue(field, valueControl, initialValue);
-            modelSettings[settingsKey] = readFieldValue(field, valueControl);
-            valueControl.addEventListener(field.type === 'select' || field.type === 'boolean' ? 'change' : 'input', () => {
-                modelSettings[settingsKey] = readFieldValue(field, valueControl);
-                onValueChange?.();
-            });
+            UI.bindFieldValue(field, valueControl, initialValue, modelSettings, onValueChange, settingsKey);
 
             const row = UI.buildSettingsRow({
                 title: resolveFieldLabel(field, settingsKey),

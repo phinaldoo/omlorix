@@ -1176,6 +1176,8 @@ Object.assign(NotesManager, {
     },
 
     renderShareModal(note) {
+        this.inviteUserPicker?.dispose();
+        this.inviteUserPicker = null;
         const overlay = document.getElementById('notesShareOverlay');
         if (!overlay || !note) return;
 
@@ -1251,7 +1253,7 @@ Object.assign(NotesManager, {
                                 ${Icons.magnifyingGlass}
                                 <input type="text" id="notesInviteUserSearch" class="cs-input cs-invite-search-input" placeholder="${NotesRender.escapeHtml(notesT('notes_share_search_users_placeholder', 'Search users...'))}">
                             </div>
-                            <div class="cs-invite-user-list" id="notesInviteUserList"><div class="cs-invite-state">${NotesRender.escapeHtml(NotesState.publicUsersLoaded ? notesT('notes_share_no_users_available', 'No users available to invite.') : notesT('notes_share_loading_users', 'Loading users...'))}</div></div>
+                            <div class="cs-invite-user-list" id="notesInviteUserList"><div class="cs-invite-state">${NotesRender.escapeHtml(notesT('notes_share_loading_users', 'Loading users...'))}</div></div>
                             <div class="cs-invite-selected" id="notesSelectedUsers" hidden>
                                 <div class="cs-invite-selected-head">${NotesRender.escapeHtml(notesT('notes_share_selected_label', 'Selected'))} (<span id="notesSelectedCount">0</span>)</div>
                                 <div class="cs-invite-selected-list" id="notesSelectedUsersList"></div>
@@ -1306,11 +1308,7 @@ Object.assign(NotesManager, {
         const inviteSearch = document.getElementById('notesInviteUserSearch');
         inviteSearch?.addEventListener('input', (event) => this.filterInviteUsers(event.target.value));
         if (NotesState.shareAction === 'invite') {
-            if (NotesState.publicUsersLoaded) {
-                this.filterInviteUsers(inviteSearch?.value || '');
-            } else {
-                void this.loadPublicUsers();
-            }
+            void this.loadPublicUsers();
         }
     },
 
@@ -1364,20 +1362,22 @@ Object.assign(NotesManager, {
     },
 
     async loadPublicUsers() {
+        this.inviteUserPicker?.dispose();
         const userList = document.getElementById('notesInviteUserList');
-        if (!userList || NotesState.publicUsersLoading || NotesState.publicUsersLoaded) return;
-        NotesState.publicUsersLoading = true;
-        userList.innerHTML = `<div class="cs-invite-state">${NotesRender.escapeHtml(notesT('notes_share_loading_users', 'Loading users...'))}</div>`;
-        try {
-            NotesState.publicUsers = await NotesAPI.fetchPublicUsers();
-            NotesState.publicUsersLoaded = true;
-            this.filterInviteUsers('');
-        } catch (error) {
-            console.error('Failed to load public users:', error);
-            userList.innerHTML = `<div class="cs-invite-state">${NotesRender.escapeHtml(notesT('notes_share_load_users_failed', 'Failed to load users.'))}</div>`;
-        } finally {
-            NotesState.publicUsersLoading = false;
-        }
+        if (!userList) return;
+        this.inviteUserPicker = window.PublicUsers.createPicker({
+            list: userList,
+            fetchPage: (options) => NotesAPI.fetchPublicUsers(options),
+            render: (users) => this.renderInviteUserList(users),
+            onUsers: (users) => {
+                NotesState.publicUsers = users;
+                this.updateSelectedUsersUI();
+            },
+            selectedUsers: () => NotesState.publicUsers.filter((user) => NotesState.selectedUserIds.includes(user.id)),
+            loadingMessage: notesT('notes_share_loading_users', 'Loading users...'),
+            errorMessage: notesT('notes_share_load_users_failed', 'Failed to load users.'),
+        });
+        await this.inviteUserPicker.search(document.getElementById('notesInviteUserSearch')?.value || '', { immediate: true });
     },
 
     renderInviteUserList(users) {
@@ -1391,7 +1391,7 @@ Object.assign(NotesManager, {
             const isSelected = NotesState.selectedUserIds.includes(user.id);
             const initials = this.getUserInitials(user);
             return `
-                <button type="button" class="cs-invite-user-item ${isSelected ? 'is-selected' : ''}" data-user-id="${NotesRender.escapeHtml(user.id)}">
+                <button type="button" class="cs-invite-user-item ${isSelected ? 'is-selected' : ''}" data-user-id="${NotesRender.escapeHtml(user.id)}" aria-pressed="${isSelected}">
                     <span class="cs-invite-avatar">${NotesRender.escapeHtml(initials)}</span>
                     <span class="cs-invite-user-info">
                         <span class="cs-invite-user-name">${NotesRender.escapeHtml(user.display_name)}</span>
@@ -1425,6 +1425,7 @@ Object.assign(NotesManager, {
         const selectedCount = document.getElementById('notesSelectedCount');
         document.querySelectorAll('#notesInviteUserList .cs-invite-user-item').forEach((item) => {
             item.classList.toggle('is-selected', NotesState.selectedUserIds.includes(item.dataset.userId));
+            item.setAttribute('aria-pressed', String(NotesState.selectedUserIds.includes(item.dataset.userId)));
         });
         if (!NotesState.selectedUserIds.length) {
             if (selectedSection) selectedSection.hidden = true;
@@ -1451,15 +1452,8 @@ Object.assign(NotesManager, {
         }
     },
 
-    filterInviteUsers(searchTerm) {
-        const term = String(searchTerm || '').toLowerCase().trim();
-        const filtered = term
-            ? NotesState.publicUsers.filter((user) =>
-                (user.display_name && user.display_name.toLowerCase().includes(term)) ||
-                false)
-            : NotesState.publicUsers;
-        this.renderInviteUserList(filtered);
-        this.updateSelectedUsersUI();
+    filterInviteUsers(searchTerm = '') {
+        this.inviteUserPicker?.search(searchTerm);
     },
 
     async sendInvitations() {
@@ -1540,6 +1534,8 @@ Object.assign(NotesManager, {
     },
 
     hideShareModal() {
+        this.inviteUserPicker?.dispose();
+        this.inviteUserPicker = null;
         const overlay = document.getElementById('notesShareOverlay');
         if (overlay) {
             overlay.classList.remove('cs-active');

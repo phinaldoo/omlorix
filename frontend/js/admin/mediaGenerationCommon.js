@@ -9,6 +9,104 @@
             ? window.getTranslation(key, fallback ?? key)
             : fallback ?? key);
 
+    // Resolve the signal at request time: every page owns its current lifecycle.
+    function createApiClient(getSignal) {
+        return async (path, opts = {}) => {
+            const init = { method: opts.method || 'GET', ...opts };
+            if (opts.body && typeof opts.body !== 'string') {
+                init.body = JSON.stringify(opts.body);
+                init.headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+            }
+            const signal = getSignal();
+            if (signal) init.signal = signal;
+            const response = await window.authedFetch('/api/v1/admin' + path, init);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return response.json();
+        };
+    }
+
+    function buildFieldControl(field, { optionLabel = (option) => option.label || option.value } = {}) {
+        if (field.type === 'boolean') {
+            const toggle = buildToggle();
+            return { control: toggle.wrap, valueControl: toggle.input };
+        }
+        let control;
+        if (field.type === 'select' && Array.isArray(field.options)) {
+            control = buildSelect();
+            if (field.multiple) {
+                control.multiple = true;
+                control.size = Math.min(Math.max(field.options.length, 4), 8);
+            }
+            for (const option of field.options) {
+                const optionEl = document.createElement('option');
+                optionEl.value = option.value ?? '';
+                optionEl.textContent = optionLabel(option);
+                control.appendChild(optionEl);
+            }
+        } else {
+            control = buildInput({
+                type: field.type === 'number' ? 'number' : 'text',
+                placeholder: field.placeholder || '',
+                attributes: field.attributes,
+            });
+        }
+        return { control, valueControl: control };
+    }
+
+    function bindFieldValue(field, control, initialValue, values, onChange, key = field.key) {
+        applyFieldValue(field, control, initialValue);
+        values[key] = readFieldValue(field, control);
+        control.addEventListener(field.type === 'select' || field.type === 'boolean' ? 'change' : 'input', () => {
+            values[key] = readFieldValue(field, control);
+            onChange?.();
+        });
+    }
+
+    function showStatus(msg, type = 'error') {
+        if (!msg) return;
+        if (type === 'success') return window.notifySuccess?.(msg);
+        if (type === 'warning' || type === 'info') return window.notifyWarning?.(msg);
+        window.notifyError?.(msg);
+    }
+
+    function setSelectMessage(select, message) {
+        select.innerHTML = '';
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = message;
+        select.appendChild(option);
+    }
+
+    function readFieldValue(field, control) {
+        if (field.type === 'boolean') {
+            return Boolean(control.checked);
+        }
+        if (field.type === 'number') {
+            return control.value === '' ? null : Number(control.value);
+        }
+        if (field.type === 'select' && field.multiple) {
+            return Array.from(control.selectedOptions || []).map((option) => option.value);
+        }
+        return control.value;
+    }
+
+    function applyFieldValue(field, control, rawValue) {
+        if (field.type === 'boolean') {
+            control.checked = typeof rawValue === 'string'
+                ? ['1', 'true', 'yes', 'on'].includes(rawValue.trim().toLowerCase())
+                : Boolean(rawValue);
+            return;
+        }
+        if (field.type === 'select' && field.multiple) {
+            const selected = new Set(Array.isArray(rawValue) ? rawValue.map(String) : []);
+            Array.from(control.options || []).forEach((option) => {
+                option.selected = selected.has(String(option.value));
+            });
+            return;
+        }
+        control.value = rawValue == null ? '' : String(rawValue);
+    }
+
     function escapeHtml(value) {
         const div = document.createElement('div');
         div.textContent = value == null ? '' : String(value);
@@ -46,7 +144,14 @@
         const right = document.createElement('div');
         right.className = 'settings-row-right';
         if (rightExtraClass) right.classList.add(rightExtraClass);
-        if (control) right.appendChild(control);
+        if (control) {
+            const input = control.matches('input, select, textarea')
+                ? control : control.querySelector('input, select, textarea');
+            if (input && title && !input.hasAttribute('aria-label') && !input.hasAttribute('aria-labelledby')) {
+                input.setAttribute('aria-label', title);
+            }
+            right.appendChild(control);
+        }
         row.appendChild(right);
 
         return row;
@@ -379,6 +484,13 @@
     }
 
     window.MediaGenerationUI = {
+        createApiClient,
+        showStatus,
+        setSelectMessage,
+        readFieldValue,
+        applyFieldValue,
+        buildFieldControl,
+        bindFieldValue,
         t,
         escapeHtml,
         buildSettingsRow,
