@@ -4,10 +4,9 @@ import io
 import logging
 from contextlib import contextmanager
 from pathlib import Path
-from typing import BinaryIO, Iterator, Union, get_args
+from typing import BinaryIO, Iterator, Union
 
 import httpx
-from elevenlabs import SpeechToTextConvertRequestModelId
 from elevenlabs.client import ElevenLabs
 
 from app.utils.async_cleanup import close_async_resource
@@ -28,31 +27,9 @@ ELEVENLABS_TRANSCRIPTION_SUPPORTED_FILE_FORMATS = [
 ]
 
 
-def _extract_literal_values(annotation) -> list[str]:
-    origin = getattr(annotation, "__origin__", None)
-    if origin is None:
-        return [annotation] if isinstance(annotation, str) else []
-
-    literal_type = getattr(__import__("typing"), "Literal")
-    if origin is literal_type:
-        return [value for value in get_args(annotation) if isinstance(value, str)]
-
-    values: list[str] = []
-    for arg in get_args(annotation):
-        values.extend(_extract_literal_values(arg))
-    return values
-
-
-def _get_transcription_model_ids(annotation) -> list[str]:
-    """Return only transcription model IDs explicitly exposed by the SDK."""
-
-    return sorted(set(_extract_literal_values(annotation)))
-
-
-ELEVENLABS_TRANSCRIPTION_MODELS = _get_transcription_model_ids(
-    SpeechToTextConvertRequestModelId
-)
-
+# Supported file-transcription models; maintain explicitly because SDK 2.66+
+# accepts a plain string and no longer exposes model IDs in its type hints.
+ELEVENLABS_TRANSCRIPTION_MODELS = ["scribe_v1", "scribe_v2"]
 
 InputFile = Union[str, Path, BinaryIO]
 

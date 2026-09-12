@@ -39,7 +39,7 @@ openai==3.8.0
 google-genai==2.12.1
 ollama==0.6.2
 anthropic==1.4.0
-elevenlabs==2.65.0
+elevenlabs==2.66.0
 mcp==2.1.1
 httpx2==2.12.0
 google-api-python-client==2.200.0

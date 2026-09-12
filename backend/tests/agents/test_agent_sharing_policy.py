@@ -64,7 +64,6 @@ if "pandas" not in sys.modules:
 
 if "elevenlabs" not in sys.modules:
     fake_elevenlabs = ModuleType("elevenlabs")
-    fake_elevenlabs.SpeechToTextConvertRequestModelId = "scribe_v1"
     sys.modules["elevenlabs"] = fake_elevenlabs
 
 if "elevenlabs.client" not in sys.modules:
