@@ -18,6 +18,7 @@ Optional features require separate configuration: [Dictation](../3_admin_setting
 - **Store responses** controls the upstream storage request where supported; it does not control Omlorix chat history or establish a zero-data-retention agreement.
 - **Share User Identifier** sends a stable user identifier to OpenAI for supported safety features. Leave it off unless your privacy policy permits that transfer.
 - Prompt caching, service tiers, reasoning, media, and native tools can change latency and cost. Test them deliberately.
+- **Service tier** offers **Flex**, **Standard**, and **Fast mode** where the model supports them. OpenAI renamed Priority processing to [Fast mode](https://developers.openai.com/api/docs/guides/fast-mode). The native OpenAI provider sends `service_tier: "fast"`, including for existing saved `priority` settings and request overrides. Saved settings and exports remain compatible and need no migration. Compatible endpoints and other providers retain their existing API values. Fast mode carries a per-token premium.
 
 Model access and capabilities vary by project, region, and rollout. Use OpenAI billing as the cost authority and document all enabled data transfers under the relevant compliance pages. Test provider-native tools separately from Omlorix tools because they have different configuration and data flows.
 

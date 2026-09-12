@@ -102,7 +102,7 @@ def test_astra_tool_calls_and_tool_history_require_responses(payload):
 @pytest.mark.parametrize(
     "model,provider",
     [
-        ("gpt-5.6-sol", "openai"),
+        ("gpt-5.6-sol", "openai_responses"),
         ("custom-model", "openai_responses"),
         ("gpt-6-astra", "xai"),
     ],
@@ -350,7 +350,7 @@ def test_chat_safety_stop_persists_and_never_retries(monkeypatch, streamed):
     client.responses.create.assert_called_once()
     request = client.responses.create.call_args.kwargs
     assert request["reasoning"]["effort"] == "low"
-    assert request["service_tier"] == "priority"
+    assert request["service_tier"] == "fast"
     assert "temperature" not in request
     marker.assert_called_once()
     engine.persist_message.assert_called_once()

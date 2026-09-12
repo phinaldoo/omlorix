@@ -1,7 +1,11 @@
-"""Model-specific wire constraints shared by both OpenAI API adapters."""
+"""Wire constraints shared by both OpenAI API adapters."""
 
 from app.llm.openai.catalog import get_responses_model_capabilities
-from app.llm.openai.provider_types import is_openai_chat_completions_provider_type
+from app.llm.openai.provider_types import (
+    OPENAI_PROVIDER_TYPE,
+    is_openai_chat_completions_provider_type,
+    normalize_openai_provider_type,
+)
 
 
 class OpenAIRequestPolicyError(ValueError):
@@ -29,13 +33,19 @@ def normalize_required_reasoning_effort(effort, caps):
 
 def apply_openai_request_policy(request, *, provider_type):
     """Apply constraints after settings/overrides and before provider I/O."""
+    bodies = [request]
+    if isinstance(request.get("extra_body"), dict):
+        bodies.append(request["extra_body"])
+    # Keep saved settings/export compatibility while using OpenAI's current name.
+    # Compatible endpoints and other vendors may still require "priority".
+    if normalize_openai_provider_type(provider_type) == OPENAI_PROVIDER_TYPE:
+        for body in bodies:
+            if body.get("service_tier") == "priority":
+                body["service_tier"] = "fast"
     caps = get_responses_model_capabilities(request.get("model"), provider_type)
     if not caps or not caps.get("requires_reasoning"):
         return
     chat_completions = is_openai_chat_completions_provider_type(provider_type)
-    bodies = [request]
-    if isinstance(request.get("extra_body"), dict):
-        bodies.append(request["extra_body"])
     for body in bodies:
         for key in ("temperature", "top_p", "top_logprobs", "logprobs"):
             body.pop(key, None)

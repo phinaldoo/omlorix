@@ -813,7 +813,7 @@ def _apply_openai_model_caps_to_schema(
         )
         if priority_field:
             priority_field.options = [
-                Option(value=tier, label=tier)
+                Option(value=tier, label="Fast mode" if tier == "priority" else tier)
                 for tier in ["flex", "standard", "priority"]
                 if tier in supported_tiers
             ]
