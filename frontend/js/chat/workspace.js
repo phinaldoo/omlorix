@@ -90,6 +90,13 @@ const WorkspaceManager = {
         if (tabId === 'memories' && typeof window !== 'undefined' && window.enableMemoriesFeature === false) {
             return false;
         }
+        if (tabId === 'plugins' && typeof window !== 'undefined') {
+            const skillsDenied = window.enableSkillsFeature === false
+                || window.chatSetup?.enable_skills === false
+                || window.chatSetup?.allow_skills === false;
+            const mcpDenied = window.chatSetup?.allow_mcp === false;
+            if (skillsDenied && mcpDenied) return false;
+        }
         if (tabId === 'connections') {
             if (typeof window === 'undefined') return true;
             if (window.enableConnectionsFeature === false) return false;
@@ -517,6 +524,12 @@ const WorkspaceManager = {
             window.ConnectionsWorkspace.show();
         }
 
+        // Plugin bundles are loaded on demand because archive management is
+        // never needed during an ordinary chat session.
+        if (tabId === 'plugins' && typeof window.AgentPluginsWorkspace !== 'undefined') {
+            void window.AgentPluginsWorkspace.show();
+        }
+
         // Initialize memories if switching to memories tab
         if (tabId === 'memories' && typeof MemoriesManager !== 'undefined') {
             MemoriesManager.show();
@@ -546,6 +559,7 @@ const WorkspaceManager = {
             'connections': '/workspace/connections',
             'files': '/workspace/files',
             'skills': '/workspace/skills',
+            'plugins': '/workspace/plugins',
             'agents': '/workspace/agents',
             'todo': '/workspace/todo',
             'notes': '/workspace/notes',
@@ -628,7 +642,7 @@ const WorkspaceManager = {
     },
 
     setActiveTab(tabId) {
-        if (tabId && ['notifications', 'messages', 'connections', 'files', 'skills', 'agents', 'todo', 'notes', 'memories', 'prompts', 'bookmarks'].includes(tabId)) {
+        if (tabId && ['notifications', 'messages', 'connections', 'files', 'skills', 'plugins', 'agents', 'todo', 'notes', 'memories', 'prompts', 'bookmarks'].includes(tabId)) {
             WorkspaceState.activeTab = this.isTabAllowed(tabId) ? tabId : DEFAULT_WORKSPACE_TAB;
         }
     },

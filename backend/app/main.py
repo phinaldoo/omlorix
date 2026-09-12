@@ -36,6 +36,7 @@ DATA_SUBDIRECTORIES = (
     "chats",
     "logo",
     "profilepicture",
+    "plugins",
     "skills",
     "userFiles",
 )
@@ -95,6 +96,7 @@ from app.memories.worker import (
 )
 from app.notes.router import notes_router
 from app.prompts.router import prompts_router
+from app.plugins.router import plugins_router
 from app.llm.ollama.router import ollama_router
 from app.llm.lmstudio.router import lmstudio_router
 from app.llm.worker import start_llm_provider_worker, stop_llm_provider_worker
@@ -623,6 +625,7 @@ app.include_router(feedback_router)
 app.include_router(memories_router)
 app.include_router(notes_router)
 app.include_router(prompts_router)
+app.include_router(plugins_router)
 app.include_router(llm_router)
 app.include_router(ollama_router)
 app.include_router(lmstudio_router)

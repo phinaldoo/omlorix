@@ -79,6 +79,7 @@
     <link rel="stylesheet" href="/css/chat/canvas-widget.css">
     <link rel="stylesheet" href="/css/chat/spreadsheet-editor.css">
     <link rel="stylesheet" href="/css/chat/skill-draft-widget.css">
+    <link rel="stylesheet" href="/css/chat/plugins.css">
     <link rel="stylesheet" href="/css/chat/deep-research-widget.css">
     <link rel="stylesheet" href="/css/chat/native-tool-widgets.css">
     <link rel="stylesheet" href="/css/vendor/codemirror/codemirror.min.css">
@@ -224,6 +225,7 @@
     <script src="/js/chat/files.js" defer></script>
     <script src="/js/chat/fileFolders.js" defer></script>
     <script src="/js/chat/workspace.js" defer></script>
+    <script src="/js/chat/plugins.js" defer></script>
     <script src="/js/chat/workspaceNotifications.js" defer></script>
     <script src="/js/chat/workspaceConnections.js" defer></script>
     <script src="/js/chat/todos.js" defer></script>
@@ -635,6 +637,9 @@
                         <button class="workspace-header-tab" id="workspaceTabSkills" type="button" role="tab" aria-selected="false" aria-controls="workspaceSectionSkills" tabindex="-1" data-workspace-tab="skills">
                             <span data-i18n="workspace_tab_skills">Skills</span>
                         </button>
+                        <button class="workspace-header-tab" id="workspaceTabPlugins" type="button" role="tab" aria-selected="false" aria-controls="workspaceSectionPlugins" tabindex="-1" data-workspace-tab="plugins">
+                            <span data-i18n="workspace_tab_plugins">Plugins</span>
+                        </button>
                         <button class="workspace-header-tab" id="workspaceTabAgents" type="button" role="tab" aria-selected="false" aria-controls="workspaceSectionAgents" tabindex="-1" data-workspace-tab="agents">
                             <span data-i18n="workspace_tab_agents">Agents</span>
                         </button>
@@ -922,6 +927,57 @@
                         </div>
                     </div>
 
+                </div>
+
+                <div class="workspace-section" id="workspaceSectionPlugins" role="tabpanel" aria-labelledby="workspaceTabPlugins" tabindex="0" aria-hidden="true" style="display: none;">
+                    <div class="projects-content plugins-workspace">
+                        <div class="projects-header plugins-header">
+                            <div>
+                                <p class="projects-header-title" data-i18n="workspace_plugins_title">Agent Plugins</p>
+                                <p class="projects-header-subtitle" data-i18n="workspace_plugins_subtitle">Install portable plugin bundles containing skills and MCP servers.</p>
+                            </div>
+                            <div class="plugins-header-actions">
+                                <input id="pluginBundleInput" type="file" accept=".zip,application/zip" hidden>
+                                <button class="projects-header-button submit" id="pluginInstallButton" type="button" data-i18n="workspace_plugins_install">Install plugin</button>
+                            </div>
+                        </div>
+                        <div class="plugins-security-note" role="note">
+                            <span class="plugins-security-note-icon" aria-hidden="true"></span>
+                            <p data-i18n="workspace_plugins_security_note">Plugins are reviewed before installation. Hooks never run in Omlorix, and personal plugins cannot start local processes.</p>
+                        </div>
+                        <div class="plugins-status" id="pluginsStatus" role="status" aria-live="polite"></div>
+                        <div class="plugins-grid" id="pluginsGrid"></div>
+                        <div class="plugins-empty" id="pluginsEmpty" hidden>
+                            <div class="plugins-empty-icon" aria-hidden="true"></div>
+                            <h2 data-i18n="workspace_plugins_empty_title">No plugins installed</h2>
+                            <p data-i18n="workspace_plugins_empty_desc">Install a .zip bundle with a .codex-plugin/plugin.json manifest.</p>
+                            <button class="projects-header-button" id="pluginEmptyInstallButton" type="button" data-i18n="workspace_plugins_install">Install plugin</button>
+                        </div>
+                    </div>
+                    <div class="plugins-review-overlay" id="pluginReviewOverlay" hidden aria-hidden="true">
+                        <div class="plugins-review-dialog" role="dialog" aria-modal="true" aria-labelledby="pluginReviewTitle" aria-describedby="pluginReviewDescription" tabindex="-1">
+                            <div class="plugins-review-heading">
+                                <div>
+                                    <p class="plugins-review-eyebrow" data-i18n="workspace_plugins_review_eyebrow">Installation review</p>
+                                    <h2 id="pluginReviewTitle"></h2>
+                                </div>
+                                <button class="plugins-icon-button" id="pluginReviewClose" type="button" data-i18n-attr="aria-label:common_close" aria-label="Close">×</button>
+                            </div>
+                            <p id="pluginReviewDescription"></p>
+                            <dl class="plugins-review-meta">
+                                <div><dt data-i18n="workspace_plugins_version">Version</dt><dd id="pluginReviewVersion"></dd></div>
+                                <div><dt data-i18n="workspace_plugins_author">Author</dt><dd id="pluginReviewAuthor"></dd></div>
+                                <div><dt data-i18n="workspace_plugins_skills">Skills</dt><dd id="pluginReviewSkills"></dd></div>
+                                <div><dt data-i18n="workspace_plugins_servers">MCP servers</dt><dd id="pluginReviewServers"></dd></div>
+                            </dl>
+                            <ul class="plugins-review-warnings" id="pluginReviewWarnings"></ul>
+                            <p class="plugins-review-disabled-note" data-i18n="workspace_plugins_installs_disabled">The plugin will be installed disabled. Enable it after reviewing its components.</p>
+                            <div class="plugins-review-actions">
+                                <button class="projects-header-button" id="pluginReviewCancel" type="button" data-i18n="common_cancel">Cancel</button>
+                                <button class="projects-header-button submit" id="pluginReviewInstall" type="button" data-i18n="workspace_plugins_confirm_install">Install disabled</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="workspace-section" id="workspaceSectionAgents" role="tabpanel" aria-labelledby="workspaceTabAgents" tabindex="0" aria-hidden="true" style="display: none;"></div>
