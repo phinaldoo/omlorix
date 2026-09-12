@@ -1,4 +1,6 @@
 {
+  "provider_url_suggestions_custom": "कस्टम",
+  "provider_url_suggestions_label": "सुझाया गया प्रदाता URL",
   "chat_realtime_live_finalization_incomplete": "समापन की पुष्टि होने से पहले कॉल समाप्त हो गई। अंतिम कैप्शन या उपयोग डेटा अधूरा हो सकता है।",
   "assistant_tool_error_canvas_file": "देखने या संपादित करने के लिए मौजूदा Canvas फ़ाइल चाहिए। नई फ़ाइल बनाने के लिए सामग्री दें और edits को null पर सेट करें।",
   "assistant_tool_error_canvas_revision": "संपादन के लिए Canvas का वर्तमान संशोधन चाहिए। फ़ाइल पढ़ें और फिर कोशिश करें।",

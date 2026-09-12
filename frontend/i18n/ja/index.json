@@ -1,4 +1,6 @@
 {
+  "provider_url_suggestions_custom": "カスタム",
+  "provider_url_suggestions_label": "候補のプロバイダー URL",
   "chat_realtime_live_finalization_incomplete": "終了処理が確認される前に通話が終了しました。最後の字幕や使用量データが不完全な可能性があります。",
   "assistant_tool_error_canvas_file": "表示や編集には既存の Canvas ファイルが必要です。新規作成する場合は内容を指定し、edits を null に設定してください。",
   "assistant_tool_error_canvas_revision": "編集には Canvas の現在のリビジョンが必要です。ファイルを読み取ってから再試行してください。",

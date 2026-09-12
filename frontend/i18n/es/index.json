@@ -1,4 +1,6 @@
 {
+  "provider_url_suggestions_custom": "Personalizado",
+  "provider_url_suggestions_label": "URL de proveedor sugerida",
   "chat_realtime_live_finalization_incomplete": "La llamada terminó antes de confirmar su finalización. Los últimos subtítulos o datos de uso pueden estar incompletos.",
   "assistant_tool_error_canvas_file": "Para ver o editar se necesita un archivo Canvas existente. Para crearlo, proporciona contenido y establece edits en null.",
   "assistant_tool_error_canvas_revision": "Para editar se necesita la revisión actual del Canvas. Lee el archivo y vuelve a intentarlo.",

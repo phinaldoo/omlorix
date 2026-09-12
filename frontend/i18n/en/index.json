@@ -1,4 +1,6 @@
 {
+  "provider_url_suggestions_custom": "Custom",
+  "provider_url_suggestions_label": "Suggested provider URL",
   "chat_realtime_live_finalization_incomplete": "The call ended before finalization was confirmed. The last captions or usage may be incomplete.",
   "assistant_tool_error_canvas_file": "Viewing or editing requires an existing Canvas file. To create one, provide content and set edits to null.",
   "assistant_tool_error_canvas_revision": "Editing requires the current Canvas revision. Read the file and try again.",
