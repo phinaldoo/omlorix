@@ -2364,16 +2364,6 @@ def get_model_allowed_connection_providers(model_settings: dict[str, Any] | None
     return _allowed_model_connection_providers(model_settings)
 
 
-def _explicit_model_mcp_server_ids(model_settings: dict[str, Any] | None) -> set[str]:
-    allowed_entries = _allowed_model_mcp_entries(model_settings)
-    explicit_ids = {
-        item for item in allowed_entries
-        if parse_connection_provider_mcp_value(item) is None
-    }
-    explicit_ids.update(_selected_server_ids(model_settings))
-    return explicit_ids
-
-
 def _normalize_explicit_server_ids(access_server_ids: Iterable[str] | None) -> set[str]:
     result: set[str] = set()
     if access_server_ids is None:
@@ -2780,15 +2770,6 @@ def _extract_embedded_mcp_app_resource_from_result(result: dict[str, Any]) -> di
                 }
 
     return None
-
-
-def _extract_embedded_html_from_mcp_result(result: dict[str, Any]) -> str | None:
-    """Return embedded MCP app HTML from a tool result, if one exists."""
-    resource = _extract_embedded_mcp_app_resource_from_result(result)
-    if not isinstance(resource, dict):
-        return None
-    text = resource.get("text")
-    return text if isinstance(text, str) and text else None
 
 
 def _render_mcp_app_widget_shell(app_payload: dict[str, Any]) -> str:

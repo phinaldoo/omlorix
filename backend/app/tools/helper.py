@@ -176,26 +176,6 @@ def _stream_widget_event(widget_payload: dict[str, Any], *, tool_name: str | Non
     ) + "\n"
 
 
-def _build_backend_widget_payload(
-    widget_type: str,
-    widget_html: str,
-    model_context: Any,
-    *,
-    allow_scripts: bool = False,
-) -> dict[str, Any]:
-    """Return the common payload shape for widgets rendered by backend Python."""
-
-    payload = {
-        "type": widget_type,
-        "html": widget_html,
-        "model_context": model_context,
-        "render_mode": "iframe" if allow_scripts else "inline",
-    }
-    if allow_scripts:
-        payload["allow_scripts"] = True
-    return payload
-
-
 def _build_frontend_widget_payload(
     widget_type: str,
     view_data: Any,

@@ -12,15 +12,11 @@ from app.groups.models import (
     Group,
     GroupManager,
     create_group as orm_create_group,
-    delete_group as orm_delete_group,
-    export_groups as orm_export_groups,
     get_group,
     get_group_by_name,
     list_group_managers,
     group_name_exists,
-    import_groups as orm_import_groups,
     list_groups as orm_list_groups,
-    replace_group_manager_assignments as orm_replace_group_manager_assignments,
 )
 from app.groups.sensitive import (
     decrypt_sensitive_settings,
@@ -37,49 +33,6 @@ from app.admin.groups.schemas import GROUP_FORM_SCHEMA, GroupFormSchema
 from app.llm.models import Models, list_models as list_llm_models
 from app.skills.models import list_admin_skills
 from app.utils.schemas import Option, populate_sections_with_values
-
-
-def delete_group(group_id: str, db: Session) -> Dict[str, str]:
-    """Delete a group through the shared persistence boundary."""
-
-    return orm_delete_group(group_id, db)
-
-
-def replace_group_manager_assignments(
-    db: Session,
-    *,
-    group_id: str,
-    owner_user_ids: list[str],
-    manager_user_ids: list[str],
-    coordinator_user_ids: list[str],
-) -> Dict[str, Any]:
-    """Replace all direct manager roles submitted by the admin form."""
-
-    return orm_replace_group_manager_assignments(
-        db,
-        group_id=group_id,
-        owner_user_ids=owner_user_ids,
-        manager_user_ids=manager_user_ids,
-        coordinator_user_ids=coordinator_user_ids,
-    )
-
-
-# -------------------
-# Sensitive helpers
-# -------------------
-def _sanitize_sensitive_payload(settings: Dict[str, Any] | None) -> Dict[str, Any]:
-    """Encrypt sensitive fields in a settings dict and return the sanitized copy."""
-    if not isinstance(settings, dict):
-        return {}
-    _, sanitized = ensure_sensitive_settings_encrypted(settings)
-    return sanitized
-
-
-def _decrypt_sensitive_payload(settings: Dict[str, Any] | None) -> Dict[str, Any]:
-    """Decrypt sensitive fields in a settings dict and return the result."""
-    if not isinstance(settings, dict):
-        return {}
-    return decrypt_sensitive_settings(settings)
 
 
 # -------------------
@@ -465,7 +418,7 @@ def remove_admin_skill_from_groups(db: Session, skill_id: str) -> int:
     groups = db.query(Group).all()
 
     for group in groups:
-        settings = _decrypt_sensitive_payload(group.settings)
+        settings = decrypt_sensitive_settings(group.settings)
         skills_settings = settings.get("skills")
         if not isinstance(skills_settings, dict):
             continue
@@ -479,7 +432,7 @@ def remove_admin_skill_from_groups(db: Session, skill_id: str) -> int:
 
         skills_settings["admin_skill_ids"] = filtered_ids
         settings["skills"] = skills_settings
-        sanitized = _sanitize_sensitive_payload(settings)
+        _, sanitized = ensure_sensitive_settings_encrypted(settings)
         group.settings = sanitized
         flag_modified(group, "settings")
         affected += 1
@@ -855,24 +808,6 @@ def list_groups(db: Session) -> list[Dict[str, Any]]:
         )
         for g in groups
     ]
-
-
-
-# -------------------
-# Export groups
-# -------------------
-def export_groups(db: Session) -> Dict[str, Any]:
-    """Delegate to the ORM export_groups function."""
-    return orm_export_groups(db)
-
-
-
-# -------------------
-# Import groups
-# -------------------
-def import_groups(db: Session, payload: Dict[str, Any]) -> Dict[str, Any]:
-    """Delegate to the ORM import_groups function."""
-    return orm_import_groups(db, payload)
 
 
 

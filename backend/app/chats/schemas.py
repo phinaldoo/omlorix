@@ -50,7 +50,7 @@ class Chat(BaseModel):
         if isinstance(value, str):
             try:
                 parsed = json.loads(value)
-            except Exception:
+            except json.JSONDecodeError:
                 return {}
             return parsed if isinstance(parsed, dict) else {}
         return {}
@@ -81,10 +81,8 @@ class ChatAttentionQuery(BaseModel):
     @field_validator("chat_ids")
     @classmethod
     def _normalize_chat_ids(cls, values: list[str]) -> list[str]:
-        normalized = list(dict.fromkeys(str(value).strip() for value in values if str(value).strip()))
-        if len(normalized) > 200:
-            raise ValueError("No more than 200 chat IDs may be queried at once.")
-        return normalized
+        stripped = (value.strip() for value in values)
+        return list(dict.fromkeys(value for value in stripped if value))
 
 
 class ChatAttentionQueryResponse(BaseModel):
@@ -578,10 +576,10 @@ class SendChatRequestCustomSettingsValues(BaseModel):
             return value
         normalized: dict[str, float] = {}
         for raw_token_id, raw_bias in value.items():
-            token_id = str(raw_token_id).strip()
+            token_id = raw_token_id.strip()
             if not token_id.isdigit():
                 raise ValueError("logit_bias keys must be non-negative token IDs")
-            bias = float(raw_bias)
+            bias = raw_bias
             if not math.isfinite(bias) or bias < -100 or bias > 100:
                 raise ValueError("logit_bias values must be finite numbers from -100 to 100")
             normalized[token_id] = bias
@@ -841,8 +839,8 @@ class ChatSharePublicationSelection(BaseModel):
             raise ValueError("No more than 500 response-version selections may be published.")
         normalized: dict[str, str] = {}
         for raw_reference_id, raw_message_id in value.items():
-            reference_id = str(raw_reference_id or "").strip()
-            message_id = str(raw_message_id or "").strip()
+            reference_id = raw_reference_id.strip()
+            message_id = raw_message_id.strip()
             if not reference_id or not message_id:
                 raise ValueError("Response-version selections require non-empty reference and message IDs.")
             if len(reference_id) > CHAT_IMPORT_MAX_IDENTIFIER_LENGTH or len(message_id) > CHAT_IMPORT_MAX_IDENTIFIER_LENGTH:
@@ -855,7 +853,7 @@ class ChatSharePublicationSelection(BaseModel):
     def _validate_approved_output_ids(cls, value: list[str]) -> list[str]:
         normalized: list[str] = []
         for raw_output_id in value:
-            output_id = str(raw_output_id or "").strip().lower()
+            output_id = raw_output_id.strip().lower()
             if len(output_id) != 64 or any(character not in "0123456789abcdef" for character in output_id):
                 raise ValueError("Approved output IDs must be SHA-256 hashes.")
             if output_id not in normalized:
@@ -1193,7 +1191,7 @@ class RegenerateMessageRequest(BaseModel):
     @field_validator("retry_guidance")
     @classmethod
     def _normalize_retry_guidance(cls, value):
-        if isinstance(value, RetryGuidance) and value.mode == RetryGuidanceMode.default:
+        if value is not None and value.mode == RetryGuidanceMode.default:
             return None
         return value
 

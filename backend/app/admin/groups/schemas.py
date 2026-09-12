@@ -1325,8 +1325,6 @@ class GroupCreate(BaseModel):
     def validate_settings(self):
         """Validate settings and ensure every manager has exactly one role."""
         if self.settings is not None:
-            if not isinstance(self.settings, dict):
-                raise ValueError("settings must be an object")
             self.settings = _validate_group_settings_payload(self.settings)
         _validate_manager_role_lists(
             self.owner_user_ids,
@@ -1346,11 +1344,9 @@ class GroupUpdate(BaseModel):
 
     @model_validator(mode="after")
     def validate_settings(self):
-        """Validate that settings is a dict if provided."""
+        """Validate the supplied group setting values."""
         if self.settings is None:
             return self
-        if not isinstance(self.settings, dict):
-            raise ValueError("settings must be an object")
         self.settings = _validate_group_settings_payload(self.settings)
         return self
 

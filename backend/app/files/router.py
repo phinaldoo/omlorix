@@ -278,14 +278,6 @@ def _get_user_display_name(user_obj):
     return "Unknown"
 
 
-def _valid_shared_folder_subscription_filter():
-    return valid_shared_folder_subscription_filter()
-
-
-def _accessible_files_query(db: Session, user_id: str):
-    return accessible_files_query(db, user_id)
-
-
 def _file_meta_text_expr(key: str):
     meta_value = Files.meta[key]
     if hasattr(meta_value, "as_string"):
@@ -369,7 +361,7 @@ def _fetch_subscriptions_by_folder(
         .filter(
             FileFolders.id.in_(sorted(folder_ids)),
             SharedFileFolderSubscription.subscriber_id == user_id,
-            _valid_shared_folder_subscription_filter(),
+            valid_shared_folder_subscription_filter(),
         )
         .all()
     )
@@ -459,7 +451,7 @@ def _build_accessible_files_page_payloads(
     offset: int = 0,
 ) -> list[FileList]:
     rows = (
-        _accessible_files_query(db, user_id)
+        accessible_files_query(db, user_id)
         .order_by(Files.created_at.asc(), Files.id.asc())
         .offset(offset)
         .limit(limit)
@@ -474,7 +466,7 @@ def _compute_workspace_counts_from_query(db: Session, user_id: str) -> FilesWork
     total = 0
 
     rows = (
-        _accessible_files_query(db, user_id)
+        accessible_files_query(db, user_id)
         .with_entities(Files.folder_id, func.count(Files.id))
         .group_by(Files.folder_id)
         .all()
@@ -503,7 +495,7 @@ def _list_workspace_file_payloads(
     offset: int,
 ) -> tuple[list[FileList], int]:
     query = _apply_workspace_filters(
-        _accessible_files_query(db, user_id),
+        accessible_files_query(db, user_id),
         search=search,
         folder_id=folder_id,
     )

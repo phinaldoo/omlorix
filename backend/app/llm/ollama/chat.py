@@ -160,50 +160,20 @@ def _impl_ollama_chat(
         # -------------------
         # Settings
         # -------------------
-        settings: dict = {}
         override = settings_override if isinstance(settings_override, dict) else {}
         if isinstance(override.get("settings"), dict):
             flattened_override = dict(override)
             nested = flattened_override.pop("settings")
             flattened_override.update(nested)
             override = flattened_override
-        db_settings: dict = {}
-        byok_settings: dict = {}
-        if db_model:
-            try:
-                db_settings = db_model.settings or {}
-                if not isinstance(db_settings, dict):
-                    db_settings = {}
-            except Exception:
-                db_settings = {}
-        if byok:
-            try:
-                byok_settings = byok.get("settings") or {}
-                if not isinstance(byok_settings, dict):
-                    byok_settings = {}
-            except Exception:
-                byok_settings = {}
-        try:
-            schema_keys = set(getattr(OllamaModelSettings, "model_fields", {}).keys())
-            key_set = (
-                set(schema_keys)
-                | set(override.keys())
-                | set(db_settings.keys())
-                | set(byok_settings.keys())
-            )
-            merged: dict = {}
-            for key in key_set:
-                if key in override and override.get(key) is not None:
-                    merged[key] = override.get(key)
-                elif key in db_settings and db_settings.get(key) is not None:
-                    merged[key] = db_settings.get(key)
-                elif key in byok_settings and byok_settings.get(key) is not None:
-                    merged[key] = byok_settings.get(key)
-                else:
-                    merged[key] = None
-            settings = merged
-        except Exception:
-            settings = override or db_settings or byok_settings or {}
+        db_settings = db_model.settings if db_model else None
+        byok_settings = byok.get("settings") if byok else None
+        settings = dict.fromkeys(OllamaModelSettings.model_fields)
+        for source in (byok_settings, db_settings, override):
+            if isinstance(source, dict):
+                for key, value in source.items():
+                    if value is not None or key not in settings:
+                        settings[key] = value
 
         # -------------------
         # Tools
@@ -238,19 +208,18 @@ def _impl_ollama_chat(
             tool_list = (
                 resolution.get("tool_list", []) if isinstance(resolution, dict) else []
             )
-            if isinstance(settings, dict):
-                settings["_runtime_enabled_tools"] = [
-                    *list(tool_list),
-                    *(
-                        ["mcp"]
-                        if isinstance(resolution, dict)
-                        and resolution.get("mcp_requested")
-                        else []
-                    ),
-                ]
-                settings["_runtime_origin_model_id"] = (
-                    "" if byok else str(getattr(db_model, "id", "") or "")
-                )
+            settings["_runtime_enabled_tools"] = [
+                *list(tool_list),
+                *(
+                    ["mcp"]
+                    if isinstance(resolution, dict)
+                    and resolution.get("mcp_requested")
+                    else []
+                ),
+            ]
+            settings["_runtime_origin_model_id"] = (
+                "" if byok else str(getattr(db_model, "id", "") or "")
+            )
             tool_specs = (
                 resolution.get("tool_schemas", [])
                 if isinstance(resolution, dict)
@@ -389,51 +358,6 @@ def _impl_ollama_chat(
                 except Exception:
                     pass
             return str(value)
-
-        def _extract_tool_assets(payload):
-            documents: set[str] = set()
-            images: set[str] = set()
-            videos: set[str] = set()
-            audios: set[str] = set()
-            youtube: list = []
-
-            def _collect_from_content(content):
-                if not isinstance(content, dict):
-                    return
-                for key, target in (
-                    ("documents", documents),
-                    ("images", images),
-                    ("videos", videos),
-                    ("audios", audios),
-                ):
-                    values = content.get(key)
-                    if isinstance(values, list):
-                        for item in values:
-                            if item is not None:
-                                target.add(str(item))
-                yt_values = content.get("youtube")
-                if isinstance(yt_values, list):
-                    for entry in yt_values:
-                        youtube.append(entry)
-
-            def _walk(node):
-                if isinstance(node, dict):
-                    _collect_from_content(node)
-                    for value in node.values():
-                        _walk(value)
-                elif isinstance(node, list):
-                    for item in node:
-                        _walk(item)
-
-            _walk(payload)
-
-            return {
-                "documents": list(documents) if documents else None,
-                "images": list(images) if images else None,
-                "videos": list(videos) if videos else None,
-                "audios": list(audios) if audios else None,
-                "youtube": youtube if youtube else None,
-            }
 
         options = {}
         for key in [
@@ -1019,17 +943,10 @@ def _impl_ollama_chat(
                             for tool in tool_calls:
                                 if max_calls <= 0:
                                     break
-                                try:
-                                    function_block = getattr(tool, "function", None)
-                                    tool_call_id = getattr(tool, "id", None)
-                                    tool_name = getattr(function_block, "name", None)
-                                    arguments_raw = getattr(
-                                        function_block, "arguments", None
-                                    )
-                                except Exception:
-                                    tool_name = None
-                                    arguments_raw = None
-                                    tool_call_id = None
+                                function_block = getattr(tool, "function", None)
+                                tool_call_id = getattr(tool, "id", None)
+                                tool_name = getattr(function_block, "name", None)
+                                arguments_raw = getattr(function_block, "arguments", None)
                                 if not isinstance(tool_name, str):
                                     continue
                                 tool_call_id = _resolve_ollama_tool_call_id(

@@ -18,7 +18,7 @@ from app.llmstats.models import create_llm_generation_statistic
 def _resolve_model_identifiers(model: Any) -> tuple[str, str]:
     """Resolve catalog objects and raw model names to statistic identifiers."""
     model_name = model.model_name if hasattr(model, "model_name") else str(model)
-    model_id = getattr(model, "id", None) if hasattr(model, "id") else None
+    model_id = getattr(model, "id", None)
     return model_name, model_id or model_name
 
 
@@ -43,14 +43,6 @@ def _user_message_request(
             }
         ],
     )
-
-
-def _adapter(
-    *,
-    client: Any,
-) -> AnthropicGenerationAdapter:
-    """Create an Anthropic adapter from a configured client."""
-    return AnthropicGenerationAdapter(client=client)
 
 
 def anthropic_title_generation(
@@ -85,7 +77,7 @@ def anthropic_title_generation(
         return fallback
 
     model_name, model_id = _resolve_model_identifiers(model)
-    adapter = _adapter(client=client)
+    adapter = AnthropicGenerationAdapter(client=client)
     context = GenerationRunContext(
         db=db,
         model_name=model_name,

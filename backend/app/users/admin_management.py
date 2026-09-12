@@ -59,10 +59,7 @@ def create_user_via_admin(user, db, db_log):
     )
 
     # Determine group_id (admin may supply; otherwise fall back to default)
-    try:
-        supplied_group_id = getattr(user, "group_id", None)
-    except Exception:
-        supplied_group_id = None
+    supplied_group_id = getattr(user, "group_id", None)
     default_group_id = get_value_by_page_and_key(
         "login_general", "default_user_group", db
     )

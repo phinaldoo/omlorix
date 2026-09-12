@@ -447,14 +447,6 @@ def _safe_aistudio_dict(value: Any) -> dict[str, Any]:
     return {}
 
 
-def _safe_aistudio_list(value: Any) -> list[Any]:
-    if isinstance(value, list):
-        return value
-    if isinstance(value, tuple):
-        return list(value)
-    return []
-
-
 def _sanitize_aistudio_tool_schema(value: Any):
     if isinstance(value, list):
         return [_sanitize_aistudio_tool_schema(item) for item in value]

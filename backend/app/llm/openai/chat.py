@@ -1356,12 +1356,7 @@ def _impl_openai_chat(
                                 and summary_list
                                 and not reasoning_summary_emitted_from_item_done
                             ):
-                                try:
-                                    summary_text = getattr(
-                                        summary_list[0], "text", None
-                                    )
-                                except Exception:
-                                    summary_text = None
+                                summary_text = getattr(summary_list[0], "text", None)
                                 if isinstance(summary_text, str) and summary_text:
                                     if content_generation_start is None:
                                         content_generation_start = datetime.now(

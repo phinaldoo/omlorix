@@ -4,6 +4,7 @@ from pathlib import Path
 from types import ModuleType, SimpleNamespace
 from unittest.mock import MagicMock, patch
 
+import pytest
 from fastapi import HTTPException
 
 
@@ -194,7 +195,17 @@ def test_ollama_model_creation_persists_only_effective_attachment_capabilities()
 
 
 class OllamaProviderGroupResolutionTests:
-    def test_preflight_checks_resolved_provider_instead_of_group_id(self):
+    @pytest.mark.parametrize(
+        ("settings_override", "expected_image_count"),
+        [
+            (None, 2),
+            ({"max_image_count": None}, 2),
+            ({"settings": {"max_image_count": 0}}, 0),
+        ],
+    )
+    def test_preflight_checks_resolved_provider_instead_of_group_id(
+        self, settings_override, expected_image_count
+    ):
         db = MagicMock()
         db_model = SimpleNamespace(
             id="model-1",
@@ -234,12 +245,13 @@ class OllamaProviderGroupResolutionTests:
                     db_model=db_model,
                     user_id="user-1",
                     user_role="admin",
+                    settings_override=settings_override,
                 )
             )
 
         payload = json.loads(event)
         assert checked_provider_ids == ["provider-2"]
-        assert reformat_mock.call_args.kwargs["max_image_count"] == 2
+        assert reformat_mock.call_args.kwargs["max_image_count"] == expected_image_count
         assert reformat_mock.call_args.kwargs["max_document_count"] == 3
         assert payload == {"t": "e", "d": "preflight stop"}
 

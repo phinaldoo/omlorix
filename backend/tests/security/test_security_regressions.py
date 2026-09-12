@@ -774,7 +774,7 @@ def test_code_execution_service_url_uses_outbound_policy(monkeypatch):
 
     monkeypatch.setattr(
         code_execution_utils,
-        "_get_code_execution_runtime_config",
+        "get_code_execution_runtime_config",
         lambda: {
             "max_output_length": 10000,
         },

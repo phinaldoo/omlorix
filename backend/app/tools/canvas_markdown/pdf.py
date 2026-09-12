@@ -204,12 +204,6 @@ def _reencoded_image_data_uri(image_source) -> str | None:
         return None
 
 
-def _image_data_uri(image_path: Path) -> str | None:
-    """Re-encode one authorized local raster image for an isolated PDF story."""
-
-    return _reencoded_image_data_uri(image_path)
-
-
 def _bounded_table_span(value: object) -> str | None:
     """Keep harmless HTML table spans while rejecting malformed attributes."""
 
@@ -268,7 +262,7 @@ def _sanitize_story_html(
                 image_path_resolver,
                 canvas_record,
             )
-            data_uri = _image_data_uri(image_path) if image_path else None
+            data_uri = _reencoded_image_data_uri(image_path) if image_path else None
             if not data_uri:
                 # Preserve useful alt text without leaving any URL for the PDF
                 # renderer to resolve. This makes failed images visible but inert.

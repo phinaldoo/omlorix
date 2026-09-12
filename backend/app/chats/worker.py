@@ -33,7 +33,7 @@ def _coerce_positive_days(value, default: int = 30) -> int:
         parsed = int(value)
         if parsed > 0:
             return parsed
-    except Exception:
+    except (TypeError, ValueError, OverflowError):
         pass
     return default
 

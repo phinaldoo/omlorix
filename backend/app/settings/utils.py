@@ -41,7 +41,7 @@ from app.settings.models import (
     get_settings_page,
 )
 from app.settings.schemas import PageSettings
-from app.settings.public_urls import normalize_public_url, normalize_public_urls, primary_public_url
+from app.settings.public_urls import normalize_public_url, normalize_public_urls
 from app.settings.validation import validate_settings_page_values
 from app.users.models import get_user
 from app.users.roles import is_admin_role
@@ -433,14 +433,6 @@ def is_twofa_email_ready(db: Session) -> bool:
     return is_email_delivery_config_ready(load_login_email_delivery_config(db))
 
 
-def _normalize_public_url(value: Any) -> str:
-    """Return the primary sanitized public URL with a development fallback."""
-    try:
-        return primary_public_url(value)
-    except ValueError:
-        return _DEFAULT_PUBLIC_URL
-
-
 def get_public_urls(db: Session) -> list[str]:
     """Fetch every normalized public URL, preserving primary-first ordering."""
     try:
@@ -798,7 +790,7 @@ def _env_positive_int(name: str, default: int) -> int:
         value = int(raw.strip())
         if value > 0:
             return value
-    except Exception:
+    except ValueError:
         pass
     return default
 

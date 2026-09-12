@@ -11,6 +11,12 @@ from __future__ import annotations
 # ruff: noqa: F821, F841, F541
 
 from app.llm.openai_chat_completions import utils as _compat_source
+from app.llm.message_history import (
+    build_reference_context_text,
+    decode_jsonish,
+    filter_widget_blocks,
+    format_block_text,
+)
 
 _COMPAT_DEPENDENCIES = {
     "reformat_chat_history": (
@@ -119,40 +125,16 @@ def _impl_reformat_chat_history(
         )
         return {k: getattr(msg, k, None) for k in keys}
 
-    def _decode_jsonish(raw):
-        if raw is None:
-            return None
-        if isinstance(raw, (dict, list)):
-            return raw
-        if isinstance(raw, str):
-            stripped = raw.strip()
-            if not stripped:
-                return None
-            try:
-                return json.loads(stripped)
-            except Exception:
-                return stripped
-        return raw
-
     def _normalize_content_blocks(raw):
-        decoded = _decode_jsonish(raw)
+        decoded = decode_jsonish(raw)
         if decoded is None:
             return []
         if isinstance(decoded, list):
             return decoded
         return [{"type": "content", "content": decoded}]
 
-    def _filter_widget_blocks(blocks):
-        if not isinstance(blocks, list):
-            return blocks
-        return [
-            block
-            for block in blocks
-            if not (isinstance(block, dict) and block.get("type") == "widget")
-        ]
-
     def _extract_attachment_ids(value):
-        decoded = _decode_jsonish(value)
+        decoded = decode_jsonish(value)
         if decoded is None:
             return []
         if isinstance(decoded, list):
@@ -191,21 +173,6 @@ def _impl_reformat_chat_history(
         if isinstance(text, str):
             return text
         return None
-
-    def _format_block_text(block_type: str | None, text: str | None):
-        if not text:
-            return None
-        normalized = (block_type or "").strip().lower()
-        prefix_map = {
-            "reasoning": "Reasoning:",
-            "tool_call": "Tool call:",
-            "tool_call_result": "Tool result:",
-            "file_gen": "Generated file:",
-        }
-        prefix = prefix_map.get(normalized)
-        if prefix:
-            return f"{prefix} {text}".strip()
-        return text
 
     def _append_structured_assistant_history(message_blocks: list[Any]) -> bool:
         """Replay canonical tool blocks as Chat Completions messages."""
@@ -304,25 +271,6 @@ def _impl_reformat_chat_history(
 
         flush_assistant()
         return len(formatted) > formatted_start
-
-    def _build_reference_context_text() -> str:
-        """Build selected-reference context so it can travel with the latest prompt."""
-        segments: list[str] = []
-        if reference_parts and isinstance(reference_parts, list):
-            valid_parts = [
-                p for p in reference_parts if isinstance(p, str) and p.strip()
-            ]
-            if valid_parts:
-                ref_intro = (
-                    "The user refers to the following parts from previous messages:\n\n"
-                )
-                ref_content = "\n\n---\n\n".join(
-                    f'"{part.strip()}"' for part in valid_parts
-                )
-                segments.append(ref_intro + ref_content)
-        if isinstance(chat_reference_context, str) and chat_reference_context.strip():
-            segments.append(chat_reference_context.strip())
-        return "\n\n".join(segments).strip()
 
     def _append_reference_context_to_latest_user(
         reference_text: str, history_start_index: int
@@ -588,7 +536,7 @@ def _impl_reformat_chat_history(
                 "[OpenAI Chat Completions] Memories context attach failed: %s", exc
             )
 
-    reference_context_text = _build_reference_context_text()
+    reference_context_text = build_reference_context_text(reference_parts, chat_reference_context)
     history_start_index = len(formatted)
 
     # --- Process each chat message ---
@@ -607,7 +555,7 @@ def _impl_reformat_chat_history(
                 continue
 
             message_blocks = _normalize_content_blocks(msg_dict.get("content"))
-            message_blocks = _filter_widget_blocks(message_blocks)
+            message_blocks = filter_widget_blocks(message_blocks)
             if not message_blocks and msg_dict.get("system_instruction"):
                 message_blocks = [
                     {
@@ -654,7 +602,7 @@ def _impl_reformat_chat_history(
                     if block_type == "tool_call"
                     else _coerce_text_from_block(block)
                 )
-                formatted_text = _format_block_text(block_type, block_text)
+                formatted_text = format_block_text(block_type, block_text)
                 if formatted_text:
                     text_segments.append(formatted_text)
 

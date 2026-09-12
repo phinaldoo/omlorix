@@ -8,14 +8,11 @@ def _parse_anthropic_api_error(api_exc: APIStatusError) -> tuple[int, str, str]:
     status_code = getattr(api_exc, "status_code", 0) or 0
     error_type = api_exc.__class__.__name__
     message = str(api_exc)
-    try:
-        body = getattr(api_exc, "body", None) or {}
-        error = body.get("error") if isinstance(body, dict) else None
-        if isinstance(error, dict):
-            error_type = error.get("type") or error_type
-            message = error.get("message") or message
-    except Exception:
-        pass
+    body = getattr(api_exc, "body", None)
+    error = body.get("error") if isinstance(body, dict) else None
+    if isinstance(error, dict):
+        error_type = error.get("type") or error_type
+        message = error.get("message") or message
     return status_code, str(message), str(error_type)
 
 

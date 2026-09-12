@@ -176,7 +176,7 @@ def test_execute_code_exhausts_service_failover_before_safe_capacity_error(monke
     status_updates = []
     monkeypatch.setattr(
         code_execution_utils,
-        "_get_code_execution_runtime_config",
+        "get_code_execution_runtime_config",
         lambda: {"max_output_length": 50000},
     )
     monkeypatch.setattr(code_execution_utils, "SessionLocal", lambda: _FakeDb())
@@ -259,7 +259,7 @@ def test_execute_code_returns_sandbox_runtime_error_as_result(monkeypatch):
 
     monkeypatch.setattr(
         code_execution_utils,
-        "_get_code_execution_runtime_config",
+        "get_code_execution_runtime_config",
         lambda: {"max_output_length": 50000},
     )
     monkeypatch.setattr(code_execution_utils, "SessionLocal", lambda: _FakeDb())
@@ -306,7 +306,7 @@ def test_execute_code_429_does_not_record_shared_connection_down(monkeypatch):
 
     monkeypatch.setattr(
         code_execution_utils,
-        "_get_code_execution_runtime_config",
+        "get_code_execution_runtime_config",
         lambda: {"max_output_length": 50000},
     )
     monkeypatch.setattr(code_execution_utils, "SessionLocal", lambda: _FakeDb())
@@ -344,7 +344,7 @@ def test_execute_code_with_pip_packages_skips_unsupported_services(monkeypatch):
 
     monkeypatch.setattr(
         code_execution_utils,
-        "_get_code_execution_runtime_config",
+        "get_code_execution_runtime_config",
         lambda: {"max_output_length": 50000},
     )
     monkeypatch.setattr(code_execution_utils, "SessionLocal", lambda: _FakeDb())
@@ -400,7 +400,7 @@ def test_execute_code_with_pip_packages_skips_unsupported_services(monkeypatch):
 def test_execute_code_with_pip_packages_fails_before_execution_when_unsupported(monkeypatch):
     monkeypatch.setattr(
         code_execution_utils,
-        "_get_code_execution_runtime_config",
+        "get_code_execution_runtime_config",
         lambda: {"max_output_length": 50000},
     )
     monkeypatch.setattr(code_execution_utils, "SessionLocal", lambda: _FakeDb())

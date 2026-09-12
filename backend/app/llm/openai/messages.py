@@ -11,6 +11,12 @@ from __future__ import annotations
 # ruff: noqa: F821, F841, F541
 
 from app.llm.openai import utils as _compat_source
+from app.llm.message_history import (
+    build_reference_context_text,
+    decode_jsonish,
+    filter_widget_blocks,
+    format_block_text,
+)
 
 _COMPAT_DEPENDENCIES = {
     "reformat_chat_history": (
@@ -120,40 +126,16 @@ def _impl_reformat_chat_history(
         )
         return {k: getattr(msg, k, None) for k in keys}
 
-    def _decode_jsonish(raw):
-        if raw is None:
-            return None
-        if isinstance(raw, (dict, list)):
-            return raw
-        if isinstance(raw, str):
-            stripped = raw.strip()
-            if not stripped:
-                return None
-            try:
-                return json.loads(stripped)
-            except Exception:
-                return stripped
-        return raw
-
     def _normalize_content_blocks(raw):
-        decoded = _decode_jsonish(raw)
+        decoded = decode_jsonish(raw)
         if decoded is None:
             return []
         if isinstance(decoded, list):
             return decoded
         return [{"type": "content", "content": decoded}]
 
-    def _filter_widget_blocks(blocks):
-        if not isinstance(blocks, list):
-            return blocks
-        return [
-            block
-            for block in blocks
-            if not (isinstance(block, dict) and block.get("type") == "widget")
-        ]
-
     def _extract_attachment_ids(value):
-        decoded = _decode_jsonish(value)
+        decoded = decode_jsonish(value)
         if decoded is None:
             return []
         if isinstance(decoded, list):
@@ -193,21 +175,6 @@ def _impl_reformat_chat_history(
             return text
         return None
 
-    def _format_block_text(block_type: str | None, text: str | None):
-        if not text:
-            return None
-        normalized = (block_type or "").strip().lower()
-        prefix_map = {
-            "reasoning": "Reasoning:",
-            "tool_call": "Tool call:",
-            "tool_call_result": "Tool result:",
-            "file_gen": "Generated file:",
-        }
-        prefix = prefix_map.get(normalized)
-        if prefix:
-            return f"{prefix} {text}".strip()
-        return text
-
     def _next_legacy_tool_call_id(message_identifier: str | None = None):
         nonlocal legacy_tool_call_counter
         legacy_tool_call_counter += 1
@@ -238,10 +205,10 @@ def _impl_reformat_chat_history(
             return None
         arguments = meta.get("tool_search_arguments")
         if not isinstance(arguments, dict):
-            arguments = _decode_jsonish(meta.get("arguments"))
+            arguments = decode_jsonish(meta.get("arguments"))
         if not isinstance(arguments, dict):
             raw_content = _coerce_text_from_block(block)
-            arguments = _decode_jsonish(
+            arguments = decode_jsonish(
                 extract_tool_call_block(block).get("arguments") or raw_content
             )
         if not isinstance(arguments, dict):
@@ -270,7 +237,7 @@ def _impl_reformat_chat_history(
             return None
         tools = meta.get("tool_search_tools")
         if not isinstance(tools, list):
-            tools = _decode_jsonish(_coerce_text_from_block(block))
+            tools = decode_jsonish(_coerce_text_from_block(block))
         if not isinstance(tools, list):
             tools = []
         execution = (
@@ -307,25 +274,6 @@ def _impl_reformat_chat_history(
         ):
             return normalized_parts[0]["text"]
         return normalized_parts
-
-    def _build_reference_context_text() -> str:
-        """Build selected-reference context so it can travel with the latest prompt."""
-        segments: list[str] = []
-        if reference_parts and isinstance(reference_parts, list):
-            valid_parts = [
-                p for p in reference_parts if isinstance(p, str) and p.strip()
-            ]
-            if valid_parts:
-                ref_intro = (
-                    "The user refers to the following parts from previous messages:\n\n"
-                )
-                ref_content = "\n\n---\n\n".join(
-                    f'"{part.strip()}"' for part in valid_parts
-                )
-                segments.append(ref_intro + ref_content)
-        if isinstance(chat_reference_context, str) and chat_reference_context.strip():
-            segments.append(chat_reference_context.strip())
-        return "\n\n".join(segments).strip()
 
     def _append_reference_context_to_latest_user(
         reference_text: str, history_start_index: int
@@ -611,7 +559,7 @@ def _impl_reformat_chat_history(
         except Exception as exc:
             logger.warning("[OpenAI] Memories context attach failed: %s", exc)
 
-    reference_context_text = _build_reference_context_text()
+    reference_context_text = build_reference_context_text(reference_parts, chat_reference_context)
     history_start_index = len(formatted)
 
     # --- Process each chat message ---
@@ -628,7 +576,7 @@ def _impl_reformat_chat_history(
                 continue
 
             message_blocks = _normalize_content_blocks(msg_dict.get("content"))
-            message_blocks = _filter_widget_blocks(message_blocks)
+            message_blocks = filter_widget_blocks(message_blocks)
             if not message_blocks and msg_dict.get("system_instruction"):
                 message_blocks = [
                     {
@@ -656,7 +604,7 @@ def _impl_reformat_chat_history(
                 for field in attachment_fields:
                     _append_ids(field, files[field])
                 block_text = _coerce_text_from_block(block)
-                formatted_text = _format_block_text(block_type, block_text)
+                formatted_text = format_block_text(block_type, block_text)
                 if formatted_text:
                     text_segments.append(formatted_text)
 
@@ -820,11 +768,11 @@ def _impl_reformat_chat_history(
                         consumed_file_ids.update(block_file_ids)
                         block_text = _coerce_text_from_block(block)
                         if block_type == "file_gen" and block_text:
-                            block_text = _format_block_text(block_type, block_text)
+                            block_text = format_block_text(block_type, block_text)
                         _append_function_output(call_id, block_text, block_upload_parts)
                         continue
 
-                    formatted_text = _format_block_text(
+                    formatted_text = format_block_text(
                         block_type, _coerce_text_from_block(block)
                     )
                     if formatted_text:

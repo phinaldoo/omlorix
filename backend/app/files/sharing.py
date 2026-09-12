@@ -203,7 +203,7 @@ def _ensure_shareable_file(file_record: Files) -> None:
 def _coerce_nonnegative_file_size(value) -> int | None:
     try:
         size = int(value)
-    except Exception:
+    except (TypeError, ValueError, OverflowError):
         return None
     return max(0, size)
 
@@ -256,7 +256,7 @@ def _normalize_expires_in_hours(expires_in_hours: int | None) -> int:
         return ARTIFACT_SHARE_DEFAULT_EXPIRES_IN_HOURS
     try:
         normalized = int(expires_in_hours)
-    except Exception as exc:
+    except (TypeError, ValueError, OverflowError) as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="expires_in_hours must be an integer",

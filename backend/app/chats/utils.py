@@ -2282,24 +2282,6 @@ def send_message(
             effective_prompt_ids,
         )
 
-    def _extract_last_user_prompt():
-        for msg in reversed(chat_history):
-            role = getattr(msg, "role", None) if not isinstance(msg, dict) else msg.get("role")
-            if role != "user":
-                continue
-            content = msg.content if hasattr(msg, "content") else msg.get("content")
-            if isinstance(content, list):
-                for block in content:
-                    if isinstance(block, dict) and isinstance(block.get("content"), str):
-                        text = block.get("content", "").strip()
-                        if text:
-                            return text
-                    elif isinstance(block, str) and block.strip():
-                        return block.strip()
-            elif isinstance(content, str) and content.strip():
-                return content.strip()
-        return ""
-
     llm_metric_provider = _metric_provider_name(provider, byok)
     llm_metric_model = _metric_model_name(db_model, model_id, byok)
     llm_metric_started_at = time.monotonic()
@@ -3255,13 +3237,6 @@ def _collect_attachment_file_ids_from_blocks(raw_content) -> set[str]:
                 normalized_file_id = str(file_id or "").strip()
                 if normalized_file_id:
                     file_ids.add(normalized_file_id)
-    return file_ids
-
-
-def _collect_attachment_file_ids_for_chat_rows(rows: list[ChatMessages]) -> set[str]:
-    file_ids: set[str] = set()
-    for row in rows:
-        file_ids.update(_collect_attachment_file_ids_from_blocks(getattr(row, "content", None)))
     return file_ids
 
 

@@ -48,7 +48,7 @@ def _env_int(name: str, default: int) -> int:
         value = int(raw)
         if value > 0:
             return value
-    except Exception:
+    except ValueError:
         pass
     return default
 

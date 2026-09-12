@@ -21,7 +21,7 @@ class SubagentTargetRef(BaseModel):
     @field_validator("id")
     @classmethod
     def _normalize_id(cls, value: str) -> str:
-        normalized = str(value or "").strip()
+        normalized = value.strip()
         if not normalized:
             raise ValueError("Subagent target ID is required")
         return normalized

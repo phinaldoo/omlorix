@@ -75,7 +75,7 @@ def _coerce_int(value: Any, default: int) -> int:
     try:
         parsed = int(value)
         return parsed if parsed > 0 else default
-    except Exception:
+    except (TypeError, ValueError, OverflowError):
         return default
 
 
@@ -169,17 +169,6 @@ def _mask_email(email: str | None) -> str:
     else:
         local_masked = local[:2] + "*" * max(1, len(local) - 2)
     return f"{local_masked}@{domain}"
-
-
-def _clear_delivery_otp_state(user_id: str, db):
-    """Clear delivery OTP state for user."""
-    update_user_settings(user_id, "secret", "2fa_otp_hash", "", db)
-    update_user_settings(user_id, "secret", "2fa_otp_expires_at", "", db)
-    update_user_settings(user_id, "secret", "2fa_otp_last_sent_at", "", db)
-    update_user_settings(user_id, "secret", "2fa_otp_attempts", 0, db)
-    update_user_settings(user_id, "secret", "2fa_otp_purpose", "", db)
-    update_user_settings(user_id, "secret", "2fa_otp_provider", "", db)
-    update_user_settings(user_id, "secret", "2fa_otp_destination", "", db)
 
 
 def _clear_delivery_otp_settings(settings: dict[str, Any]) -> None:
@@ -466,13 +455,6 @@ def get_totp_setup_material(user, db):
     return {"provider": "totp", "qrcode": qrcode, "secret": secret}
 
 
-def _delivery_hint_for_provider(user, provider: str, db) -> str:
-    """Get delivery hint for provider."""
-    if provider == "email":
-        return _mask_email(getattr(user, "email", ""))
-    return ""
-
-
 def _get_hash_secret(db) -> str:
     """Use the operator-managed signing key for short-lived OTP hashes."""
     try:
@@ -487,38 +469,6 @@ def _hash_delivery_otp(code: str, user_id: str, provider: str, purpose: str, db)
     epoch = get_email_security_action_epoch(db)
     material = f"{code}:{user_id}:{provider}:{purpose}:{epoch}:{_get_hash_secret(db)}"
     return hashlib.sha256(material.encode("utf-8")).hexdigest()
-
-
-def _seconds_until_resend_value(
-    last_sent_value: object,
-    config: TwoFAConfig,
-    *,
-    now: datetime | None = None,
-) -> int:
-    last_sent = str(last_sent_value or "").strip()
-    if not last_sent:
-        return 0
-    try:
-        sent_at = datetime.fromisoformat(last_sent)
-        if sent_at.tzinfo is None:
-            sent_at = sent_at.replace(tzinfo=timezone.utc)
-    except Exception:
-        return 0
-    elapsed = ((now or datetime.now(timezone.utc)) - sent_at).total_seconds()
-    remaining = config.otp_resend_cooldown_seconds - int(elapsed)
-    return min(config.otp_resend_cooldown_seconds, max(0, remaining))
-
-
-def _seconds_until_resend(user_id: str, config: TwoFAConfig, db) -> int:
-    return _seconds_until_resend_value(
-        get_user_setting_value(
-            user_id,
-            "secret",
-            "2fa_otp_last_sent_at",
-            db,
-        ),
-        config,
-    )
 
 
 def _send_twofa_deactivated_email(user, db) -> str:
@@ -674,25 +624,6 @@ def _begin_delivery_verify(user, provider: str, purpose: str, db):
     }
 
 
-def _verify_delivery_code(
-    user,
-    provider: str,
-    purpose: str,
-    otp_code: str | None,
-    db,
-    *,
-    commit_on_success: bool = True,
-):
-    return _consume_delivery_code(
-        user,
-        provider,
-        purpose,
-        otp_code,
-        db,
-        commit_on_success=commit_on_success,
-    )
-
-
 def _consume_delivery_code(
     user,
     provider: str,
@@ -843,7 +774,7 @@ def verify_setup(
 
     if not otp_code:
         return _begin_delivery_setup(user, provider, otp_destination, db)
-    if not _verify_delivery_code(
+    if not _consume_delivery_code(
         user,
         provider,
         "setup",
@@ -904,7 +835,7 @@ def verify_login_code(
             return False
         _clear_totp_attempt_state(user.id, db)
         return True
-    valid = _verify_delivery_code(user, provider, purpose, otp_code, db)
+    valid = _consume_delivery_code(user, provider, purpose, otp_code, db)
     return valid
 
 

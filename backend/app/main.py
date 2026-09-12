@@ -173,12 +173,6 @@ from app.workers.operations import (
     external_operations_enabled,
 )
 
-def _load_trusted_hosts() -> list[str]:
-    """Load trusted Host header values from env and configured public URL."""
-
-    return load_application_trusted_hosts()
-
-
 from app.utils.router import utils_router
 
 
@@ -516,7 +510,7 @@ if _allow_local_or_private_hosts:
 
 app.add_middleware(
     LocalOrPrivateTrustedHostMiddleware,
-    allowed_hosts=_load_trusted_hosts(),
+    allowed_hosts=load_application_trusted_hosts(),
     # Keep Host-header validation aligned with the same explicit opt-in used
     # by sensitive authentication endpoints for private browser origins.
     allow_local_or_private_hosts=_allow_local_or_private_hosts,

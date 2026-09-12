@@ -294,7 +294,7 @@ def _build_note_referenced_files_payload(db: Session, content: str, acting_user_
             )
             continue
 
-        can_access = _can_user_access_embedded_file(
+        can_access = can_user_access_note_file_reference(
             db,
             acting_user_id=acting_user_id,
             owner_id=owner_id,
@@ -331,10 +331,6 @@ def _build_note_referenced_files_payload(db: Session, content: str, acting_user_
         )
 
     return payloads
-
-
-def _can_user_access_embedded_file(db: Session, acting_user_id: str, owner_id: str, file_id: str) -> bool:
-    return can_user_access_note_file_reference(db, acting_user_id, owner_id, file_id)
 
 
 def _note_sort_key(item: NoteListItem) -> tuple[datetime, str]:
@@ -488,7 +484,7 @@ def download_note_file_route(
     if not note_content_contains_file_reference(note.content, owner_id=owner_id, file_id=file_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File is not referenced by this note")
 
-    if not _can_user_access_embedded_file(db, user.id, owner_id, file_id):
+    if not can_user_access_note_file_reference(db, user.id, owner_id, file_id):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have access to this file")
 
     file_record = (

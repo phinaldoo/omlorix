@@ -295,19 +295,10 @@ class CreateProviderRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_api_key(self):
-        api_key_value = self.api_key
-
-        if provider_api_key_is_optional(self.provider):
-            if api_key_value is None:
-                self.api_key = ""
-            elif isinstance(api_key_value, str):
-                self.api_key = api_key_value.strip()
-            else:
-                raise ValueError("Provider api_key must be a string when provided.")
-        else:
-            if not isinstance(api_key_value, str) or not api_key_value.strip():
-                raise ValueError(f"Provider api_key is required for '{self.provider.value}'.")
-            self.api_key = api_key_value.strip()
+        api_key_value = (self.api_key or "").strip()
+        if not provider_api_key_is_optional(self.provider) and not api_key_value:
+            raise ValueError(f"Provider api_key is required for '{self.provider.value}'.")
+        self.api_key = api_key_value
         return self
 
     @model_validator(mode="after")
@@ -332,20 +323,9 @@ class TestProviderPayload(BaseModel):
     def validate_credentials(self):
         provider = self.provider
 
-        base_url_value = None
-        if isinstance(self.base_url, str):
-            stripped = self.base_url.strip()
-            base_url_value = stripped or None
-
-        api_key_value = None
-        if isinstance(self.api_key, str):
-            stripped = self.api_key.strip()
-            api_key_value = stripped or None
-
-        provider_id_value = None
-        if isinstance(self.provider_id, str):
-            stripped = self.provider_id.strip()
-            provider_id_value = stripped or None
+        base_url_value = (self.base_url or "").strip() or None
+        api_key_value = (self.api_key or "").strip() or None
+        provider_id_value = (self.provider_id or "").strip() or None
 
         if provider in REQUIRED_BASE_URL_PROVIDERS and not base_url_value:
             raise ValueError(f"Provider base_url is required for '{provider.value}'.")
@@ -358,7 +338,7 @@ class TestProviderPayload(BaseModel):
         self.provider_id = provider_id_value
         self.base_url = base_url_value
         self.api_key = api_key_value
-        self.settings = self.settings if isinstance(self.settings, dict) else {}
+        self.settings = self.settings or {}
         return self
 
 
@@ -376,20 +356,18 @@ class ListProviderModelsByokRequest(BaseModel):
     def validate_config(self):
         if self.provider not in PROVIDER_BYOK_PAYLOAD_MODELS:
             raise ValueError(f"Unsupported provider '{self.provider}'.")
-        if not isinstance(self.config, dict):
-            raise ValueError("Provider config must be an object.")
         if "api_key" in self.config:
             raise ValueError("Raw BYOK API keys are not accepted by model discovery.")
         if "anthropic_provider_id" in self.config or "openrouter_provider_id" in self.config:
             raise ValueError("BYOK model listing cannot reference a stored provider ID.")
+        credential_token = (self.credential_token or "").strip() or None
         if (
             self.provider not in BYOK_MODEL_DISCOVERY_OPTIONAL_CREDENTIAL_PROVIDERS
-            and not str(self.credential_token or "").strip()
+            and not credential_token
         ):
             raise ValueError("A sealed BYOK credential is required for this provider.")
         self.provider_id = self.provider_id.strip()
-        self.credential_token = str(self.credential_token or "").strip() or None
-        self.config = dict(self.config)
+        self.credential_token = credential_token
         return self
 
 
@@ -403,7 +381,7 @@ class ByokCredentialTokenRequest(BaseModel):
     @field_validator("provider_id", "api_key")
     @classmethod
     def normalize_required_value(cls, value: str) -> str:
-        normalized = str(value or "").strip()
+        normalized = value.strip()
         if not normalized:
             raise ValueError("Value must not be empty.")
         return normalized

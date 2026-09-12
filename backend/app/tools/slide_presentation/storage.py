@@ -571,6 +571,6 @@ def get_presentation_slide_count(
     raw_value = metadata.get("slide_count")
     try:
         count = int(raw_value)
-    except Exception:
+    except (TypeError, ValueError, OverflowError):
         return 0
     return max(0, count)

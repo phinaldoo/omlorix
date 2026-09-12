@@ -104,12 +104,6 @@ from app.utils.schemas import OperationResult
 _BULK_USER_AUDIT_CREATED_USERS_LIMIT = 100
 
 
-def _active_admin_count(db: Session) -> int:
-    """Count active owner/admin accounts that can keep the instance manageable."""
-
-    return count_active_administrators(db)
-
-
 def _ensure_last_active_admin_not_removed(
     *,
     db: Session,
@@ -129,7 +123,7 @@ def _ensure_last_active_admin_not_removed(
     if not removes_admin_role and not deactivates_admin:
         return
 
-    if bool(getattr(target_user, "is_active", True)) and _active_admin_count(db) <= 1:
+    if bool(getattr(target_user, "is_active", True)) and count_active_administrators(db) <= 1:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Cannot remove or deactivate the last active admin.",

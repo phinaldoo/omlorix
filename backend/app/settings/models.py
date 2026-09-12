@@ -56,7 +56,7 @@ _NESTED_SENSITIVE_SETTINGS_KEYS: dict[tuple[str, str], frozenset[str]] = {
 }
 
 
-def _is_sensitive_setting_key(page_name: str, key_name: str) -> bool:
+def is_sensitive_setting_key(page_name: str, key_name: str) -> bool:
     """Check if the setting key is sensitive."""
     return (page_name, key_name) in _SENSITIVE_SETTINGS_KEYS
 
@@ -89,11 +89,6 @@ def _transform_nested_sensitive_setting_value(
             for item in value
         ]
     return value
-
-
-def is_sensitive_setting_key(page_name: str, key_name: str) -> bool:
-    """Return whether a settings key stores sensitive data."""
-    return _is_sensitive_setting_key(page_name, key_name)
 
 
 def get_sensitive_setting_keys_for_page(page_name: str) -> set[str]:
@@ -140,7 +135,7 @@ def encrypt_sensitive_setting_value(
     treat_value_as_plaintext: bool = True,
 ) -> Any:
     """Encrypt a sensitive setting value."""
-    if _is_sensitive_setting_key(page_name, key_name):
+    if is_sensitive_setting_key(page_name, key_name):
         return _encrypt_sensitive_scalar_value(
             value, treat_value_as_plaintext=treat_value_as_plaintext
         )
@@ -189,7 +184,7 @@ def _decrypt_sensitive_scalar_value(page_name: str, key_name: str, value: Any) -
 
 def decrypt_sensitive_setting_value(page_name: str, key_name: str, value: Any) -> Any:
     """Decrypt a sensitive setting value."""
-    if _is_sensitive_setting_key(page_name, key_name):
+    if is_sensitive_setting_key(page_name, key_name):
         return _decrypt_sensitive_scalar_value(page_name, key_name, value)
 
     nested_sensitive_keys = _get_nested_sensitive_setting_keys(page_name, key_name)
@@ -259,7 +254,7 @@ def _mask_sensitive_scalar_value(value: Any) -> str:
 
 def mask_sensitive_setting_value(page_name: str, key_name: str, value: Any) -> Any:
     """Mask sensitive setting values for API responses without decrypting them."""
-    if _is_sensitive_setting_key(page_name, key_name):
+    if is_sensitive_setting_key(page_name, key_name):
         return _mask_sensitive_scalar_value(value)
 
     nested_sensitive_keys = _get_nested_sensitive_setting_keys(page_name, key_name)

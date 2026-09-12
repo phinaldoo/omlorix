@@ -47,7 +47,7 @@ class XAIListModelsByok(XAISettings):
     def _validate_api_key(cls, value: str) -> str:
         """Reject an empty xAI credential before making an outbound request."""
 
-        normalized = str(value or "").strip()
+        normalized = value.strip()
         if not normalized:
             raise ValueError("API key is required.")
         return normalized

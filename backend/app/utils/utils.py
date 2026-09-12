@@ -287,9 +287,7 @@ def coerce_to_dict(value) -> dict[str, Any]:
         return {}
 
     try:
-        converted = dict(value)
-        if isinstance(converted, dict):
-            return converted
+        return dict(value)
     except Exception:
         pass
 
@@ -711,26 +709,6 @@ def _coerce_positive_int(value: Any, fallback: int) -> int:
         return number if number > 0 else fallback
     except (TypeError, ValueError):
         return fallback
-
-
-def _coerce_datetime_utc(value: Any) -> datetime | None:
-    if isinstance(value, datetime):
-        dt = value
-    elif isinstance(value, str):
-        raw = value.strip()
-        if not raw:
-            return None
-        normalized = f"{raw[:-1]}+00:00" if raw.endswith("Z") else raw
-        try:
-            dt = datetime.fromisoformat(normalized)
-        except ValueError:
-            return None
-    else:
-        return None
-
-    if dt.tzinfo is None:
-        return dt.replace(tzinfo=timezone.utc)
-    return dt.astimezone(timezone.utc)
 
 
 def get_privacy_policy_notice_policy(db, user_id: str | None = None) -> dict[str, Any]:

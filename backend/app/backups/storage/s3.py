@@ -17,7 +17,7 @@ class S3BackupStorageAdapter(BackupStorageAdapter):
 
         try:
             import boto3
-        except Exception as exc:  # noqa: BLE001
+        except ImportError as exc:  # noqa: BLE001
             raise RuntimeError("boto3 is required for S3 backup destinations") from exc
 
         session = boto3.session.Session()

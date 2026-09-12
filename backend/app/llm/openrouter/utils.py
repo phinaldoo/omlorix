@@ -42,7 +42,10 @@ from app.llm.helper import (
 )
 from app.llm.models import LLMProvider, Models, create_llm_provider, get_llm_provider
 from app.llm.schemas import ProviderEnum
-from app.llm.capabilities import determine_model_capabilities
+from app.llm.capabilities import (
+    determine_model_capabilities,
+    has_configured_tools as _has_configured_tools,
+)
 from app.llm.system_instruction.chat import (
     append_system_instruction_sections,
     get_default_system_instruction,
@@ -324,21 +327,6 @@ def _openrouter_extract_model_slug(entry: dict | None) -> str | None:
             return raw.split("/", 1)[1]
         return raw
     return None
-
-
-def _has_configured_tools(tools: Any) -> bool:
-    if isinstance(tools, dict):
-        return any(bool(value) for value in tools.values())
-    if isinstance(tools, (list, tuple, set)):
-        for item in tools:
-            if isinstance(item, str) and item.strip():
-                return True
-            if isinstance(item, dict) and any(bool(v) for v in item.values()):
-                return True
-            if item:
-                return True
-        return False
-    return bool(tools)
 
 
 def _openrouter_transform_content_part_for_responses(part: Any) -> Any:
