@@ -24,7 +24,7 @@ test('shared styles suppress the native search cancel button across app pages', 
     // and static search inputs receive the same browser-control normalization.
     for (const page of ['index.html', 'admin.html']) {
         const html = readFrontendFile(page);
-        assert.match(html, /<link rel="stylesheet" href="\/css\/common\/elements\.css">/u);
+        assert.match(html, /<link rel="stylesheet" href="\/css\/common\/elements\.css"[^>]*>/u);
     }
 });
 

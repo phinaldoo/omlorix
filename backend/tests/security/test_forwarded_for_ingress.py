@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 from pathlib import Path
 
@@ -18,7 +19,7 @@ def test_public_nginx_templates_require_explicit_forwarded_for_rendering():
     """Every bundled proxy location must use the reviewed ingress placeholder."""
     for template in NGINX_TEMPLATES:
         source = template.read_text(encoding="utf-8")
-        proxy_location_count = source.count("proxy_pass ")
+        proxy_location_count = len(re.findall(r"^\s*proxy_pass\s+", source, re.MULTILINE))
 
         assert "proxy_set_header X-Forwarded-For __X_FORWARDED_FOR_VALUE__;" in source
         assert "proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;" not in source
