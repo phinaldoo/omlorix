@@ -70,7 +70,7 @@ def _impl_get_parameters_schema_filled(
 
     # Build priority processing options based on supported tiers
     priority_options = [
-        Option(value=tier, label=tier)
+        Option(value=tier, label="Fast mode" if tier == "priority" else tier)
         for tier in ["flex", "standard", "priority"]
         if tier in supported_tiers
     ]
@@ -129,8 +129,8 @@ def _impl_get_parameters_schema_filled(
                     ),
                     FieldSchema(
                         key="settings.priority_processing",
-                        label="Priority processing",
-                        description="Select the desired processing priority tier.",
+                        label="Service tier",
+                        description="Select the processing tier: Flex, Standard, or Fast mode, where supported.",
                         type="select",
                         options=priority_options,
                         default="standard"
