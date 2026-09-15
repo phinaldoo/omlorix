@@ -4,16 +4,14 @@
 #
 #    pip-compile --generate-hashes --output-file=backend/app/requirements-dev.txt --strip-extras backend/app/requirements-dev.in
 #
-fakeredis==2.37.1 \
-    --hash=sha256:9045851b0a9fe56312696aadc82435141aa43a193cab462d372c8fb583a7c087 \
-    --hash=sha256:f15c41be151c1e9206416dece764369a4dedb6b1341df3734c3c2c000e405508
+fakeredis==2.38.0 \
+    --hash=sha256:d2abfd24652f86501044499bf08c9d639db050f695eefc06b8b8b6f0bb24dbd6 \
+    --hash=sha256:d9fb0518c4eaa35f1f2c94df6b4a4c97ff3ca9f43d6cc8112317a9037d244301
     # via -r requirements-dev.in
 iniconfig==2.3.0 \
     --hash=sha256:c76315c77db068650d49c5b56314774a7804df16fee4402c1f19d6d15d8c4730 \
     --hash=sha256:f631c04d2c48c52b84d0d0549c99ff3859c98df65b3101406327ecc7d53fbf12
-    # via
-    #   -c requirements.txt
-    #   pytest
+    # via pytest
 packaging==26.2 \
     --hash=sha256:5fc45236b9446107ff2415ce77c807cee2862cb6fac22b8a73826d0693b0980e \
     --hash=sha256:ff452ff5a3e828ce110190feff1178bb1f2ea2281fa2075aadb987c2fb221661
@@ -23,20 +21,15 @@ packaging==26.2 \
 pluggy==1.6.0 \
     --hash=sha256:7dcc130b76258d33b90f61b658791dede3486c3e6bfb003ee5c9bfb396dd22f3 \
     --hash=sha256:e920276dd6813095e9377c0bc5566d94c932c33b27a3e3945d8389c374dd4746
-    # via
-    #   -c requirements.txt
-    #   pytest
+    # via pytest
 pygments==2.21.0 \
     --hash=sha256:2363c69b61c4a97c838da3b130dcd6468f4848992b21a82f2a63ec34377137d9 \
     --hash=sha256:610ca751c9bc2492b38eb9a38a7fbc93edbbb2d7182edaf34e66ae493dee5c8c
-    # via
-    #   -c requirements.txt
-    #   pytest
+    # via pytest
 pytest==9.1.1 \
     --hash=sha256:1088fbde8f2b49d95a549a195707afa7a76a3ce9bcadc26b6d71f0ffda5fe313 \
     --hash=sha256:37a86b45efb9a47a61a36449063e8e18d0cab3161329fc099eb21783169c4f0c
     # via
-    #   -c requirements.txt
     #   -r requirements-dev.in
     #   pytest-asyncio
 pytest-asyncio==1.4.0 \
