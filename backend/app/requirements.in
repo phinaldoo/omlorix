@@ -18,7 +18,7 @@ email-validator==2.3.0
 webauthn==3.0.0
 python3-saml==1.16.0
 ldap3==2.9.1
-PyJWT==2.13.0
+PyJWT==2.14.0
 defusedxml==0.7.1
 
 # --- Requests & Networking ---
