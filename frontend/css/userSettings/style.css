@@ -284,6 +284,14 @@
 .sidebar-buttons-multiselect .model-settings-multiselect-trigger {
     min-height: 42px;
     font-size: 14px;
+    background: transparent;
+}
+
+/* User-settings controls blend with the modal surface instead of using the
+   darker app background token. Covers locale selects and the location input. */
+.custom-select.us .select-trigger,
+.input.us {
+    background: transparent;
 }
 
 .sidebar-buttons-multiselect .model-settings-multiselect-option[hidden] {
@@ -361,7 +369,7 @@
     padding: 0;
     border: 1px solid var(--border-color);
     border-radius: 14px;
-    background: var(--background);
+    background: transparent;
     overflow: hidden;
 }
 
@@ -417,7 +425,7 @@
     border: 1px solid var(--border-color);
     border-bottom-width: 2px;
     border-radius: 6px;
-    background: var(--background);
+    background: transparent;
     color: var(--text-color);
     font-family: var(--font-system);
     font-size: 12px;
@@ -1161,7 +1169,7 @@
     padding: 10px 12px;
     border: 1px solid var(--border-color);
     border-radius: 10px;
-    background: var(--background);
+    background: transparent;
     transition: border-color 0.2s ease, opacity 0.2s ease;
 }
 
