@@ -18,7 +18,7 @@
 /* ── Card ────────────────────────────────────────────────────────────── */
 
 .rl-card {
-    background: var(--background);
+    background: transparent;
     border: 1px solid var(--border-color);
     border-radius: 12px;
     padding: 20px;
@@ -34,7 +34,6 @@
 
 .rl-card.rl-status-exceeded {
     border-color: var(--error-color, #ef4444);
-    background: color-mix(in srgb, var(--error-color, #ef4444) 3%, var(--background));
 }
 
 .rl-card.rl-status-warning {
