@@ -17,7 +17,7 @@ from app.llm.google_aistudio.utils import _build_aistudio_tools_payload, list_mo
 from app.llm.models import get_llm_provider
 
 
-GOOGLE_AISTUDIO_LIVE_DEFAULT_MODEL = "gemini-3.1-flash-live-preview"
+GOOGLE_AISTUDIO_LIVE_DEFAULT_MODEL = "gemini-3.8-live"
 GOOGLE_AISTUDIO_LIVE_DEFAULT_API_VERSION = "v1alpha"
 GOOGLE_AISTUDIO_LIVE_WS_BASE_URL = "wss://generativelanguage.googleapis.com"
 # These endpoints use a specialized protocol that is incompatible with

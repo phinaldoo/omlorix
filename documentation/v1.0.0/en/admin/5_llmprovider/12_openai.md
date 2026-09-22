@@ -4,6 +4,8 @@ The native **OpenAI** provider supports OpenAI chat models and, where configured
 
 Apply [Common Provider Settings](2_provider_settings.md) for shared credential, discovery, and lifecycle rules.
 
+The September 22, 2026 [model catalog](https://developers.openai.com/api/docs/models) review confirmed that GPT-6 Astra, GPT-5.6, GPT-Image-2.5, GPT-Live, GPT-Realtime-2.1, and GPT-Transcribe are already represented. The [deprecation schedule](https://developers.openai.com/api/docs/deprecations) now records the October 1, 2026 shutdown of `gpt-5.4-cyber`; `gpt-5.6-cyber` remains its supported replacement. Provider discovery determines which models your account can access.
+
 ## Configure
 
 1. Create a dedicated OpenAI project and API key. Add provider-side budgets, rate limits, and alerts; a ChatGPT subscription does not provide API quota.

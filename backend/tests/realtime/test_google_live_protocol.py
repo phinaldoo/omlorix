@@ -96,11 +96,16 @@ def test_google_live_legacy_or_unknown_voice_uses_google_default():
     assert get_google_aistudio_live_default_voice("pUcK") == "Puck"
 
 
-def test_google_31_ignores_unsupported_native_audio_dialog_settings():
-    """Persisted legacy settings must not make Gemini 3.1 setup invalid."""
+@pytest.mark.parametrize("model", [
+    "gemini-3.1-flash-live-preview",
+    "gemini-3.8-live",
+    "gemini-3.8-live-extended-thinking",
+])
+def test_google_live_ignores_unsupported_native_audio_dialog_settings(model):
+    """Persisted legacy settings must not make newer Gemini setup invalid."""
     config = build_google_aistudio_live_session_config(
         instructions="Be helpful.",
-        model_name="gemini-3.1-flash-live-preview",
+        model_name=model,
         voice="Kore",
         settings={
             "enable_affective_dialog": True,
@@ -110,6 +115,8 @@ def test_google_31_ignores_unsupported_native_audio_dialog_settings():
 
     assert "enableAffectiveDialog" not in config
     assert "proactivity" not in config
+    assert "thinkingConfig" not in config
+    assert config["responseModalities"] == ["AUDIO"]
 
 
 def test_google_25_retains_supported_native_audio_dialog_settings():
@@ -194,4 +201,6 @@ def test_generic_google_live_assistant_excludes_translation_only_models():
         )
 
     assert "gemini-3.1-flash-live-preview" in models
+    assert "gemini-3.8-live" in models
+    assert "gemini-3.8-live-extended-thinking" in models
     assert "gemini-3.5-live-translate-preview" not in models

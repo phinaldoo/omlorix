@@ -54,7 +54,11 @@ class AnthropicGenerationAdapter:
         response = self._client.messages.create(
             **self._request_kwargs(request)
         )
-        text = response.content[0].text if response.content else ""
+        text = "".join(
+            block.text
+            for block in response.content or []
+            if getattr(block, "type", "text") == "text"
+        )
         usage = normalize_anthropic_usage_metadata(response.usage)
         metadata = {
             "stop_reason": response.stop_reason,

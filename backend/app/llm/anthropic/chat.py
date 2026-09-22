@@ -17,7 +17,7 @@ from app.llm.anthropic.errors import _should_retry_without_compaction_anthropic
 from app.llm.anthropic.messages import reformat_chat_history
 from app.llm.anthropic.models import get_anthropic_client
 from app.llm.anthropic.prompt_caching import apply_anthropic_prompt_cache
-from app.llm.anthropic.request_settings import _build_anthropic_thinking_params
+from app.llm.anthropic.request_settings import _apply_anthropic_thinking_settings
 from app.llm.anthropic.schemas import AnthropicModelSettings
 from app.llm.anthropic.settings import remove_deprecated_anthropic_request_settings
 from app.llm.anthropic.thinking import (
@@ -606,14 +606,6 @@ def anthropic_chat(
             max_tokens = settings.get("max_tokens")
             stop_sequences = settings.get("stop_sequences")
 
-            thinking_params = _build_anthropic_thinking_params(
-                settings,
-                model_name,
-                allow_compatible_fallback=is_anthropic_base_provider_type(
-                    request_provider_type
-                ),
-            )
-
             # -------------------
             # Request
             # -------------------
@@ -626,8 +618,14 @@ def anthropic_chat(
                 "tools": [] if suppress_tools else tools,
             }
             apply_anthropic_prompt_cache(request_kwargs, settings)
-            if thinking_params is not None:
-                request_kwargs["thinking"] = thinking_params
+            _apply_anthropic_thinking_settings(
+                request_kwargs,
+                settings,
+                model_name,
+                allow_compatible_fallback=is_anthropic_base_provider_type(
+                    request_provider_type
+                ),
+            )
 
             input_tokens_limit = settings.get("input_tokens_limit")
             if input_tokens_limit in (None, ""):

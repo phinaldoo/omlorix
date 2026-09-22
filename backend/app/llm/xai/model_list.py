@@ -14,7 +14,7 @@ from typing import Any
 # Keep the verification date and source URLs next to the data.  xAI changes
 # aliases and rates independently of model identifiers, so reviewers can
 # quickly tell whether a future catalog refresh is needed.
-XAI_CATALOG_LAST_VERIFIED = "2026-09-01"
+XAI_CATALOG_LAST_VERIFIED = "2026-09-22"
 XAI_MODELS_DOCS_URL = "https://docs.x.ai/developers/models"
 XAI_PRICING_DOCS_URL = "https://docs.x.ai/developers/pricing"
 XAI_COST_TRACKING_DOCS_URL = "https://docs.x.ai/developers/cost-tracking"
@@ -153,6 +153,23 @@ _GROK_43_PRICING = _text_pricing(
 
 
 XAI_MODEL_DICT: dict[str, dict[str, Any]] = {
+    "grok-4.7": _language_model(
+        name="Grok 4.7",
+        description="Grok 4.7",
+        ids=["grok-4.7"],
+        context_window=500_000,
+        knowledge_cutoff=datetime(2026, 5, 1),
+        thinking_effort=["low", "medium", "high", "xhigh"],
+        default_thinking_effort="high",
+        pricing=_text_pricing(
+            input_price=2.00,
+            cached_input_price=0.50,
+            output_price=6.00,
+            long_input_price=4.00,
+            long_cached_input_price=1.00,
+            long_output_price=12.00,
+        ),
+    ),
     "grok-4.6": _language_model(
         name="Grok 4.6",
         description=(

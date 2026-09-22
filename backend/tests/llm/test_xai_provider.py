@@ -185,7 +185,14 @@ def test_xai_catalog_resolves_current_models_aliases_and_capabilities():
     grok_43 = get_xai_model_capabilities("grok-latest")
     multi_agent = get_xai_model_capabilities("grok-4.20-multi-agent")
 
-    assert XAI_CATALOG_LAST_VERIFIED == "2026-09-01"
+    assert XAI_CATALOG_LAST_VERIFIED == "2026-09-22"
+    grok_47 = get_xai_model_capabilities("grok-4.7")
+    assert grok_47 is XAI_MODEL_DICT["grok-4.7"]
+    assert grok_47["knowledge_cutoff"].strftime("%Y-%m-%d") == "2026-05-01"
+    assert grok_47["input_token_limit"] == 500_000
+    assert grok_47["thinking"] == grok_46["thinking"]
+    assert grok_47["pricing"] == grok_46["pricing"]
+    assert "grok-4.7" in XAI_COMPLETION_MODELS
     assert grok_46 is XAI_MODEL_DICT["grok-4.6"]
     assert grok_46["input_token_limit"] == 500_000
     assert grok_46["thinking"]["thinking_effort"] == [
@@ -362,19 +369,20 @@ def test_xai_model_parameter_schema_exposes_supported_service_tiers():
     ]
 
 
-def test_xai_model_schema_is_populated_from_the_xai_catalog_end_to_end():
+@pytest.mark.parametrize("version", ["4.6", "4.7"])
+def test_xai_model_schema_is_populated_from_the_xai_catalog_end_to_end(version):
     """Creating a Grok model should prefill metadata and remove invalid fields."""
     schema = get_openai_model_schema(
         _EmptyDB(),
         None,
-        "grok-4.6",
+        f"grok-{version}",
         openai_provider_type=ProviderEnum.xai.value,
     )
     fields = {
         field.key: field for section in schema.sections for field in section.fields
     }
 
-    assert fields["name"].value == "Grok 4.6"
+    assert fields["name"].value == f"Grok {version}"
     assert fields["settings.input_token_limit"].value == 500_000
     assert fields["settings.reasoning_effort"].default == "high"
     assert [option.value for option in fields["settings.reasoning_effort"].options] == [
