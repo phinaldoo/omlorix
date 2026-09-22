@@ -23,3 +23,11 @@ For a custom or private endpoint, confirm that the Omlorix application serviceâ€
 Leave a saved secret field unchanged when the form indicates that a credential is already stored. Entering a placeholder or masked value can replace the working credential. After any secret, endpoint, account, or version change, test discovery and one real request before restoring broad model access.
 
 Provider exports omit API keys and redact custom-header values. Follow the complete restore and ID-remapping procedure in [Providers](1_introduction.md#import-and-export-providers); a provider export is not a credential backup.
+
+## Model catalog freshness
+
+All provider integrations were reviewed on September 22, 2026. OpenAI, Anthropic, Google AI Studio, and xAI combine provider discovery with local capability or pricing metadata; see their provider pages for the latest additions. ElevenLabs discovers speech-generation models live and maintains a separate supported file-transcription list.
+
+OpenRouter obtains account-visible models and their metadata from its API. Ollama and LM Studio list models installed or available on the configured server. Azure and custom OpenAI/Anthropic-compatible endpoints use their own discovery or manually configured deployment/model IDs. These integrations do not need a static copy of every upstream model name to expose new models.
+
+Refresh provider discovery before adding a newly released model. Account entitlement and the selected API still determine availability. Catalog updates do not rename saved model records or require a database migration; existing import/export formats continue to apply.

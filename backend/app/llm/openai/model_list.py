@@ -1,10 +1,10 @@
 from copy import deepcopy
 from datetime import datetime
 
-# Verified against OpenAI's model, pricing, and deprecation documentation on
-# 2026-09-01. Shutdown IDs are filtered from both the catalog and discovery
+# Model IDs and lifecycle verified against OpenAI's documentation on
+# 2026-09-22. Shutdown IDs are filtered from both the catalog and discovery
 # lists below, while deprecated models that remain callable stay represented.
-OPENAI_CATALOG_LAST_VERIFIED = "2026-09-01"
+OPENAI_CATALOG_LAST_VERIFIED = "2026-09-22"
 OPENAI_MODELS_DOCS_URL = "https://developers.openai.com/api/docs/models/all"
 OPENAI_PRICING_DOCS_URL = "https://developers.openai.com/api/docs/pricing"
 OPENAI_DEPRECATIONS_DOCS_URL = "https://developers.openai.com/api/docs/deprecations"
@@ -39,6 +39,7 @@ OPENAI_SHUT_DOWN_MODEL_IDS = {
 # shutdown date. Store those dates separately from the already-shut-down set so
 # the catalog remains transparent without prematurely hiding usable endpoints.
 OPENAI_ANNOUNCED_SHUTDOWN_DATES = {
+    "gpt-5.4-cyber": "2026-10-01",
     "babbage-002": "2026-09-28",
     "davinci-002": "2026-09-28",
     "gpt-3.5-turbo-instruct": "2026-09-28",
@@ -74,8 +75,7 @@ OPENAI_ANNOUNCED_SHUTDOWN_DATES = {
 }
 
 OPENAI_MODEL_DICT = {
-    # Astra metadata and rates verified on 2026-09-04. Other entries retain
-    # the catalog-wide verification date above.
+    # Astra metadata and rates verified on 2026-09-04.
     "gpt-6-astra": {
         "ids": ["gpt-6-astra"],
         "name": "GPT-6 Astra",

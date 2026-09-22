@@ -3,8 +3,8 @@ from datetime import datetime
 
 
 # Verified against Google's model, pricing, release-note, and deprecation
-# documentation on 2026-09-05.
-GOOGLE_AISTUDIO_CATALOG_LAST_VERIFIED = "2026-09-05"
+# documentation on 2026-09-22.
+GOOGLE_AISTUDIO_CATALOG_LAST_VERIFIED = "2026-09-22"
 GOOGLE_AISTUDIO_MODELS_DOCS_URL = "https://ai.google.dev/gemini-api/docs/models"
 GOOGLE_AISTUDIO_PRICING_DOCS_URL = "https://ai.google.dev/gemini-api/docs/pricing"
 
@@ -623,6 +623,7 @@ AISTUDIO_MODELS_NOT_SUPPORTED = [
     "gemini-3-pro-preview",
     "gemini-omni-flash-preview",
     "antigravity-preview-05-2026",
+    "antigravity-preview-09-2026",
     "deep-research-max-preview-04-2026",
     "deep-research-preview-04-2026"
 ]
@@ -742,6 +743,8 @@ GOOGLE_AISTUDIO_MUSIC_GENERATION_MODELS = [
 
 
 GOOGLE_LIVE_MODELS = [
+    "gemini-3.8-live",
+    "gemini-3.8-live-extended-thinking",
     "gemini-2.5-flash-native-audio-preview-12-2025",
     "gemini-3.1-flash-live-preview",
 ]

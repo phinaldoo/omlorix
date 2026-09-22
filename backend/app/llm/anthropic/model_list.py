@@ -3,7 +3,7 @@
 import re
 
 
-ANTHROPIC_CATALOG_LAST_VERIFIED = "2026-09-01"
+ANTHROPIC_CATALOG_LAST_VERIFIED = "2026-09-22"
 ANTHROPIC_MODELS_DOCS_URL = "https://platform.claude.com/docs/en/models/overview"
 ANTHROPIC_PRICING_DOCS_URL = "https://platform.claude.com/docs/en/about-claude/pricing"
 
@@ -11,6 +11,7 @@ ANTHROPIC_PRICING_DOCS_URL = "https://platform.claude.com/docs/en/about-claude/p
 # USD per million tokens. Model names, limits, and capabilities come from the
 # provider; only pricing remains local because Anthropic does not return it.
 ANTHROPIC_MODEL_PRICING = {
+    "claude-opus-5-5": (4, 20),
     "claude-fable-5-1": (10, 50),
     "claude-fable-5": (10, 50),
     "claude-mythos-5-1": (10, 50),
@@ -31,6 +32,7 @@ ANTHROPIC_MODEL_PRICING = {
 # Anthropic's Models API does not expose knowledge cutoffs, so these remain
 # local and are also used for dated model IDs after their date suffix is removed.
 ANTHROPIC_KNOWLEDGE_CUTOFFS = {
+    "claude-opus-5-5": "2026-06-01",
     "claude-fable-5-1": "2026-06-01",
     "claude-fable-5": "2026-01-01",
     "claude-mythos-5-1": "2026-06-01",
@@ -52,6 +54,11 @@ ANTHROPIC_KNOWLEDGE_CUTOFFS = {
 # particular effort levels require it. Keep those documented exceptions here
 # with the other non-discoverable model metadata.
 ANTHROPIC_THINKING_OVERRIDES = {
+    "claude-opus-5-5": {
+        "thinking": True,
+        "thinking_disabled_allowed": False,
+        "thinking_adaptive_required": True,
+    },
     "claude-fable-5-1": {
         "thinking": True,
         "thinking_disabled_allowed": False,
@@ -84,6 +91,7 @@ ANTHROPIC_THINKING_OVERRIDES = {
 # definition that the Messages API may reject.
 ANTHROPIC_NATIVE_WEBSEARCH_MODELS = frozenset(
     {
+        "claude-opus-5-5",
         "claude-fable-5-1",
         "claude-fable-5",
         "claude-haiku-4-5",
@@ -112,6 +120,8 @@ def get_anthropic_pricing(model_id: str) -> dict | None:
     pricing = {"input": rates[0], "output": rates[1], "native_web_search_tool_call": 0.01}
     if normalized_model_id in {"claude-fable-5-1", "claude-mythos-5-1"}:
         pricing["cache_read_input_multiplier"] = 0.025
+    elif normalized_model_id == "claude-opus-5-5":
+        pricing["cache_read_input_multiplier"] = 0.05
     return pricing
 
 

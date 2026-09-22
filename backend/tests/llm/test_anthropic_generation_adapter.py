@@ -13,6 +13,7 @@ from app.llm.anthropic.generation import (
 )
 from app.llm.anthropic.generation_adapter import AnthropicGenerationAdapter
 from app.llm.generation import GenerationAdapter
+from app.llm.generation.contracts import GenerationRequest
 
 
 class FakeMessages:
@@ -73,6 +74,28 @@ def test_anthropic_adapter_exposes_one_shot_contract():
 
     assert isinstance(adapter, GenerationAdapter)
     assert callable(adapter.generate_once)
+
+
+def test_opus_55_auxiliary_generation_handles_thinking_before_text():
+    response = _response()
+    response.content = [
+        SimpleNamespace(type="thinking", thinking="", signature="signature"),
+        SimpleNamespace(type="text", text="A useful "),
+        SimpleNamespace(type="text", text="title"),
+    ]
+    client, messages = _client(response)
+    result = AnthropicGenerationAdapter(client=client).generate_once(
+        GenerationRequest(
+            model="claude-opus-5-5",
+            messages=[],
+            system_instruction="Return a title.",
+            max_tokens=4096,
+            settings={"thinking": False, "reasoning_effort": "low"},
+        )
+    )
+    assert result.text == "A useful title"
+    assert messages.requests[0]["thinking"] == {"type": "adaptive"}
+    assert messages.requests[0]["output_config"] == {"effort": "low"}
 
 
 def test_anthropic_title_generation_uses_shared_one_shot_lifecycle(monkeypatch):

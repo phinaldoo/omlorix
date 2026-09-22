@@ -32,6 +32,31 @@ def _apply_anthropic_simple_settings(
     if max_tokens is not None:
         request_kwargs["max_tokens"] = max_tokens
     apply_anthropic_prompt_cache(request_kwargs, settings)
+    if get_anthropic_thinking_capabilities(request_kwargs.get("model")).get(
+        "thinking_adaptive_required"
+    ):
+        _apply_anthropic_thinking_settings(
+            request_kwargs, settings, request_kwargs.get("model")
+        )
+
+
+def _apply_anthropic_thinking_settings(
+    request_kwargs: dict,
+    settings: dict,
+    model_name: str | None,
+    *,
+    allow_compatible_fallback: bool = False,
+) -> None:
+    """Keep thinking mode and the Messages API's output effort separate."""
+    thinking = _build_anthropic_thinking_params(
+        settings, model_name, allow_compatible_fallback=allow_compatible_fallback
+    )
+    if thinking is not None:
+        thinking.pop("effort", None)
+        request_kwargs["thinking"] = thinking
+    effort = settings.get("reasoning_effort")
+    if effort is not None:
+        request_kwargs.setdefault("output_config", {})["effort"] = effort
 
 
 def _get_anthropic_thinking_capabilities(model_name: str | None) -> dict:
@@ -117,6 +142,13 @@ def _build_anthropic_thinking_params(
         model_name,
         allow_compatible_fallback=allow_compatible_fallback,
     )
+    if thinking_caps.get("thinking_adaptive_required"):
+        # These models reject both disabled thinking and manual budgets,
+        # including settings saved for an older model before switching IDs.
+        return {
+            "type": "adaptive",
+            **({"effort": reasoning_effort} if reasoning_effort is not None else {}),
+        }
     _validate_anthropic_thinking_disabled_effort(
         thinking_setting,
         reasoning_effort,
