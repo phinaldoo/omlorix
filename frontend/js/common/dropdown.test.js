@@ -538,6 +538,21 @@ test('shared transient menu owns item markup, selection, and cleanup', async () 
     await Promise.resolve();
 
     assert.equal(selectedValue, 'safe');
+    assert.equal(trigger.focusCount, 1);
     assert.equal(document.body.children.length, 0);
     assert.equal(trigger.getAttribute('aria-expanded'), 'false');
+});
+
+test('shared transient menu closes on Tab and restores the trigger before native navigation', () => {
+    const { context, document } = loadDropdown();
+    const trigger = new FakeElement('button');
+    const controller = context.window.openDropdownMenu({
+        trigger,
+        items: [{ label: 'Selected', checked: true }],
+    });
+    const menu = document.body.children[0];
+    menu.dispatchEvent({ type: 'keydown', key: 'Tab' });
+    assert.equal(controller.isOpen(), false);
+    assert.equal(document.body.children.length, 0);
+    assert.equal(trigger.focusCount, 1);
 });

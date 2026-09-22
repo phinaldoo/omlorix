@@ -1148,10 +1148,6 @@
     margin-inline-start: auto;
 }
 
-.todos-header-selector {
-    position: relative;
-}
-
 .todos-header-trigger {
     display: flex;
     align-items: center;
@@ -1191,95 +1187,8 @@
     transition: transform 0.2s ease;
 }
 
-.todos-header-selector.open .todos-header-trigger .caret {
+.todos-header-trigger[aria-expanded="true"] .caret {
     transform: rotate(180deg);
-}
-
-.todos-header-dropdown {
-    position: absolute;
-    top: calc(100% + 4px);
-    inset-inline-end: 0;
-    min-width: 180px;
-    background: var(--background);
-    border: 1px solid var(--border-color);
-    border-radius: 10px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-    z-index: 100;
-    opacity: 0;
-    visibility: hidden;
-    transform: translateY(-8px);
-    transition: opacity 0.15s ease, visibility 0.15s ease, transform 0.15s ease;
-    max-height: min(360px, 70vh);
-    overflow-x: hidden;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-}
-
-.todos-header-selector.open .todos-header-dropdown {
-    opacity: 1;
-    visibility: visible;
-    transform: translateY(0);
-}
-
-.todos-header-option {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-    padding: 10px 14px;
-    font-size: 13px;
-    color: var(--text-color);
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    transition: background 0.1s ease;
-    text-align: start;
-}
-
-@media (hover: hover) and (pointer: fine) {
-    .todos-header-option:hover {
-        background: var(--hover);
-    }
-}
-
-.todos-header-option.selected {
-    color: var(--primary-color);
-    font-weight: 500;
-}
-
-.todos-header-option-icon {
-    width: 16px;
-    height: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-color-tertiary);
-}
-
-.todos-header-option.selected .todos-header-option-icon {
-    color: var(--primary-color);
-}
-
-.todos-header-option-icon svg {
-    width: 14px;
-    height: 14px;
-}
-
-.todos-header-option-check {
-    width: 16px;
-    height: 16px;
-    margin-inline-start: auto;
-    opacity: 0;
-}
-
-.todos-header-option-check svg {
-    width: 16px;
-    height: 16px;
-}
-
-.todos-header-option.selected .todos-header-option-check {
-    opacity: 1;
-    color: var(--primary-color);
 }
 
 .todos-mobile-back-btn {

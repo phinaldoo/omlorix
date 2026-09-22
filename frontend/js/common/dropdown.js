@@ -1015,12 +1015,16 @@
 
         buttons.forEach(({ button, item }) => {
             button.addEventListener('click', async (event) => {
-                controller.close({ event, reason: 'selection' });
+                controller.close({ event, reason: 'selection', restoreFocus: true });
                 await (item.onSelect || onSelect)?.(item, event);
             });
         });
 
         menu.addEventListener('keydown', (event) => {
+            if (event.key === 'Tab') {
+                controller.close({ event, reason: 'tab', restoreFocus: true });
+                return;
+            }
             if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
             const enabledButtons = buttons
                 .map(({ button }) => button)

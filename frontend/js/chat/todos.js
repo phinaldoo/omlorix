@@ -26,8 +26,6 @@ const TodosState = {
     },
     // Sort state
     sortBy: 'manual',
-    sortDropdownOpen: false,
-    filterDropdownOpen: false,
     viewMode: 'list',
     activeView: 'all',
     commandPaletteOpen: false,
@@ -923,40 +921,16 @@ const TodosRender = {
                         ${Icons.pause}
                         <span>${this.escapeHtml(TodosState.viewMode === 'board' ? todosT('todos_view_list_mode', 'List') : todosT('todos_view_board_mode', 'Board'))}</span>
                     </button>
-                    <div class="todos-header-selector todos-filter-selector" id="todosFilterSelector">
-                        <button type="button" class="todos-header-trigger todos-filter-trigger" id="todosFilterTrigger" aria-haspopup="menu" aria-expanded="false" aria-controls="todosFilterDropdown" aria-label="${this.escapeHtml(`${filterAriaLabel}: ${todosT(currentFilter.nameKey, currentFilter.name)}`)}">
-                            ${Icons.filter}
-                            <span>${this.escapeHtml(todosT(currentFilter.nameKey, currentFilter.name))}</span>
-                            ${Icons.chevron}
-                        </button>
-                        <div class="todos-header-dropdown todos-filter-dropdown" id="todosFilterDropdown" role="menu" aria-label="${this.escapeHtml(filterAriaLabel)}">
-                            ${TODOS_VIEW_OPTIONS.map(view => `
-                                <button type="button" class="todos-header-option todos-filter-option ${view.id === TodosState.activeView ? 'selected' : ''}" data-view="${view.id}" role="menuitemradio" aria-checked="${view.id === TodosState.activeView}">
-                                    <span class="todos-header-option-icon" aria-hidden="true">${view.icon || ''}</span>
-                                    <span>${this.escapeHtml(todosT(view.nameKey, view.name))}</span>
-                                    <span class="todos-header-option-check" aria-hidden="true">${Icons.check}</span>
-                                </button>
-                            `).join('')}
-                        </div>
-                    </div>
-                    <div class="todos-header-selector todos-sort-selector" id="todosSortSelector">
-                        <button type="button" class="todos-header-trigger todos-sort-trigger" id="todosSortTrigger" aria-haspopup="menu" aria-expanded="false" aria-controls="todosSortDropdown">
-                            ${currentSort.icon}
-                            <span>${this.escapeHtml(this.getSortLabel(currentSort))}</span>
-                            ${Icons.chevron}
-                        </button>
-                        <div class="todos-header-dropdown todos-sort-dropdown" id="todosSortDropdown" role="menu">
-                            ${TODOS_SORT_OPTIONS.map(option => `
-                                <button type="button" class="todos-header-option todos-sort-option ${option.id === TodosState.sortBy ? 'selected' : ''}" data-sort="${option.id}" role="menuitemradio" aria-checked="${option.id === TodosState.sortBy}">
-                                    <span class="todos-header-option-icon" aria-hidden="true">
-                                        ${option.icon}
-                                    </span>
-                                    <span>${this.escapeHtml(this.getSortLabel(option))}</span>
-                                    <span class="todos-header-option-check" aria-hidden="true">${Icons.check}</span>
-                                </button>
-                            `).join('')}
-                        </div>
-                    </div>
+                    <button type="button" class="todos-header-trigger" id="todosFilterTrigger" aria-haspopup="menu" aria-expanded="false" aria-label="${this.escapeHtml(`${filterAriaLabel}: ${todosT(currentFilter.nameKey, currentFilter.name)}`)}">
+                        ${Icons.filter}
+                        <span>${this.escapeHtml(todosT(currentFilter.nameKey, currentFilter.name))}</span>
+                        ${Icons.chevron}
+                    </button>
+                    <button type="button" class="todos-header-trigger" id="todosSortTrigger" aria-haspopup="menu" aria-expanded="false">
+                        ${currentSort.icon}
+                        <span>${this.escapeHtml(this.getSortLabel(currentSort))}</span>
+                        ${Icons.chevron}
+                    </button>
                 </div>
             </div>
         `;
@@ -1061,16 +1035,12 @@ const TodosManager = {
             priority: 120,
             isActive: () => Boolean(
                 TodosState.openDropdownListId ||
-                TodosState.sortDropdownOpen ||
-                TodosState.filterDropdownOpen ||
                 TodosState.addTodoOpenPopover ||
                 TodosState.iconPicker.isOpen ||
                 TodosState.editIconPicker.isOpen
             ),
             close: () => {
                 this.closeAllDropdowns();
-                this.toggleSortDropdown(false);
-                this.toggleFilterDropdown(false);
                 this.closeAddTodoPopover({ restoreFocus: true });
                 this.toggleIconPicker('create', false);
                 this.toggleIconPicker('edit', false);
@@ -1787,6 +1757,7 @@ const TodosManager = {
     },
 
     async selectList(listId, options = {}) {
+        this._headerMenu?.close();
         const { force = false, skipEditorGuard = false } = options;
         const previousListId = TodosState.selectedListId;
 
@@ -3430,56 +3401,50 @@ const TodosManager = {
     },
 
     setupSortListeners() {
-        // Both controls use the same compact menu behavior, but filtering and
-        // sorting remain separate concepts with independent state.
-        const filterTrigger = document.getElementById('todosFilterTrigger');
-        const filterDropdown = document.getElementById('todosFilterDropdown');
-        if (filterTrigger && filterDropdown) {
-            filterTrigger.addEventListener('click', (event) => {
+        this._headerMenu?.close();
+        [
+            {
+                triggerId: 'todosFilterTrigger',
+                options: TODOS_VIEW_OPTIONS,
+                selected: () => TodosState.activeView,
+                label: option => todosT(option.nameKey, option.name),
+                select: value => this.setActiveView(value),
+            },
+            {
+                triggerId: 'todosSortTrigger',
+                options: TODOS_SORT_OPTIONS,
+                selected: () => TodosState.sortBy,
+                label: option => TodosRender.getSortLabel(option),
+                select: value => this.setSortOrder(value),
+            },
+        ].forEach(({ triggerId, options, selected, label, select }) => {
+            const trigger = document.getElementById(triggerId);
+            if (!trigger) return;
+            const openMenu = (event) => {
                 event.preventDefault();
                 event.stopPropagation();
-                this.toggleFilterDropdown();
-            });
-
-            filterDropdown.addEventListener('click', (event) => {
-                const option = event.target.closest('.todos-filter-option');
-                if (option) this.setActiveView(option.dataset.view);
-            });
-
-            this.bindHeaderMenuKeyboard({
-                trigger: filterTrigger,
-                dropdown: filterDropdown,
-                optionSelector: '.todos-filter-option',
-                openMenu: () => this.toggleFilterDropdown(true),
-                closeMenu: () => this.toggleFilterDropdown(false),
-            });
-        }
-
-        const sortTrigger = document.getElementById('todosSortTrigger');
-        const sortDropdown = document.getElementById('todosSortDropdown');
-        if (sortTrigger && sortDropdown) {
-            sortTrigger.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                this.toggleSortDropdown();
-            });
-
-            sortDropdown.addEventListener('click', (e) => {
-                const option = e.target.closest('.todos-sort-option');
-                if (option) {
-                    const sortId = option.dataset.sort;
-                    this.setSortOrder(sortId);
+                if (event.type === 'click' && trigger.getAttribute('aria-expanded') === 'true') {
+                    this._headerMenu?.close({ restoreFocus: true });
+                    return;
                 }
+                this._headerMenu?.close();
+                this._headerMenu = window.openDropdownMenu({
+                    trigger,
+                    ariaLabel: trigger.getAttribute('aria-label') || trigger.textContent.trim(),
+                    items: options.map(option => ({
+                        value: option.id,
+                        label: label(option),
+                        iconHtml: option.icon,
+                        checked: option.id === selected(),
+                    })),
+                    onSelect: item => select(item.value),
+                });
+            };
+            trigger.addEventListener('click', openMenu);
+            trigger.addEventListener('keydown', event => {
+                if (event.key === 'ArrowDown' || event.key === 'ArrowUp') openMenu(event);
             });
-
-            this.bindHeaderMenuKeyboard({
-                trigger: sortTrigger,
-                dropdown: sortDropdown,
-                optionSelector: '.todos-sort-option',
-                openMenu: () => this.toggleSortDropdown(true),
-                closeMenu: () => this.toggleSortDropdown(false),
-            });
-        }
+        });
 
         const boardToggle = document.getElementById('todosBoardToggle');
         if (boardToggle) {
@@ -3490,100 +3455,19 @@ const TodosManager = {
             });
         }
 
-        // Header rerenders replace its buttons, so replace the document-level
-        // outside-click listener as well instead of accumulating stale handlers.
-        if (this._headerOutsideClickHandler) {
-            document.removeEventListener('click', this._headerOutsideClickHandler);
-        }
-        this._headerOutsideClickHandler = (event) => {
-            const filterSelector = document.getElementById('todosFilterSelector');
-            const sortSelector = document.getElementById('todosSortSelector');
-            if (TodosState.filterDropdownOpen && !filterSelector?.contains(event.target)) {
-                this.toggleFilterDropdown(false);
-            }
-            if (TodosState.sortDropdownOpen && !sortSelector?.contains(event.target)) {
-                this.toggleSortDropdown(false);
-            }
-        };
-        document.addEventListener('click', this._headerOutsideClickHandler);
-    },
-
-    /**
-     * Add standard arrow-key, Home/End, Escape and Tab behavior to a header
-     * menu while leaving Enter and Space to the native button elements.
-     */
-    bindHeaderMenuKeyboard({ trigger, dropdown, optionSelector, openMenu, closeMenu }) {
-        const getOptions = () => [...dropdown.querySelectorAll(optionSelector)]
-            .filter(option => !option.disabled);
-
-        trigger.addEventListener('keydown', (event) => {
-            if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
-            event.preventDefault();
-            openMenu();
-            const options = getOptions();
-            const target = event.key === 'ArrowDown' ? options[0] : options.at(-1);
-            target?.focus();
-        });
-
-        dropdown.addEventListener('keydown', (event) => {
-            const options = getOptions();
-            const currentIndex = options.indexOf(document.activeElement);
-            let nextIndex = null;
-
-            if (event.key === 'ArrowDown') nextIndex = (currentIndex + 1) % options.length;
-            if (event.key === 'ArrowUp') nextIndex = (currentIndex - 1 + options.length) % options.length;
-            if (event.key === 'Home') nextIndex = 0;
-            if (event.key === 'End') nextIndex = options.length - 1;
-
-            if (nextIndex !== null && options.length) {
-                event.preventDefault();
-                options[nextIndex]?.focus();
-                return;
-            }
-
-            if (event.key === 'Escape') {
-                event.preventDefault();
-                closeMenu();
-                trigger.focus();
-            } else if (event.key === 'Tab') {
-                closeMenu();
-            }
-        });
-    },
-
-    toggleFilterDropdown(open) {
-        const selector = document.getElementById('todosFilterSelector');
-        const shouldOpen = typeof open === 'boolean' ? open : !TodosState.filterDropdownOpen;
-        if (shouldOpen) this.toggleSortDropdown(false);
-
-        TodosState.filterDropdownOpen = Boolean(selector && shouldOpen);
-        selector?.classList.toggle('open', TodosState.filterDropdownOpen);
-        selector?.querySelector('#todosFilterTrigger')
-            ?.setAttribute('aria-expanded', String(TodosState.filterDropdownOpen));
-    },
-
-    toggleSortDropdown(open) {
-        const selector = document.getElementById('todosSortSelector');
-        const shouldOpen = typeof open === 'boolean' ? open : !TodosState.sortDropdownOpen;
-        if (shouldOpen) this.toggleFilterDropdown(false);
-
-        TodosState.sortDropdownOpen = Boolean(selector && shouldOpen);
-        selector?.classList.toggle('open', TodosState.sortDropdownOpen);
-        selector?.querySelector('#todosSortTrigger')
-            ?.setAttribute('aria-expanded', String(TodosState.sortDropdownOpen));
     },
 
     /** Apply a validated server-side view filter and return focus to its trigger. */
     async setActiveView(viewId) {
         const nextView = TODOS_VIEW_OPTIONS.some(view => view.id === viewId) ? viewId : 'all';
         if (TodosState.activeView === nextView) {
-            this.toggleFilterDropdown(false);
+            this._headerMenu?.close({ restoreFocus: true });
             document.getElementById('todosFilterTrigger')?.focus();
             return;
         }
 
         TodosState.activeView = nextView;
-        this.toggleFilterDropdown(false);
+        this._headerMenu?.close({ restoreFocus: true });
         const reloadPromise = this.reloadSelectedTodos();
         document.getElementById('todosFilterTrigger')?.focus();
         await reloadPromise;
@@ -3591,12 +3475,12 @@ const TodosManager = {
 
     async setSortOrder(sortId) {
         if (TodosState.sortBy === sortId) {
-            this.toggleSortDropdown(false);
+            this._headerMenu?.close({ restoreFocus: true });
             return;
         }
 
         TodosState.sortBy = sortId;
-        this.toggleSortDropdown(false);
+        this._headerMenu?.close({ restoreFocus: true });
 
         // Re-render header to update sort button label
         this.refreshListHeader();
@@ -4619,6 +4503,7 @@ const TodosManager = {
     },
 
     hide() {
+        this._headerMenu?.close();
         // Stop auto-refresh when hiding
         this.stopAutoRefresh();
         
