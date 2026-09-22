@@ -1960,10 +1960,9 @@ window.startGenerationUI = function startGenerationUI() {
   // Force show the send button as the STOP button while generating
   callButton.style.display = 'none';
   sendButton.style.display = 'flex';
-  // Ensure it's clickable and on top
+  // Keep it clickable without lifting it above preview backdrops and dialogs.
   sendButton.disabled = false;
   sendButton.style.pointerEvents = 'auto';
-  sendButton.style.zIndex = '1000';
   applySendButtonMode();
 };
 
@@ -1974,7 +1973,6 @@ window.endGenerationUI = function endGenerationUI() {
   window.chatWakeLock?.release?.('generation');
   if (!sendButton || !callButton) return;
   sendButton.style.pointerEvents = '';
-  sendButton.style.zIndex = '';
   // Restore normal toggle behavior based on input
   toggleInputButtons();
 };
