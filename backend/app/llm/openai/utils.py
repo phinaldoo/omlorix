@@ -933,10 +933,16 @@ def _apply_openai_store_setting(
     return store_setting
 
 
-def _resolve_openai_reasoning_effort(settings: dict | None) -> str | None:
+def _resolve_openai_reasoning_effort(settings: dict | None, *, caps=None) -> str | None:
     """Resolve reasoning effort from merged OpenAI settings."""
     if not isinstance(settings, dict):
         return None
+    if (
+        caps
+        and caps.get("sampling_requires_no_reasoning")
+        and settings.get("reasoning") is False
+    ):
+        return "none"
     return _normalize_openai_text_setting(settings.get("reasoning_effort"))
 
 
@@ -981,7 +987,7 @@ def _build_openai_reasoning_payload(
     reasoning_enabled = settings.get("reasoning")
     caps = _get_openai_model_caps(model_name, provider_type=provider_type)
     reasoning_effort = normalize_required_reasoning_effort(
-        _resolve_openai_reasoning_effort(settings), caps
+        _resolve_openai_reasoning_effort(settings, caps=caps), caps
     )
     if is_lmstudio_provider_type(provider_type):
         # LM Studio's native model list can advertise "on"/"off", but its

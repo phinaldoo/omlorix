@@ -62,14 +62,15 @@ def _runtime(**overrides):
     return SimpleNamespace(**payload)
 
 
-def test_live_configuration_separates_voice_and_delegated_instructions():
-    runtime = _runtime(realtime_model="gpt-live-1", settings={"live_backend_model": "gpt-5.6-luna"})
+@pytest.mark.parametrize("model", ["gpt-5.6-luna", "gpt-6-sol", "gpt-6-luna"])
+def test_live_configuration_separates_voice_and_delegated_instructions(model):
+    runtime = _runtime(realtime_model="gpt-live-1", settings={"live_backend_model": model})
     config = realtime_service.build_realtime_session_config(runtime)
     assert config["model"] == "gpt-live-1"
     assert config["audio"]["output"]["voice"] == "marin"
     assert "admin agent policy" not in config["instructions"]
     assert "admin agent policy" in config["delegation"]["responses"]["instructions"]
-    assert config["delegation"]["responses"]["model"] == "gpt-5.6-luna"
+    assert config["delegation"]["responses"]["model"] == model
     assert config["store"] is False
     client = realtime_service.build_realtime_client_session_config(runtime)
     assert "delegation" not in client

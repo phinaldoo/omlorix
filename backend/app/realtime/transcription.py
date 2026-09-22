@@ -164,6 +164,7 @@ def _build_xai_stt_websocket_url(
     base_url: Any,
     *,
     settings: dict[str, Any] | None = None,
+    model: str = "grok-transcribe",
 ) -> str:
     """Convert the xAI API root and native dictation settings to a STT URL."""
     parsed = urlparse(
@@ -182,6 +183,7 @@ def _build_xai_stt_websocket_url(
         for key, value in parse_qsl(parsed.query, keep_blank_values=True)
         if key.lower()
         not in {
+            "model",
             "sample_rate",
             "encoding",
             "interim_results",
@@ -204,6 +206,8 @@ def _build_xai_stt_websocket_url(
             ("interim_results", "true"),
         ]
     )
+    if model != "grok-transcribe":
+        query.append(("model", model))
     native_settings = settings if isinstance(settings, dict) else {}
     endpointing = native_settings.get("live_transcription_xai_endpointing_ms", 10)
     if isinstance(endpointing, int) and 0 <= endpointing <= 5000:
@@ -349,6 +353,7 @@ def load_live_transcription_runtime(db: Session) -> LiveTranscriptionRuntime:
             _build_xai_stt_websocket_url(
                 client_kwargs.get("base_url"),
                 settings=data,
+                model=model,
             )
             if provider.provider == ProviderEnum.xai.value
             else _build_openai_realtime_websocket_url(

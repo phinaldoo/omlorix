@@ -2093,6 +2093,61 @@ OPENAI_MODEL_DICT = {
 }
 
 
+# GPT-6 Sol and Luna were released on 2026-09-22. They share Astra's
+# Responses controls and limits, but support optional reasoning and Chat
+# Completions tools at effort none. Rates verified against OPENAI_PRICING_DOCS_URL.
+def _gpt6_optional_reasoning_model(model_id, name, cutoff, pricing):
+    model = deepcopy(OPENAI_MODEL_DICT["gpt-6-astra"])
+    model.update(
+        ids=[model_id],
+        name=name,
+        description=name,
+        knowledge_cutoff=cutoff,
+        requires_reasoning=False,
+        tools_require_responses=False,
+        chat_completions_tools_require_no_reasoning=True,
+        sampling_requires_no_reasoning=True,
+        temperature={"temperature": True, "thinking_effort_must_be_none": True},
+        top_p={"top_p": True, "thinking_effort_must_be_none": True},
+        pricing={**pricing, "native_web_search_tool_call": 0.01},
+    )
+    model["thinking"]["thinking_effort"].insert(0, "none")
+    return model
+
+
+OPENAI_MODEL_DICT = {
+    "gpt-6-sol": _gpt6_optional_reasoning_model(
+        "gpt-6-sol", "GPT-6 Sol", datetime(2026, 4, 20),
+        {
+            "standard": {"input": 2.0, "cached_input": 0.2, "cache_write": 2.5, "output": 10.0},
+            "flex": {"input": 1.0, "cached_input": 0.1, "cache_write": 1.25, "output": 5.0},
+            "priority": {"input": 4.0, "cached_input": 0.4, "cache_write": 5.0, "output": 20.0},
+            "high_context_pricing": {
+                "mark": 272000,
+                "standard": {"input": 4.0, "cached_input": 0.4, "cache_write": 5.0, "output": 15.0},
+                "flex": {"input": 2.0, "cached_input": 0.2, "cache_write": 2.5, "output": 7.5},
+                "priority": {"input": 8.0, "cached_input": 0.8, "cache_write": 10.0, "output": 30.0},
+            },
+        },
+    ),
+    "gpt-6-luna": _gpt6_optional_reasoning_model(
+        "gpt-6-luna", "GPT-6 Luna", datetime(2026, 5, 18),
+        {
+            "standard": {"input": 0.1, "cached_input": 0.01, "cache_write": 0.125, "output": 0.5},
+            "flex": {"input": 0.05, "cached_input": 0.005, "cache_write": 0.0625, "output": 0.25},
+            "priority": {"input": 0.2, "cached_input": 0.02, "cache_write": 0.25, "output": 1.0},
+            "high_context_pricing": {
+                "mark": 272000,
+                "standard": {"input": 0.2, "cached_input": 0.02, "cache_write": 0.25, "output": 0.75},
+                "flex": {"input": 0.1, "cached_input": 0.01, "cache_write": 0.125, "output": 0.375},
+                "priority": {"input": 0.4, "cached_input": 0.04, "cache_write": 0.5, "output": 1.5},
+            },
+        },
+    ),
+    **OPENAI_MODEL_DICT,
+}
+
+
 # Daybreak Red currently resolves to GPT-5.6 Cyber. It shares the GPT-5.6
 # request surface but requires approved access and has its own context limit
 # and token rates.

@@ -338,6 +338,8 @@ XAI_MODEL_DICT: dict[str, dict[str, Any]] = {
 # account.  Keep those out of Omlorix's chat-model picker; their native adapters
 # expose them in the appropriate Image, Video, Voice, and transcription forms.
 XAI_NON_CHAT_MODELS = {
+    "grok-voice-transcribe-1.0",
+    "grok-voice-transcribe-2.0",
     "grok-imagine-image-2.0",
     "grok-imagine-image",
     "grok-imagine-image-quality",

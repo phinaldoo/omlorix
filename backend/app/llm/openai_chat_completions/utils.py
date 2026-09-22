@@ -32,6 +32,7 @@ from app.files.utils import (
 from app.groups.init import get_user_group_setting_value
 from app.chats.streaming import interruptible_provider_stream
 from app.users.roles import is_admin_role
+from app.llm.openai.catalog import get_responses_model_capabilities
 from app.llm.openai.utils import (
     _close_openai_client,
     _merge_openai_request_options,
@@ -152,7 +153,12 @@ def _apply_openai_chat_completions_reasoning_effort(
     settings: dict | None,
 ) -> None:
     """Apply reasoning_effort to OpenAI Chat Completions requests."""
-    reasoning_effort = _resolve_openai_reasoning_effort(settings)
+    reasoning_effort = _resolve_openai_reasoning_effort(
+        settings,
+        caps=get_responses_model_capabilities(
+            request_kwargs.get("model"), "openai_chat_completions"
+        ),
+    )
     if reasoning_effort:
         request_kwargs["reasoning_effort"] = reasoning_effort
 

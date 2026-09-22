@@ -4,7 +4,7 @@ The native **OpenAI** provider supports OpenAI chat models and, where configured
 
 Apply [Common Provider Settings](2_provider_settings.md) for shared credential, discovery, and lifecycle rules.
 
-The September 22, 2026 [model catalog](https://developers.openai.com/api/docs/models) review confirmed that GPT-6 Astra, GPT-5.6, GPT-Image-2.5, GPT-Live, GPT-Realtime-2.1, and GPT-Transcribe are already represented. The [deprecation schedule](https://developers.openai.com/api/docs/deprecations) now records the October 1, 2026 shutdown of `gpt-5.4-cyber`; `gpt-5.6-cyber` remains its supported replacement. Provider discovery determines which models your account can access.
+The September 22, 2026 [model catalog](https://developers.openai.com/api/docs/models) review includes the newly released GPT-6 Sol and GPT-6 Luna alongside GPT-6 Astra, GPT-5.6, GPT-Image-2.5, GPT-Live, GPT-Realtime-2.1, and GPT-Transcribe. The [deprecation schedule](https://developers.openai.com/api/docs/deprecations) records the October 1, 2026 shutdown of `gpt-5.4-cyber`; `gpt-5.6-cyber` remains its supported replacement. Provider discovery determines which models your account can access.
 
 ## Configure
 
@@ -23,6 +23,16 @@ Optional features require separate configuration: [Dictation](../3_admin_setting
 - **Service tier** offers **Flex**, **Standard**, and **Fast mode** where the model supports them. OpenAI renamed Priority processing to [Fast mode](https://developers.openai.com/api/docs/guides/fast-mode). The native OpenAI provider sends `service_tier: "fast"`, including for existing saved `priority` settings and request overrides. Saved settings and exports remain compatible and need no migration. Compatible endpoints and other providers retain their existing API values. Fast mode carries a per-token premium.
 
 Model access and capabilities vary by project, region, and rollout. Use OpenAI billing as the cost authority and document all enabled data transfers under the relevant compliance pages. Test provider-native tools separately from Omlorix tools because they have different configuration and data flows.
+
+## GPT-6 Sol and Luna
+
+Select `gpt-6-sol` or `gpt-6-luna` after your project receives access. Both accept text, images, and documents, with a 922,000-token input limit and 128,000-token output limit within a 1,050,000-token context window. Their knowledge cutoffs are April 20 and May 18, 2026 respectively. Both are also available as GPT-Live reasoning backends; existing defaults and saved settings remain supported.
+
+Reasoning efforts are **None**, **Low**, **Medium** (default), **High**, **Extra high**, and **Maximum**. Disabling reasoning sends `none`. Temperature, Top P, and log probabilities are available only at `none`; Omlorix removes them when reasoning is enabled. Chat Completions supports tools and tool history only at `none`. Use **OpenAI** or **OpenAI Responses API** for tools with reasoning enabled. Responses also provides Pro mode, persisted reasoning, tool search, and 30-minute prompt caching.
+
+Catalog estimates include cache writes, Flex (half standard rates), Fast (twice standard rates), and long-context pricing. Standard rates per million input/cache-read/cache-write/output tokens are $2/$0.20/$2.50/$10 for Sol and $0.10/$0.01/$0.125/$0.50 for Luna. Above 272,000 input tokens, the entire request uses $4/$0.40/$5/$15 for Sol or $0.20/$0.02/$0.25/$0.75 for Luna. Regional processing surcharges are not included. EU data residency currently supports Standard only; verify availability before changing tiers.
+
+Sources: [Sol](https://developers.openai.com/api/docs/models/gpt-6-sol), [Luna](https://developers.openai.com/api/docs/models/gpt-6-luna), [GPT-6 request compatibility](https://developers.openai.com/api/docs/guides/latest-model), [pricing](https://developers.openai.com/api/docs/pricing).
 
 ## GPT-6 Astra
 

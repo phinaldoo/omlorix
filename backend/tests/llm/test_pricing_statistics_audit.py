@@ -380,7 +380,7 @@ def test_current_catalogs_include_new_models_and_exclude_shutdown_ids() -> None:
 @pytest.mark.parametrize(
     ("catalog", "expected_groups", "expected_ids"),
     [
-        (OPENAI_MODEL_DICT, 36, 67),
+        (OPENAI_MODEL_DICT, 38, 69),
         (AISTUDIO_MODEL_DICT, 19, 20),
     ],
 )
