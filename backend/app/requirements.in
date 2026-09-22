@@ -31,7 +31,7 @@ beautifulsoup4==4.15.0
 ddgs==9.16.0
 boto3==1.43.89
 google-cloud-storage==3.13.1
-azure-storage-blob==12.30.1
+azure-storage-blob==12.30.2
 zstandard==0.25.0
 
 # --- AI, LLMs & Search APIs ---
