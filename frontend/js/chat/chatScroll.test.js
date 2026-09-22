@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const { readFrontendSource } = require('../splitSource.cjs');
 const path = require('node:path');
 const test = require('node:test');
+const vm = require('node:vm');
 
 const { createChatScrollCoordinator } = require('./chatScroll.js');
 
@@ -56,6 +57,8 @@ class FakeElement extends FakeEventTarget {
         this.id = '';
         this.parentElement = null;
         this.style = {};
+        this.dataset = {};
+        this.isConnected = true;
     }
 
     set className(value) {
@@ -68,6 +71,23 @@ class FakeElement extends FakeEventTarget {
     }
 
     setAttribute() {}
+
+    matches(selector) {
+        return selector.split(',').some((part) => this.classList.contains(part.trim().slice(1)));
+    }
+
+    closest(selector) {
+        return this.matches(selector) ? this : this.parentElement?.closest(selector) || null;
+    }
+
+    querySelector(selector) {
+        for (const child of this.children) {
+            if (child.matches(selector)) return child;
+            const nested = child.querySelector(selector);
+            if (nested) return nested;
+        }
+        return null;
+    }
 
     appendChild(child) {
         if (child.parentElement) {
@@ -121,6 +141,7 @@ class FakeMessageArea extends FakeElement {
             height: this.height,
             left: 0,
             top: this.offsetTop - this.viewport.scrollTop,
+            bottom: this.offsetTop - this.viewport.scrollTop + this.height,
             width: 500,
         };
     }
@@ -209,6 +230,7 @@ class FakeViewport extends FakeElement {
             height: this.clientHeight,
             left: 0,
             top: 0,
+            bottom: this.clientHeight,
             width: 500,
         };
     }
@@ -259,6 +281,8 @@ function createScrollFixture({
     messageOffsetTop = 1500,
     naturalScrollHeight = 1800,
     reduceMotion = false,
+    withManager = false,
+    split = false,
 } = {}) {
     const clock = new FakeClock();
     const globalEvents = new FakeEventTarget();
@@ -266,6 +290,9 @@ function createScrollFixture({
     const container = new FakeContainer(naturalScrollHeight);
     const viewport = new FakeViewport(container);
     const messageArea = new FakeMessageArea(viewport, messageOffsetTop);
+    viewport.className = split ? 'split-chat-area' : 'chat-area';
+    container.className = 'chat-area-container';
+    viewport.appendChild(container);
     container.addMessage('message-1', messageArea);
     viewport.scrollTop = initialScrollTop;
 
@@ -292,6 +319,7 @@ function createScrollFixture({
         cancelAnimationFrame: (id) => clock.cancel(id),
         clearTimeout: (id) => clock.cancel(id),
         document: {
+            addEventListener: globalEvents.addEventListener.bind(globalEvents),
             createElement: () => new FakeElement(),
             documentElement,
             getElementById(id) {
@@ -306,12 +334,22 @@ function createScrollFixture({
         setTimeout: (callback, delay) => clock.schedule(callback, delay),
     };
     const coordinator = createChatScrollCoordinator(runtime);
+    runtime.ChatScrollCoordinator = coordinator;
+    if (withManager) {
+        vm.runInNewContext(readFrontendSource(path.join(__dirname, 'chatScrollManager.js'), 'utf8'), {
+            ...runtime,
+            Element: FakeElement,
+            window: runtime,
+        }, { filename: 'chatScrollManager.js' });
+        runtime.ChatScrollManager.bind(viewport);
+    }
 
     return {
         clock,
         container,
         coordinator,
         globalEvents,
+        manager: runtime.ChatScrollManager,
         messageArea,
         observers,
         viewport,
@@ -472,6 +510,112 @@ test('missing or unmounted message targets abort without adding a spacer', () =>
 
     assert.equal(fixture.coordinator.alignUserMessage('missing-message'), false);
     assert.equal(fixture.container.querySelector('.dynamic-scroll-spacer'), null);
+});
+
+test('streaming cannot compete with prompt alignment or resume following when its guard ends', () => {
+    for (const split of [false, true]) {
+        for (const reduceMotion of [false, true]) {
+            for (const initialScrollTop of [700, 1300]) {
+                const fixture = createScrollFixture({ withManager: true, split, reduceMotion, initialScrollTop });
+                const { coordinator, manager, viewport, container, clock, observers } = fixture;
+                const oldSnapshot = manager.capture(container);
+                manager.restore(oldSnapshot);
+                manager.scheduleFollow(viewport);
+
+                coordinator.alignUserMessage('message-1');
+                assert.equal(manager.capture(container), null, 'alignment owns layout corrections too');
+                assert.equal(manager.beginStream(viewport, { autoFollow: true }), false);
+                clock.advance(500);
+                assertMessageAligned(fixture);
+                assert.equal(manager.isFollowing(viewport), false, 'alignment scroll events must not enable following');
+                assert.ok(viewport.scrollCalls.every(({ top }) => top <= 1500), 'queued follow never overshoots the prompt');
+
+                const firstStreamCall = viewport.scrollCalls.length;
+                for (let tick = 0; tick < 70; tick += 1) {
+                    manager.preserveDuringMutation(container, () => {
+                        container.naturalScrollHeight += 25;
+                    });
+                    observers.filter((observer) => !observer.disconnected).forEach((observer) => observer.callback());
+                    manager.scheduleFollow(viewport);
+                    clock.advance(100);
+                    assertMessageAligned(fixture);
+                }
+                assert.equal(coordinator.isAligning(viewport), false, 'the test covers guard expiry');
+                assert.ok(viewport.scrollCalls.slice(firstStreamCall).every(({ top }) => top === 1500), 'no transient down/up writes');
+                manager.restore(oldSnapshot);
+                clock.advance(50);
+                assertMessageAligned(fixture);
+                assert.equal(manager.isFollowing(viewport), false, 'guard expiry does not opt into following');
+            }
+        }
+    }
+});
+
+test('direct navigation interrupts both controllers and reaching the bottom can resume following', () => {
+    for (const input of ['wheel', 'touchmove', 'keydown']) {
+        const fixture = createScrollFixture({ withManager: true, initialScrollTop: 1300 });
+        const { coordinator, manager, viewport, container, clock, globalEvents } = fixture;
+        coordinator.alignUserMessage('message-1');
+        clock.advance(500);
+        container.naturalScrollHeight += 450;
+
+        if (input === 'keydown') {
+            globalEvents.dispatch('keydown', { key: 'PageUp', target: viewport });
+        } else if (input === 'touchmove') {
+            viewport.dispatch('touchstart', { touches: [{ clientY: 100 }] });
+            viewport.dispatch('touchmove', { touches: [{ clientY: 120 }] });
+            viewport.dispatch('touchend');
+        } else {
+            viewport.dispatch('wheel');
+        }
+        viewport.scrollTop = 1200;
+        manager.scheduleFollow(viewport);
+        clock.advance(200);
+        assert.equal(coordinator.isAligning(viewport), false);
+        assert.equal(viewport.scrollTop, 1200);
+        assert.equal(manager.isFollowing(viewport), false);
+
+        viewport.scrollTop = viewport.scrollHeight - viewport.clientHeight;
+        assert.equal(manager.isFollowing(viewport), true, 'manual navigation can re-enable following');
+        container.naturalScrollHeight += 100;
+        manager.scheduleFollow(viewport);
+        clock.advance(100);
+        assert.equal(viewport.scrollTop, viewport.scrollHeight - viewport.clientHeight);
+    }
+});
+
+test('explicit bottom navigation transfers ownership and a new send stops the previous smooth scroll', () => {
+    for (const throughCoordinator of [false, true]) {
+        const fixture = createScrollFixture({ withManager: true, initialScrollTop: 1300 });
+        const { coordinator, manager, viewport, container, clock } = fixture;
+        coordinator.alignUserMessage('message-1');
+        clock.advance(500);
+        if (throughCoordinator) {
+            coordinator.scrollToBottom(viewport, container, { behavior: 'smooth' });
+        } else {
+            manager.scrollToBottom(viewport, { behavior: 'smooth' });
+        }
+        assert.equal(coordinator.isAligning(viewport), false);
+        assert.equal(container.querySelector('.dynamic-scroll-spacer'), null);
+        assert.equal(manager.isFollowing(viewport), true);
+        assert.equal(viewport.scrollTop, 1300);
+
+        const previousCalls = viewport.scrollCalls.length;
+        coordinator.alignUserMessage('message-1');
+        assert.equal(viewport.scrollCalls.length, previousCalls + 1, 'stop the native animation before aligning');
+        assert.equal(viewport.scrollCalls.at(-1).behavior, 'auto');
+        clock.advance(600);
+        assertMessageAligned(fixture);
+        assert.equal(manager.isFollowing(viewport), false);
+
+        coordinator.reset(viewport, container);
+        clock.advance(50);
+        assert.equal(manager.beginStream(viewport, { autoFollow: true }), true, 'reset releases alignment ownership');
+        container.naturalScrollHeight += 100;
+        manager.scheduleFollow(viewport);
+        clock.advance(50);
+        assert.equal(viewport.scrollTop, viewport.scrollHeight - viewport.clientHeight);
+    }
 });
 
 test('main and split chat integrations delegate spacer ownership to the coordinator', () => {
