@@ -14,7 +14,7 @@ const TODO_SORT_OPTIONS = [
     { id: 'manual', nameKey: 'todos_sort_manual', name: 'Manual', icon: TODO_ICON_OPTIONS.list },
 ];
 
-function loadTodosModule() {
+function loadTodosModule(elements = {}) {
     const commonDir = path.join(__dirname, '..', 'common');
     const workspaceIconsSource = fs.readFileSync(path.join(commonDir, 'workspaceIcons.js'), 'utf8');
     const todosSource = fs.readFileSync(path.join(__dirname, 'todos.js'), 'utf8');
@@ -24,7 +24,7 @@ function loadTodosModule() {
         document: {
             readyState: 'loading',
             addEventListener() {},
-            getElementById() { return null; },
+            getElementById(id) { return elements[id] || null; },
         },
         Icons: {
             ...TODO_ICON_OPTIONS,
@@ -372,12 +372,45 @@ test('todo header renders filtering as a compact menu beside sorting', () => {
         icon: 'checklist',
     });
 
-    assert.match(headerHtml, /id="todosFilterSelector"/);
     assert.match(headerHtml, /id="todosFilterTrigger"[^>]*aria-haspopup="menu"/);
-    assert.match(headerHtml, /class="todos-header-option todos-filter-option selected" data-view="all"/);
-    assert.match(headerHtml, /id="todosSortSelector"/);
+    assert.match(headerHtml, /aria-label="Filter tasks: All"/);
+    assert.match(headerHtml, /id="todosSortTrigger"[^>]*aria-haspopup="menu"/);
     assert.doesNotMatch(headerHtml, /id="todosViewToolbar"/);
     assert.doesNotMatch(headerHtml, /id="todosBulkToolbar"/);
+});
+
+test('todo header uses shared menus for filter and sort selections and closes on rerender', async () => {
+    const elements = Object.fromEntries(['todosFilterTrigger', 'todosSortTrigger'].map(id => [id, {
+        listeners: {},
+        textContent: id,
+        addEventListener(type, handler) { this.listeners[type] = handler; },
+        getAttribute() { return null; },
+    }]));
+    const windowContext = loadTodosModule(elements);
+    const { TodosManager, TodosState } = windowContext;
+    const selections = [];
+    const menus = [];
+    TodosManager.setActiveView = value => selections.push(['filter', value]);
+    TodosManager.setSortOrder = value => selections.push(['sort', value]);
+    windowContext.openDropdownMenu = options => {
+        const menu = { options, closed: false, close() { this.closed = true; } };
+        menus.push(menu);
+        return menu;
+    };
+    TodosManager.setupSortListeners();
+    const event = { type: 'click', preventDefault() {}, stopPropagation() {} };
+    elements.todosFilterTrigger.listeners.click(event);
+    assert.equal(menus[0].options.trigger, elements.todosFilterTrigger);
+    assert.equal(menus[0].options.items.find(item => item.checked).value, TodosState.activeView);
+    await menus[0].options.onSelect({ value: 'today' });
+    elements.todosSortTrigger.listeners.keydown({ ...event, type: 'keydown', key: 'ArrowDown' });
+    assert.equal(menus[0].closed, true);
+    assert.equal(menus[1].options.trigger, elements.todosSortTrigger);
+    assert.equal(menus[1].options.items.find(item => item.checked).value, TodosState.sortBy);
+    await menus[1].options.onSelect({ value: 'manual' });
+    assert.deepEqual(selections, [['filter', 'today'], ['sort', 'manual']]);
+    TodosManager.setupSortListeners();
+    assert.equal(menus[1].closed, true);
 });
 
 test('empty filtered todo lists explain that the filter has no matches', () => {
