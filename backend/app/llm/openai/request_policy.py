@@ -20,11 +20,13 @@ class OpenAIRequestPolicyError(ValueError):
 
 
 def normalize_required_reasoning_effort(effort, caps):
-    """Repair stale settings without changing optional-reasoning models."""
-    if not caps or not caps.get("requires_reasoning"):
+    """Repair stale effort settings for models with explicit wire constraints."""
+    if not caps or not (
+        caps.get("requires_reasoning") or caps.get("sampling_requires_no_reasoning")
+    ):
         return effort
     thinking = caps["thinking"]
-    if effort in {"none", "minimal"}:
+    if effort == "minimal" or (effort == "none" and caps.get("requires_reasoning")):
         return "low"
     if effort not in thinking["thinking_effort"]:
         return thinking["default_thinking_effort"]
@@ -43,20 +45,49 @@ def apply_openai_request_policy(request, *, provider_type):
             if body.get("service_tier") == "priority":
                 body["service_tier"] = "fast"
     caps = get_responses_model_capabilities(request.get("model"), provider_type)
-    if not caps or not caps.get("requires_reasoning"):
+    if not caps or not (
+        caps.get("requires_reasoning") or caps.get("sampling_requires_no_reasoning")
+    ):
         return
     chat_completions = is_openai_chat_completions_provider_type(provider_type)
+    # Normalize before checking constraints; extra_body wins when the SDK
+    # merges duplicate keys, so its reasoning controls the effective request.
     for body in bodies:
-        for key in ("temperature", "top_p", "top_logprobs", "logprobs"):
-            body.pop(key, None)
-        if isinstance(body.get("include"), list):
-            body["include"] = [
-                item
-                for item in body["include"]
-                if item != "message.output_text.logprobs"
-            ]
+        if chat_completions:
+            if body is request or "reasoning_effort" in body:
+                body["reasoning_effort"] = normalize_required_reasoning_effort(
+                    body.get("reasoning_effort"), caps
+                )
+        elif body is request or "reasoning" in body:
+            reasoning = dict(body.get("reasoning") or {})
+            reasoning["effort"] = normalize_required_reasoning_effort(
+                reasoning.get("effort"), caps
+            )
+            body["reasoning"] = reasoning
+    effective = {**request, **bodies[-1]}
+    effort = (
+        effective.get("reasoning_effort")
+        if chat_completions
+        else effective["reasoning"]["effort"]
+    )
+    for body in bodies:
+        if effort != "none":
+            for key in ("temperature", "top_p", "top_logprobs", "logprobs"):
+                body.pop(key, None)
+            if isinstance(body.get("include"), list):
+                body["include"] = [
+                    item
+                    for item in body["include"]
+                    if item != "message.output_text.logprobs"
+                ]
         body.pop("prompt_cache_retention", None)
-        if chat_completions and caps.get("tools_require_responses"):
+        if chat_completions and (
+            caps.get("tools_require_responses")
+            or (
+                caps.get("chat_completions_tools_require_no_reasoning")
+                and effort != "none"
+            )
+        ):
             tool_history = any(
                 isinstance(item, dict)
                 and (
@@ -76,18 +107,3 @@ def apply_openai_request_policy(request, *, provider_type):
                 "parallel_tool_calls",
             ):
                 body.pop(key, None)
-    if chat_completions:
-        for body in bodies:
-            if body is request or "reasoning_effort" in body:
-                body["reasoning_effort"] = normalize_required_reasoning_effort(
-                    body.get("reasoning_effort"), caps
-                )
-    else:
-        # extra_body replaces top-level keys in the SDK; normalize both copies.
-        for body in bodies:
-            if body is request or "reasoning" in body:
-                reasoning = dict(body.get("reasoning") or {})
-                reasoning["effort"] = normalize_required_reasoning_effort(
-                    reasoning.get("effort"), caps
-                )
-                body["reasoning"] = reasoning

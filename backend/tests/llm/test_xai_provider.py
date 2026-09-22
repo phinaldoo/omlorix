@@ -5,6 +5,7 @@ import base64
 from types import SimpleNamespace
 
 import pytest
+from app.llm import speech
 from app.admin.settings.schema_categories.audio_generation import AudioGenerationSettings
 from app.admin.settings.schema_categories.video_generation import VideoGenerationSettings
 from app.llm.openai import utils as openai_utils
@@ -999,7 +1000,8 @@ def test_xai_native_tts_settings_survive_persisted_admin_validation():
     assert settings.text_normalization is True
 
 
-def test_xai_batch_transcription_places_fields_before_the_file(monkeypatch):
+@pytest.mark.parametrize("model", transcription.XAI_TRANSCRIPTION_MODELS)
+def test_xai_batch_transcription_places_fields_before_the_file(monkeypatch, model):
     """xAI's multipart parser requires options before the uploaded file part."""
     captured = {}
 
@@ -1016,18 +1018,22 @@ def test_xai_batch_transcription_places_fields_before_the_file(monkeypatch):
 
     monkeypatch.setattr(transcription.httpx, "AsyncClient", FakeAsyncClient)
 
+    provider = _provider()
+    provider.provider = "xai"
     text = asyncio.run(
-        transcription.transcribe_audio_bytes(
-            _provider(),
-            b"audio-bytes",
-            "sample.mp3",
+        speech.transcribe_audio_bytes_for_provider(
+            provider, model_name=model,
+            audio_bytes=b"audio-bytes", filename="sample.mp3",
         )
     )
 
     assert text == "hello world"
     assert captured["url"] == f"{XAI_DEFAULT_BASE_URL}/stt"
-    assert [part[0] for part in captured["files"]] == ["format", "file"]
-    assert captured["files"][0][1] == (None, "false")
+    fields = captured["files"]
+    if model != "grok-transcribe":
+        assert fields.pop(0) == ("model", (None, model))
+    assert [part[0] for part in fields] == ["format", "file"]
+    assert fields[0][1] == (None, "false")
     assert "Content-Type" not in captured["headers"]
     assert captured["client_kwargs"]["trust_env"] is False
     assert captured["closed"] is True

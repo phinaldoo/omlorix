@@ -17,6 +17,8 @@ An empty **Realtime tools** selection disables tool use for realtime sessions. F
 
 Select an OpenAI provider and `gpt-live-1`. Choose a Live voice and a **Reasoning model** for managed Responses delegation. Voice instructions are kept separate from the Agent, Skill, memory, and tool instructions sent to that backend model. The same tool allow-list and user authorization checks apply. Existing Realtime models remain available with their own controls.
 
+GPT-6 Sol and Luna are available as reasoning backends alongside GPT-6 Astra and the GPT-5.6 models. The default remains `gpt-5.6-terra`. Backend availability depends on your OpenAI project.
+
 GPT-Live uses `/v1/live/sessions`, not the Realtime API. Omlorix exchanges the browser's completed ICE offer on the server and attaches an authenticated sideband connection for lifecycle enforcement and usage. API credentials remain on the server. Calls become ready on `session.started`; closing drains tool results and final events with a bounded timeout.
 
 Captions are continuous and may overlap. Omlorix saves timed caption windows rather than treating delegated `response.completed` events as spoken-turn boundaries. The newest 32 text messages, further limited to 6000 UTF-8 bytes, provide startup history. Typed input and attached images go to the delegated backend, not directly to the voice model. Audio is not stored by Omlorix; provider-side session storage is disabled.

@@ -7,7 +7,10 @@ LIVE_VOICES = (
     "marin", "quartz", "ripple", "vesper", "willow", "stone", "gleam",
     "meridian", "bossa", "tempo", "beacon", "delta", "cinder",
 )
-LIVE_BACKEND_MODELS = ("gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.6-sol", "gpt-6-astra")
+LIVE_BACKEND_MODELS = (
+    "gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.6-sol", "gpt-6-astra",
+    "gpt-6-sol", "gpt-6-luna",
+)
 LIVE_PROTOCOL = "openai-live-webrtc-v1"
 
 

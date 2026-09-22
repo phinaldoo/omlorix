@@ -508,5 +508,6 @@ async def transcribe_audio_bytes_for_provider(
             provider,
             audio_bytes,
             filename,
+            model=model_name,
         )
     raise RuntimeError(f"Unsupported transcription provider type: {provider_type}")

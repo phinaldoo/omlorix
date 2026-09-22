@@ -159,10 +159,12 @@ def test_xai_streaming_stt_waits_for_ready_without_sending_openai_setup():
     assert upstream.sent == []
 
 
-def test_xai_streaming_stt_url_uses_native_dictation_settings():
+@pytest.mark.parametrize("model", transcription.XAI_TRANSCRIPTION_MODELS)
+def test_xai_streaming_stt_url_uses_native_dictation_settings(model):
     """xAI settings are encoded as supported query parameters, including keyterms."""
     url = transcription._build_xai_stt_websocket_url(
-        "https://api.x.ai/v1",
+        "https://api.x.ai/v1?model=stale-model",
+        model=model,
         settings={
             "live_transcription_xai_language": "de",
             "live_transcription_xai_endpointing_ms": 750,
@@ -175,7 +177,9 @@ def test_xai_streaming_stt_url_uses_native_dictation_settings():
     )
     assert url == (
         "wss://api.x.ai/v1/stt?sample_rate=24000&encoding=pcm"
-        "&interim_results=true&endpointing=750&language=de&keyterm=Omlorix"
+        "&interim_results=true"
+        + (f"&model={model}" if model != "grok-transcribe" else "")
+        + "&endpointing=750&language=de&keyterm=Omlorix"
         "&keyterm=Grok&filler_words=true&smart_turn=0.7"
         "&smart_turn_timeout=3000&vad_threshold=0.12"
     )

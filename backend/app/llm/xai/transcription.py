@@ -16,7 +16,11 @@ from app.llm.xai.common import (
 )
 
 
-XAI_TRANSCRIPTION_MODELS = ["grok-transcribe"]
+XAI_TRANSCRIPTION_MODELS = [
+    "grok-voice-transcribe-2.0",
+    "grok-voice-transcribe-1.0",
+    "grok-transcribe",  # Legacy selection: retain the upstream default.
+]
 XAI_TRANSCRIPTION_FILE_UPLOAD_LIMIT_BYTES = 500 * 1024 * 1024
 XAI_TRANSCRIPTION_SUPPORTED_FILE_FORMATS = [
     "aac",
@@ -40,6 +44,7 @@ async def _post_transcription(
     audio_bytes: bytes,
     filename: str,
     mime_type: str,
+    model: str,
 ) -> httpx.Response:
     """Send an xAI multipart request with a non-blocking HTTP transport."""
 
@@ -55,6 +60,7 @@ async def _post_transcription(
             f"{xai_base_url(provider)}/stt",
             headers=xai_headers(provider, include_content_type=False),
             files=[
+                *([("model", (None, model))] if model != "grok-transcribe" else []),
                 # Formatting requires an explicit language. Omlorix currently
                 # auto-detects batch transcription language, so retain xAI's
                 # unformatted default while preserving multipart field order.
@@ -70,6 +76,8 @@ async def transcribe_audio_bytes(
     provider: LLMProvider,
     audio_bytes: bytes,
     filename: str = "audio.mp3",
+    *,
+    model: str = "grok-transcribe",
 ) -> str:
     """Transcribe one uploaded audio file with xAI's native STT endpoint."""
     if not audio_bytes:
@@ -82,6 +90,7 @@ async def transcribe_audio_bytes(
         audio_bytes=audio_bytes,
         filename=filename,
         mime_type=mime_type,
+        model=model,
     )
     require_xai_success(response, "transcription")
     payload = response.json()
