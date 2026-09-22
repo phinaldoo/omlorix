@@ -119,6 +119,7 @@ const ChatScrollManager = (() => {
     function interrupt(viewport) {
         const state = bind(viewport);
         if (!state) return;
+        window.ChatScrollCoordinator?.cancel?.(viewport, { preserveSpacer: true });
         state.inputRevision += 1;
         state.userInterrupted = true;
         state.autoFollow = false;
@@ -165,6 +166,7 @@ const ChatScrollManager = (() => {
             inputRevision: 0,
             autoFollow: initiallyNearBottom,
             userInterrupted: !initiallyNearBottom,
+            alignmentActive: false,
             restoreFrame: 0,
             followFrame: 0,
             smoothScrollActive: false,
@@ -198,7 +200,7 @@ const ChatScrollManager = (() => {
             }
         }, { capture: true, passive: true });
         viewport.addEventListener('scroll', () => {
-            if (state.programmaticScroll) {
+            if (state.programmaticScroll || state.alignmentActive) {
                 return;
             }
             // Once the user deliberately reaches the bottom, future streaming
@@ -250,11 +252,32 @@ const ChatScrollManager = (() => {
         state.programmaticScroll = true;
     }
 
+    /** Give prompt alignment exclusive ownership, invalidating older stream writes. */
+    function beginAlignment(viewport) {
+        const state = bind(viewport);
+        if (!state) return;
+        interrupt(viewport);
+        state.alignmentActive = true;
+        // Detaching for alignment is not user input. Only a subsequent gesture
+        // may resume following by reaching the bottom, even after the guard ends.
+        state.userInterrupted = false;
+    }
+
+    /** Release ownership without treating the final alignment scroll as input. */
+    function endAlignment(viewport) {
+        const state = viewportStates.get(viewport);
+        if (!state?.alignmentActive) return;
+        state.alignmentActive = false;
+        beginProgrammaticScroll(state);
+        clearProgrammaticScrollAfterPaint(state);
+    }
+
     /** Start a stream with an explicit or position-derived follow policy. */
     function beginStream(target, options = {}) {
         const viewport = resolveViewport(target) || (isHtmlElement(target) ? target : null);
         const state = bind(viewport);
         if (!state) return false;
+        if (state.alignmentActive) return false;
         cancelPendingWrites(state);
         const shouldFollow = typeof options.autoFollow === 'boolean'
             ? options.autoFollow
@@ -397,7 +420,7 @@ const ChatScrollManager = (() => {
         const container = resolveContainer(target, viewport);
         const state = bind(viewport);
         if (!viewport || !container || !state) return null;
-        if (state.smoothScrollActive) return null;
+        if (state.smoothScrollActive || state.alignmentActive) return null;
         if (viewport.scrollHeight <= viewport.clientHeight + 1) return null;
         if (!state.userInterrupted && distanceFromBottom(viewport) <= PRESERVE_THRESHOLD) return null;
 
@@ -423,6 +446,7 @@ const ChatScrollManager = (() => {
         const { viewport, anchor, anchorTop, fallbackScrollTop, inputRevision } = snapshot;
         const state = viewportStates.get(viewport);
         if (!state || state.inputRevision !== inputRevision || !viewport.isConnected) return false;
+        if (state.alignmentActive) return false;
 
         let nextScrollTop = viewport.scrollTop;
         if (isHtmlElement(anchor) && anchor.isConnected) {
@@ -493,7 +517,11 @@ const ChatScrollManager = (() => {
         const viewport = resolveViewport(target) || (isHtmlElement(target) ? target : null);
         const state = bind(viewport);
         if (!state) return false;
-        cancelPendingWrites(state);
+        window.ChatScrollCoordinator?.cancel?.(viewport, {
+            container: resolveContainer(target, viewport),
+            removeSpacer: true,
+        });
+        interrupt(viewport);
         state.autoFollow = true;
         state.userInterrupted = false;
 
@@ -517,9 +545,7 @@ const ChatScrollManager = (() => {
         const viewport = resolveViewport(target) || (isHtmlElement(target) ? target : null);
         const state = bind(viewport);
         if (!state) return false;
-        cancelPendingWrites(state);
-        state.autoFollow = false;
-        state.userInterrupted = true;
+        interrupt(viewport);
         beginProgrammaticScroll(state);
 
         const behavior = options.behavior === 'smooth' && !shouldReduceMotion() ? 'smooth' : 'auto';
@@ -546,10 +572,12 @@ const ChatScrollManager = (() => {
     }
 
     return {
+        beginAlignment,
         beginStream,
         bind,
         capture,
         distanceFromBottom,
+        endAlignment,
         endStream,
         interrupt,
         isFollowing,

@@ -674,22 +674,18 @@ function splitScreenInternalScrollSplitAreaToBottom(area, { behavior = 'auto' } 
     }
     const container = area.querySelector('.chat-area-container');
 
-    // The coordinator owns the temporary prompt-alignment spacer. Remove
-    // that geometry before the shared follow manager measures the bottom.
-    const coordinatorHandled = Boolean(
+    // The coordinator removes its spacer and delegates following to the manager.
+    if (
         window.ChatScrollCoordinator
         && container
         && window.ChatScrollCoordinator.scrollToBottom(area, container, { behavior })
-    );
+    ) return;
 
-    // Re-arm automatic following after the spacer-free scroll. Calling the
-    // manager second also synchronizes its smooth-scroll and intent state.
     if (window.ChatScrollManager && typeof window.ChatScrollManager.scrollToBottom === 'function') {
         window.ChatScrollManager.scrollToBottom(area, { behavior });
         return;
     }
 
-    if (coordinatorHandled) return;
     if (behavior === 'smooth' && typeof area.scrollTo === 'function') {
         area.scrollTo({ top: area.scrollHeight, behavior: 'smooth' });
     } else {

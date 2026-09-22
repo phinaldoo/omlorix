@@ -266,6 +266,7 @@
             });
             alignment.cleanupCallbacks.length = 0;
             alignment.viewport.classList?.remove('chat-scroll-aligning');
+            runtime.ChatScrollManager?.endAlignment?.(alignment.viewport);
         }
 
         function finishAlignment(state, alignment) {
@@ -453,6 +454,9 @@
                 return false;
             }
 
+            // Stop streaming follow, stale anchor restoration, and any native
+            // smooth scroll before this transaction starts writing positions.
+            runtime.ChatScrollManager?.beginAlignment?.(viewport);
             state.sequence += 1;
             const alignment = {
                 cleanupCallbacks: [],
@@ -637,6 +641,9 @@
                 container: container || state.container,
                 removeSpacer: true,
             });
+            if (runtime.ChatScrollManager?.scrollToBottom?.(viewport, { behavior })) {
+                return true;
+            }
             const requestedBehavior = behavior === 'smooth' && !shouldReduceMotion()
                 ? 'smooth'
                 : 'instant';
