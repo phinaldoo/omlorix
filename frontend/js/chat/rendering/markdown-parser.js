@@ -876,59 +876,12 @@ function getMarkdownRenderer() {
         // Replace placeholders with original LaTeX content
         // Iterate in reverse order to handle nested placeholders (e.g. environment inside $$)
         Array.from(blocks.entries()).reverse().forEach(([placeholder, latex]) => {
-            while (result.includes(placeholder)) {
-                result = result.replace(placeholder, latex);
-            }
+            // Keep formulas as text until the post-sanitization KaTeX pass.
+            // A replacement callback also preserves literal dollar sequences.
+            result = result.replaceAll(placeholder, () => escapeHtml(latex));
         });
         
         return result;
-    }
-
-    function processNestedMarkdown(html, env, depth) {
-        if (typeof DOMParser === 'undefined') {
-            return html;
-        }
-        const currentDepth = depth || 0;
-        if (!html) {
-            return html;
-        }
-        let processedHtml = html;
-        try {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(processedHtml, 'text/html');
-            const cells = doc.querySelectorAll('td, th');
-
-            cells.forEach(cell => {
-                const textContent = cell.textContent;
-                if (!textContent) {
-                    return;
-                }
-                if (!/[`*_\[\]~^#$\\]/.test(textContent)) {
-                    return;
-                }
-
-                try {
-                    tableNestLevel = 0;
-                    const normalizedSegment = convertImplicitMathInText(textContent);
-                    const nestedHtml = baseRender(normalizedSegment.text, env || {});
-                    const nestedProcessed = currentDepth >= 3
-                        ? nestedHtml
-                        : processNestedMarkdown(nestedHtml, env, currentDepth + 1);
-                    const cleaned = nestedProcessed.replace(/^<p>|<\/p>\s*$/g, '');
-                    cell.innerHTML = cleaned;
-                    wrapImplicitMathSegments(cell);
-                    renderMathWithRetry(cell, 0);
-                } catch (nestedError) {
-                    // Ignore nested rendering errors to keep original content
-                }
-            });
-
-            processedHtml = doc.body.innerHTML;
-        } catch (error) {
-            // Fallback to original html on parser failure
-        }
-
-        return processedHtml;
     }
 
     md.render = function (src, env) {
@@ -948,10 +901,9 @@ function getMarkdownRenderer() {
 
         const html = baseRender(markdownSource, env);
 
-        // Restore LaTeX blocks after markdown processing
-        const restoredHtml = restoreLatexBlocks(html, blocks);
-
-        return processNestedMarkdown(restoredHtml, env, 0);
+        // markdown-it already parses table cells. Parsing their textContent again
+        // loses markup/code boundaries and consumes restored LaTeX delimiters.
+        return restoreLatexBlocks(html, blocks);
     };
 
     markdownRendererInstance = md;
