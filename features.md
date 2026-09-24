@@ -219,7 +219,7 @@ Sections and feature names are sorted alphabetically.
 | Feature | Description |
 | --- | --- |
 | API diagnostics | Expose readiness/health, version, client-IP, and proxy-verification endpoints for operators and load balancers. |
-| Automated database migrations | Run main and audit schema migrations before application startup and through the dedicated Compose migration service. |
+| Automated database migrations | Run main and audit schema migrations before application startup, through the dedicated Compose migration service, or as a Helm pre-upgrade job. |
 | Bundled or external data services | Use bundled PostgreSQL, Redis, PgBouncer, and MinIO or connect operator-managed equivalents. |
 | Containerized services | Deploy the web frontend, application API, migrations, email worker, durable workload workers, realtime gateway, automation scheduler, data services, and optional infrastructure through Compose. |
 | Content Security Policy | Apply hardened production CSP, share-page CSP, safe frame policies, and restricted YouTube/canvas exceptions. |
@@ -229,11 +229,12 @@ Sections and feature names are sorted alphabetically.
 | Distributed workers and realtime gateway | Isolate email delivery, operations, LLM generation, Deep Research and long agents, file processing, rendering, generated media, dictation, read-aloud TTS, meeting transcription, connector ingestion, audit events, account lifecycle, and maintenance behind durable queues and dedicated workers with workload-specific retry or at-most-once policies, cancellation, crash reconciliation, retention, health checks, and telemetry. Route realtime HTTP and WebSocket traffic through its own strictly scoped gateway, and use Redis, when configured, for live cross-process streams. |
 | Egress and SSRF controls | Configure offline/allowlist/private/deny modes and apply redirect, DNS, private-address, TLS, and robots protections to outbound requests. |
 | Health-aware startup | Validate required environment values and external services, wait for readiness, and surface database downgrade or compatibility failures. |
+| Helm and Kubernetes | Deploy separate frontend, API, scheduler, and worker workloads with services, ingress/TLS, secrets/config maps, PVCs, HPA, and hardened pod contexts. |
 | Maintenance write freeze | Temporarily reject mutating API requests during restore or other coordinated maintenance while preserving safe reads. |
 | Managed-cloud Compose | Run application services against externally managed database, Redis, and file storage without bundled stateful containers. |
 | Network isolation | Keep internal services on scoped Docker networks, bind sensitive operator endpoints to loopback by default, and validate trusted proxies. |
 | PgBouncer pooling | Enable transaction or session pooling only with bundled PostgreSQL, route long-running application services through the pool, and keep migrations on the direct database endpoint. |
-| Proxy-terminated HTTPS | Keep the Docker frontend on private HTTP and terminate public TLS in the Launcher/CLI proxy or another trusted edge. |
+| Proxy-terminated HTTPS | Keep the Docker frontend on private HTTP and terminate public TLS in the Launcher/CLI proxy, Kubernetes ingress, or another trusted edge. |
 | Request rate limiting | Enforce Redis-backed request controls plus model, tool, dictation-minute, realtime-minute, and webhook limits. |
 | Secret, credential, and metadata protection | Encrypt sensitive database JSON, mask settings and logs, minimize session/model/agent payloads, keep private instructions and provider configuration out of user-facing APIs, and validate secret/key material. |
 | Storage backends | Store user files locally or in S3-compatible/MinIO, Google Cloud Storage, Azure Blob Storage, or WebDAV. |

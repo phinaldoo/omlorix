@@ -1,0 +1,30 @@
+api:
+  replicas: 3
+
+worker:
+  enabled: true
+  replicas: 2
+
+scheduler:
+  enabled: true
+  replicas: 1
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+  hosts:
+    - host: omlorix.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+
+env:
+  DB_MIGRATIONS_MODE: "off"
+  FILE_STORAGE_PROVIDER: s3
+  REDIS_ENABLED: "true"
+
+migrationJob:
+  enabled: true

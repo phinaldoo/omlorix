@@ -25,6 +25,7 @@ class VersionFile:
 
 APP_VERSION_FILES = (
     VersionFile("backend/app/version.py", "backend runtime version"),
+    VersionFile("deploy/helm/omlorix/Chart.yaml", "helm appVersion"),
     VersionFile(".env.example", "release image version"),
 )
 
@@ -221,6 +222,28 @@ def write_version_py(path: Path, version: str) -> None:
     path.write_text(updated, encoding="utf-8")
 
 
+def read_chart_version(path: Path) -> str:
+    content = path.read_text(encoding="utf-8")
+    match = re.search(r'^appVersion:\s*"([^"]+)"$', content, re.MULTILINE)
+    if not match:
+        raise ValueError(f"{path} is missing appVersion.")
+    return match.group(1)
+
+
+def write_chart_version(path: Path, version: str) -> None:
+    content = path.read_text(encoding="utf-8")
+    updated, count = re.subn(
+        r'^appVersion:\s*"[^"]+"$',
+        f'appVersion: "{version}"',
+        content,
+        count=1,
+        flags=re.MULTILINE,
+    )
+    if count != 1:
+        raise ValueError(f"Failed to update appVersion in {path}.")
+    path.write_text(updated, encoding="utf-8")
+
+
 def read_env_example_version(path: Path) -> str:
     content = path.read_text(encoding="utf-8")
     match = re.search(r'^OMLORIX_VERSION="?([^"\n]+)"?$', content, re.MULTILINE)
@@ -247,6 +270,7 @@ READERS = {
     "package.json": read_package_version,
     "package-lock.json": read_package_lock_version,
     "backend/app/version.py": read_version_py,
+    "deploy/helm/omlorix/Chart.yaml": read_chart_version,
     ".env.example": read_env_example_version,
 }
 
@@ -254,6 +278,7 @@ WRITERS = {
     "package.json": write_package_version,
     "package-lock.json": write_package_lock_version,
     "backend/app/version.py": write_version_py,
+    "deploy/helm/omlorix/Chart.yaml": write_chart_version,
     ".env.example": write_env_example_version,
 }
 

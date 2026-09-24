@@ -1,0 +1,70 @@
+image:
+  repository: ghcr.io/phinaldoo/omlorix-backend
+  tag: stable
+
+frontendImage:
+  repository: ghcr.io/phinaldoo/omlorix-frontend
+  tag: stable
+
+validation:
+  enabled: true
+
+frontend:
+  enabled: true
+  replicas: 2
+
+api:
+  replicas: 3
+
+worker:
+  enabled: true
+  replicas: 2
+
+scheduler:
+  enabled: true
+  replicas: 1
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "512m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/hsts: "true"
+    nginx.ingress.kubernetes.io/hsts-include-subdomains: "true"
+    nginx.ingress.kubernetes.io/hsts-max-age: "31536000"
+  hosts:
+    - host: omlorix.example.com
+  tls:
+    - secretName: omlorix-tls
+      hosts:
+        - omlorix.example.com
+
+env:
+  MODE: production
+  PUBLIC_URL: https://omlorix.example.com
+  CORS_ALLOW_ORIGINS: https://omlorix.example.com
+  REDIS_ENABLED: "true"
+  REDIS_URL: redis://redis.example.internal:6379/0
+  FILE_STORAGE_PROVIDER: s3
+  FILE_STORAGE_S3_BUCKET: omlorix-user-files
+  FILE_STORAGE_S3_REGION: us-east-1
+  DATABASE_HOST: postgres.example.internal
+  DATABASE_PORT: "5432"
+  DATABASE_NAME: omlorix
+  DATABASE_SCHEMA: app
+  DATABASE_AUDIT_LOG_SCHEMA: audit
+  DATABASE_LOGS_SCHEMA: logs
+
+existingSecretName: omlorix-production-env
+
+migrationJob:
+  enabled: true
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
