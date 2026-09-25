@@ -545,6 +545,9 @@ def _generate_via_google_aistudio(
 
     provider_settings = provider.settings if isinstance(provider.settings, dict) else {}
     api_version = provider_settings.get("api_version")
+    vertexai = _coerce_optional_bool(provider_settings.get("vertexai"), default=False)
+    project = provider_settings.get("project")
+    location = provider_settings.get("location")
 
     if use_image_edit:
         return edit_image_google_aistudio(
@@ -554,6 +557,9 @@ def _generate_via_google_aistudio(
             reference_images=reference_images or [],
             settings=settings,
             api_version=api_version,
+            vertexai=vertexai,
+            project=project,
+            location=location,
         )
 
     return generate_image_google_aistudio(
@@ -562,6 +568,9 @@ def _generate_via_google_aistudio(
         prompt=prompt,
         settings=settings,
         api_version=api_version,
+        vertexai=vertexai,
+        project=project,
+        location=location,
     )
 
 

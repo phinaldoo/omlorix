@@ -84,6 +84,11 @@
         'settings.enable_notify_model_changes',
     ]);
     const BYOK_PROVIDER_SPECIFIC_EXCLUDED_FIELDS = {
+        google_aistudio: new Set([
+            'settings.vertexai',
+            'settings.project',
+            'settings.location',
+        ]),
         openrouter: new Set([
             'settings.ranking_url',
             'settings.ranking_title',

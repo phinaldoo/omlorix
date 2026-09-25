@@ -45,6 +45,13 @@ BYOK_ADMIN_ONLY_PROVIDER_FIELD_KEYS = frozenset(
 # A small number of provider settings are administrative only even though their
 # keys are not shared across every provider.
 BYOK_PROVIDER_SPECIFIC_ADMIN_FIELD_KEYS: dict[str, frozenset[str]] = {
+    "google_aistudio": frozenset(
+        {
+            "settings.vertexai",
+            "settings.project",
+            "settings.location",
+        }
+    ),
     "openrouter": frozenset(
         {
             "settings.ranking_url",

@@ -493,6 +493,9 @@ async def transcribe_audio_bytes_for_provider(
             api_key=provider.api_key,
             model=model_name,
             api_version=provider_settings.get("api_version", "v1"),
+            vertexai=provider_settings.get("vertexai", False),
+            project=provider_settings.get("project"),
+            location=provider_settings.get("location"),
         )
     if provider_type == ProviderEnum.elevenlabs.value:
         enable_logging = _coerce_bool(provider_settings.get("enable_logging"), True)
