@@ -848,6 +848,8 @@ def hard_delete_user(
     from app.mcp.models import MCPOAuthState, MCPServer
     from app.memories.models import Memory
     from app.notes.models import NoteHistory, Notes, SharedNoteSubscription
+    from app.plugins.models import AgentPlugin, AgentPluginComponent
+    from app.plugins.utils import _plugin_storage
     from app.projects.models import (
         Project,
         ProjectMember,
@@ -974,6 +976,29 @@ def hard_delete_user(
             .filter(PendingAuthAction.user_id == user_id)
             .delete(synchronize_session=False)
         )
+
+        # Remove aggregate plugin metadata before its ordinary skill/MCP rows.
+        # Components are deleted by the existing account cleanup below, while
+        # source archives are queued for post-commit filesystem cleanup.
+        user_plugin_ids = [
+            plugin_id
+            for (plugin_id,) in db.query(AgentPlugin.id)
+            .filter(AgentPlugin.owner_user_id == user_id)
+            .all()
+        ]
+        if user_plugin_ids:
+            db.query(AgentPluginComponent).filter(
+                AgentPluginComponent.plugin_id.in_(user_plugin_ids)
+            ).delete(synchronize_session=False)
+            db.query(AgentPlugin).filter(AgentPlugin.id.in_(user_plugin_ids)).delete(
+                synchronize_session=False
+            )
+            for plugin_id in user_plugin_ids:
+                post_commit_cleanup_actions.append(
+                    lambda plugin_id=plugin_id: shutil.rmtree(
+                        _plugin_storage(plugin_id), ignore_errors=True
+                    )
+                )
 
         # Delete user-owned skills and both inbound/outbound subscriptions.
         user_skill_ids = [

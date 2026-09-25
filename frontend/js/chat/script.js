@@ -1152,6 +1152,11 @@ function handleAppRoute(pathname) {
                 showWorkspaceContainer({ tab: 'skills' });
             }
             return true;
+        case '/workspace/plugins':
+            if (typeof showWorkspaceContainer === 'function') {
+                showWorkspaceContainer({ tab: 'plugins' });
+            }
+            return true;
         case '/workspace/agents':
             if (typeof showWorkspaceContainer === 'function') {
                 showWorkspaceContainer({ tab: 'agents' });
