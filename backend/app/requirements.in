@@ -79,4 +79,4 @@ opentelemetry-instrumentation-aiohttp-client==0.63b1
 opentelemetry-instrumentation-requests==0.63b1
 opentelemetry-instrumentation-logging==0.63b1
 opentelemetry-instrumentation-psycopg2==0.63b1
-opentelemetry-propagator-b3==1.44.0
+opentelemetry-propagator-b3==1.45.0
