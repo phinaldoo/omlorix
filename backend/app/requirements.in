@@ -60,7 +60,7 @@ resvg_py==0.5.0
 reportlab==5.0.1
 uharfbuzz==0.56.2  # Apache-2.0; complex-script shaping for ReportLab PDF exports.
 python-docx==1.2.0
-markitdown==0.1.7
+markitdown==0.1.8
 markdown==3.11
 openpyxl==3.1.5
 python-pptx==1.0.2
