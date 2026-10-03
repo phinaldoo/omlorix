@@ -23,6 +23,8 @@ from app.utils.schemas import FieldSchema, Option, Section, Sections
 XAI_IMAGE_MODELS = [
     "grok-imagine-image-2.0",
     "grok-imagine-image",
+    # Still callable until 2026-11-02; migrate to grok-imagine-image-2.0.
+    # https://docs.x.ai/developers/migration/imagine-image-quality-nov-2
     "grok-imagine-image-quality",
 ]
 XAI_IMAGE_RESOLUTIONS = ["1k", "2k"]

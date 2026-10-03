@@ -35,6 +35,7 @@ from app.llm.openai.utils import (
 
 
 @pytest.mark.parametrize("protocol", ["openai", "openai_chat_completions"])
+@pytest.mark.parametrize("model", ["gpt-6-astra", "gpt-6.1-sol"])
 @pytest.mark.parametrize(
     "effort,expected",
     [
@@ -45,9 +46,9 @@ from app.llm.openai.utils import (
         ("max", "max"),
     ],
 )
-def test_astra_requests_repair_stale_settings(protocol, effort, expected):
+def test_astra_requests_repair_stale_settings(protocol, model, effort, expected):
     request = {
-        "model": "gpt-6-astra",
+        "model": model,
         "temperature": 0.7,
         "top_p": 0.8,
         "top_logprobs": 3,
@@ -63,7 +64,7 @@ def test_astra_requests_repair_stale_settings(protocol, effort, expected):
                 "reasoning_mode": "pro",
                 "reasoning_context": "all_turns",
             },
-            model_name="gpt-6-astra",
+            model_name=model,
             provider_type=protocol,
         )
     else:
@@ -92,8 +93,9 @@ def test_astra_requests_repair_stale_settings(protocol, effort, expected):
         {"extra_body": {"tools": [{"type": "function"}]}},
     ],
 )
-def test_astra_tool_calls_and_tool_history_require_responses(payload):
-    request = {"model": "gpt-6-astra", **payload}
+@pytest.mark.parametrize("model", ["gpt-6-astra", "gpt-6.1-sol"])
+def test_astra_tool_calls_and_tool_history_require_responses(payload, model):
+    request = {"model": model, **payload}
     with pytest.raises(OpenAIRequestPolicyError):
         apply_openai_request_policy(request, provider_type="openai_chat_completions")
     apply_openai_request_policy(request, provider_type="openai")
@@ -150,13 +152,14 @@ def test_astra_catalog_enables_cache_and_correct_cost_threshold():
 
 
 @pytest.mark.parametrize("protocol", ["openai", "openai_chat_completions"])
-def test_astra_schema_exposes_only_supported_reasoning_and_sampling(protocol):
+@pytest.mark.parametrize("model", ["gpt-6-astra", "gpt-6.1-sol"])
+def test_astra_schema_exposes_only_supported_reasoning_and_sampling(protocol, model):
     schema = OPENAI_THINKING_MODEL_SCHEMA.model_copy(deep=True)
     schema.sections += get_parameters_schema_filled(
-        {}, "gpt-6-astra", protocol
+        {}, model, protocol
     ).sections
     _apply_openai_model_caps_to_schema(
-        schema, OPENAI_MODEL_DICT["gpt-6-astra"], openai_provider_type=protocol
+        schema, OPENAI_MODEL_DICT[model], openai_provider_type=protocol
     )
     fields = {f.key: f for s in schema.sections for f in s.fields}
     assert not {

@@ -16,7 +16,11 @@ Model availability and capabilities vary by account, region, and provider rollou
 
 If discovery succeeds but chat fails, verify the selected model, account entitlement, balance, regional access, and enabled model features before rotating the key. Rotating a credential rarely fixes a capability or entitlement mismatch.
 
-## September 22, 2026 catalog review
+## October 3, 2026 catalog review
+
+[Claude Sonnet 5.5](https://platform.claude.com/docs/en/models/sonnet-5-5/overview) (`claude-sonnet-5-5`) is recognized for pricing, its June 2026 knowledge cutoff, and native web search. Standard estimates are $2 input, $0.20 cached input, and $10 output per million tokens. Discovery supplies its token limits and effort levels.
+
+Sonnet 5.5 defaults to adaptive thinking and rejects manual budgets. Turning off upfront thinking sends `between_tools`, which is supported through high effort. Omlorix rejects that setting at xhigh or max effort; use adaptive thinking for those levels. See [Sonnet 5.5 request changes](https://platform.claude.com/docs/en/models/sonnet-5-5/whats-new-sonnet-5-5). [Sonnet 4.5 is deprecated](https://platform.claude.com/docs/en/about-claude/model-deprecations) but remains callable until November 30, 2026.
 
 [Claude Opus 5.5](https://platform.claude.com/docs/en/models/opus-5-5/overview) (`claude-opus-5-5`) is recognized for pricing, its June 2026 knowledge cutoff, and native web search. Standard estimates are $4 input, $0.20 cached input, and $20 output per million tokens. Model discovery supplies the account's available IDs, token limits, and effort levels.
 

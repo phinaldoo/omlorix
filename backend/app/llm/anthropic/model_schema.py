@@ -231,7 +231,13 @@ def get_anthropic_model_schema(
             if capabilities.get("pdf_input"):
                 value_input_formats.append("pdf")
             value_output_formats = ["text"]
-            value_thinking = bool(thinking_enabled and not thinking_disabled_allowed)
+            value_thinking = bool(
+                thinking_enabled
+                and (
+                    not thinking_disabled_allowed
+                    or thinking.get("thinking_adaptive_default")
+                )
+            )
             if value_output_token_limit is not None:
                 model_settings["max_tokens"] = value_output_token_limit
     if (
@@ -518,7 +524,9 @@ def get_anthropic_model_schema(
                 reasoning_effort_field.options = build_reasoning_effort_options(
                     reasoning_effort_values
                 )
-            if not thinking_adaptive_supported:
+            if not thinking_adaptive_supported or thinking.get(
+                "thinking_adaptive_default"
+            ):
                 _remove_field_from_section(
                     combined_schema.sections,
                     thinking_section_title,

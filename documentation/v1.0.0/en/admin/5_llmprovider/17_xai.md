@@ -17,10 +17,12 @@ Availability varies by model, account, region, and rollout. Discovery is not pro
 
 Review xAI's current retention and data-use terms for prompts, files, audio, and generated media. Use provider billing as the cost authority. Native search and Omlorix Web Search are separate data paths and must be reviewed independently.
 
-## September 22, 2026 catalog review
+## October 3, 2026 catalog review
 
 [Grok 4.7](https://docs.x.ai/developers/models/grok-4.7) (`grok-4.7`) is recognized with a 500,000-token context window, May 2026 knowledge cutoff, and low, medium, high, and xhigh reasoning efforts (default: high). The catalog includes [standard, priority, and long-context rates](https://docs.x.ai/developers/pricing): standard input/cache/output rates are $2/$0.50/$6 per million tokens, doubling at 200,000 input tokens. The live API still determines account availability and supplies additional aliases.
 
 Existing Grok models and callable redirects remain available. Grok 4.7 Fast is not a public API model and is not added to the catalog.
+
+`grok-imagine-image-quality` remains available until its [November 2, 2026 retirement](https://docs.x.ai/developers/migration/imagine-image-quality-nov-2); use `grok-imagine-image-2.0` for new configurations. Speech, transcription, image, and video identifiers remain excluded from ordinary chat discovery.
 
 File transcription and live chat dictation offer `grok-voice-transcribe-2.0`, released September 17, and `grok-voice-transcribe-1.0`. Selecting a version pins that model in the native REST or WebSocket request. Existing `grok-transcribe` selections continue using the provider default, without sending that legacy label as an API model ID. These transcription models are excluded from chat discovery. See xAI's [release notes](https://docs.x.ai/developers/release-notes) and [speech-to-text model selection](https://docs.x.ai/developers/model-capabilities/audio/speech-to-text).

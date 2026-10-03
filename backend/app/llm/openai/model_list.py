@@ -2,14 +2,19 @@ from copy import deepcopy
 from datetime import datetime
 
 # Model IDs and lifecycle verified against OpenAI's documentation on
-# 2026-09-22. Shutdown IDs are filtered from both the catalog and discovery
+# 2026-10-03. Shutdown IDs are filtered from both the catalog and discovery
 # lists below, while deprecated models that remain callable stay represented.
-OPENAI_CATALOG_LAST_VERIFIED = "2026-09-22"
-OPENAI_MODELS_DOCS_URL = "https://developers.openai.com/api/docs/models/all"
+OPENAI_CATALOG_LAST_VERIFIED = "2026-10-03"
+OPENAI_MODELS_DOCS_URL = "https://developers.openai.com/api/docs/models"
 OPENAI_PRICING_DOCS_URL = "https://developers.openai.com/api/docs/pricing"
 OPENAI_DEPRECATIONS_DOCS_URL = "https://developers.openai.com/api/docs/deprecations"
 
 OPENAI_SHUT_DOWN_MODEL_IDS = {
+    "babbage-002",
+    "davinci-002",
+    "gpt-3.5-turbo-instruct",
+    "gpt-3.5-turbo-1106",
+    "gpt-5.4-cyber",
     "chatgpt-4o-latest",
     "codex-mini-latest",
     "gpt-4-1106-vision-preview",
@@ -39,11 +44,16 @@ OPENAI_SHUT_DOWN_MODEL_IDS = {
 # shutdown date. Store those dates separately from the already-shut-down set so
 # the catalog remains transparent without prematurely hiding usable endpoints.
 OPENAI_ANNOUNCED_SHUTDOWN_DATES = {
-    "gpt-5.4-cyber": "2026-10-01",
-    "babbage-002": "2026-09-28",
-    "davinci-002": "2026-09-28",
-    "gpt-3.5-turbo-instruct": "2026-09-28",
-    "gpt-3.5-turbo-1106": "2026-09-28",
+    "gpt-5.3-codex": "2027-04-01",
+    "gpt-5.4-nano": "2027-04-01",
+    "gpt-5.4-nano-2026-03-17": "2027-04-01",
+    "gpt-5.1": "2027-04-01",
+    "gpt-5.1-2025-11-13": "2027-04-01",
+    "tts-1": "2027-01-06",
+    "tts-1-1106": "2027-01-06",
+    "tts-1-hd": "2027-01-06",
+    "tts-1-hd-1106": "2027-01-06",
+    "gpt-4o-mini-tts-2025-12-15": "2027-01-06",
     "gpt-3.5-turbo-0125": "2026-10-23",
     "gpt-4-0613": "2026-10-23",
     "gpt-4-turbo": "2026-10-23",
@@ -2146,6 +2156,22 @@ OPENAI_MODEL_DICT = {
     ),
     **OPENAI_MODEL_DICT,
 }
+
+
+# GPT-6.1 Sol shares Astra's request constraints and limits, with its own
+# cache-read discount and token rates. Deep-copy nested controls so catalog
+# refreshes cannot change another model's settings.
+_gpt61_sol = deepcopy(OPENAI_MODEL_DICT["gpt-6-astra"])
+_gpt61_sol.update(
+    ids=["gpt-6.1-sol"],
+    name="GPT-6.1 Sol",
+    description="GPT-6.1 Sol",
+    pricing=deepcopy(OPENAI_MODEL_DICT["gpt-6-sol"]["pricing"]),
+)
+for _tier in ("standard", "flex", "priority"):
+    _gpt61_sol["pricing"][_tier]["cached_input"] /= 2
+    _gpt61_sol["pricing"]["high_context_pricing"][_tier]["cached_input"] /= 2
+OPENAI_MODEL_DICT = {"gpt-6.1-sol": _gpt61_sol, **OPENAI_MODEL_DICT}
 
 
 # Daybreak Red currently resolves to GPT-5.6 Cyber. It shares the GPT-5.6

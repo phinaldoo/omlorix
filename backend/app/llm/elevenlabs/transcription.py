@@ -29,7 +29,7 @@ ELEVENLABS_TRANSCRIPTION_SUPPORTED_FILE_FORMATS = [
 
 # Supported file-transcription models; maintain explicitly because SDK 2.66+
 # accepts a plain string and no longer exposes model IDs in its type hints.
-# Verified 2026-09-22: https://elevenlabs.io/docs/overview/models
+# Verified 2026-10-03: https://elevenlabs.io/docs/overview/models
 ELEVENLABS_TRANSCRIPTION_MODELS = ["scribe_v1", "scribe_v2", "scribe_v2_medical"]
 
 InputFile = Union[str, Path, BinaryIO]

@@ -32,8 +32,9 @@ def _apply_anthropic_simple_settings(
     if max_tokens is not None:
         request_kwargs["max_tokens"] = max_tokens
     apply_anthropic_prompt_cache(request_kwargs, settings)
-    if get_anthropic_thinking_capabilities(request_kwargs.get("model")).get(
-        "thinking_adaptive_required"
+    thinking_caps = get_anthropic_thinking_capabilities(request_kwargs.get("model"))
+    if thinking_caps.get("thinking_adaptive_required") or thinking_caps.get(
+        "thinking_adaptive_default"
     ):
         _apply_anthropic_thinking_settings(
             request_kwargs, settings, request_kwargs.get("model")
@@ -142,11 +143,20 @@ def _build_anthropic_thinking_params(
         model_name,
         allow_compatible_fallback=allow_compatible_fallback,
     )
-    if thinking_caps.get("thinking_adaptive_required"):
-        # These models reject both disabled thinking and manual budgets,
-        # including settings saved for an older model before switching IDs.
+    if thinking_caps.get("thinking_adaptive_required") or thinking_caps.get(
+        "thinking_adaptive_default"
+    ):
+        # These models reject manual budgets, including saved settings from
+        # older models. Sonnet's lowest mode is between_tools; Opus requires
+        # adaptive thinking for every request.
+        _validate_anthropic_thinking_disabled_effort(
+            thinking_setting, reasoning_effort, thinking_caps
+        )
+        thinking_type = "adaptive"
+        if thinking_setting is False and thinking_caps.get("thinking_disabled_allowed"):
+            thinking_type = thinking_caps.get("thinking_disabled_type", "disabled")
         return {
-            "type": "adaptive",
+            "type": thinking_type,
             **({"effort": reasoning_effort} if reasoning_effort is not None else {}),
         }
     _validate_anthropic_thinking_disabled_effort(

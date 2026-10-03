@@ -54,6 +54,21 @@ OPENAI_AUDIO_GENERATION_PRICING: dict[str, dict[str, Any]] = {
 }
 
 GOOGLE_AISTUDIO_AUDIO_GENERATION_PRICING: dict[str, dict[str, Any]] = {
+    # Introductory standard rates through 2026-12-31; recheck before 2027.
+    "gemini-3.8-flash-tts": {
+        "pricing_model": "per_million_tokens",
+        "input_text": 0.50,
+        "output_audio": 9.00,
+        "currency": "USD",
+        "source_url": GOOGLE_AISTUDIO_TTS_PRICING_DOCS_URL,
+    },
+    "gemini-3.8-flash-lite-tts": {
+        "pricing_model": "per_million_tokens",
+        "input_text": 0.50,
+        "output_audio": 6.00,
+        "currency": "USD",
+        "source_url": GOOGLE_AISTUDIO_TTS_PRICING_DOCS_URL,
+    },
     "gemini-3.1-flash-tts-preview": {
         "pricing_model": "per_million_tokens",
         "input_text": 1.00,

@@ -3,8 +3,8 @@ from datetime import datetime
 
 
 # Verified against Google's model, pricing, release-note, and deprecation
-# documentation on 2026-09-22.
-GOOGLE_AISTUDIO_CATALOG_LAST_VERIFIED = "2026-09-22"
+# documentation on 2026-10-03.
+GOOGLE_AISTUDIO_CATALOG_LAST_VERIFIED = "2026-10-03"
 GOOGLE_AISTUDIO_MODELS_DOCS_URL = "https://ai.google.dev/gemini-api/docs/models"
 GOOGLE_AISTUDIO_PRICING_DOCS_URL = "https://ai.google.dev/gemini-api/docs/pricing"
 
@@ -594,8 +594,11 @@ AISTUDIO_MODELS_NOT_SUPPORTED = [
     "gemini-2.5-flash-preview-tts",
     "gemini-2.5-pro-preview-tts",
     "gemini-3.1-flash-tts-preview",
+    "gemini-3.8-flash-tts",
+    "gemini-3.8-flash-lite-tts",
     "gemini-3.5-transcribe",
     "gemini-3.5-transcribe-live",
+    "gemini-embedding-2-preview",
     "gemini-omni-1.1-flash",
     "gemini-robotics-er-2-preview",
     "gemini-robotics-er-2-streaming-preview",
@@ -754,6 +757,8 @@ GOOGLE_LIVE_MODELS = [
 
 
 IMAGE_GEN_MODELS = [
+    # Google publishes an earliest possible shutdown date for this model and
+    # still lists it in the overview; retain legacy account availability.
     {
         "name": "Gemini 2.5 Flash Image (Nano Banana)",
         "ids": ["gemini-2.5-flash-image"],
@@ -792,3 +797,17 @@ GOOGLE_EMBEDDING_MODELS = [
     "gemini-embedding-001",
     "gemini-embedding-2",
 ]
+
+# Specialized models must not enter the chat picker even when the provider
+# advertises generateContent for them.
+AISTUDIO_MODELS_NOT_SUPPORTED = sorted(
+    set(AISTUDIO_MODELS_NOT_SUPPORTED)
+    | set(GOOGLE_LIVE_MODELS)
+    | set(GOOGLE_EMBEDDING_MODELS)
+    | {"gemini-3.5-live-translate-preview", "lyria-realtime-exp"}
+    | {
+        model_id
+        for model in GOOGLE_AISTUDIO_VIDEO_GENERATION_MODELS
+        for model_id in model["ids"]
+    }
+)

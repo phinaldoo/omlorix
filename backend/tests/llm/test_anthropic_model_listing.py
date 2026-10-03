@@ -260,3 +260,31 @@ def test_native_websearch_is_gated_by_documented_model_support() -> None:
     }
     assert "settings.native_websearch" in supported_keys
     assert "settings.native_websearch" not in unknown_keys
+
+
+def test_sonnet_55_schema_defaults_to_adaptive_thinking():
+    schema = anthropic_schemas.get_anthropic_model_schema(
+        _EmptyDB(),
+        None,
+        "claude-sonnet-5-5",
+        model_info={
+            "id": "claude-sonnet-5-5",
+            "display_name": "Claude Sonnet 5.5",
+            "max_input_tokens": 1_000_000,
+            "max_tokens": 128_000,
+            "reasoning": {
+                "supported": True,
+                "reasoning_efforts_supported": True,
+                "adaptive": True,
+                "enabled": False,
+                "efforts": ["low", "medium", "high", "xhigh", "max"],
+            },
+        },
+    )
+    fields = {
+        field.key: field for section in schema.sections for field in section.fields
+    }
+    assert fields["settings.thinking"].value is True
+    assert fields["settings.knowledge_cutoff"].value == "2026-06-01"
+    assert "settings.thinking_budget" not in fields
+    assert "settings.thinking_adaptive" not in fields
