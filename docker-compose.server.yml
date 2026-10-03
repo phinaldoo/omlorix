@@ -107,7 +107,7 @@ services:
 
   redis:
     labels: *omlorix-labels
-    image: redis:8.4.6-alpine3.22@sha256:12da49daa000c2be4d55118574f889c8cc298140ecf343d04f345c818f227823
+    image: redis:8.4.7-alpine3.22@sha256:0514fa59e3d84e2f3be66731c5401fc2a85b8ea71b49c0116c850f6a558076f4
     profiles: ["bundled-redis"]
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
