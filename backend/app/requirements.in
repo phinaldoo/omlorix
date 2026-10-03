@@ -1,13 +1,13 @@
 # --- Web Framework ---
 fastapi==0.141.1
 starlette==1.7.0
-uvicorn==0.52.4
+uvicorn==0.54.0
 python-multipart==0.0.32
 
 # --- Data & ORM ---
 sqlalchemy==2.0.52
 greenlet==3.5.6
-psycopg2-binary==2.9.12
+psycopg2-binary==2.9.13
 alembic==1.20.0
 
 # --- Security & Auth ---
