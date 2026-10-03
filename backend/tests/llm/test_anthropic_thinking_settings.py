@@ -100,3 +100,35 @@ def test_opus_55_request_uses_output_config_for_effort():
         "thinking": {"type": "adaptive"},
         "output_config": {"effort": "high"},
     }
+
+
+@pytest.mark.parametrize(
+    "thinking,expected",
+    [(None, "adaptive"), (True, "adaptive"), (False, "between_tools")],
+)
+def test_sonnet_55_uses_supported_thinking_modes(thinking, expected):
+    request = {}
+    _apply_anthropic_thinking_settings(
+        request,
+        {"thinking": thinking, "reasoning_effort": "high", "thinking_budget": 2048},
+        "claude-sonnet-5-5",
+    )
+    assert request == {
+        "thinking": {"type": expected},
+        "output_config": {"effort": "high"},
+    }
+    assert get_anthropic_knowledge_cutoff("claude-sonnet-5-5") == "2026-06-01"
+    assert supports_anthropic_native_websearch("claude-sonnet-5-5")
+    costs = calculate_anthropic_token_costs(
+        "claude-sonnet-5-5", 2_000_000, 1_000_000, 1_000_000, 0
+    )
+    assert costs["total_costs"] == pytest.approx(12.20)
+
+
+@pytest.mark.parametrize("effort", ["xhigh", "max"])
+def test_sonnet_55_rejects_between_tools_at_top_efforts(effort):
+    with pytest.raises(HTTPException) as error:
+        _build_anthropic_thinking_params(
+            {"thinking": False, "reasoning_effort": effort}, "claude-sonnet-5-5"
+        )
+    assert error.value.status_code == 422

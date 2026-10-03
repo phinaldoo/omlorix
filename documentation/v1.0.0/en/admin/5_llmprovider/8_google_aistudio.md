@@ -23,14 +23,16 @@ A listed model is not proof that every modality is available to your account. Pr
 
 Prompts, attachments, audio, and media references may be sent to Google. Review current regional processing, retention, safety settings, and billing before enabling access.
 
-## September 2026 model update
+## October 2026 model update
 
-The catalog was checked against Google's [release notes](https://ai.google.dev/gemini-api/docs/changelog), [model deprecations](https://ai.google.dev/gemini-api/docs/deprecations), and [pricing](https://ai.google.dev/gemini-api/docs/pricing) on September 22, 2026.
+The catalog was checked against Google's [models](https://ai.google.dev/gemini-api/docs/models), [model deprecations](https://ai.google.dev/gemini-api/docs/deprecations), and [pricing](https://ai.google.dev/gemini-api/docs/pricing) on October 3, 2026.
 
 - **Gemini 3.8 Flash** is recognized for chat, native search, multimodal input, and cost estimates. Model discovery supplies its 1,048,576 input and 65,536 output token limits. Its supported thinking levels are low, medium (Google's default), and high. Saved minimal effort is normalized to low for 3.7 and 3.8 Flash.
 - Gemini 3 chat and auxiliary generation use `thinking_level` instead of a numeric thinking budget. Deprecated temperature, top-p, top-k, and candidate-count parameters are omitted from requests; sampling fields are hidden for these models. Existing Gemini 2.5 controls remain available.
 - The standard token estimates for Gemini 3.6, 3.7, and 3.8 Flash use Google's introductory rates: $0.75 input, $0.075 cached input, and $3.75 output per million tokens through December 31, 2026. Review estimates before the announced January 2027 price change; catalog prices are static.
-- **Lyria 3.5** is available under Music Generation, using the Interactions API. It is excluded from normal chat discovery. Existing image, Veo video, realtime voice, and embedding catalogs remain available. Specialized Omni video, Robotics, and Transcribe endpoints are not normal chat models and remain excluded from chat discovery.
+- **Lyria 3.5** is available under Music Generation, using the Interactions API. Speech, image, Veo/Omni video, realtime voice, embedding, Robotics, and managed-agent endpoints are excluded from normal chat discovery.
+- **Gemini 3.8 Flash TTS** and **Gemini 3.8 Flash-Lite TTS** are available for speech generation, including fallback discovery. Delivery instructions and speaker labels use structured speech metadata so they are not spoken aloud; returned WAV data is preserved. Standard introductory estimates are $0.50 input per million text tokens and $9/$6 output per million audio tokens respectively through December 31, 2026. Recheck static estimates before the January 2027 price change. See [TTS request formats](https://ai.google.dev/gemini-api/docs/generate-content/speech-generation).
+- **Gemini 2.5 Flash Image** retains its deprecation metadata. Google lists October 2, 2026 as its earliest possible shutdown date and still lists it in the model overview. Use Gemini 3.1 Flash Image for new configurations and verify legacy availability with Google.
 - **Gemini 3.8 Live** and **Gemini 3.8 Live Extended Thinking** are available in Realtime Call settings, including the fallback list when discovery is unavailable. Gemini 3.8 Live is the default for new configurations; explicitly saved model selections remain unchanged. Session setup omits legacy affective/proactive controls for these models and leaves thinking configuration to the provider default.
 - The new managed agent `antigravity-preview-09-2026` is excluded from ordinary chat discovery because it requires the specialized agent API.
 - Gemini 2.5 chat models remain available to eligible existing accounts. Google's September 18 access restriction is not a shutdown, so these IDs remain supported.

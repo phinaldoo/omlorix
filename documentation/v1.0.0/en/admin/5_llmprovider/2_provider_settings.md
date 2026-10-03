@@ -26,7 +26,7 @@ Provider exports omit API keys and redact custom-header values. Follow the compl
 
 ## Model catalog freshness
 
-All provider integrations were reviewed on September 22, 2026. OpenAI, Anthropic, Google AI Studio, and xAI combine provider discovery with local capability or pricing metadata; see their provider pages for the latest additions. ElevenLabs discovers speech-generation models live and maintains a separate supported file-transcription list.
+All provider integrations were reviewed on October 3, 2026. OpenAI, Anthropic, Google AI Studio, and xAI combine provider discovery with local capability or pricing metadata; see their provider pages for the latest additions, including GPT-6.1 Sol, Claude Sonnet 5.5, and Gemini 3.8 TTS. Models with confirmed shutdowns are excluded from active catalogs; deprecated models retain their lifecycle metadata. ElevenLabs discovers speech-generation models live and maintains a separate supported file-transcription list.
 
 OpenRouter obtains account-visible models and their metadata from its API. Ollama and LM Studio list models installed or available on the configured server. Azure and custom OpenAI/Anthropic-compatible endpoints use their own discovery or manually configured deployment/model IDs. These integrations do not need a static copy of every upstream model name to expose new models.
 

@@ -1,13 +1,16 @@
 import base64
+import json
 from io import BytesIO
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
+import httpx
+from google import genai
 from google.genai import types
 from PIL import Image
 
-from app.llm.google_aistudio import music_generation, schemas, utils
+from app.llm.google_aistudio import music_generation, schemas, text_to_speech, utils
 from app.llm.google_aistudio.model_list import (
     AISTUDIO_MODEL_DICT,
     AISTUDIO_MODELS_NOT_SUPPORTED,
@@ -63,6 +66,11 @@ def test_latest_catalog_and_generation_controls():
     assert model["pricing"]["output"] == 3.75
     assert model["supports_native_websearch"] is True
     assert "lyria-3.5" in AISTUDIO_MODELS_NOT_SUPPORTED
+    assert {
+        "gemini-3.8-flash-tts", "gemini-3.8-flash-lite-tts", "gemini-3.8-live",
+        "gemini-3.5-live-translate-preview", "veo-3.1-generate-preview",
+        "gemini-embedding-2", "gemini-embedding-2-preview",
+    } <= set(AISTUDIO_MODELS_NOT_SUPPORTED)
     for model_name in ("gemini-3.8-flash", "gemini-2.5-flash"):
         schema = schemas.get_parameters_schema_filled(
             {"temperature": 0.5}, model_name=model_name
@@ -150,3 +158,98 @@ def test_lyria_35_discovery_and_interactions_generation(monkeypatch):
     assert result["text_content"] == "[Verse] Hello"
     assert result["response_format"] == "mp3"
     assert result["cost"] == 0.08
+
+
+@pytest.mark.parametrize(
+    "model,output_price",
+    [("gemini-3.8-flash-tts", 9), ("gemini-3.8-flash-lite-tts", 6)],
+)
+@pytest.mark.parametrize("multiple_speakers", [False, True])
+def test_gemini_38_tts_wire_metadata_and_wav(
+    monkeypatch, model, output_price, multiple_speakers
+):
+    requests = []
+    wav = text_to_speech._pcm_to_wav(b"\0\0")
+
+    def respond(request):
+        requests.append(json.loads(request.content))
+        return httpx.Response(
+            200,
+            json={
+                "candidates": [
+                    {
+                        "content": {
+                            "parts": [
+                                {
+                                    "inlineData": {
+                                        "data": base64.b64encode(wav).decode(),
+                                        "mimeType": "audio/wav",
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "usageMetadata": {"promptTokenCount": 100, "candidatesTokenCount": 100},
+            },
+        )
+
+    with httpx.Client(transport=httpx.MockTransport(respond)) as http_client:
+        with genai.Client(
+            api_key="test", http_options=types.HttpOptions(httpx_client=http_client)
+        ) as client:
+            monkeypatch.setattr(
+                text_to_speech, "get_aistudio_client", lambda *a, **k: client
+            )
+            transcript = (
+                "Joe: Hello!\nStill here.\nJane: Hi!" if multiple_speakers else "Hello!"
+            )
+            result = text_to_speech.google_aistudio_generate_audio(
+                provider=SimpleNamespace(api_key="test", settings={}),
+                model=f"models/{model}",
+                voice="Kore",
+                input_text=transcript,
+                instructions="Cheerful",
+                response_format="wav",
+                multiple_speakers=multiple_speakers,
+            )
+
+    expected_parts = (
+        [
+            {
+                "text": "Hello!\nStill here.",
+                "speechMetadata": {"style": "Cheerful", "speaker": "Joe"},
+            },
+            {"text": "Hi!", "speechMetadata": {"style": "Cheerful", "speaker": "Jane"}},
+        ]
+        if multiple_speakers
+        else [{"text": "Hello!", "speechMetadata": {"style": "Cheerful"}}]
+    )
+    assert requests[0]["contents"] == [{"role": "user", "parts": expected_parts}]
+    speech_config = requests[0]["generationConfig"]["speechConfig"]
+    if multiple_speakers:
+        assert [
+            item["speaker"]
+            for item in speech_config["multiSpeakerVoiceConfig"]["speakerVoiceConfigs"]
+        ] == ["Joe", "Jane"]
+    else:
+        assert speech_config == {"voiceConfig": {"voice": "Kore"}}
+    assert result["audio_bytes"] == wav
+    assert result["cost"] == pytest.approx((0.5 + output_price) * 100 / 1_000_000)
+
+
+def test_gemini_38_tts_fallback_discovery(monkeypatch):
+    monkeypatch.setattr(
+        text_to_speech,
+        "get_aistudio_client",
+        lambda *a, **k: SimpleNamespace(models=SimpleNamespace(list=lambda: [])),
+    )
+    assert [
+        item["id"]
+        for item in text_to_speech.google_aistudio_text_to_speech_models_list(
+            api_key="test"
+        )
+    ][:2] == [
+        "gemini-3.8-flash-tts",
+        "gemini-3.8-flash-lite-tts",
+    ]

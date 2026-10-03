@@ -14,7 +14,7 @@ from typing import Any
 # Keep the verification date and source URLs next to the data.  xAI changes
 # aliases and rates independently of model identifiers, so reviewers can
 # quickly tell whether a future catalog refresh is needed.
-XAI_CATALOG_LAST_VERIFIED = "2026-09-22"
+XAI_CATALOG_LAST_VERIFIED = "2026-10-03"
 XAI_MODELS_DOCS_URL = "https://docs.x.ai/developers/models"
 XAI_PRICING_DOCS_URL = "https://docs.x.ai/developers/pricing"
 XAI_COST_TRACKING_DOCS_URL = "https://docs.x.ai/developers/cost-tracking"
@@ -348,6 +348,9 @@ XAI_NON_CHAT_MODELS = {
     "grok-imagine-video-1.5",
     "grok-voice-think-fast-1.0",
     "grok-voice-think-fast-2.0",
+    "grok-voice-latest",
+    "grok-transcribe",
+    "grok-tts",
 }
 
 XAI_COMPLETION_MODELS = sorted(

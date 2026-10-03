@@ -380,7 +380,7 @@ def test_current_catalogs_include_new_models_and_exclude_shutdown_ids() -> None:
 @pytest.mark.parametrize(
     ("catalog", "expected_groups", "expected_ids"),
     [
-        (OPENAI_MODEL_DICT, 38, 69),
+        (OPENAI_MODEL_DICT, 37, 68),
         (AISTUDIO_MODEL_DICT, 19, 20),
     ],
 )
@@ -418,3 +418,29 @@ def test_anthropic_prices_are_non_negative() -> None:
         input_price >= 0 and output_price >= 0
         for input_price, output_price in ANTHROPIC_MODEL_PRICING.values()
     )
+
+
+@pytest.mark.parametrize(
+    "tier,multiplier", [("standard", 1), ("flex", 0.5), ("priority", 2)]
+)
+def test_gpt61_sol_cache_pricing_and_context_threshold(tier, multiplier):
+    for input_tokens, expected in [(272_000, 0.459), (272_001, 0.868004)]:
+        costs = calculate_openai_token_costs(
+            model_name="gpt-6.1-sol",
+            service_tier=tier,
+            input_tokens=input_tokens,
+            cached_input_tokens=100_000,
+            cache_write_tokens=10_000,
+            output_tokens=10_000,
+            reasoning_tokens=2_000,
+            native_websearch_tool_calls_count=0,
+        )
+        assert costs["total_costs"] == pytest.approx(expected * multiplier)
+    assert OPENAI_MODEL_DICT["gpt-6-sol"]["pricing"]["standard"]["cached_input"] == 0.2
+
+
+def test_new_openai_deprecations_remain_callable():
+    for model in ("gpt-5.1", "gpt-5.3-codex", "gpt-5.4-nano"):
+        assert model in OPENAI_COMPLETION_MODELS
+        assert OPENAI_MODEL_DICT[model]["deprecated_ids"][model] == "2027-04-01"
+    assert OPENAI_ANNOUNCED_SHUTDOWN_DATES["tts-1"] == "2027-01-06"

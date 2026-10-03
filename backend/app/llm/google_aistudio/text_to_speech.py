@@ -24,6 +24,8 @@ logger = logging.getLogger(__name__)
 
 
 GOOGLE_AISTUDIO_TTS_FALLBACK_MODELS = [
+    "gemini-3.8-flash-tts",
+    "gemini-3.8-flash-lite-tts",
     "gemini-3.1-flash-tts-preview",
     "gemini-2.5-flash-preview-tts",
     "gemini-2.5-pro-preview-tts",
@@ -199,6 +201,27 @@ def _build_tts_prompt(input_text: str, instructions: str | None, multiple_speake
         )
 
     return f"{instructions_value}\n\nRead the following text aloud exactly as written:\n{text_value}"
+
+
+def _build_structured_tts_contents(
+    input_text: str, instructions: str | None, multiple_speakers: bool
+) -> list[dict[str, Any]]:
+    """Keep Gemini 3.8 delivery instructions outside the spoken transcript."""
+    text = _build_tts_prompt(input_text, None, multiple_speakers)
+    style = str(instructions or "").strip()
+    metadata = {"style": style} if style else {}
+    if multiple_speakers:
+        turns = re.split(r"(?m)^[ \t]*([^:\n]{1,60}):[ \t]*", text)
+        parts = [
+            {
+                "text": turns[index + 1].strip(),
+                "speechMetadata": {**metadata, "speaker": turns[index].strip()},
+            }
+            for index in range(1, len(turns), 2)
+        ]
+    else:
+        parts = [{"text": text, "speechMetadata": metadata}]
+    return [{"role": "user", "parts": parts}]
 
 
 def normalize_google_aistudio_tts_voice(voice: str | None) -> str:
@@ -418,6 +441,28 @@ def google_aistudio_generate_audio(
             api_key=connection["api_key"],
             api_version=connection["api_version"],
         )
+        config_overrides = {}
+        if model_name.removeprefix("models/") in {
+            "gemini-3.8-flash-tts",
+            "gemini-3.8-flash-lite-tts",
+        }:
+            # The pinned SDK does not yet expose Part.speech_metadata. Its
+            # supported extra_body hook preserves the documented wire fields.
+            config_overrides["http_options"] = types.HttpOptions(
+                extra_body={
+                    "contents": _build_structured_tts_contents(
+                        input_text, instructions, bool(multiple_speakers)
+                    ),
+                    "generationConfig": {
+                        "speechConfig": (
+                            speech_config.model_dump(exclude_none=True, by_alias=True)
+                            if multiple_speakers
+                            else {"voiceConfig": {"voice": normalized_voice}}
+                        )
+                    },
+                }
+            )
+            speech_config = None
         response = client.models.generate_content(
             model=model_name,
             contents=prompt,
@@ -425,6 +470,7 @@ def google_aistudio_generate_audio(
                 None,
                 response_modalities=["AUDIO"],
                 speech_config=speech_config,
+                **config_overrides,
             ),
         )
     except HTTPException as exc:

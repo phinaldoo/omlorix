@@ -14,6 +14,11 @@ from app.llm.openai.model_list import (
 )
 
 SHUT_DOWN_MODELS = {
+    "babbage-002",
+    "davinci-002",
+    "gpt-3.5-turbo-instruct",
+    "gpt-3.5-turbo-1106",
+    "gpt-5.4-cyber",
     "gpt-4-0314",
     "gpt-4-1106-preview",
     "gpt-4-0125-preview",

@@ -186,7 +186,7 @@ def test_xai_catalog_resolves_current_models_aliases_and_capabilities():
     grok_43 = get_xai_model_capabilities("grok-latest")
     multi_agent = get_xai_model_capabilities("grok-4.20-multi-agent")
 
-    assert XAI_CATALOG_LAST_VERIFIED == "2026-09-22"
+    assert XAI_CATALOG_LAST_VERIFIED == "2026-10-03"
     grok_47 = get_xai_model_capabilities("grok-4.7")
     assert grok_47 is XAI_MODEL_DICT["grok-4.7"]
     assert grok_47["knowledge_cutoff"].strftime("%Y-%m-%d") == "2026-05-01"

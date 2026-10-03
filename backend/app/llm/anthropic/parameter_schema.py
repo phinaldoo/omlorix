@@ -77,6 +77,11 @@ def get_anthropic_model_schema_parameter(
         _maybe_set("settings.reasoning_effort")
         _maybe_set("settings.thinking_adaptive")
 
+        if model_settings.get("thinking") is None and thinking_capabilities.get(
+            "thinking_adaptive_default"
+        ):
+            _set_schema_field_value(thinking_schema, "settings.thinking", True)
+
         if (
             model_settings.get("thinking_adaptive") is None
             and thinking_capabilities.get("thinking")
@@ -124,7 +129,9 @@ def get_anthropic_model_schema_parameter(
                     reasoning_effort_field.options = build_reasoning_effort_options(
                         reasoning_effort_values
                     )
-                if not thinking_adaptive_supported:
+                if not thinking_adaptive_supported or thinking_capabilities.get(
+                    "thinking_adaptive_default"
+                ):
                     _remove_field_from_section(
                         thinking_schema.sections,
                         "Thinking & reasoning",
