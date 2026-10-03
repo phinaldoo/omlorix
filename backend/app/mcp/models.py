@@ -344,6 +344,11 @@ def update_mcp_server(db, server_id: str, **updates) -> MCPServer:
 def delete_mcp_server(db, server_id: str) -> None:
     server = get_mcp_server(db, server_id)
     deleted_server_id = server.id
+    # Personal MCP settings can remove a plugin component independently. Keep
+    # the plugin aggregate consistent instead of retaining a dangling link.
+    from app.plugins.models import COMPONENT_MCP_SERVER, detach_plugin_component
+
+    detach_plugin_component(db, COMPONENT_MCP_SERVER, server.id)
     # Redirect states deliberately have no database foreign key so migrations
     # work across the supported schemas. Remove them explicitly with the server.
     db.query(MCPOAuthState).filter(MCPOAuthState.server_id == server.id).delete(
@@ -371,6 +376,14 @@ def list_mcp_servers(db, *, owner_type: str | None = None, owner_user_id: str | 
         query = query.filter(MCPServer.enabled.is_(True))
     if not include_managed:
         query = query.filter(MCPServer.managed_connection_id.is_(None))
+    # A disabled plugin must remain disabled even if an older process or a
+    # direct MCP edit left its component row enabled. This fail-closed filter is
+    # applied to every discovery and execution path through this shared helper.
+    from app.plugins.models import COMPONENT_MCP_SERVER, disabled_plugin_component_ids
+
+    disabled_ids = disabled_plugin_component_ids(db, COMPONENT_MCP_SERVER)
+    if disabled_ids:
+        query = query.filter(~MCPServer.id.in_(disabled_ids))
     return query.order_by(MCPServer.name.asc(), MCPServer.created_at.asc()).all()
 
 

@@ -67,6 +67,14 @@ Follow the installation guide in our documentation to choose the right path and 
 > not work; users must approve the app manually and install later versions
 > themselves.
 
+## Agent Plugins
+
+Install portable `.codex-plugin/plugin.json` bundles from **Workspace →
+Plugins**. Omlorix imports bundled Agent Skills and remote MCP servers, provides
+review-first lifecycle controls, preserves unsupported manifest metadata, and
+keeps hooks and personal local-process servers disabled by design. See [Agent
+Plugins](agent-plugins.md) for the supported contract and security model.
+
 ## License
 
 Omlorix is source-available under the [PolyForm Free Trial License 1.0.0](LICENSE).

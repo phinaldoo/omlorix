@@ -1058,7 +1058,7 @@
         paletteCommands.forEach(registerCommand);
 
         const workspaceTabs = [
-            'notifications', 'connections', 'files', 'skills', 'agents',
+            'notifications', 'connections', 'files', 'skills', 'plugins', 'agents',
             'todo', 'notes', 'memories', 'prompts', 'bookmarks',
         ];
         workspaceTabs.forEach((tabId) => {

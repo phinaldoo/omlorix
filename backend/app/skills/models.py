@@ -289,6 +289,13 @@ def delete_skill(db: Session, user_id: str, skill_id: str):
     Also removes all subscriptions to this skill.
     """
     skill = _get_skill(db, user_id, skill_id)
+
+    # A user may delete a plugin-installed skill from the ordinary Skills UI.
+    # Detach it from the aggregate first so later plugin uninstall remains
+    # idempotent and never fails on an already-removed component.
+    from app.plugins.models import COMPONENT_SKILL, detach_plugin_component
+
+    detach_plugin_component(db, COMPONENT_SKILL, skill_id)
     
     # Remove all subscriptions to this skill
     db.query(SharedSkillSubscription).filter(
@@ -947,6 +954,14 @@ def _resolve_accessible_skill_for_user(
 
     skill_id = skill_id.strip()
     if not skill_id:
+        return None
+
+    # Plugin-owned skills follow the aggregate lifecycle. Keeping this check at
+    # the shared resolver covers prompt context and skill-file attachment paths
+    # without relying on a frontend toggle as a security boundary.
+    from app.plugins.models import COMPONENT_SKILL, plugin_component_is_enabled
+
+    if not plugin_component_is_enabled(db, COMPONENT_SKILL, skill_id):
         return None
 
     from app.skills.queries import skill_access

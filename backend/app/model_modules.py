@@ -17,6 +17,7 @@ MODEL_MODULES = [
     "app.mcp.models",
     "app.memories.models",
     "app.notes.models",
+    "app.plugins.models",
     "app.projects.models",
     "app.prompts.models",
     "app.realtime.models",
