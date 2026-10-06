@@ -106,7 +106,8 @@ body.code-block-preview-modal-open {
     border: 1px solid color-mix(in srgb, var(--surface-elevated) 65%, var(--search-modal-border-strong));
     border-radius: var(--modal-border-radius, 16px);
     color: var(--text-color);
-    background: color-mix(in srgb, var(--surface-elevated) 94%, transparent);
+    /* Keep every section the same color regardless of the page behind it. */
+    background: var(--surface-elevated);
     backdrop-filter: blur(40px) saturate(1.35);
     -webkit-backdrop-filter: blur(40px) saturate(1.35);
     animation: search-modal-in 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
