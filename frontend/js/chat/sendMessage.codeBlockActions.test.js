@@ -34,6 +34,7 @@ const CODE_BLOCK_KEYS = [
     'visualization_preview_static_frame_title',
     'visualization_preview_interactive_frame_title',
     'code_block_open_large_preview',
+    'code_block_mermaid_navigation',
     'canvas_html_preview_settings',
     'canvas_html_interactions',
     'canvas_html_external_content',

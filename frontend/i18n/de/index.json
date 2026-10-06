@@ -4425,6 +4425,7 @@
   "chat_send_failed_retry": "Die Nachricht konnte nicht gesendet werden. Bitte versuche es später erneut.",
   "chat_stream_retention_limit_exceeded": "Die Live-Antwort war zu groß, um sie im Speicher zu behalten. Bitte versuche, die Nachricht erneut zu senden.",
   "code_block_preview_label": "Vorschau",
+  "code_block_mermaid_navigation": "Zum Verschieben ziehen. Zum Zoomen zwei Finger auseinanderziehen oder Strg/⌘ + scrollen. Tastatur: +/− zum Zoomen, Pfeiltasten zum Verschieben, Pos1 zum Einpassen.",
   "code_block_reset_zoom_aria": "Zoom zurücksetzen",
   "code_block_zoom_in_aria": "Vergrößern",
   "code_block_zoom_out_aria": "Verkleinern",

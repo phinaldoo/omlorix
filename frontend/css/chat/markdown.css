@@ -400,6 +400,9 @@
 .markdown-body code[class*="language-"] .token.template-string,
 .markdown-body code[class*="language-"] .token.inserted {
     color: var(--code-token-string);
+}
+
+.markdown-body code[class*="language-"] .token.inserted {
     background-color: var(--code-token-inserted-bg);
 }
 
@@ -520,8 +523,8 @@
 
 /* Code blocks */
 .markdown-body .code-block-wrapper {
-    margin: 1.5em 0;
-    border-radius: 18px;
+    margin: 1.1em 0;
+    border-radius: 10px;
     border: 1px solid var(--border-color);
     overflow: hidden;
 }
@@ -530,9 +533,12 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 8px;
     flex-wrap: wrap;
-    padding: 12px 14px;
+    padding: 5px 8px 5px 14px;
+    min-height: 42px;
+    box-sizing: border-box;
+    background: var(--input-bg);
     border-bottom: 1px solid var(--border-color);
     transition: none;
 }
@@ -554,19 +560,20 @@
     font-size: 12px;
     font-weight: 600;
     color: var(--text-color-secondary);
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    padding: 6px 10px;
+    letter-spacing: 0;
+    padding: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .markdown-body .code-block-mode-toggle {
     display: inline-flex;
     align-items: center;
     gap: 2px;
-    padding: 3px;
-    border-radius: 999px;
-    border: 1px solid var(--border-color);
-    background: var(--background);
+    padding: 0;
+    border: 0;
+    background: transparent;
 }
 
 .markdown-body .code-view-toggle-btn {
@@ -576,9 +583,9 @@
     border: 0;
     background: transparent;
     color: var(--text-color-secondary);
-    border-radius: 999px;
-    padding: 7px 11px;
-    min-height: 32px;
+    border-radius: 5px;
+    padding: 6px 8px;
+    min-height: 30px;
     cursor: pointer;
     font-size: 12px;
     font-weight: 600;
@@ -609,7 +616,7 @@
 }
 
 .markdown-body .code-view-toggle-btn.is-active {
-    background: var(--hover);
+    background: var(--background);
     color: var(--text-color);
 }
 
@@ -624,7 +631,9 @@
 
 .markdown-body .code-block-actions {
     display: flex;
-    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2px;
     flex: 0 0 auto;
 }
 
@@ -632,8 +641,8 @@
     background: transparent;
     border: none;
     cursor: pointer;
-    padding: 8px;
-    border-radius: 12px;
+    padding: 6px;
+    border-radius: 5px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -642,8 +651,8 @@
 }
 
 .markdown-body .code-action-btn:is(.copy-code-btn, .download-code-btn, .collapse-code-btn, .reload-preview-btn, .vega-preview-expand-btn, .vega-preview-external-resources-btn, .code-block-html-settings-trigger) {
-    width: 36px;
-    height: 36px;
+    width: 30px;
+    height: 30px;
     padding: 0;
 }
 
@@ -771,8 +780,8 @@
 }
 
 .markdown-body .code-action-btn svg {
-    width: 17px;
-    height: 17px;
+    width: 15px;
+    height: 15px;
 }
 
 .markdown-body .code-block-content {
@@ -794,7 +803,11 @@
 }
 
 .markdown-body .code-block-content pre {
-    padding: 18px 20px;
+    direction: ltr;
+    text-align: left;
+    font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace) !important;
+    font-size: 13px;
+    padding: 12px 14px;
     overflow: auto;
 }
 
@@ -987,7 +1000,7 @@
 
 .markdown-body .code-block-html-preview-frame {
     width: 100%;
-    min-height: 320px;
+    min-height: 200px;
     display: block;
     border: 0;
     background: #ffffff;
@@ -1260,123 +1273,44 @@
 }
 
 .markdown-body .mermaid-preview-surface {
-    --mermaid-preview-scale: 1;
     position: relative;
-    height: 360px;
-    background: color-mix(in srgb, var(--background) 94%, transparent);
+    height: 320px;
+    background: var(--background);
     overflow: hidden;
     box-sizing: border-box;
-    transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.markdown-body .mermaid-preview-surface:focus-within, .markdown-body .vega-preview-surface:focus-within, .markdown-body .vega-preview-surface.is-modal, .markdown-body .mermaid-preview-surface.is-modal {
-    background: color-mix(in srgb, var(--hover) 72%, var(--background));
-    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.08);
-}
-
-@media (hover: hover) and (pointer: fine) {
-    .markdown-body .mermaid-preview-surface:hover, .markdown-body .vega-preview-surface:hover {
-        background: color-mix(in srgb, var(--hover) 72%, var(--background));
-        box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.08);
-    }
 }
 
 .markdown-body .vega-preview-surface {
     position: relative;
-    min-height: 320px;
-    background: color-mix(in srgb, var(--background) 94%, transparent);
+    min-height: 280px;
+    background: var(--background);
     overflow: hidden;
-    transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .markdown-body .mermaid-preview-stage {
-    height: 100%;
-    min-height: 0;
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    touch-action: none;
+    cursor: grab;
+    user-select: none;
+}
+
+.markdown-body .mermaid-preview-stage.is-panning {
+    cursor: grabbing;
+}
+
+.markdown-body .mermaid-preview-stage:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: -3px;
+}
+
+.markdown-body .mermaid-preview-surface.has-error .mermaid-preview-stage {
     overflow: auto;
-    padding: 30px 24px 72px;
-    box-sizing: border-box;
-    overscroll-behavior: contain;
-    touch-action: pan-x pan-y;
-    scrollbar-gutter: stable both-edges;
-    scrollbar-width: thin;
-    scrollbar-color: transparent transparent;
-}
-
-.markdown-body .mermaid-preview-scrollbar {
-    position: absolute;
-    z-index: 3;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.18s ease;
-}
-
-.markdown-body .mermaid-preview-scrollbar[hidden] {
-    display: none !important;
-}
-
-.markdown-body .mermaid-preview-scrollbar-x {
-    left: 18px;
-    right: 154px;
-    bottom: 18px;
-    height: 12px;
-}
-
-.markdown-body .mermaid-preview-scrollbar-y {
-    top: 62px;
-    right: 12px;
-    bottom: 82px;
-    width: 12px;
-}
-
-.markdown-body .mermaid-preview-scrollbar-thumb {
-    position: absolute;
-    border-radius: 999px;
-    background: var(--scrollbar-thumb);
-    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.18);
-    cursor: pointer;
-}
-
-.markdown-body .mermaid-preview-scrollbar-x .mermaid-preview-scrollbar-thumb {
-    top: 0;
-    left: 0;
-    height: 100%;
-    min-width: 40px;
-}
-
-.markdown-body .mermaid-preview-scrollbar-y .mermaid-preview-scrollbar-thumb {
-    top: 0;
-    left: 0;
-    width: 100%;
-    min-height: 40px;
-}
-
-.markdown-body .mermaid-preview-surface:focus-within.has-mermaid-scroll-x .mermaid-preview-scrollbar-x,
-.markdown-body .mermaid-preview-surface:focus-within.has-mermaid-scroll-y .mermaid-preview-scrollbar-y,
-.markdown-body .mermaid-preview-surface.is-modal.has-mermaid-scroll-x .mermaid-preview-scrollbar-x,
-.markdown-body .mermaid-preview-surface.is-modal.has-mermaid-scroll-y .mermaid-preview-scrollbar-y {
-    opacity: 1;
-    pointer-events: auto;
-}
-
-@media (hover: hover) and (pointer: fine) {
-    .markdown-body .mermaid-preview-surface:hover.has-mermaid-scroll-x .mermaid-preview-scrollbar-x,
-    .markdown-body .mermaid-preview-surface:hover.has-mermaid-scroll-y .mermaid-preview-scrollbar-y {
-        opacity: 1;
-        pointer-events: auto;
-    }
-}
-
-@media (hover: hover) and (pointer: fine) {
-    .markdown-body .mermaid-preview-scrollbar-thumb:hover {
-        background: var(--primary-color);
-    }
-}
-
-@media (hover: none), (pointer: coarse) {
-    .markdown-body .mermaid-preview-scrollbar {
-        opacity: 1;
-        pointer-events: auto;
-    }
+    padding: 16px;
+    cursor: auto;
+    touch-action: auto;
+    user-select: text;
 }
 
 .markdown-body .vega-preview-stage {
@@ -1506,10 +1440,19 @@
 }
 
 .markdown-body .mermaid-preview-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: max-content;
     max-width: none;
-    margin: 0 auto;
-    transition: width 0.18s ease, height 0.18s ease;
+    transform-origin: 0 0;
+}
+
+.markdown-body .mermaid-preview-surface.has-error .mermaid-preview-canvas {
+    position: static;
+    width: auto;
+    white-space: pre-wrap;
+    color: var(--error-color);
 }
 
 .markdown-body .mermaid-preview-canvas svg {
@@ -1541,62 +1484,55 @@
     z-index: 2;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s ease;
+    gap: 2px;
 }
 
-.markdown-body .mermaid-preview-surface:focus-within .mermaid-preview-toolbar, .markdown-body .mermaid-preview-surface.is-modal .mermaid-preview-toolbar {
-    opacity: 1;
-    pointer-events: auto;
-}
-
-@media (hover: hover) and (pointer: fine) {
-    .markdown-body .mermaid-preview-surface:hover .mermaid-preview-toolbar {
-        opacity: 1;
-        pointer-events: auto;
-    }
-}
-@media (hover: none), (pointer: coarse) {
-    .markdown-body .mermaid-preview-surface .mermaid-preview-toolbar {
-        opacity: 1;
-        pointer-events: auto;
-    }
+.markdown-body .mermaid-preview-toolbar[hidden] {
+    display: none;
 }
 
 .markdown-body .mermaid-preview-toolbar-top {
-    top: 14px;
-    right: 14px;
+    top: 8px;
+    right: 8px;
 }
 
 .markdown-body .mermaid-preview-toolbar-bottom {
-    right: 14px;
-    bottom: 14px;
-    padding: 8px;
-    border-radius: 16px;
-    background: color-mix(in srgb, var(--background) 94%, transparent);
+    right: 8px;
+    bottom: 8px;
+    padding: 3px;
+    border-radius: 8px;
+    background: var(--background);
     border: 1px solid var(--border-color);
-    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+    box-shadow: 0 2px 6px var(--shadow-color);
 }
 
 .markdown-body .mermaid-preview-action {
-    width: 40px;
-    height: 40px;
+    width: 30px;
+    height: 30px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     border: 0;
-    border-radius: 12px;
-    background: transparent;
+    border-radius: 5px;
+    background: var(--background);
     color: var(--text-color-secondary);
     cursor: pointer;
-    transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.markdown-body .mermaid-preview-action:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.markdown-body .mermaid-preview-action[data-mermaid-action="reset"] {
+    border-inline-start: 1px solid var(--border-color);
+    border-radius: 0 5px 5px 0;
+    margin-inline-start: 3px;
 }
 
 .markdown-body .mermaid-preview-action svg {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
 }
 
 .markdown-body .visualizer-preview-action svg {
@@ -1605,11 +1541,12 @@
 }
 
 .markdown-body .mermaid-preview-zoom-value {
-    min-width: 54px;
+    min-width: 44px;
+    font-variant-numeric: tabular-nums;
     text-align: center;
     color: var(--text-color);
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 11px;
+    font-weight: 500;
 }
 
 .code-block-preview-modal-overlay {
@@ -1622,9 +1559,10 @@
 }
 
 .code-block-preview-modal.is-fullscreen {
-    width: 100vw;
+    width: 100%;
     max-width: none;
     height: 100vh;
+    height: 100dvh;
     max-height: none;
     border-radius: 0;
     border: 0;
@@ -1649,17 +1587,6 @@
 
 .code-block-preview-modal.is-fullscreen .mermaid-preview-surface {
     height: 100%;
-}
-
-.code-block-preview-modal.is-fullscreen .mermaid-preview-scrollbar-x {
-    right: 170px;
-    bottom: 20px;
-}
-
-.code-block-preview-modal.is-fullscreen .mermaid-preview-scrollbar-y {
-    top: 20px;
-    right: 14px;
-    bottom: 86px;
 }
 
 .code-block-preview-modal-body .vega-preview-stage {
@@ -1774,38 +1701,26 @@
 }
 
 @media (max-width: 768px) {
-    .markdown-body .code-block-wrapper {
-        margin: 1.1em 0;
-        border-radius: 16px;
-    }
-
     .markdown-body .code-block-header {
-        padding: 10px 10px 12px;
-        align-items: stretch;
+        padding: 5px 6px 5px 10px;
     }
 
     .markdown-body .code-block-meta {
-        width: 100%;
+        flex: 1 1 60px;
     }
 
     .markdown-body .code-block-actions {
-        width: 100%;
-        flex-wrap: wrap;
+        max-width: 100%;
         justify-content: flex-end;
-    }
-
-    .markdown-body .code-block-mode-toggle {
-        width: 100%;
-        justify-content: stretch;
+        margin-inline-start: auto;
     }
 
     .markdown-body .code-view-toggle-btn {
-        flex: 1 1 0;
-        justify-content: center;
+        padding: 6px;
     }
 
-    .markdown-body .code-block-content pre {
-        padding: 14px 14px 16px;
+    .markdown-body .code-view-toggle-btn svg {
+        display: none;
     }
 
     .markdown-body .code-block-markdown-preview,
@@ -1814,7 +1729,6 @@
         padding: 12px;
     }
 
-    .markdown-body .code-block-html-preview-frame,
     .markdown-body .mermaid-preview-stage,
     .markdown-body .mermaid-preview-surface,
     .markdown-body .vega-preview-stage,
@@ -1830,22 +1744,6 @@
 
     .markdown-body .mermaid-preview-surface {
         height: 280px;
-    }
-
-    .markdown-body .mermaid-preview-stage {
-        padding: 20px 16px 78px;
-    }
-
-    .markdown-body .mermaid-preview-scrollbar-x {
-        left: 14px;
-        right: 14px;
-        bottom: 12px;
-    }
-
-    .markdown-body .mermaid-preview-scrollbar-y {
-        top: 54px;
-        right: 10px;
-        bottom: 86px;
     }
 
     .markdown-body .vega-preview-stage {
@@ -1873,8 +1771,6 @@
 
     .markdown-body .mermaid-preview-toolbar-bottom {
         bottom: 10px;
-        left: 10px;
-        justify-content: space-between;
     }
 
     .code-block-preview-modal-overlay.is-fullscreen {
@@ -1911,5 +1807,17 @@
     .markdown-body .visualizer-preview-action,
     .markdown-body .visualizer-preview-run-btn {
         transition: none;
+    }
+}
+
+@media (pointer: coarse) {
+    .markdown-body .code-action-btn:is(.copy-code-btn, .download-code-btn, .collapse-code-btn, .reload-preview-btn, .vega-preview-expand-btn, .vega-preview-external-resources-btn, .code-block-html-settings-trigger),
+    .markdown-body .mermaid-preview-action {
+        width: 36px;
+        height: 36px;
+    }
+
+    .markdown-body .code-view-toggle-btn {
+        min-height: 36px;
     }
 }

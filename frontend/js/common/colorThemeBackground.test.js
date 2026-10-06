@@ -96,17 +96,13 @@ test('all accent palettes inherit the same mode-specific input backgrounds', () 
     }
 });
 
-test('shared and Mermaid scrollbars use mode-specific high-contrast thumb colors', () => {
+test('shared scrollbars use mode-specific high-contrast thumb colors', () => {
     const initSource = fs.readFileSync(
         path.join(__dirname, '../../css/common/init.css'),
         'utf8'
     );
     const elementsSource = fs.readFileSync(
         path.join(__dirname, '../../css/common/elements.css'),
-        'utf8'
-    );
-    const markdownSource = fs.readFileSync(
-        path.join(__dirname, '../../css/chat/markdown.css'),
         'utf8'
     );
     const lightMode = getRuleDeclarations(initSource, '[data-mode="light"]');
@@ -123,7 +119,6 @@ test('shared and Mermaid scrollbars use mode-specific high-contrast thumb colors
     assert.ok(contrastRatio(darkThumb, '#1f1f1f') >= 3);
     assert.match(elementsSource, /background:\s*var\(--scrollbar-thumb\)/u);
     assert.match(elementsSource, /scrollbar-color:\s*var\(--scrollbar-thumb\) transparent/u);
-    assert.match(markdownSource, /\.mermaid-preview-scrollbar-thumb\s*\{[^{}]*background:\s*var\(--scrollbar-thumb\)/u);
 });
 
 test('all application controls use the fixed monochrome palette', () => {
