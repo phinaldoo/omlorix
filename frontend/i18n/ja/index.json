@@ -4780,5 +4780,11 @@
   "chat_workspace_back": "チャットに戻る",
   "chat_workspace_close": "詳細パネルを非表示",
   "chat_workspace_hide": "非表示",
-  "subagent_tab_label": "{name} · {number}"
+  "subagent_tab_label": "{name} · {number}",
+  "visualization_view_source": "ソースを表示",
+  "visualization_reset": "ビジュアライゼーションをリセット",
+  "visualization_save_html": "HTML をダウンロード",
+  "visualization_text_alternative": "テキストによる説明",
+  "visualization_loading": "ビジュアライゼーションを準備中…",
+  "visualization_run_error": "このビジュアライゼーションを実行できませんでした。リセットするか、修正版をリクエストしてください。"
 }

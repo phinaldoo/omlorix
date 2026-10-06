@@ -2,7 +2,7 @@ function cleanupMarkdownCodeBlockPreviews(root) {
     if (!(root instanceof Element) || typeof root.querySelectorAll !== 'function') {
         return;
     }
-    root.querySelectorAll('.code-block-preview-pane').forEach((previewPane) => {
+    root.querySelectorAll('.code-block-preview-pane, .assistant-visualization-widget').forEach((previewPane) => {
         if (typeof previewPane._previewCleanup === 'function') {
             try {
                 previewPane._previewCleanup();
@@ -395,4 +395,3 @@ function renderMermaidBlocks(root) {
         renderMermaidDiagram(previewEl, source).catch(() => {});
     });
 }
-

@@ -1486,6 +1486,11 @@ function ensureMarkdownObserver() {
     }
     markdownMutationObserver = new MutationObserver(mutations => {
         mutations.forEach(mutation => {
+            mutation.removedNodes.forEach(node => {
+                if (!(node instanceof Element) || node.isConnected) return;
+                node._previewCleanup?.();
+                cleanupMarkdownCodeBlockPreviews(node);
+            });
             mutation.addedNodes.forEach(node => {
                 if (!(node instanceof Element)) {
                     return;

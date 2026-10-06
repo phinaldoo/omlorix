@@ -206,6 +206,7 @@ function broadcastVisualizationTheme() {
             previewId: frame.dataset.previewFrameId,
             mode,
             tokens,
+            expanded: Boolean(frame.closest('.is-expanded')),
         }, window.location.origin);
     });
 }
@@ -229,6 +230,15 @@ function ensureCodeBlockPreviewMessageListener() {
     }
     window.addEventListener('message', (event) => {
         const data = event?.data;
+        if (data?.type === VISUALIZATION_STATUS_MESSAGE_TYPE || data?.type === VISUALIZATION_KEY_MESSAGE_TYPE) {
+            const frame = findVisualizationFrameForMessage(event, String(data.previewId || ''));
+            const controller = frame && visualizationSurfaces.get(frame);
+            if (!controller) return;
+            if (data.type === VISUALIZATION_STATUS_MESSAGE_TYPE) controller.status(data.state);
+            else if (data.key === 'Escape') controller.collapse();
+            else if (data.key === 'Tab') controller.moveFocus?.(data.backwards === true);
+            return;
+        }
         if (data?.type === VISUALIZATION_HOST_REQUEST_MESSAGE_TYPE) {
             void handleVisualizationHostRequest(event, data);
             return;
@@ -261,6 +271,7 @@ function ensureCodeBlockPreviewMessageListener() {
         });
     });
     codeBlockPreviewMessageListenerInitialized = true;
+    document.addEventListener('keydown', (event) => activeVisualizationSurface?.keydown(event));
     ensureVisualizationThemeObserver();
 }
 
@@ -291,6 +302,8 @@ function capturePreviewThemeTokens() {
         '--primary-color',
         '--primary-color-hover',
         '--accent-color',
+        '--chat-info-color', '--code-token-number', '--success-color', '--error-color',
+        '--code-token-operator', '--warning-color', '--surface-muted', '--app-font-family',
     ];
     const snapshot = {};
     keys.forEach((key) => {
@@ -313,7 +326,7 @@ function getVisualizerThemeTokenMap() {
     const background = tokens['--background'] || '#ffffff';
     const foreground = tokens['--text-color'] || '#0f172a';
     const mutedForeground = tokens['--text-color-secondary'] || '#475569';
-    const card = tokens['--surface-secondary'] || tokens['--input-bg'] || background;
+    const card = tokens['--surface-muted'] || tokens['--input-bg'] || background;
     const border = tokens['--border-color'] || 'rgba(148, 163, 184, 0.32)';
     const primary = tokens['--primary-color'] || tokens['--accent-color'] || '#2563eb';
     const accent = tokens['--hover'] || tokens['--surface-secondary'] || card;
@@ -324,7 +337,7 @@ function getVisualizerThemeTokenMap() {
         '--card-foreground': foreground,
         '--popover': card,
         '--popover-foreground': foreground,
-        '--primary': primary,
+        '--primary': foreground,
         '--primary-foreground': background,
         '--secondary': tokens['--input-bg'] || card,
         '--secondary-foreground': foreground,
@@ -332,16 +345,16 @@ function getVisualizerThemeTokenMap() {
         '--muted-foreground': mutedForeground,
         '--accent': accent,
         '--accent-foreground': foreground,
-        '--destructive': 'var(--red, #dc2626)',
+        '--destructive': tokens['--error-color'] || primary,
         '--border': border,
         '--input': border,
         '--ring': primary,
-        '--blue': 'var(--blue-color, #2563eb)',
-        '--orange': 'var(--orange-color, #ea580c)',
-        '--green': 'var(--green-color, #16a34a)',
-        '--red': 'var(--red-color, #dc2626)',
-        '--purple': 'var(--purple-color, #9333ea)',
-        '--yellow': 'var(--yellow-color, #ca8a04)',
+        '--blue': tokens['--chat-info-color'] || primary,
+        '--orange': tokens['--code-token-number'] || primary,
+        '--green': tokens['--success-color'] || primary,
+        '--red': tokens['--error-color'] || primary,
+        '--purple': tokens['--code-token-operator'] || primary,
+        '--yellow': tokens['--warning-color'] || primary,
         '--viz-series-1': 'var(--blue)',
         '--viz-series-2': 'var(--orange)',
         '--viz-series-3': 'var(--green)',
@@ -349,6 +362,7 @@ function getVisualizerThemeTokenMap() {
         '--viz-series-5': 'var(--purple)',
         '--viz-series-6': 'var(--yellow)',
         '--font-size-base': '15px',
+        '--font-family': tokens['--app-font-family'] || 'system-ui, sans-serif',
     };
 }
 
@@ -358,7 +372,7 @@ function buildVisualizerThemeCssVariables() {
         .join('');
 }
 
-async function loadVisualizerRuntimeAssets(includeLibraries = false) {
+async function loadVisualizerRuntimeAssets(includeLibraries = false, source = '') {
     const fetchAsset = async (name, path) => {
             const response = await window.fetch(path, { credentials: 'same-origin', cache: 'force-cache' });
             if (!response.ok) {
@@ -378,17 +392,19 @@ async function loadVisualizerRuntimeAssets(includeLibraries = false) {
     if (!includeLibraries) {
         return { css };
     }
-    if (!visualizationRuntimeLibrariesPromise) {
-        visualizationRuntimeLibrariesPromise = Promise.all(
-            Object.entries(VISUALIZATION_RUNTIME_ASSET_PATHS)
-                .filter(([name]) => name !== 'css')
-                .map(([name, path]) => fetchAsset(name, path))
-        ).then((entries) => Object.fromEntries(entries)).catch((error) => {
-            visualizationRuntimeLibrariesPromise = null;
-            throw error;
-        });
-    }
-    return { css, ...(await visualizationRuntimeLibrariesPromise) };
+    const requested = Object.entries(VISUALIZATION_RUNTIME_ASSET_PATHS).filter(([name]) =>
+        name !== 'css' && (String(source).includes(name) || (name === 'lucide' && String(source).includes('data-lucide')))
+    );
+    const libraries = await Promise.all(requested.map(([name, path]) => {
+        if (!visualizationRuntimeLibraryPromises.has(name)) {
+            visualizationRuntimeLibraryPromises.set(name, fetchAsset(name, path).catch((error) => {
+                visualizationRuntimeLibraryPromises.delete(name);
+                throw error;
+            }));
+        }
+        return visualizationRuntimeLibraryPromises.get(name);
+    }));
+    return { css, ...Object.fromEntries(libraries) };
 }
 
 function normalizeVisualizationCapabilitiesForSurface(capabilities) {

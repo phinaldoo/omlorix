@@ -4795,5 +4795,11 @@
   "chat_workspace_back": "Вернуться в чат",
   "chat_workspace_close": "Скрыть панель подробностей",
   "chat_workspace_hide": "Скрыть",
-  "subagent_tab_label": "{name} · {number}"
+  "subagent_tab_label": "{name} · {number}",
+  "visualization_view_source": "Показать исходный код",
+  "visualization_reset": "Сбросить визуализацию",
+  "visualization_save_html": "Скачать HTML",
+  "visualization_text_alternative": "Текстовая альтернатива",
+  "visualization_loading": "Подготовка визуализации…",
+  "visualization_run_error": "Не удалось запустить визуализацию. Сбросьте её или попросите исправленную версию."
 }

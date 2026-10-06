@@ -1,0 +1,10 @@
+body { height: auto; min-height: 100vh; }
+.proof-header { display: flex; gap: 24px; align-items: center; padding: 20px 32px; border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-color-secondary); }
+.proof-brand { color: var(--text-color); font-weight: 600; font-size: 22px; letter-spacing: -1px; }
+.proof-header button { margin-inline-start: auto; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--background); color: var(--text-color); cursor: pointer; }
+main { max-width: 900px; margin: 40px auto; padding: 0 24px 32px; }
+.proof-question { width: fit-content; max-width: 82%; margin: 0 0 32px auto; padding: 14px 18px; border-radius: 18px; background: var(--chat-composer-background); font-size: 14px; line-height: 1.5; }
+.proof-speaker { font-size: 13px; font-weight: 600; margin-bottom: 12px; }
+.proof-intro, .proof-after { font-size: 15px; line-height: 1.7; }
+.proof-after { color: var(--text-color-secondary); }
+@media (max-width: 600px) { main { margin: 24px auto; padding: 0 12px 24px; } .proof-header { padding: 16px; gap: 12px; } .proof-header > span:nth-child(2) { display:none; } }

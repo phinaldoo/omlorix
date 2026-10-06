@@ -740,7 +740,8 @@ function appendAssistantWidget(messageId, widgetHtml, widgetType,
     widgetWrapper.dataset.widgetType = widgetType || 'unknown';
     // Insert the widget HTML (decode if HTML entities were escaped)
     let decodedHtml = widgetHtml;
-    if (typeof widgetHtml === 'string' && widgetHtml.includes('&lt;')) {
+    if (typeof widgetHtml === 'string' && widgetHtml.includes('&lt;')
+        && !(widgetType === 'visualization' && widgetMeta?.visualization?.runtime_version >= 2)) {
         // HTML was entity-encoded, decode it
         const decoder = document.createElement('textarea');
         decoder.innerHTML = widgetHtml;
@@ -808,6 +809,7 @@ function appendAssistantWidget(messageId, widgetHtml, widgetType,
         } else {
             Promise.resolve(window.OmlorixVisualizer.mount(widgetWrapper, decodedHtml, {
                 title: visualizationMeta.title || '',
+                summary: visualizationMeta.summary || '',
                 mode: visualizationMeta.mode || 'normal',
                 capabilities: visualizationMeta.capabilities || {
                     scripts: widgetMeta?.allow_scripts === true,
@@ -816,7 +818,6 @@ function appendAssistantWidget(messageId, widgetHtml, widgetType,
                     download: false,
                 },
                 allowExpand: true,
-                allowScripts: false,
                 isWidget: true,
             })).catch((error) => {
                 renderVisualizationError();

@@ -4780,5 +4780,11 @@
   "chat_workspace_back": "चैट पर वापस जाएँ",
   "chat_workspace_close": "विवरण पैनल छिपाएँ",
   "chat_workspace_hide": "छिपाएँ",
-  "subagent_tab_label": "{name} · {number}"
+  "subagent_tab_label": "{name} · {number}",
+  "visualization_view_source": "स्रोत कोड देखें",
+  "visualization_reset": "विज़ुअलाइज़ेशन रीसेट करें",
+  "visualization_save_html": "HTML डाउनलोड करें",
+  "visualization_text_alternative": "वैकल्पिक पाठ विवरण",
+  "visualization_loading": "विज़ुअलाइज़ेशन तैयार हो रहा है…",
+  "visualization_run_error": "यह विज़ुअलाइज़ेशन नहीं चल सका। इसे रीसेट करें या सुधारा हुआ संस्करण माँगें।"
 }

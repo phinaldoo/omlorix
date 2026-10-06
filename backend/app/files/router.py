@@ -1200,6 +1200,13 @@ def get_canvas_html_preview_proxy_route():
     )
 
 
+@files_router.get('/canvas/visualization-preview-proxy', response_class=HTMLResponse)
+def get_visualization_preview_proxy_route():
+    """Serve the no-network visualization sandbox, including public shares."""
+    payload = get_canvas_html_preview_proxy_payload(visualization=True)
+    return HTMLResponse(content=str(payload["html"]), headers=dict(payload["headers"]))
+
+
 @files_router.delete('/')
 @files_router.delete('')
 def delete_file_route(

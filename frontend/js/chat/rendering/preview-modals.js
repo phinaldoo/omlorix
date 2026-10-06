@@ -108,228 +108,224 @@ function openMermaidPreviewModal(wrapper) {
     });
 }
 
-const ALLOWED_PREVIEW_ACTIONS = Object.freeze(['expand', 'run-interactive']);
-
-function validatePreviewAction(action) {
-    const normalized = String(action || '').trim().toLowerCase();
-    return ALLOWED_PREVIEW_ACTIONS.includes(normalized) ? normalized : null;
-}
-
-function openStandaloneVisualizerPreviewModal(source, options = {}) {
-    closeCodeBlockPreviewModal();
-    openCodeBlockPreviewModal({
-        title: options.title || getChatPreviewTranslation('visualization_preview_title', 'Visualization preview'),
-        ariaLabel: getChatPreviewTranslation('visualization_preview_aria', 'Visualization preview'),
-        hideHeader: true,
-        modalClass: 'is-visualizer',
-        mountPreview(body) {
-            return mountVisualizerPreview(body, source, {
-                ...options,
-                allowExpand: false,
-                allowScripts: false,
-                isModal: true,
-                showClose: true,
-            });
-        },
-    });
-}
-
-function bindVisualizerPreviewSurface(surface, {
-    allowExpand = true,
-    allowScripts = false,
-    source = '',
-    target = null,
-    isModal = false,
-    title = '',
-    mode = 'normal',
-    capabilities = {},
-    showClose = false,
-} = {}) {
-    if (!(surface instanceof Element) || surface.dataset.boundVisualizerPreviewSurface === 'true') {
-        return;
+// Expansion keeps the original iframe in place, preserving live control state.
+// Siblings along its ancestor path become inert, as for the shared modals.
+function expandVisualizationSurface(surface, controller, trigger) {
+    activeVisualizationSurface?.collapse();
+    const inertNodes = [];
+    let current = surface;
+    while (current.parentElement && current !== document.body) {
+        Array.from(current.parentElement.children).forEach((sibling) => {
+            if (sibling !== current && !sibling.inert) {
+                sibling.inert = true;
+                inertNodes.push(sibling);
+            }
+        });
+        current = current.parentElement;
     }
-    surface.dataset.boundVisualizerPreviewSurface = 'true';
-    surface.addEventListener('click', async (event) => {
-        const closeButton = event.target instanceof Element
-            ? event.target.closest('[data-visualizer-close]')
-            : null;
-        if (closeButton instanceof HTMLButtonElement && isModal) {
+    surface.classList.add('is-expanded');
+    surface.setAttribute('role', 'dialog');
+    surface.setAttribute('aria-modal', 'true');
+    document.body.classList.add('visualization-expanded');
+    controller.collapse = () => {
+        surface.classList.remove('is-expanded');
+        surface.setAttribute('role', 'region');
+        surface.removeAttribute('aria-modal');
+        inertNodes.forEach((node) => { node.inert = false; });
+        document.body.classList.remove('visualization-expanded');
+        activeVisualizationSurface = null;
+        controller.collapse = () => {};
+        broadcastVisualizationTheme();
+        if (trigger?.isConnected) trigger.focus({ preventScroll: true });
+    };
+    controller.keydown = (event) => {
+        if (event.key === 'Escape') {
             event.preventDefault();
-            event.stopPropagation();
-            closeCodeBlockPreviewModal();
-            return;
+            controller.collapse();
+        } else if (event.key === 'Tab') {
+            const elements = Array.from(surface.querySelectorAll('button:not([disabled]), iframe, [tabindex="0"], summary'))
+                .filter((element) => element.getClientRects().length && !element.closest('[hidden]'));
+            const first = elements[0];
+            const last = elements.at(-1);
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last?.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first?.focus();
+            }
         }
-        const actionButton = event.target instanceof Element
-            ? event.target.closest('[data-preview-action]')
-            : null;
-        if (!(actionButton instanceof HTMLButtonElement)) {
-            return;
-        }
-        event.preventDefault();
-        event.stopPropagation();
-        const action = validatePreviewAction(actionButton.getAttribute('data-preview-action'));
-        if (action === 'run-interactive' && !allowScripts && target instanceof Element) {
-            await mountVisualizerPreview(target, source, {
-                allowExpand,
-                allowScripts: true,
-                isModal,
-                title,
-                mode,
-                capabilities,
-                showClose,
-            });
-            return;
-        }
-        if (action === 'expand' && allowExpand) {
-            openStandaloneVisualizerPreviewModal(source, { title, mode, capabilities });
-            return;
-        }
-    });
+    };
+    activeVisualizationSurface = controller;
+    broadcastVisualizationTheme();
+    surface.querySelector('[data-visualizer-close]')?.focus();
 }
 
 async function mountVisualizerPreview(target, source, options = {}) {
-    if (!(target instanceof Element)) {
-        return false;
-    }
-
-    const capabilities = normalizeVisualizationCapabilitiesForSurface(
-        options.capabilities && typeof options.capabilities === 'object'
-            ? options.capabilities
-            : { scripts: true, external_data: false, chat_followup: false, download: false }
-    );
-    const canEnableScripts = capabilities.scripts !== false;
-    const allowScripts = canEnableScripts && options.allowScripts === true;
-    ensureCodeBlockPreviewMessageListener();
-
-    let runtimeAssets;
-    try {
-        // Static-first rendering fetches only the small CSS contract. The much
-        // larger optional libraries are loaded after the viewer explicitly
-        // enables interaction for an artifact that can run scripts.
-        runtimeAssets = await loadVisualizerRuntimeAssets(allowScripts);
-    } catch (error) {
-        target.innerHTML = `<div class="code-block-preview-status">${escapeHtml(
-            getChatPreviewTranslation('visualization_runtime_unavailable', 'The visualization runtime could not be loaded.')
-        )}</div>`;
-        return false;
-    }
-
-    const surface = document.createElement('div');
+    if (!(target instanceof Element)) return false;
+    target._previewCleanup?.();
+    const capabilities = normalizeVisualizationCapabilitiesForSurface(options.capabilities || { scripts: true });
+    const allowScripts = capabilities.scripts !== false;
+    const title = String(options.title || getChatPreviewTranslation('visualization_preview_label', 'Visualization'));
     const mode = options.mode === 'wide' ? 'wide' : 'normal';
-    surface.className = `visualizer-preview-surface${options.isModal ? ' is-modal' : ''}${mode === 'wide' ? ' is-wide' : ''}`;
-    const previewBadge = getChatPreviewTranslation('visualization_preview_label', 'Visualization');
-    const expandLabel = getChatPreviewTranslation('code_block_open_large_preview', 'Open large preview');
-    const runLabel = getChatPreviewTranslation(
-        'code_block_html_preview_run_interactive',
-        'Run interactive preview and allow external content'
-    );
-    const closeLabel = getChatPreviewTranslation('files_preview_close_aria', 'Close preview');
-    const displayTitle = String(options.title || previewBadge).trim() || previewBadge;
+    const id = `visualizer-${crypto.randomUUID()}`;
+    const label = (key, fallback) => getCodeBlockActionA11yAttrs(key, fallback);
+    const surface = document.createElement('section');
+    surface.className = `visualizer-preview-surface${mode === 'wide' ? ' is-wide' : ''}`;
+    surface.setAttribute('role', 'region');
+    surface.setAttribute('aria-label', title);
     surface.innerHTML = `
         <div class="visualizer-preview-toolbar">
             <div class="visualizer-preview-heading">
-                <span class="visualizer-preview-heading-icon" aria-hidden="true">${Icons?.chartLine || Icons?.image || ''}</span>
-                <div class="visualizer-preview-badge">${escapeHtml(displayTitle)}</div>
+                <span class="visualizer-preview-heading-icon" aria-hidden="true">${Icons.visualization}</span>
+                <span class="visualizer-preview-badge">${escapeHtml(title)}</span>
             </div>
             <div class="visualizer-preview-toolbar-actions">
-                ${canEnableScripts && !allowScripts ? `<button type="button" class="code-block-preview-run-btn visualizer-preview-run-btn" data-preview-action="run-interactive" aria-label="${escapeHtml(runLabel)}" data-i18n="code_block_html_preview_run_interactive" data-i18n-attr="aria-label:code_block_html_preview_run_interactive"><span aria-hidden="true">${MARKDOWN_RUN_SVG}</span><span>${escapeHtml(runLabel)}</span></button>` : ''}
-                ${options.allowExpand !== false ? `<button type="button" class="visualizer-preview-action" data-preview-action="expand" aria-label="${escapeHtml(expandLabel)}" title="${escapeHtml(expandLabel)}" data-i18n-attr="aria-label:code_block_open_large_preview;title:code_block_open_large_preview">${MARKDOWN_EXPAND_PREVIEW_SVG}</button>` : ''}
-                ${options.showClose === true ? `<button type="button" class="visualizer-preview-action visualizer-preview-close" data-visualizer-close aria-label="${escapeHtml(closeLabel)}" title="${escapeHtml(closeLabel)}" data-i18n-attr="aria-label:files_preview_close_aria;title:files_preview_close_aria">${MARKDOWN_CLOSE_SVG}</button>` : ''}
+                <button type="button" class="visualizer-preview-action" data-preview-action="source" aria-pressed="false" ${label('visualization_view_source', 'View source')}>${MARKDOWN_CODE_SVG}</button>
+                <button type="button" class="visualizer-preview-action" data-preview-action="reset" ${label('visualization_reset', 'Reset visualization')}>${MARKDOWN_RESET_ZOOM_SVG}</button>
+                <button type="button" class="visualizer-preview-action" data-preview-action="download" disabled ${label('visualization_save_html', 'Download HTML')}>${MARKDOWN_DOWNLOAD_SVG}</button>
+                <button type="button" class="visualizer-preview-action visualizer-preview-expand" data-preview-action="expand" ${label('code_block_open_large_preview', 'Open large preview')}>${MARKDOWN_EXPAND_PREVIEW_SVG}</button>
+                <button type="button" class="visualizer-preview-action visualizer-preview-close" data-visualizer-close ${label('files_preview_close_aria', 'Close preview')}>${MARKDOWN_CLOSE_SVG}</button>
             </div>
         </div>
-        <div class="visualizer-preview-stage">
-            <div class="visualizer-preview-frame-shell"></div>
-        </div>
+        <div class="visualizer-preview-status" role="status" aria-live="polite"></div>
+        <div class="visualizer-preview-stage" id="${id}-view"><div class="visualizer-preview-frame-shell"></div></div>
+        <div class="visualizer-preview-source" id="${id}-source" hidden><pre tabindex="0"><code></code></pre></div>
+        ${options.summary ? `<details class="visualizer-preview-summary"><summary data-i18n="visualization_text_alternative">${escapeHtml(getChatPreviewTranslation('visualization_text_alternative', 'Text alternative'))}</summary><p>${escapeHtml(options.summary)}</p></details>` : ''}
     `;
+    target.replaceChildren(surface);
+    const stage = surface.querySelector('.visualizer-preview-stage');
+    const sourcePane = surface.querySelector('.visualizer-preview-source');
+    sourcePane.querySelector('code').textContent = String(source || '');
+    const sourceButton = surface.querySelector('[data-preview-action="source"]');
+    sourceButton.setAttribute('aria-controls', `${id}-source`);
+    const statusNode = surface.querySelector('.visualizer-preview-status');
+    const controller = {
+        collapse() {},
+        status(state) {
+            if (!['loading', 'ready', 'error'].includes(state)) return;
+            surface.dataset.state = state;
+            statusNode.hidden = state === 'ready';
+            statusNode.textContent = state === 'loading'
+                ? getChatPreviewTranslation('visualization_loading', 'Preparing visualization…')
+                : state === 'error' ? getChatPreviewTranslation('visualization_run_error', 'This visualization could not run. Reset it or ask for a corrected version.') : '';
+        },
+    };
+    controller.status('loading');
+    let iframe = null;
+    let assets = null;
+    let timeout = null;
+    let disposed = false;
+    let renderGeneration = 0;
+    let visibilityObserver = null;
+    target._previewCleanup = () => {
+        disposed = true;
+        renderGeneration += 1;
+        clearTimeout(timeout);
+        visibilityObserver?.disconnect();
+        controller.collapse();
+        iframe?.remove();
+    };
+    ensureCodeBlockPreviewMessageListener();
 
-    target.innerHTML = '';
-    target.appendChild(surface);
-    bindVisualizerPreviewSurface(surface, {
-        allowExpand: options.allowExpand !== false,
-        allowScripts,
-        source,
-        target,
-        isModal: options.isModal === true,
-        title: displayTitle,
-        mode,
-        capabilities,
-        showClose: options.showClose === true,
-    });
-
-    const frameShell = surface.querySelector('.visualizer-preview-frame-shell');
-    if (!(frameShell instanceof Element)) {
-        return false;
+    async function render() {
+        const generation = ++renderGeneration;
+        clearTimeout(timeout);
+        controller.status('loading');
+        try {
+            assets = await loadVisualizerRuntimeAssets(allowScripts, source);
+            if (disposed || generation !== renderGeneration) return false;
+            const proxyRuntime = window.OmlorixCanvasHtmlPreview;
+            if (!proxyRuntime?.render) throw new Error('Missing visualization proxy');
+            iframe?.remove();
+            iframe = document.createElement('iframe');
+            iframe.className = 'visualizer-preview-frame';
+            iframe.title = title;
+            iframe.setAttribute('referrerpolicy', 'no-referrer');
+            iframe.dataset.previewFrameId = `${id}-${generation}`;
+            iframe.dataset.previewMinHeight = '120';
+            iframe.dataset.previewMaxHeight = '1800';
+            iframe.dataset.visualizationCapabilities = JSON.stringify(capabilities);
+            iframe.style.height = '240px';
+            visualizationSurfaces.set(iframe, {
+                status(state) { clearTimeout(timeout); controller.status(state); },
+                collapse() { controller.collapse(); },
+                moveFocus(backwards) {
+                    if (!surface.classList.contains('is-expanded')) return;
+                    const controls = Array.from(surface.querySelectorAll('button, iframe, summary'))
+                        .filter((node) => node.getClientRects().length && !node.disabled && !node.closest('[hidden]'));
+                    const index = controls.indexOf(iframe);
+                    controls[(index + (backwards ? -1 : 1) + controls.length) % controls.length]?.focus();
+                },
+            });
+            surface.querySelector('.visualizer-preview-frame-shell').replaceChildren(iframe);
+            const previewDocument = buildVisualizerPreviewDocument(source, iframe.dataset.previewFrameId, {
+                title, allowScripts, capabilities, runtimeCss: assets.css, ...assets,
+            });
+            timeout = setTimeout(() => controller.status('error'), 15000);
+            iframe.addEventListener('canvashtmlpreviewload', (event) => {
+                if (event.detail?.navigated) controller.status('error');
+                else broadcastVisualizationTheme();
+            });
+            if (!proxyRuntime.render(iframe, previewDocument, {
+                title, visualization: true, allowScripts: true, allowEval: false,
+                allowExternalContent: false, hydrateAuthenticatedFiles: false, relayVisualizationMessages: true,
+            })) throw new Error('Visualization proxy unavailable');
+            surface.querySelector('[data-preview-action="download"]').disabled = false;
+            return true;
+        } catch (_) {
+            if (generation === renderGeneration && !disposed) controller.status('error');
+            return false;
+        }
     }
 
-    const iframe = document.createElement('iframe');
-    iframe.className = 'visualizer-preview-frame';
-    // Direct srcdoc content inherits Omlorix's response CSP in Safari and other
-    // browsers, which blocks even an explicitly narrowed inline-script policy.
-    // The trusted HTML-preview proxy is same-origin; it mounts this document
-    // one level deeper in an opaque sandbox where its CSP is authoritative.
-    iframe.setAttribute('referrerpolicy', 'no-referrer');
-    iframe.setAttribute('loading', 'lazy');
-    iframe.setAttribute('title', allowScripts
-        ? getChatPreviewTranslation('visualization_preview_interactive_frame_title', 'Interactive visualization preview')
-        : getChatPreviewTranslation('visualization_preview_static_frame_title', 'Static visualization preview'));
-    iframe.setAttribute('data-i18n-attr', allowScripts
-        ? 'title:visualization_preview_interactive_frame_title'
-        : 'title:visualization_preview_static_frame_title');
-    iframe.dataset.previewFrameId = options.previewId || `visualizer-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    iframe.dataset.previewMinHeight = options.isModal ? '320' : '160';
-    iframe.dataset.previewMaxHeight = options.isModal ? '2400' : '1800';
-    iframe.dataset.visualizationCapabilities = JSON.stringify(capabilities);
-    iframe.dataset.visualizationMode = mode;
-    iframe.style.height = options.isModal ? '560px' : '240px';
-    const previewDocument = buildVisualizerPreviewDocument(source, iframe.dataset.previewFrameId, {
-        allowScripts,
-        capabilities,
-        runtimeCss: runtimeAssets.css,
-        d3: runtimeAssets.d3,
-        topojson: runtimeAssets.topojson,
-        lucide: runtimeAssets.lucide,
-        emptyLabel: getChatPreviewTranslation('visualization_preview_empty', 'No visualization content.'),
+    surface.addEventListener('click', (event) => {
+        const button = event.target instanceof Element ? event.target.closest('button') : null;
+        if (!button) return;
+        if (button.hasAttribute('data-visualizer-close')) return controller.collapse();
+        switch (button.dataset.previewAction) {
+            case 'source': {
+                const showSource = sourcePane.hidden;
+                sourcePane.hidden = !showSource;
+                stage.hidden = showSource;
+                button.setAttribute('aria-pressed', String(showSource));
+                break;
+            }
+            case 'expand':
+                expandVisualizationSurface(surface, controller, button);
+                break;
+            case 'reset':
+                void render();
+                break;
+            case 'download': {
+                if (!assets) break;
+                const html = buildVisualizerPreviewDocument(source, 'standalone', {
+                    title, summary: options.summary, allowScripts, capabilities: { scripts: allowScripts }, runtimeCss: assets.css, ...assets,
+                });
+                const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `${title.replace(/[\\/:*?"<>|\u0000-\u001f]/g, '-').slice(0, 100) || 'visualization'}.html`;
+                link.click();
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+                break;
+            }
+        }
     });
-    frameShell.appendChild(iframe);
-
-    const proxyRuntime = typeof window !== 'undefined' ? window.OmlorixCanvasHtmlPreview : null;
-    if (!proxyRuntime || typeof proxyRuntime.render !== 'function') {
-        target.innerHTML = `<div class="code-block-preview-status">${escapeHtml(
-            getChatPreviewTranslation('visualization_runtime_unavailable', 'The visualization runtime could not be loaded.')
-        )}</div>`;
-        return false;
+    // Long transcripts allocate a runtime only when approaching the viewport.
+    if (options.isWidget && typeof IntersectionObserver === 'function') {
+        visibilityObserver = new IntersectionObserver((entries) => {
+            if (!entries.some((entry) => entry.isIntersecting)) return;
+            visibilityObserver.disconnect();
+            void render();
+        }, { rootMargin: '600px' });
+        visibilityObserver.observe(surface);
+        return true;
     }
-    iframe.addEventListener('canvashtmlpreviewload', () => broadcastVisualizationTheme(), { once: true });
-    const rendered = proxyRuntime.render(iframe, previewDocument, {
-        title: iframe.title,
-        // The host bridge always needs JavaScript for sizing and theme sync.
-        // Authored scripts were already removed above unless the viewer opted
-        // into the interactive mode.
-        allowScripts: true,
-        allowEval: false,
-        // Static mode contains only Omlorix's generated bridge script. Once the
-        // viewer explicitly requests authored interactivity, that same action
-        // also grants external content because scripts can self-navigate.
-        allowExternalContent: allowScripts,
-        trustedLocalScripts: !allowScripts,
-        hydrateAuthenticatedFiles: false,
-        relayVisualizationMessages: true,
-    });
-    if (!rendered) {
-        target.innerHTML = `<div class="code-block-preview-status">${escapeHtml(
-            getChatPreviewTranslation('visualization_runtime_unavailable', 'The visualization runtime could not be loaded.')
-        )}</div>`;
-        return false;
-    }
-
-    return true;
+    return render();
 }
 
-// Tool-generated visualization widgets use this narrow public renderer surface
-// so transcript rendering stays decoupled from the large Markdown module.
-window.OmlorixVisualizer = Object.freeze({
-    mount: mountVisualizerPreview,
-});
+window.OmlorixVisualizer = Object.freeze({ mount: mountVisualizerPreview });
 
 async function mountVegaPreview(target, source, options = {}) {
     if (!(target instanceof Element)) {

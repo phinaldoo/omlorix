@@ -1,0 +1,55 @@
+<section id="parallel-lab" aria-label="Explore parallel processing">
+  <style>
+    #parallel-lab .intro { display:flex; justify-content:space-between; align-items:baseline; gap:16px; margin-bottom:22px; }
+    #parallel-lab .eyebrow { color:var(--muted-foreground); font-size:12px; letter-spacing:.04em; }
+    #parallel-lab .metric { font-size:32px; font-weight:500; letter-spacing:-1px; }
+    #parallel-lab .metric small { font-size:14px; color:var(--muted-foreground); letter-spacing:0; }
+    #parallel-lab .controls { display:grid; grid-template-columns:1fr auto; align-items:center; gap:12px 24px; padding:16px 20px; border-radius:10px; background:var(--muted); }
+    #parallel-lab .controls input { grid-column:1 / -1; }
+    #parallel-lab .legend { display:flex; flex-wrap:wrap; gap:18px; font-size:12px; color:var(--muted-foreground); margin:18px 0 0; }
+    #parallel-lab .legend span::before { content:''; display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; background:var(--viz-series-1); }
+    #parallel-lab .legend span:nth-child(2)::before { background:var(--viz-series-2); }
+    #parallel-lab .chart { width:100%; margin:8px 0 12px; }
+    #parallel-lab .note { font-size:12px; color:var(--muted-foreground); margin:16px 0 0; }
+    #parallel-lab .axis path { display:none; }
+    #parallel-lab .axis line { stroke:var(--border); }
+    #parallel-lab .selected { fill:var(--foreground); }
+    @media(max-width:450px) { #parallel-lab .intro { flex-wrap:wrap; gap:4px; } #parallel-lab .metric { font-size:28px; } }
+  </style>
+  <div class="intro"><div><div class="eyebrow">PARALLEL PROCESSING</div><div class="metric"><output id="time">24.0</output> <small>seconds per task</small></div></div><span class="text-small text-muted">Illustrative model</span></div>
+  <div class="controls"><label for="workers">Parallel workers</label><output id="count" class="tabular-nums">4 workers</output><input id="workers" class="form-range" type="range" min="1" max="16" value="4" step="1"></div>
+  <div class="legend"><span>Total processing time</span><span>Coordination overhead</span></div>
+  <div class="chart"><svg role="img" aria-label="Processing time by number of parallel workers"></svg></div>
+  <details><summary class="text-small">Explore the numbers</summary><div class="table-responsive"><table class="table table-sm"><thead><tr><th scope="col">Workers</th><th scope="col">Total (s)</th><th scope="col">Overhead (s)</th></tr></thead><tbody></tbody></table></div></details>
+  <p class="note">80 seconds of parallel work + 4 seconds of serial work + 0.1 × (workers − 1)² seconds of coordination.</p>
+  <script>
+    (() => {
+      const root = document.getElementById('parallel-lab');
+      const slider = root.querySelector('#workers');
+      const data = Array.from({length:16}, (_,i) => ({workers:i+1, overhead:0.1*i*i, total:80/(i+1)+4+0.1*i*i}));
+      root.querySelector('tbody').innerHTML = data.map(d => `<tr><td>${d.workers}</td><td class="text-end">${d.total.toFixed(1)}</td><td class="text-end">${d.overhead.toFixed(1)}</td></tr>`).join('');
+      function draw() {
+        const selected = data[Number(slider.value)-1];
+        root.querySelector('#count').textContent = `${selected.workers} workers`;
+        root.querySelector('#time').textContent = selected.total.toFixed(1);
+        const width = root.querySelector('.chart').clientWidth;
+        if (!width) return;
+        const height = 248;
+        const svg = d3.select(root.querySelector('svg')).attr('viewBox', `0 0 ${width} ${height}`);
+        svg.selectAll('*').remove();
+        const x = d3.scaleLinear().domain([1,16]).range([48,width-20]);
+        const y = d3.scaleLinear().domain([0,90]).range([height-42,24]);
+        svg.append('g').attr('class','axis').attr('transform',`translate(48,0)`).call(d3.axisLeft(y).ticks(3).tickSize(-(width-68)));
+        svg.append('g').attr('class','axis').attr('transform',`translate(0,${height-42})`).call(d3.axisBottom(x).tickValues(width<450?[1,4,8,12,16]:[1,2,4,6,8,10,12,14,16]).tickSize(0).tickPadding(10));
+        svg.append('text').attr('x',48).attr('y',14).text('Seconds');
+        svg.append('text').attr('x',width-20).attr('y',height-2).attr('text-anchor','end').text('Workers');
+        ['total','overhead'].forEach((key,index)=>svg.append('path').datum(data).attr('fill','none').attr('stroke',`var(--viz-series-${index+1})`).attr('stroke-width',2.5).attr('d',d3.line().x(d=>x(d.workers)).y(d=>y(d[key])).curve(d3.curveMonotoneX)));
+        svg.append('line').attr('x1',x(selected.workers)).attr('x2',x(selected.workers)).attr('y1',24).attr('y2',height-42).attr('stroke','var(--border)').attr('stroke-dasharray','3 4');
+        svg.append('circle').attr('cx',x(selected.workers)).attr('cy',y(selected.total)).attr('r',5).attr('fill','var(--viz-series-1)').attr('stroke','var(--background)').attr('stroke-width',2);
+      }
+      slider.addEventListener('input',draw);
+      new ResizeObserver(draw).observe(root.querySelector('.chart'));
+      draw();
+    })();
+  </script>
+</section>

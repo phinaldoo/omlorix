@@ -125,7 +125,7 @@ test('canvas HTML runtime mounts only the trusted proxy as same-origin', () => {
 
     assert.match(source, /PROXY_SANDBOX = 'allow-scripts allow-same-origin allow-modals allow-downloads allow-forms allow-popups'/);
     assert.match(source, /frame\.removeAttribute\('srcdoc'\)/);
-    assert.match(source, /frame\.src = PROXY_URL/);
+    assert.match(source, /frame\.src = state\.proxyUrl/);
     assert.match(source, /target\.postMessage\(\{[\s\S]*allowExternalContent: state\.allowExternalContent/);
     assert.match(source, /allowAuthenticatedFileHydration: state\.hydrateAuthenticatedFiles/);
 });

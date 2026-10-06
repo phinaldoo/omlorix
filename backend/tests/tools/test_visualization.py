@@ -15,7 +15,7 @@ from app.tools.visualization.utils import (
 
 
 def test_create_visualization_builds_canonical_widget_metadata():
-    """A valid fragment becomes a persistable, static-first widget payload."""
+    """A valid fragment becomes a persistable, interactive widget payload."""
 
     content = """
     <section id="revenue-comparison">
@@ -130,3 +130,34 @@ def test_visualization_metadata_survives_widget_block_persistence():
     assert meta["visualization"] == payload["visualization"]
     assert meta["tool_result"]["root_id"] == "persistent-chart"
     assert meta["tool_name"] == "create_visualization"
+
+
+def test_validation_preflight_does_not_publish_a_widget(monkeypatch):
+    monkeypatch.setattr(tool_helper, '_admit_tool_invocation_or_payload', lambda *args, **kwargs: None)
+    resolver = tool_helper.resolve_tool_call(
+        db=None, tool_name='create_visualization',
+        tool_arguments={'action': 'validate', 'title': 'Example', 'content': '<div id="example">One</div>'},
+        user_id='user-1', group_id=None, project_id=None,
+    )
+    with pytest.raises(StopIteration) as completed:
+        next(resolver)
+    result = completed.value.value
+    assert result['widget'] is None
+    assert result['result']['status'] == 'validated'
+    assert result['result']['rendered'] is False
+    assert result['result']['checks'] == 'structure_and_policy'
+
+
+def test_visualization_summary_round_trips_through_chat_blocks():
+    from app.chats.utils import _hydrate_content_blocks
+
+    source = '<section id="comparison"><p>3 &lt; 5</p></section>'
+    payload = create_visualization_payload(title='Comparison', content=source, summary='Three is less than five.')
+    meta = build_widget_block_meta(payload, tool_name='create_visualization')
+    # Chat backup/share retain the existing serialized blocks; no new storage.
+    blocks = _hydrate_content_blocks(json.dumps([{'type': 'widget', 'content': source, 'meta': meta}]), lambda _: None)
+    assert blocks[0]['content'] == source
+    assert blocks[0]['meta']['visualization']['summary'] == 'Three is less than five.'
+    assert blocks[0]['meta']['visualization']['runtime_version'] == 2
+    with pytest.raises(VisualizationValidationError, match='summary'):
+        create_visualization_payload(title='Example', content=source, summary='x' * 1001)

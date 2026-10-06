@@ -4785,5 +4785,11 @@
   "chat_workspace_back": "Retour à la conversation",
   "chat_workspace_close": "Masquer le panneau de détails",
   "chat_workspace_hide": "Masquer",
-  "subagent_tab_label": "{name} · {number}"
+  "subagent_tab_label": "{name} · {number}",
+  "visualization_view_source": "Afficher le code source",
+  "visualization_reset": "Réinitialiser la visualisation",
+  "visualization_save_html": "Télécharger le HTML",
+  "visualization_text_alternative": "Alternative textuelle",
+  "visualization_loading": "Préparation de la visualisation…",
+  "visualization_run_error": "Cette visualisation n’a pas pu s’exécuter. Réinitialisez-la ou demandez une version corrigée."
 }

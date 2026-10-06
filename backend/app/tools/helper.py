@@ -793,13 +793,22 @@ def _resolve_tool_call(
     if tool_name == "create_visualization":
         from app.tools.visualization.utils import create_visualization_payload
 
+        action = str(tool_args.get("action", "render")).strip().lower()
+        if action not in {"validate", "render"}:
+            raise ValueError("create_visualization action must be validate or render")
         widget_payload = create_visualization_payload(
             title=tool_args.get("title"),
             content=tool_args.get("content"),
             mode=tool_args.get("mode", "normal"),
             capabilities=tool_args.get("capabilities"),
+            summary=tool_args.get("summary"),
         )
         result = widget_payload["model_context"]
+        if action == "validate":
+            # A cheap, provider-neutral preflight; no widget, database write,
+            # browser process, or misleading claim of visual verification.
+            result = {**result, "status": "validated", "checks": "structure_and_policy", "rendered": False}
+            return {"content": json.dumps(result, ensure_ascii=False), "result": result}
         content = json.dumps(result, ensure_ascii=False, separators=(",", ":"))
         yield _stream_widget_event(widget_payload, tool_name="create_visualization")
         return {

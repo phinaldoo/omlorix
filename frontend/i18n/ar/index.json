@@ -4800,5 +4800,11 @@
   "chat_workspace_back": "العودة إلى المحادثة",
   "chat_workspace_close": "إخفاء لوحة التفاصيل",
   "chat_workspace_hide": "إخفاء",
-  "subagent_tab_label": "{name} · {number}"
+  "subagent_tab_label": "{name} · {number}",
+  "visualization_view_source": "عرض الشفرة المصدرية",
+  "visualization_reset": "إعادة ضبط التصور",
+  "visualization_save_html": "تنزيل HTML",
+  "visualization_text_alternative": "بديل نصي",
+  "visualization_loading": "جارٍ تحضير التصور…",
+  "visualization_run_error": "تعذر تشغيل هذا التصور. أعد ضبطه أو اطلب نسخة مصححة."
 }

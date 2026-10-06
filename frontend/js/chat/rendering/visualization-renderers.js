@@ -58,11 +58,9 @@ function mountHtmlCodePreview(previewPane, source, wrapper, options = {}) {
     return rendered;
 }
 
-function buildVisualizerPreviewContentSecurityPolicy(allowScripts = false) {
-    // The host bootstrap always runs so even the static preview can report its
-    // real height. Authored scripts are physically removed until the viewer
-    // opts in, while the opaque-origin sandbox remains the final isolation
-    // boundary in both modes.
+function buildVisualizerPreviewContentSecurityPolicy() {
+    // Defense in depth; the dedicated proxy's HTTP policy also blocks the
+    // nested frame's self-navigation and cannot be replaced by authored code.
     const scriptPolicy = "script-src 'unsafe-inline';";
     return [
         "default-src 'none';",
@@ -80,14 +78,10 @@ function buildVisualizerPreviewContentSecurityPolicy(allowScripts = false) {
 
 function stripVisualizerAuthoredScripts(source) {
     const markup = String(source || '');
-    const isFullDocument = /<html[\s>]/i.test(markup);
-    const container = isFullDocument
-        ? new DOMParser().parseFromString(markup, 'text/html')
-        : document.createElement('template');
-    if (!isFullDocument) {
-        container.innerHTML = markup;
-    }
-    const root = isFullDocument ? container : container.content;
+    // A template stays inert, including resource elements in imported content.
+    const container = document.createElement('template');
+    container.innerHTML = markup;
+    const root = container.content;
     root.querySelectorAll('script').forEach((script) => script.remove());
     root.querySelectorAll('*').forEach((element) => {
         Array.from(element.attributes || []).forEach((attribute) => {
@@ -98,7 +92,7 @@ function stripVisualizerAuthoredScripts(source) {
             }
         });
     });
-    return isFullDocument ? container.documentElement.outerHTML : container.innerHTML;
+    return container.innerHTML;
 }
 
 function escapeEmbeddedScriptSource(source) {
@@ -121,6 +115,34 @@ function buildVisualizerBridgeScript(previewId, capabilities = {}) {
     const pending = new Map();
     let requestCounter = 0;
     let resizeQueued = false;
+    let lastHeight = 0;
+    let reportedError = false;
+    let expanded = false;
+
+    function status(state) {
+        parent.postMessage({type: '${VISUALIZATION_STATUS_MESSAGE_TYPE}', previewId, state}, '*');
+    }
+    window.addEventListener('error', (event) => {
+        // The browser retries resize notifications next frame; they are not
+        // script failures in a chart that adjusts to its container's size.
+        if (/^ResizeObserver loop (?:completed with undelivered notifications\\.|limit exceeded)$/.test(event.message || '')) return;
+        reportedError = true;
+        status('error');
+    });
+    window.addEventListener('unhandledrejection', () => { reportedError = true; status('error'); });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            parent.postMessage({type: '${VISUALIZATION_KEY_MESSAGE_TYPE}', previewId, key: 'Escape'}, '*');
+        }
+        if (event.key === 'Tab' && expanded) {
+            const focusable = Array.from(document.querySelectorAll('button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex="0"]'))
+                .filter((node) => node.getClientRects().length && !node.closest('[hidden], [inert]'));
+            if (!focusable.length || (event.shiftKey ? document.activeElement === focusable[0] : document.activeElement === focusable[focusable.length - 1])) {
+                event.preventDefault();
+                parent.postMessage({type: '${VISUALIZATION_KEY_MESSAGE_TYPE}', previewId, key: 'Tab', backwards: event.shiftKey}, '*');
+            }
+        }
+    });
 
     function postHeight() {
         resizeQueued = false;
@@ -135,7 +157,10 @@ function buildVisualizerBridgeScript(previewId, capabilities = {}) {
             shell ? shell.scrollHeight : 0,
             shell ? shell.offsetHeight : 0
         ));
-        parent.postMessage({ type: '${CODE_BLOCK_HTML_PREVIEW_MESSAGE_TYPE}', previewId, height }, '*');
+        if (height !== lastHeight) {
+            lastHeight = height;
+            parent.postMessage({ type: '${CODE_BLOCK_HTML_PREVIEW_MESSAGE_TYPE}', previewId, height }, '*');
+        }
     }
 
     function queueHeight() {
@@ -163,6 +188,7 @@ function buildVisualizerBridgeScript(previewId, capabilities = {}) {
     }
 
     window.addEventListener('message', (event) => {
+        if (event.source !== parent) return;
         const data = event.data || {};
         if (data.type === '${VISUALIZATION_HOST_RESPONSE_MESSAGE_TYPE}' && data.previewId === previewId) {
             const entry = pending.get(String(data.requestId || ''));
@@ -174,6 +200,7 @@ function buildVisualizerBridgeScript(previewId, capabilities = {}) {
             return;
         }
         if (data.type === '${VISUALIZATION_THEME_MESSAGE_TYPE}' && data.previewId === previewId) {
+            expanded = data.expanded === true;
             const tokens = data.tokens && typeof data.tokens === 'object' ? data.tokens : {};
             Object.entries(tokens).forEach(([name, value]) => {
                 if (/^--[a-z0-9-]+$/i.test(name)) {
@@ -185,6 +212,7 @@ function buildVisualizerBridgeScript(previewId, capabilities = {}) {
                 document.documentElement.style.colorScheme = data.mode;
             }
             queueHeight();
+            window.dispatchEvent(new CustomEvent('omlorix:themechange'));
         }
     });
 
@@ -254,6 +282,32 @@ function buildVisualizerBridgeScript(previewId, capabilities = {}) {
 
     function initialize() {
         setupTooltips();
+        document.querySelectorAll('[role="tablist"]').forEach((list) => {
+            const tabs = Array.from(list.querySelectorAll('[role="tab"]'));
+            function select(tab) {
+                tabs.forEach((item) => {
+                    const selected = item === tab;
+                    item.setAttribute('aria-selected', String(selected));
+                    item.tabIndex = selected ? 0 : -1;
+                    item.classList.toggle('active', selected);
+                    const panel = document.getElementById(item.getAttribute('aria-controls'));
+                    if (panel) panel.hidden = !selected;
+                });
+            }
+            tabs.forEach((tab, index) => {
+                tab.addEventListener('click', () => select(tab));
+                tab.addEventListener('keydown', (event) => {
+                    const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1
+                        : event.key === 'ArrowRight' ? (index + 1) % tabs.length
+                        : event.key === 'ArrowLeft' ? (index - 1 + tabs.length) % tabs.length : -1;
+                    if (next < 0) return;
+                    event.preventDefault();
+                    select(tabs[next]);
+                    tabs[next].focus();
+                });
+            });
+            if (tabs.length) select(tabs.find((tab) => tab.getAttribute('aria-selected') === 'true') || tabs[0]);
+        });
         if (window.lucide && typeof window.lucide.createIcons === 'function') {
             window.lucide.createIcons({ attrs: { width: 16, height: 16 } });
         }
@@ -268,6 +322,7 @@ function buildVisualizerBridgeScript(previewId, capabilities = {}) {
         queueHeight();
         setTimeout(queueHeight, 120);
         setTimeout(queueHeight, 420);
+        if (!reportedError) status('ready');
     }
 
     if (document.readyState === 'loading') {
@@ -282,7 +337,8 @@ function buildVisualizerBridgeScript(previewId, capabilities = {}) {
 
 function buildVisualizerPreviewDocument(source, previewId, options = {}) {
     const allowScripts = options.allowScripts === true;
-    const emptyLabel = String(options.emptyLabel || 'No visualization content.');
+    const standalone = previewId === 'standalone';
+    const emptyLabel = String(options.emptyLabel || getChatPreviewTranslation('visualization_preview_empty', 'No visualization content.'));
     const themeMode = getPreviewThemeMode();
     const themeVariables = buildVisualizerThemeCssVariables();
     const runtimeCss = String(options.runtimeCss || '');
@@ -296,6 +352,7 @@ function buildVisualizerPreviewDocument(source, previewId, options = {}) {
     const helperHead = [
         '<meta charset="utf-8">',
         '<meta name="viewport" content="width=device-width, initial-scale=1">',
+        `<title>${escapeHtml(options.title || '')}</title>`,
         `<meta http-equiv="Content-Security-Policy" content="${buildVisualizerPreviewContentSecurityPolicy(allowScripts)}">`,
         `<style>
             :root {
@@ -364,7 +421,9 @@ function buildVisualizerPreviewDocument(source, previewId, options = {}) {
         return documentHtml;
     }
 
-    return `<!doctype html><html data-omlorix-preview-mode="${themeMode}"><head>${helperHead}</head><body><div class="omlorix-visualizer-shell">${sourceText}</div></body></html>`;
+    const summary = standalone && options.summary ? `<p class="text-small text-muted">${escapeHtml(options.summary)}</p>` : '';
+    const pageStyle = standalone ? '<style>body{max-width:1120px;margin:auto;padding:24px}</style>' : '';
+    return `<!doctype html><html lang="${escapeHtml(document.documentElement.lang || 'en')}" dir="${document.documentElement.dir === 'rtl' ? 'rtl' : 'ltr'}" data-omlorix-preview-mode="${themeMode}"><head>${helperHead}${pageStyle}</head><body><div class="omlorix-visualizer-shell">${sourceText}</div>${summary}</body></html>`;
 }
 
 function renderSvgCodePreview(target, source) {
@@ -739,4 +798,3 @@ function renderYamlOutlinePreview(target, source) {
     target.appendChild(outline);
     return true;
 }
-

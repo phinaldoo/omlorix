@@ -4780,5 +4780,11 @@
   "chat_workspace_back": "Zurück zum Chat",
   "chat_workspace_close": "Detailbereich ausblenden",
   "chat_workspace_hide": "Ausblenden",
-  "subagent_tab_label": "{name} · {number}"
+  "subagent_tab_label": "{name} · {number}",
+  "visualization_view_source": "Quellcode anzeigen",
+  "visualization_reset": "Visualisierung zurücksetzen",
+  "visualization_save_html": "HTML herunterladen",
+  "visualization_text_alternative": "Textalternative",
+  "visualization_loading": "Visualisierung wird vorbereitet…",
+  "visualization_run_error": "Diese Visualisierung konnte nicht ausgeführt werden. Setze sie zurück oder bitte um eine korrigierte Version."
 }

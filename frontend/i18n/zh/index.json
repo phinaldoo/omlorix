@@ -4780,5 +4780,11 @@
   "chat_workspace_back": "返回聊天",
   "chat_workspace_close": "隐藏详情面板",
   "chat_workspace_hide": "隐藏",
-  "subagent_tab_label": "{name} · {number}"
+  "subagent_tab_label": "{name} · {number}",
+  "visualization_view_source": "查看源代码",
+  "visualization_reset": "重置可视化",
+  "visualization_save_html": "下载 HTML",
+  "visualization_text_alternative": "文字说明",
+  "visualization_loading": "正在准备可视化…",
+  "visualization_run_error": "此可视化无法运行。请重置或要求提供修正后的版本。"
 }

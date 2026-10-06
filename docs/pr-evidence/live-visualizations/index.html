@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en" data-mode="light">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Omlorix · Live visualizations</title>
+<link rel="stylesheet" href="/css/common/init.css">
+<link rel="stylesheet" href="/css/chat/init.css">
+<link rel="stylesheet" href="/css/chat/markdown.css">
+<link rel="stylesheet" href="/__proof__/proof.css">
+<script src="/js/common/icons.js" defer></script>
+<script src="/js/common/canvasHtmlPreview.js" defer></script>
+<script src="/js/chat/rendering/state.js" defer></script>
+<script src="/js/chat/rendering/shared-utils.js" defer></script>
+<script src="/js/chat/rendering/visualization-bridge.js" defer></script>
+<script src="/js/chat/rendering/visualization-renderers.js" defer></script>
+<script src="/js/chat/rendering/preview-modals.js" defer></script>
+<script src="/__proof__/verify.js" defer></script>
+<script src="/__proof__/proof.js" defer></script>
+</head>
+<body>
+<header class="proof-header"><span class="proof-brand">omlorix</span><span>Live visualizations</span><button id="theme" type="button">Change theme</button></header>
+<main id="chatAreaContainer">
+<div class="proof-question">Why doesn't adding more workers always make a task faster? Let me play with it.</div>
+<article>
+<p class="proof-speaker">Omlorix</p>
+<p class="proof-intro">More workers help until coordination costs catch up. Move the slider to find the sweet spot.</p>
+<div id="visual" class="markdown-body assistant-visualization-widget"></div>
+<p class="proof-after">Here, the best result is around <strong>8 workers</strong>. The serial part of the work sets a floor that extra workers can't remove.</p>
+</article>
+</main>
+</body>
+</html>

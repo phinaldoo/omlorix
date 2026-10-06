@@ -17,8 +17,9 @@ def test_canvas_html_preview_proxy_keeps_authored_code_in_nested_opaque_frame():
     assert "&& relayVisualizationMessages" in html
     assert "&& !allowAuthenticatedFileHydration" in html
     assert "&& !allowExternalContent" in html
-    assert "message.allowScripts === true && (allowExternalContent || trustedLocalScripts)" in html
-    assert "sandbox.push('allow-scripts', 'allow-modals')" in html
+    assert "message.allowScripts === true && (VISUALIZATION_ONLY || allowExternalContent || trustedLocalScripts)" in html
+    assert "sandbox.push('allow-scripts')" in html
+    assert "!VISUALIZATION_ONLY) sandbox.push('allow-modals')" in html
     assert "sandbox.push('allow-forms', 'allow-popups', 'allow-downloads')" in html
     assert "allow-same-origin" not in html
     assert "allowExternalContent ? 'http: https:' : \"'none'\"" in html
@@ -52,3 +53,13 @@ def test_canvas_html_preview_proxy_relays_only_visualization_bridge_messages():
     assert "VISUALIZATION_TO_VIEW.has(event.data?.type)" in html
     assert "permissionCsp(allowScripts, allowExternalContent, allowEval)" in html
     assert 'allowEval ? " \'unsafe-eval\'" : \'\'' in html
+
+
+def test_visualization_proxy_has_an_inherited_no_network_policy():
+    payload = get_canvas_html_preview_proxy_payload(visualization=True)
+    policy = payload['headers']['Content-Security-Policy']
+    for directive in ('connect-src', 'frame-src', 'child-src', 'worker-src', 'form-action'):
+        assert f"{directive} 'none'" in policy
+    assert 'http:' not in policy and 'https:' not in policy and "'unsafe-eval'" not in policy
+    assert 'const VISUALIZATION_ONLY = true;' in payload['html']
+    assert 'const allowAuthenticatedFileHydration = !VISUALIZATION_ONLY' in payload['html']
