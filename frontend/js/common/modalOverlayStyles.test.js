@@ -63,12 +63,13 @@ test('the shared stylesheet is the single source of modal frame styling', () => 
     const surfaceRule = ruleBody(sharedStyles, '.search-modal,\n.shared-modal {');
     assert.match(surfaceRule, /width:\s*min\(var\(--shared-modal-width, 560px\), 100%\)/u);
     assert.match(surfaceRule, /border-radius:\s*var\(--modal-border-radius, 16px\)/u);
-    assert.match(surfaceRule, /background:\s*color-mix/u);
+    assert.match(surfaceRule, /background:\s*var\(--surface-elevated\)/u);
     assert.match(surfaceRule, /backdrop-filter:\s*blur\(40px\) saturate\(1\.35\)/u);
 
     assert.match(sharedStyles, /\.search-modal-header,\s*\.shared-modal-header\s*\{/u);
     assert.match(sharedStyles, /\.search-modal-body,\s*\.shared-modal-body\s*\{/u);
     assert.match(sharedStyles, /\.search-modal-footer,\s*\.shared-modal-footer\s*\{/u);
+    assert.match(ruleBody(sharedStyles, '.search-modal-footer,\n.shared-modal-footer {'), /background:\s*transparent/u);
     assert.match(sharedStyles, /\.shared-modal-close\s*\{/u);
     assert.match(sharedStyles, /@media \(prefers-reduced-motion: reduce\)/u);
 
