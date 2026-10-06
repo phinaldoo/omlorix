@@ -50,7 +50,7 @@ function openCodeBlockPreviewModal({
             }
             const first = focusable[0];
             const last = focusable[focusable.length - 1];
-            if (event.shiftKey && document.activeElement === first) {
+            if (event.shiftKey && (document.activeElement === first || document.activeElement === dialog)) {
                 event.preventDefault();
                 last.focus();
             } else if (!event.shiftKey && document.activeElement === last) {
@@ -419,13 +419,15 @@ function ensureCodeBlockPreview(wrapper, options = {}) {
     }
 
     if (previewKind === 'mermaid') {
-        return mountMermaidPreview(previewPane, source, {
-            allowExpand: true,
-        }).then((rendered) => {
-            previewPane.dataset.previewState = rendered ? 'ready' : 'error';
+        const rendering = mountMermaidPreview(previewPane, source, { allowExpand: true });
+        const surface = previewPane.firstElementChild;
+        return rendering.then((rendered) => {
+            if (previewPane.firstElementChild === surface) {
+                previewPane.dataset.previewState = rendered ? 'ready' : 'error';
+            }
             return rendered;
         }).catch(() => {
-            previewPane.dataset.previewState = 'error';
+            if (previewPane.firstElementChild === surface) previewPane.dataset.previewState = 'error';
             return false;
         });
     }

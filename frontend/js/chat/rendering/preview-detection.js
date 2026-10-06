@@ -277,7 +277,7 @@ function getCodePreviewLabel(previewKind) {
 
 function getMermaidTheme() {
     const mode = String(document?.documentElement?.dataset?.mode || '').toLowerCase();
-    return mode === 'dark' ? 'dark' : 'default';
+    return mode === 'dark' ? 'dark' : 'neutral';
 }
 
 function isElementReadyForPreviewRender(element) {

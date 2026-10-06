@@ -4425,6 +4425,7 @@
   "chat_send_failed_retry": "メッセージを送信できませんでした。しばらくしてからもう一度お試しください。",
   "chat_stream_retention_limit_exceeded": "ライブ応答が大きくなりすぎたため、メモリに保持できませんでした。メッセージをもう一度送信してください。",
   "code_block_preview_label": "プレビュー",
+  "code_block_mermaid_navigation": "ドラッグで移動。ピンチ操作または Ctrl/⌘ + スクロールでズーム。キーボード：+/− でズーム、矢印キーで移動、Home で全体を表示。",
   "code_block_reset_zoom_aria": "ズームをリセット",
   "code_block_zoom_in_aria": "拡大",
   "code_block_zoom_out_aria": "縮小",

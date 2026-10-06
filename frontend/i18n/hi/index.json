@@ -4425,6 +4425,7 @@
   "chat_send_failed_retry": "संदेश नहीं भेजा जा सका। कृपया बाद में फिर कोशिश करें।",
   "chat_stream_retention_limit_exceeded": "लाइव उत्तर इतना बड़ा हो गया कि उसे मेमोरी में नहीं रखा जा सका। कृपया संदेश दोबारा भेजें।",
   "code_block_preview_label": "पूर्वावलोकन",
+  "code_block_mermaid_navigation": "खिसकाने के लिए खींचें। ज़ूम करने के लिए दो उँगलियों से पिंच करें या Ctrl/⌘ दबाकर स्क्रॉल करें। कीबोर्ड: ज़ूम के लिए +/−, खिसकाने के लिए तीर कुंजियाँ, पूरा आरेख दिखाने के लिए Home।",
   "code_block_reset_zoom_aria": "ज़ूम रीसेट करें",
   "code_block_zoom_in_aria": "ज़ूम इन",
   "code_block_zoom_out_aria": "ज़ूम आउट",

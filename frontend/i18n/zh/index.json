@@ -4425,6 +4425,7 @@
   "chat_send_failed_retry": "无法发送消息，请稍后重试。",
   "chat_stream_retention_limit_exceeded": "实时回复过大，无法继续保存在内存中。请重新发送消息。",
   "code_block_preview_label": "预览",
+  "code_block_mermaid_navigation": "拖动以平移。双指缩放或按住 Ctrl/⌘ 并滚动以缩放。键盘：+/− 缩放，方向键平移，Home 键适应视图。",
   "code_block_reset_zoom_aria": "重置缩放",
   "code_block_zoom_in_aria": "放大",
   "code_block_zoom_out_aria": "缩小",

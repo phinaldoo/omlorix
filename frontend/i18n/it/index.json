@@ -4430,6 +4430,7 @@
   "chat_send_failed_retry": "Impossibile inviare il messaggio. Riprova più tardi.",
   "chat_stream_retention_limit_exceeded": "La risposta in tempo reale è diventata troppo grande per essere conservata in memoria. Invia di nuovo il messaggio.",
   "code_block_preview_label": "Anteprima",
+  "code_block_mermaid_navigation": "Trascina per spostare. Pizzica o usa Ctrl/⌘ + scorrimento per ingrandire. Tastiera: +/− per lo zoom, frecce per spostare, Home per adattare.",
   "code_block_reset_zoom_aria": "Reimposta zoom",
   "code_block_zoom_in_aria": "Ingrandisci",
   "code_block_zoom_out_aria": "Riduci",

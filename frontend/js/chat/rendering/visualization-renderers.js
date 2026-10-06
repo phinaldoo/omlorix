@@ -30,7 +30,7 @@ function mountHtmlCodePreview(previewPane, source, wrapper, options = {}) {
     iframe.setAttribute('data-i18n-attr', allowScripts
         ? 'title:code_block_html_preview_interactive_frame_title'
         : 'title:code_block_html_preview_static_frame_title');
-    iframe.style.height = '320px';
+    iframe.style.height = '200px';
 
     frameShell.appendChild(iframe);
     previewPane.innerHTML = '';

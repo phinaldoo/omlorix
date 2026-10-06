@@ -19,532 +19,250 @@ function closeCodeBlockPreviewModal() {
     }
 }
 
-const MERMAID_PREVIEW_MIN_SCALE = 0.25;
-const MERMAID_PREVIEW_MAX_SCALE = 4;
-const MERMAID_PREVIEW_BUTTON_STEP = 0.15;
-const MERMAID_PREVIEW_WHEEL_SENSITIVITY = 0.0025;
+const MERMAID_PREVIEW_MAX_SCALE = 8;
+const MERMAID_PREVIEW_BUTTON_FACTOR = 1.25;
 
-function getMermaidPreviewStage(surface) {
-    return surface instanceof Element ? surface.querySelector('.mermaid-preview-stage') : null;
+// One coordinate system for every input: viewport pixels = diagram * scale + offset.
+// The minimum follows fit so even very large diagrams can be seen in full.
+function getMermaidViewportFit(width, height, diagramWidth, diagramHeight) {
+    return Math.min(MERMAID_PREVIEW_MAX_SCALE, Math.max(1, width - 48) / diagramWidth, Math.max(1, height - 80) / diagramHeight);
 }
 
-function getMermaidPreviewCanvas(surface) {
-    return surface instanceof Element ? surface.querySelector('.mermaid-preview-canvas') : null;
+function zoomMermaidViewport(state, scale, anchorX, anchorY) {
+    const nextScale = Math.max(Math.min(0.1, state.fitScale), Math.min(scale, MERMAID_PREVIEW_MAX_SCALE));
+    const ratio = nextScale / state.scale;
+    state.x = anchorX - (anchorX - state.x) * ratio;
+    state.y = anchorY - (anchorY - state.y) * ratio;
+    state.scale = nextScale;
+    state.fitted = false;
 }
 
-function getMermaidPreviewSvg(surface) {
-    const canvas = getMermaidPreviewCanvas(surface);
-    return canvas instanceof Element ? canvas.querySelector('svg') : null;
+function fitMermaidViewport(state) {
+    state.scale = state.fitScale;
+    state.x = (state.width - state.diagramWidth * state.scale) / 2;
+    state.y = (state.height - 32 - state.diagramHeight * state.scale) / 2;
+    state.fitted = true;
 }
 
-function getMermaidPreviewScrollbar(surface, axis) {
-    if (!(surface instanceof Element)) {
-        return null;
-    }
-    return surface.querySelector(`.mermaid-preview-scrollbar[data-axis="${axis}"]`);
-}
-
-function clampMermaidPreviewScale(value) {
-    return Math.max(MERMAID_PREVIEW_MIN_SCALE, Math.min(Number(value) || 1, MERMAID_PREVIEW_MAX_SCALE));
-}
-
-function measureMermaidPreviewSvg(svg) {
-    if (!(svg instanceof SVGElement)) {
-        return null;
-    }
-
-    let width = 0;
-    let height = 0;
-
-    if (svg.viewBox && Number(svg.viewBox.baseVal?.width) > 0 && Number(svg.viewBox.baseVal?.height) > 0) {
-        width = Number(svg.viewBox.baseVal.width);
-        height = Number(svg.viewBox.baseVal.height);
-    }
-
-    if (!(width > 0 && height > 0)) {
-        const widthAttr = parseFloat(svg.getAttribute('width') || '');
-        const heightAttr = parseFloat(svg.getAttribute('height') || '');
-        if (widthAttr > 0 && heightAttr > 0) {
-            width = widthAttr;
-            height = heightAttr;
-        }
-    }
-
-    if (!(width > 0 && height > 0) && typeof svg.getBBox === 'function') {
-        try {
-            const box = svg.getBBox();
-            if (box && box.width > 0 && box.height > 0) {
-                width = box.width;
-                height = box.height;
-            }
-        } catch (_) {}
-    }
-
-    if (!(width > 0 && height > 0)) {
-        const rect = svg.getBoundingClientRect();
-        if (rect.width > 0 && rect.height > 0) {
-            width = rect.width;
-            height = rect.height;
-        }
-    }
-
-    if (!(width > 0 && height > 0)) {
-        return null;
-    }
-
-    return { width, height };
-}
-
-function normalizeMermaidPreviewSvg(surface) {
-    const svg = getMermaidPreviewSvg(surface);
-    if (!(svg instanceof SVGElement)) {
-        return null;
-    }
-
-    const metrics = measureMermaidPreviewSvg(svg);
-    if (!metrics) {
-        return null;
-    }
-
-    // Mermaid injects an inline max-width that prevents interactive zoom from
-    // enlarging the diagram once the preview reaches its intrinsic width.
-    svg.style.maxWidth = 'none';
-    svg.setAttribute('width', String(metrics.width));
-    svg.setAttribute('height', String(metrics.height));
-    return metrics;
-}
-
-function ensureMermaidSurfaceMetrics(surface) {
-    if (!(surface instanceof Element)) {
-        return null;
-    }
-
-    const storedWidth = Number(surface.dataset.mermaidBaseWidth || '');
-    const storedHeight = Number(surface.dataset.mermaidBaseHeight || '');
-    if (storedWidth > 0 && storedHeight > 0) {
-        return { width: storedWidth, height: storedHeight };
-    }
-
-    const svg = getMermaidPreviewSvg(surface);
-    const measured = measureMermaidPreviewSvg(svg);
-    if (!measured) {
-        return null;
-    }
-
-    surface.dataset.mermaidBaseWidth = String(measured.width);
-    surface.dataset.mermaidBaseHeight = String(measured.height);
-    return measured;
-}
-
-function getMermaidStageInnerSize(stage) {
-    if (!(stage instanceof Element) || typeof window === 'undefined' || typeof window.getComputedStyle !== 'function') {
-        return null;
-    }
-    const styles = window.getComputedStyle(stage);
-    const paddingLeft = parseFloat(styles.paddingLeft || '0') || 0;
-    const paddingRight = parseFloat(styles.paddingRight || '0') || 0;
-    const paddingTop = parseFloat(styles.paddingTop || '0') || 0;
-    const paddingBottom = parseFloat(styles.paddingBottom || '0') || 0;
-    return {
-        width: Math.max(stage.clientWidth - paddingLeft - paddingRight, 0),
-        height: Math.max(stage.clientHeight - paddingTop - paddingBottom, 0),
-    };
-}
-
-function getMermaidSurfaceFitScale(surface) {
-    if (!(surface instanceof Element)) {
-        return 1;
-    }
-    const stage = getMermaidPreviewStage(surface);
-    const metrics = ensureMermaidSurfaceMetrics(surface);
-    const innerSize = getMermaidStageInnerSize(stage);
-    if (!metrics || !innerSize || !(innerSize.width > 0) || !(innerSize.height > 0)) {
-        return 1;
-    }
-
-    const fitScale = Math.min(innerSize.width / metrics.width, innerSize.height / metrics.height);
-    if (!Number.isFinite(fitScale) || fitScale <= 0) {
-        return 1;
-    }
-    return clampMermaidPreviewScale(fitScale);
-}
-
-function updateMermaidPreviewScrollbars(surface) {
-    if (!(surface instanceof Element)) {
-        return;
-    }
-
-    const stage = getMermaidPreviewStage(surface);
-    const horizontal = getMermaidPreviewScrollbar(surface, 'x');
-    const vertical = getMermaidPreviewScrollbar(surface, 'y');
-    if (!(stage instanceof Element) || !(horizontal instanceof Element) || !(vertical instanceof Element)) {
-        return;
-    }
-
-    const horizontalThumb = horizontal.querySelector('.mermaid-preview-scrollbar-thumb');
-    const verticalThumb = vertical.querySelector('.mermaid-preview-scrollbar-thumb');
-    if (!(horizontalThumb instanceof HTMLElement) || !(verticalThumb instanceof HTMLElement)) {
-        return;
-    }
-
-    const maxScrollLeft = Math.max(stage.scrollWidth - stage.clientWidth, 0);
-    const maxScrollTop = Math.max(stage.scrollHeight - stage.clientHeight, 0);
-    const hasHorizontalOverflow = maxScrollLeft > 1;
-    const hasVerticalOverflow = maxScrollTop > 1;
-
-    surface.classList.toggle('has-mermaid-scroll-x', hasHorizontalOverflow);
-    surface.classList.toggle('has-mermaid-scroll-y', hasVerticalOverflow);
-
-    horizontal.hidden = !hasHorizontalOverflow;
-    vertical.hidden = !hasVerticalOverflow;
-
-    if (hasHorizontalOverflow) {
-        const trackWidth = horizontal.clientWidth;
-        const rawThumbWidth = (stage.clientWidth / stage.scrollWidth) * trackWidth;
-        const thumbWidth = Math.min(Math.max(rawThumbWidth, 40), trackWidth);
-        const maxThumbLeft = Math.max(trackWidth - thumbWidth, 0);
-        const left = Math.min(
-            Math.max(maxScrollLeft > 0 ? (stage.scrollLeft / maxScrollLeft) * maxThumbLeft : 0, 0),
-            maxThumbLeft
-        );
-        horizontalThumb.style.width = `${thumbWidth}px`;
-        horizontalThumb.style.transform = `translateX(${left}px)`;
-    } else {
-        horizontalThumb.style.width = '';
-        horizontalThumb.style.transform = '';
-    }
-
-    if (hasVerticalOverflow) {
-        const trackHeight = vertical.clientHeight;
-        const rawThumbHeight = (stage.clientHeight / stage.scrollHeight) * trackHeight;
-        const thumbHeight = Math.min(Math.max(rawThumbHeight, 40), trackHeight);
-        const maxThumbTop = Math.max(trackHeight - thumbHeight, 0);
-        const top = Math.min(
-            Math.max(maxScrollTop > 0 ? (stage.scrollTop / maxScrollTop) * maxThumbTop : 0, 0),
-            maxThumbTop
-        );
-        verticalThumb.style.height = `${thumbHeight}px`;
-        verticalThumb.style.transform = `translateY(${top}px)`;
-    } else {
-        verticalThumb.style.height = '';
-        verticalThumb.style.transform = '';
-    }
-}
-
-function updateMermaidPreviewViewport(surface, nextScale, options = {}) {
-    if (!(surface instanceof Element)) {
-        return;
-    }
-
-    const stage = getMermaidPreviewStage(surface);
-    const canvas = getMermaidPreviewCanvas(surface);
-    const svg = getMermaidPreviewSvg(surface);
-    const metrics = ensureMermaidSurfaceMetrics(surface);
-    const innerSize = getMermaidStageInnerSize(stage);
-    const clampedScale = clampMermaidPreviewScale(nextScale);
-    const previousScale = clampMermaidPreviewScale(surface.dataset.mermaidScale || 1);
-    const previousOffsetX = Number(surface.dataset.mermaidOffsetX || '0') || 0;
-    const previousOffsetY = Number(surface.dataset.mermaidOffsetY || '0') || 0;
-
-    surface.dataset.mermaidScale = clampedScale.toFixed(3);
-    surface.style.setProperty('--mermaid-preview-scale', String(clampedScale));
-
+function bindMermaidPreviewSurface(surface, metrics) {
+    const stage = surface.querySelector('.mermaid-preview-stage');
+    const canvas = surface.querySelector('.mermaid-preview-canvas');
     const value = surface.querySelector('.mermaid-preview-zoom-value');
-    if (value) {
-        value.textContent = `${Math.round(clampedScale * 100)}%`;
-    }
-
-    if (!(stage instanceof Element) || !(canvas instanceof Element) || !(svg instanceof SVGElement) || !metrics || !innerSize) {
-        return;
-    }
-
-    const stageRect = stage.getBoundingClientRect();
-    const anchorViewportX = Number.isFinite(options.anchorClientX)
-        ? options.anchorClientX - stageRect.left
-        : stage.clientWidth / 2;
-    const anchorViewportY = Number.isFinite(options.anchorClientY)
-        ? options.anchorClientY - stageRect.top
-        : stage.clientHeight / 2;
-    const normalizedAnchorX = Math.max(0, Math.min(anchorViewportX, stage.clientWidth));
-    const normalizedAnchorY = Math.max(0, Math.min(anchorViewportY, stage.clientHeight));
-
-    const contentX = stage.scrollLeft + normalizedAnchorX;
-    const contentY = stage.scrollTop + normalizedAnchorY;
-    const diagramX = previousScale > 0 ? Math.max(contentX - previousOffsetX, 0) / previousScale : 0;
-    const diagramY = previousScale > 0 ? Math.max(contentY - previousOffsetY, 0) / previousScale : 0;
-
-    const scaledWidth = metrics.width * clampedScale;
-    const scaledHeight = metrics.height * clampedScale;
-    const nextOffsetX = Math.max((innerSize.width - scaledWidth) / 2, 0);
-    const nextOffsetY = Math.max((innerSize.height - scaledHeight) / 2, 0);
-
-    canvas.style.width = `${scaledWidth}px`;
-    canvas.style.height = `${scaledHeight}px`;
-    canvas.style.margin = `${nextOffsetY}px ${nextOffsetX}px`;
-    svg.style.width = `${scaledWidth}px`;
-    svg.style.height = `${scaledHeight}px`;
-    surface.dataset.mermaidOffsetX = String(nextOffsetX);
-    surface.dataset.mermaidOffsetY = String(nextOffsetY);
-
-    const applyScroll = () => {
-        const maxScrollLeft = Math.max(stage.scrollWidth - stage.clientWidth, 0);
-        const maxScrollTop = Math.max(stage.scrollHeight - stage.clientHeight, 0);
-
-        if (options.resetViewport) {
-            stage.scrollLeft = 0;
-            stage.scrollTop = 0;
-            updateMermaidPreviewScrollbars(surface);
-            return;
-        }
-
-        const nextScrollLeft = nextOffsetX + (diagramX * clampedScale) - normalizedAnchorX;
-        const nextScrollTop = nextOffsetY + (diagramY * clampedScale) - normalizedAnchorY;
-        stage.scrollLeft = Math.min(Math.max(nextScrollLeft, 0), maxScrollLeft);
-        stage.scrollTop = Math.min(Math.max(nextScrollTop, 0), maxScrollTop);
-        updateMermaidPreviewScrollbars(surface);
-    };
-
-    applyScroll();
-    if (typeof requestAnimationFrame === 'function') {
-        requestAnimationFrame(applyScroll);
-    }
-}
-
-function resetMermaidSurfaceViewport(surface) {
-    updateMermaidPreviewViewport(surface, getMermaidSurfaceFitScale(surface), { resetViewport: true });
-}
-
-function bindMermaidPreviewScrollbar(surface, axis, ac) {
-    const stage = getMermaidPreviewStage(surface);
-    const scrollbar = getMermaidPreviewScrollbar(surface, axis);
-    const thumb = scrollbar instanceof Element
-        ? scrollbar.querySelector('.mermaid-preview-scrollbar-thumb')
-        : null;
-    if (!(stage instanceof Element) || !(scrollbar instanceof HTMLElement) || !(thumb instanceof HTMLElement)) {
-        return;
-    }
-
-    const startDrag = (event) => {
-        if (event.button !== 0) {
-            return;
-        }
-        event.preventDefault();
-        event.stopPropagation();
-
-        const trackRect = scrollbar.getBoundingClientRect();
-        const thumbRect = thumb.getBoundingClientRect();
-        const maxScroll = axis === 'x'
-            ? Math.max(stage.scrollWidth - stage.clientWidth, 0)
-            : Math.max(stage.scrollHeight - stage.clientHeight, 0);
-        const trackSize = axis === 'x' ? trackRect.width : trackRect.height;
-        const thumbSize = axis === 'x' ? thumbRect.width : thumbRect.height;
-        const maxThumbOffset = Math.max(trackSize - thumbSize, 0);
-        const pointerOffsetInThumb = event.target === thumb
-            ? ((axis === 'x' ? event.clientX - thumbRect.left : event.clientY - thumbRect.top))
-            : thumbSize / 2;
-
-        const move = (moveEvent) => {
-            const pointerOffsetInTrack = axis === 'x'
-                ? moveEvent.clientX - trackRect.left
-                : moveEvent.clientY - trackRect.top;
-            const nextThumbOffset = Math.min(
-                Math.max(pointerOffsetInTrack - pointerOffsetInThumb, 0),
-                maxThumbOffset
-            );
-            const nextProgress = maxThumbOffset > 0 ? nextThumbOffset / maxThumbOffset : 0;
-            const nextScroll = nextProgress * maxScroll;
-            if (axis === 'x') {
-                stage.scrollLeft = nextScroll;
-            } else {
-                stage.scrollTop = nextScroll;
-            }
-            updateMermaidPreviewScrollbars(surface);
-        };
-
-        const stop = () => {
-            window.removeEventListener('pointermove', move);
-            window.removeEventListener('pointerup', stop);
-            window.removeEventListener('pointercancel', stop);
-        };
-
-        window.addEventListener('pointermove', move);
-        window.addEventListener('pointerup', stop, { once: true });
-        window.addEventListener('pointercancel', stop, { once: true });
-        move(event);
-    };
-
-    scrollbar.addEventListener('pointerdown', startDrag, { signal: ac.signal });
-}
-
-function bindMermaidPreviewSurface(surface, { allowExpand = true } = {}) {
-    if (!(surface instanceof Element) || surface.dataset.boundMermaidPreviewSurface === 'true') {
-        return;
-    }
-    surface.dataset.boundMermaidPreviewSurface = 'true';
-    const stage = getMermaidPreviewStage(surface);
+    const zoomIn = surface.querySelector('[data-mermaid-action="zoom-in"]');
+    const zoomOut = surface.querySelector('[data-mermaid-action="zoom-out"]');
     const ac = new AbortController();
-    surface._mermaidPreviewAbortController = ac;
-    const resizeObserver = typeof ResizeObserver === 'function'
-        ? new ResizeObserver(() => {
-            updateMermaidPreviewViewport(surface, Number(surface.dataset.mermaidScale || 1));
-            updateMermaidPreviewScrollbars(surface);
-        })
-        : null;
-    if (resizeObserver && stage instanceof Element) {
-        resizeObserver.observe(stage);
-        surface._mermaidPreviewResizeObserver = resizeObserver;
-    }
+    const pointers = new Map();
+    let frame = 0;
+    const state = {
+        diagramWidth: metrics.width, diagramHeight: metrics.height,
+        width: 0, height: 0, scale: 1, fitScale: 1, x: 0, y: 0, fitted: true,
+    };
+    canvas.style.width = `${metrics.width}px`;
+    canvas.style.height = `${metrics.height}px`;
+
+    const paint = () => {
+        frame = 0;
+        canvas.style.transform = `translate(${state.x}px, ${state.y}px) scale(${state.scale})`;
+        surface.dataset.mermaidScale = String(state.scale);
+        value.textContent = `${Math.round(state.scale * 100)}%`;
+        zoomIn.disabled = state.scale >= MERMAID_PREVIEW_MAX_SCALE;
+        zoomOut.disabled = state.scale <= Math.min(0.1, state.fitScale);
+    };
+    const update = () => {
+        // Keep a small part of the chart reachable, without snapping small charts
+        // back to the center during pointer-anchored zoom.
+        state.x = Math.max(32 - metrics.width * state.scale, Math.min(state.x, state.width - 32));
+        state.y = Math.max(32 - metrics.height * state.scale, Math.min(state.y, state.height - 32));
+        if (!frame) frame = requestAnimationFrame(paint);
+    };
+    const fit = () => { fitMermaidViewport(state); update(); };
+    const zoom = (scale, x = state.width / 2, y = state.height / 2) => {
+        zoomMermaidViewport(state, scale, x, y);
+        update();
+    };
+    const point = (event) => {
+        const rect = stage.getBoundingClientRect();
+        return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+    };
+    const resize = () => {
+        const width = stage.clientWidth;
+        const height = stage.clientHeight;
+        if (!width || !height) return; // Hidden code tabs retain their viewport.
+        const dx = (width - state.width) / 2;
+        const dy = (height - state.height) / 2;
+        state.width = width;
+        state.height = height;
+        state.fitScale = getMermaidViewportFit(width, height, metrics.width, metrics.height);
+        if (state.fitted) fit();
+        else { state.x += dx; state.y += dy; update(); }
+    };
+    const observer = new ResizeObserver(resize);
+    observer.observe(stage);
+    resize();
 
     surface.addEventListener('click', (event) => {
-        const actionButton = event.target instanceof Element
-            ? event.target.closest('.mermaid-preview-action')
-            : null;
-        if (!(actionButton instanceof HTMLButtonElement)) {
-            return;
-        }
+        const button = event.target.closest('button[data-mermaid-action]');
+        if (!button || button.disabled) return;
         event.preventDefault();
         event.stopPropagation();
-        const action = actionButton.dataset.mermaidAction || '';
-        const currentScale = Number(surface.dataset.mermaidScale || 1);
-        if (action === 'zoom-in') {
-            updateMermaidPreviewViewport(surface, currentScale + MERMAID_PREVIEW_BUTTON_STEP);
-            return;
-        }
-        if (action === 'zoom-out') {
-            updateMermaidPreviewViewport(surface, currentScale - MERMAID_PREVIEW_BUTTON_STEP);
-            return;
-        }
-        if (action === 'reset') {
-            resetMermaidSurfaceViewport(surface);
-            return;
-        }
-        if (action === 'close-modal') {
-            closeCodeBlockPreviewModal();
-            return;
-        }
-        if (action === 'expand' && allowExpand) {
-            const wrapper = surface.closest('.code-block-wrapper');
-            if (wrapper) {
-                openMermaidPreviewModal(wrapper);
-            }
+        switch (button.dataset.mermaidAction) {
+            case 'zoom-in': zoom(state.scale * MERMAID_PREVIEW_BUTTON_FACTOR); break;
+            case 'zoom-out': zoom(state.scale / MERMAID_PREVIEW_BUTTON_FACTOR); break;
+            case 'reset': fit(); break;
         }
     }, { signal: ac.signal });
 
-    if (stage instanceof Element) {
-        stage.addEventListener('scroll', () => {
-            updateMermaidPreviewScrollbars(surface);
-        }, { passive: true, signal: ac.signal });
+    stage.addEventListener('wheel', (event) => {
+        // Ordinary scrolling continues through the conversation. Trackpad pinch
+        // and Ctrl/Cmd+wheel zoom at the pointer, including line-mode mouse wheels.
+        if (!event.ctrlKey && !event.metaKey) return;
+        event.preventDefault();
+        const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? state.height : 1;
+        const delta = Math.max(-200, Math.min(200, event.deltaY * unit));
+        const anchor = point(event);
+        zoom(state.scale * Math.exp(-delta * 0.005), anchor.x, anchor.y);
+    }, { passive: false, signal: ac.signal });
 
-        stage.addEventListener('wheel', (event) => {
-            if (!event.ctrlKey) {
-                return;
-            }
-            event.preventDefault();
-            const currentScale = Number(surface.dataset.mermaidScale || 1);
-            const nextScale = currentScale * Math.exp(-event.deltaY * MERMAID_PREVIEW_WHEEL_SENSITIVITY);
-            updateMermaidPreviewViewport(surface, nextScale, {
-                anchorClientX: event.clientX,
-                anchorClientY: event.clientY,
-            });
-        }, { passive: false, signal: ac.signal });
+    stage.addEventListener('keydown', (event) => {
+        if (event.target !== stage || event.ctrlKey || event.metaKey || event.altKey) return;
+        const distance = event.shiftKey ? 100 : 40;
+        switch (event.key) {
+            case '+': case '=': zoom(state.scale * MERMAID_PREVIEW_BUTTON_FACTOR); break;
+            case '-': case '_': zoom(state.scale / MERMAID_PREVIEW_BUTTON_FACTOR); break;
+            case '0': case 'Home': fit(); break;
+            case 'ArrowLeft': state.x += distance; break;
+            case 'ArrowRight': state.x -= distance; break;
+            case 'ArrowUp': state.y += distance; break;
+            case 'ArrowDown': state.y -= distance; break;
+            default: return;
+        }
+        event.preventDefault();
+        if (event.key.startsWith('Arrow')) state.fitted = false;
+        update();
+    }, { signal: ac.signal });
 
-        let gestureStartScale = null;
-        stage.addEventListener('gesturestart', (event) => {
-            gestureStartScale = Number(surface.dataset.mermaidScale || 1);
-            event.preventDefault();
-        }, { passive: false, signal: ac.signal });
-        stage.addEventListener('gesturechange', (event) => {
-            if (!Number.isFinite(gestureStartScale)) {
-                gestureStartScale = Number(surface.dataset.mermaidScale || 1);
-            }
-            event.preventDefault();
-            updateMermaidPreviewViewport(surface, gestureStartScale * Number(event.scale || 1), {
-                anchorClientX: Number.isFinite(event.clientX) ? event.clientX : undefined,
-                anchorClientY: Number.isFinite(event.clientY) ? event.clientY : undefined,
-            });
-        }, { passive: false, signal: ac.signal });
-        stage.addEventListener('gestureend', () => {
-            gestureStartScale = null;
-        }, { signal: ac.signal });
+    stage.addEventListener('pointerdown', (event) => {
+        if (event.button !== 0 || event.target.closest('a')) return;
+        stage.focus({ preventScroll: true });
+        stage.setPointerCapture(event.pointerId);
+        pointers.set(event.pointerId, point(event));
+        stage.classList.add('is-panning');
+    }, { signal: ac.signal });
+    stage.addEventListener('pointermove', (event) => {
+        if (!pointers.has(event.pointerId)) return;
+        const before = Array.from(pointers.values());
+        pointers.set(event.pointerId, point(event));
+        const after = Array.from(pointers.values());
+        if (before.length === 1) {
+            state.x += after[0].x - before[0].x;
+            state.y += after[0].y - before[0].y;
+        } else {
+            const center = points => ({ x: (points[0].x + points[1].x) / 2, y: (points[0].y + points[1].y) / 2 });
+            const distance = points => Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
+            const oldCenter = center(before);
+            const newCenter = center(after);
+            const oldDistance = distance(before);
+            if (oldDistance > 0) zoomMermaidViewport(state, state.scale * distance(after) / oldDistance, oldCenter.x, oldCenter.y);
+            state.x += newCenter.x - oldCenter.x;
+            state.y += newCenter.y - oldCenter.y;
+        }
+        state.fitted = false;
+        update();
+    }, { signal: ac.signal });
+    const endPointer = (event) => {
+        pointers.delete(event.pointerId);
+        stage.classList.toggle('is-panning', pointers.size > 0);
+    };
+    for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) {
+        stage.addEventListener(type, endPointer, { signal: ac.signal });
     }
 
-    bindMermaidPreviewScrollbar(surface, 'x', ac);
-    bindMermaidPreviewScrollbar(surface, 'y', ac);
+    // Safari emits gesture events for trackpad pinch instead of Ctrl+wheel.
+    let gestureScale = 1;
+    stage.addEventListener('gesturestart', (event) => {
+        event.preventDefault();
+        gestureScale = state.scale;
+    }, { passive: false, signal: ac.signal });
+    stage.addEventListener('gesturechange', (event) => {
+        event.preventDefault();
+        if (pointers.size > 1) return;
+        const anchor = Number.isFinite(event.clientX) && Number.isFinite(event.clientY)
+            ? point(event) : { x: state.width / 2, y: state.height / 2 };
+        zoom(gestureScale * event.scale, anchor.x, anchor.y);
+    }, { passive: false, signal: ac.signal });
+    stage.addEventListener('gestureend', event => event.preventDefault(), { passive: false, signal: ac.signal });
+
+    return () => {
+        ac.abort();
+        observer.disconnect();
+        cancelAnimationFrame(frame);
+        for (const id of pointers.keys()) {
+            if (stage.hasPointerCapture(id)) stage.releasePointerCapture(id);
+        }
+        pointers.clear();
+    };
 }
 
 async function mountMermaidPreview(target, source, options = {}) {
-    if (!(target instanceof Element)) {
-        return false;
-    }
-    if (typeof target._previewCleanup === 'function') {
-        target._previewCleanup();
-        delete target._previewCleanup;
-    }
+    if (!(target instanceof Element)) return false;
+    target._previewCleanup?.();
     const surface = document.createElement('div');
     surface.className = `mermaid-preview-surface${options.isModal ? ' is-modal' : ''}`;
-    // Resolve accessibility copy before building the toolbar so dynamically-created
-    // preview controls are translated immediately, including before an i18n reapply.
-    const closePreviewLabel = getChatPreviewTranslation('files_preview_close_aria', 'Close preview');
-    const expandPreviewLabel = getChatPreviewTranslation('code_block_open_large_preview', 'Open large preview');
-    const zoomOutLabel = getChatPreviewTranslation('code_block_zoom_out_aria', 'Zoom out');
-    const zoomInLabel = getChatPreviewTranslation('code_block_zoom_in_aria', 'Zoom in');
-    const resetZoomLabel = getChatPreviewTranslation('code_block_reset_zoom_aria', 'Reset zoom');
+    const action = (name, key, fallback, icon) => {
+        const label = escapeHtml(getChatPreviewTranslation(key, fallback));
+        return `<button type="button" class="mermaid-preview-action" data-mermaid-action="${name}" aria-label="${label}" title="${label}" data-i18n-attr="aria-label:${key};title:${key}">${icon}</button>`;
+    };
+    const instructions = escapeHtml(getChatPreviewTranslation('code_block_mermaid_navigation', 'Drag to pan. Pinch or Ctrl/⌘ + scroll to zoom. Keyboard: +/− to zoom, arrow keys to pan, Home to fit.'));
     surface.innerHTML = `
         <div class="mermaid-preview-toolbar mermaid-preview-toolbar-top">
             ${options.isModal
-                ? `<button type="button" class="mermaid-preview-action" data-mermaid-action="close-modal" aria-label="${escapeHtml(closePreviewLabel)}" title="${escapeHtml(closePreviewLabel)}" data-i18n-attr="aria-label:files_preview_close_aria;title:files_preview_close_aria">${MARKDOWN_CLOSE_SVG}</button>`
-                : (options.allowExpand !== false
-                    ? `<button type="button" class="mermaid-preview-action" data-mermaid-action="expand" aria-label="${escapeHtml(expandPreviewLabel)}" title="${escapeHtml(expandPreviewLabel)}" data-i18n-attr="aria-label:code_block_open_large_preview;title:code_block_open_large_preview">${MARKDOWN_EXPAND_PREVIEW_SVG}</button>`
-                    : '')}
+                ? action('close-modal', 'files_preview_close_aria', 'Close preview', MARKDOWN_CLOSE_SVG)
+                : options.allowExpand !== false ? action('expand', 'code_block_open_large_preview', 'Open large preview', MARKDOWN_EXPAND_PREVIEW_SVG) : ''}
         </div>
-        <div class="mermaid-preview-stage">
+        <div class="mermaid-preview-stage" tabindex="0" role="group" aria-label="${instructions}" title="${instructions}" data-i18n-attr="aria-label:code_block_mermaid_navigation;title:code_block_mermaid_navigation">
             <div class="mermaid-preview-canvas"></div>
         </div>
-        <div class="mermaid-preview-scrollbar mermaid-preview-scrollbar-x" data-axis="x" hidden>
-            <div class="mermaid-preview-scrollbar-thumb"></div>
-        </div>
-        <div class="mermaid-preview-scrollbar mermaid-preview-scrollbar-y" data-axis="y" hidden>
-            <div class="mermaid-preview-scrollbar-thumb"></div>
-        </div>
-        <div class="mermaid-preview-toolbar mermaid-preview-toolbar-bottom">
-            <button type="button" class="mermaid-preview-action" data-mermaid-action="zoom-out" aria-label="${escapeHtml(zoomOutLabel)}" title="${escapeHtml(zoomOutLabel)}" data-i18n-attr="aria-label:code_block_zoom_out_aria;title:code_block_zoom_out_aria">${MARKDOWN_ZOOM_OUT_SVG}</button>
-            <span class="mermaid-preview-zoom-value">100%</span>
-            <button type="button" class="mermaid-preview-action" data-mermaid-action="zoom-in" aria-label="${escapeHtml(zoomInLabel)}" title="${escapeHtml(zoomInLabel)}" data-i18n-attr="aria-label:code_block_zoom_in_aria;title:code_block_zoom_in_aria">${MARKDOWN_ZOOM_IN_SVG}</button>
-            <button type="button" class="mermaid-preview-action" data-mermaid-action="reset" aria-label="${escapeHtml(resetZoomLabel)}" title="${escapeHtml(resetZoomLabel)}" data-i18n-attr="aria-label:code_block_reset_zoom_aria;title:code_block_reset_zoom_aria">${MARKDOWN_RESET_ZOOM_SVG}</button>
+        <div class="mermaid-preview-toolbar mermaid-preview-toolbar-bottom" hidden>
+            ${action('zoom-out', 'code_block_zoom_out_aria', 'Zoom out', MARKDOWN_ZOOM_OUT_SVG)}
+            <span class="mermaid-preview-zoom-value" aria-live="off">100%</span>
+            ${action('zoom-in', 'code_block_zoom_in_aria', 'Zoom in', MARKDOWN_ZOOM_IN_SVG)}
+            ${action('reset', 'code_block_reset_zoom_aria', 'Reset zoom', MARKDOWN_RESET_ZOOM_SVG)}
         </div>
     `;
-    target.innerHTML = '';
-    target.appendChild(surface);
-    bindMermaidPreviewSurface(surface, { allowExpand: options.allowExpand !== false });
-    target._previewCleanup = () => {
-        if (surface._mermaidPreviewAbortController) {
-            surface._mermaidPreviewAbortController.abort();
-            delete surface._mermaidPreviewAbortController;
-        }
-        if (surface._mermaidPreviewResizeObserver) {
-            surface._mermaidPreviewResizeObserver.disconnect();
-            delete surface._mermaidPreviewResizeObserver;
-        }
+    target.replaceChildren(surface);
+    const topToolbar = surface.querySelector('.mermaid-preview-toolbar-top');
+    const handleToolbarAction = (event) => {
+        const button = event.target.closest('button[data-mermaid-action]');
+        if (!button) return;
+        event.stopPropagation();
+        if (button.dataset.mermaidAction === 'close-modal') closeCodeBlockPreviewModal();
+        else openMermaidPreviewModal(surface.closest('.code-block-wrapper'));
     };
-
+    topToolbar.addEventListener('click', handleToolbarAction);
+    let disposed = false;
+    let disposeViewport = null;
+    target._previewCleanup = () => {
+        disposed = true;
+        disposeViewport?.();
+        topToolbar.removeEventListener('click', handleToolbarAction);
+    };
     const canvas = surface.querySelector('.mermaid-preview-canvas');
     const rendered = await renderMermaidDiagram(canvas, source);
-    if (rendered) {
-        const normalizedMetrics = normalizeMermaidPreviewSvg(surface);
-        if (normalizedMetrics) {
-            surface.dataset.mermaidBaseWidth = String(normalizedMetrics.width);
-            surface.dataset.mermaidBaseHeight = String(normalizedMetrics.height);
-        } else {
-            ensureMermaidSurfaceMetrics(surface);
-        }
-        const initialScale = Number.isFinite(options.initialScale)
-            ? options.initialScale
-            : getMermaidSurfaceFitScale(surface);
-        updateMermaidPreviewViewport(surface, initialScale, { resetViewport: true });
-        updateMermaidPreviewScrollbars(surface);
-    } else {
-        surface.classList.add('has-error');
+    if (disposed) return false;
+    const svg = canvas.querySelector('svg');
+    const box = svg?.viewBox?.baseVal;
+    const width = box?.width || parseFloat(svg?.getAttribute('width'));
+    const height = box?.height || parseFloat(svg?.getAttribute('height'));
+    if (rendered && width > 0 && height > 0) {
+        // Leave the SVG at its intrinsic size; only the containing canvas moves.
+        svg.style.maxWidth = 'none';
+        svg.style.width = `${width}px`;
+        svg.style.height = `${height}px`;
+        surface.querySelector('.mermaid-preview-toolbar-bottom').hidden = false;
+        disposeViewport = bindMermaidPreviewSurface(surface, { width, height });
+        return true;
     }
-    return rendered;
+    surface.classList.add('has-error');
+    return false;
 }
 

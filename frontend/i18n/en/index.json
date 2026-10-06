@@ -4426,6 +4426,7 @@
   "chat_send_failed_retry": "Failed to send message. Please try again later.",
   "chat_stream_retention_limit_exceeded": "The live response became too large to keep in memory. Please retry the message.",
   "code_block_preview_label": "Preview",
+  "code_block_mermaid_navigation": "Drag to pan. Pinch or Ctrl/⌘ + scroll to zoom. Keyboard: +/− to zoom, arrow keys to pan, Home to fit.",
   "code_block_reset_zoom_aria": "Reset zoom",
   "code_block_zoom_in_aria": "Zoom in",
   "code_block_zoom_out_aria": "Zoom out",

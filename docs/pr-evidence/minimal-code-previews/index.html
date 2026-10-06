@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en" data-mode="light">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Code and preview rendering proof</title>
+<link rel="stylesheet" href="/css/common/init.css">
+<link rel="stylesheet" href="/css/common/searchModal.css">
+<link rel="stylesheet" href="/css/chat/init.css">
+<link rel="stylesheet" href="/css/chat/markdown.css">
+<style>
+body { margin: 0; padding: 32px 20px; background: var(--background); color: var(--text-color); font-family: var(--font-system); }
+main { max-width: 760px; margin: auto; }
+h1 { font-size: 22px; letter-spacing: -.5px; margin: 0 0 4px; }
+.subtitle { color: var(--text-color-secondary); font-size: 13px; margin: 0 0 24px; }
+@media (max-width: 600px) { body { padding: 20px 12px; } }
+</style>
+<main><h1>Code & previews</h1><p class="subtitle">A small example, from source to result.</p><div class="markdown-body assistant-message-content"></div></main>
+<script src="/js/vendor/markdown/markdown-it.min.js"></script>
+<script src="/js/vendor/purify.min.js"></script>
+<script src="/js/vendor/prism/prism-core.min.js"></script>
+<script src="/js/vendor/prism/components/prism-clike.min.js"></script>
+<script src="/js/vendor/prism/components/prism-javascript.min.js"></script>
+<script src="/js/common/icons.js"></script>
+<script src="/js/common/mermaidRuntime.js"></script>
+<script src="/js/common/canvasHtmlPreview.js"></script>
+<script src="/js/chat/chatSanitizer.js"></script>
+<script>
+const codeSnippetRegistry = new Map();
+let proofTranslations = {};
+window.getTranslation = (key, fallback) => proofTranslations[key] || fallback;
+function formatChatPreviewTranslation(key, fallback, values) { return getChatPreviewTranslation(key, fallback).replace(/\{(\w+)\}/g, (_, name) => values[name] ?? ''); }
+</script>
+<script src="/js/chat/rendering/state.js"></script>
+<script src="/js/chat/rendering/preview-detection.js"></script>
+<script src="/js/chat/rendering/mermaid-vega.js"></script>
+<script src="/js/chat/rendering/code-editing-execution.js"></script>
+<script src="/js/chat/rendering/visualization-bridge.js"></script>
+<script src="/js/chat/rendering/visualization-renderers.js"></script>
+<script src="/js/chat/rendering/mermaid-preview.js"></script>
+<script src="/js/chat/rendering/preview-modals.js"></script>
+<script src="/js/chat/rendering/preview-lifecycle.js"></script>
+<script src="/js/chat/rendering/shared-utils.js"></script>
+<script src="/js/chat/rendering/markdown-parser.js"></script>
+<script src="/js/chat/rendering/markdown-ui.js"></script>
+<script>
+window.proofReady = (async () => {
+    const params = new URLSearchParams(location.search);
+    const locale = params.get('lang') || 'en';
+    document.documentElement.lang = locale;
+    document.documentElement.dataset.mode = params.get('mode') || 'light';
+    document.documentElement.dir = locale === 'ar' ? 'rtl' : 'ltr';
+    proofTranslations = await fetch(`/i18n/${locale}/index.json`).then(r => r.json());
+    const markdown = [
+        '```javascript',
+        'const greet = (name) => `Hello, ${name}!`;',
+        '',
+        'console.log(greet("world"));',
+        '```',
+        '```mermaid',
+        `flowchart ${params.get('layout') === 'vertical' ? 'TB' : 'LR'}`,
+        '    A[Start] --> B{Is it working?}',
+        '    B -->|Yes| C[Ship it]',
+        '    B -->|No| D[Debug]',
+        '    D --> B',
+        '```',
+        '```html',
+        '<!doctype html><html><body style="margin:0;padding:32px;font-family:system-ui;color:#252525;background:#fafafa"><span style="font-size:11px;letter-spacing:2px;color:#777">HELLO, WORLD</span><h1 style="font-size:26px;letter-spacing:-1px;margin:12px 0">A little less. A lot clearer.</h1><p style="font-size:14px;color:#777;margin:0">A live HTML preview, right inside your conversation.</p></body></html>',
+        '```',
+    ].join('\n');
+    const root = document.querySelector('.markdown-body');
+    root.innerHTML = window.ChatSanitizer.sanitizeHtml(getMarkdownRenderer().render(markdown));
+    enhanceCodeBlocks(root);
+    applySyntaxHighlighting(root);
+    document.addEventListener('click', handleMarkdownClick);
+    document.addEventListener('keydown', handleMarkdownKeydown);
+    document.addEventListener('change', handleMarkdownChange);
+    return true;
+})();
+</script>
+<script src="/proof-checks.js"></script>
+</html>
