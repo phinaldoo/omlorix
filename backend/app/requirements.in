@@ -42,7 +42,7 @@ anthropic==1.8.0
 elevenlabs==2.70.0
 mcp==2.2.0
 httpx2==2.13.1
-google-api-python-client==2.200.0
+google-api-python-client==2.201.0
 google-auth==2.55.2
 onnxruntime==1.30.0  # Note: Keep a wheel set that supports Python 3.13 and 3.14.
 
