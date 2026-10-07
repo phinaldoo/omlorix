@@ -688,8 +688,8 @@ def test_slide_preview_documents_include_csp_and_sandboxed_iframes():
     assert "doc.write(html)" not in source
 
 
-def test_inline_visualization_previews_default_to_static_proxy_with_no_http_csp():
-    """Protect static visualizer previews, disabled evaluation, and no-network CSP."""
+def test_inline_visualization_previews_use_isolated_proxy_with_no_network_csp():
+    """Live scripts stay in the dedicated proxy with evaluation and network blocked."""
     source = "".join(
         (REPO_ROOT / relative_path).read_text(encoding="utf-8")
         for relative_path in (
@@ -699,9 +699,11 @@ def test_inline_visualization_previews_default_to_static_proxy_with_no_http_csp(
     )
     visualizer_csp_block = source.split("function buildVisualizerPreviewContentSecurityPolicy", 1)[1].split("function buildVisualizerPreviewDocument", 1)[0]
 
-    assert "const ALLOWED_PREVIEW_ACTIONS = Object.freeze(['expand', 'run-interactive']);" in source
-    assert "data-preview-action=\"run-interactive\"" in source
-    assert "view-source" not in source
+    assert "const allowScripts = capabilities.scripts !== false;" in source
+    assert "const sourceText = allowScripts ? rawSourceText : stripVisualizerAuthoredScripts(rawSourceText);" in source
+    assert "data-preview-action=\"source\"" in source
+    assert "sourcePane.querySelector('code').textContent = String(source || '');" in source
+    assert "run-interactive" not in source
     assert "openVisualizerSourceModal" not in source
     assert "function isVisualizerLanguage" not in source
     assert "openVisualizerPreviewModal" not in source
@@ -711,9 +713,14 @@ def test_inline_visualization_previews_default_to_static_proxy_with_no_http_csp(
     assert "allowEval: false," in source
     assert "relayVisualizationMessages: true," in source
     assert "iframe.srcdoc = buildVisualizerPreviewDocument" not in source
-    assert "allowScripts: false," in source
+    assert "visualization: true, allowScripts: true, allowEval: false," in source
+    assert "allowExternalContent: false, hydrateAuthenticatedFiles: false, relayVisualizationMessages: true," in source
     assert "connect-src 'none';" in visualizer_csp_block
+    assert "frame-src 'none';" in visualizer_csp_block
+    assert "form-action 'none';" in visualizer_csp_block
+    assert "unsafe-eval" not in visualizer_csp_block
     assert "http:" not in visualizer_csp_block
+    assert "https:" not in visualizer_csp_block
 
 
 def test_byok_private_network_targets_require_explicit_allowlist(monkeypatch):

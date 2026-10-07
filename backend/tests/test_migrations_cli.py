@@ -73,7 +73,7 @@ def test_migration_graphs_expose_only_the_expected_heads():
     """Both migration histories must expose their single expected head."""
 
     assert runner._get_alembic_heads("alembic_main.ini") == (
-        "playback_documents_20260905",
+        "visualization_state_20261007",
     )
     assert runner._get_alembic_heads("alembic_audit.ini") == (
         "audit_subject_fence_20260830",
