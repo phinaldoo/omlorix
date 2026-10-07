@@ -1,0 +1,139 @@
+<section id="code-map" aria-label="Explore source code size and changes">
+  <style>
+    #code-map .stats { display:flex; flex-wrap:wrap; gap:16px 36px; margin-bottom:20px; }
+    #code-map .stat { font-size:26px; line-height:1.2; font-weight:500; letter-spacing:-.5px; }
+    #code-map .stat small { display:block; font-size:12px; font-weight:400; color:var(--muted-foreground); letter-spacing:0; margin-top:5px; }
+    #code-map .controls { display:flex; flex-wrap:wrap; align-items:end; gap:12px; margin-bottom:12px; }
+    #code-map .folder-label { flex:1 1 200px; min-width:0; }
+    #code-map .form-select { min-width:0; }
+    #code-map .check { display:flex; align-items:center; gap:6px; height:36px; font-size:13px; }
+    #code-map .canvas-wrap { width:100%; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+    #code-map canvas { display:block; width:100%; cursor:crosshair; }
+    #code-map .map-note { display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px; margin:10px 0 14px; font-size:12px; color:var(--muted-foreground); }
+    #code-map .ramp { display:inline-block; width:90px; height:7px; margin:0 6px; background:linear-gradient(90deg,var(--viz-series-1),var(--viz-series-3)); }
+    #code-map .selected { display:block; min-height:42px; padding:10px 12px; border-radius:8px; background:var(--muted); font-size:12px; overflow-wrap:anywhere; }
+    #code-map .ranking { margin:14px 0 0; }
+    #code-map .file-row { display:flex; align-items:center; gap:12px; width:100%; border:0; border-bottom:1px solid var(--border); padding:8px 0; color:var(--foreground); background:transparent; text-align:left; cursor:pointer; font-size:12px; }
+    #code-map .file-name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    #code-map .bar { flex:0 0 110px; height:5px; background:var(--muted); }
+    #code-map .bar span { height:100%; display:block; background:var(--viz-series-3); }
+    #code-map .edits { width:26px; text-align:right; font-variant-numeric:tabular-nums; }
+    #code-map .note { margin:14px 0 0; color:var(--muted-foreground); font-size:12px; }
+    @media(max-width:450px) { #code-map .stats { gap:12px 20px; } #code-map .stat { font-size:23px; } #code-map .bar { flex-basis:55px; } }
+  </style>
+  <div class="stats"><div class="stat"><output id="line-count"></output><small>lines of code</small></div><div class="stat"><output id="file-count"></output><small>source files</small></div><div class="stat"><output id="test-share"></output><small>lines in tests</small></div><div class="stat"><output id="change-count"></output><small>file touches / 100 commits</small></div></div>
+  <div class="controls">
+    <label class="form-label text-small folder-label" for="folder">Folder<select class="form-select" id="folder"><option value="">All source</option></select></label>
+    <label class="form-label text-small" for="color-mode">Color<select class="form-select" id="color-mode"><option value="churn">Changes</option><option value="area">Code area</option></select></label>
+    <label class="check" for="tests"><input id="tests" type="checkbox" checked>Include tests</label>
+    <button class="btn" type="button" id="back">Zoom out</button>
+  </div>
+  <div class="canvas-wrap"><canvas role="img" aria-label="Source file treemap. Use the folder selector and ranked file buttons for keyboard access."></canvas></div>
+  <div class="map-note"><span id="color-legend">Fewer <span class="ramp"></span> more changes</span><span>Click a file to explore its folder</span></div>
+  <output id="file-detail" class="selected" aria-live="polite">Inspect a rectangle or choose a file below.</output>
+  <div class="ranking"><h3 class="text-small">Most changed files in this view</h3><div id="file-list"></div></div>
+  <details style="margin-top:14px"><summary class="text-small">Read all files in this view</summary><div class="table-responsive"><table class="table table-sm"><thead><tr><th scope="col">File</th><th scope="col">Lines</th><th scope="col">Touches</th></tr></thead><tbody></tbody></table></div></details>
+  <p class="note">Measured snapshot: 36df43ebc. Python and JavaScript in backend/app, backend/tests, and frontend/js. Vendor bundles excluded. Physical lines include comments and whitespace.</p>
+  <script id="code-data" type="application/json">__CODE_DATA__</script>
+  <script>
+    (() => {
+      const root=document.getElementById('code-map');
+      const snapshot=JSON.parse(root.querySelector('#code-data').textContent);
+      const files=snapshot.files.map(([path,lines,touches])=>({path,lines,touches,test:path.startsWith('backend/tests/')||path.endsWith('.test.js'),folder:path.slice(0,path.lastIndexOf('/'))}));
+      const folder=root.querySelector('#folder');
+      const folders=new Set();
+      files.forEach(f=>{const parts=f.folder.split('/');for(let i=1;i<=parts.length;i++)folders.add(parts.slice(0,i).join('/'));});
+      [...folders].sort().forEach(path=>folder.add(new Option(path,path)));
+      const canvas=root.querySelector('canvas'), ctx=canvas.getContext('2d');
+      let nodes=[], selected=null, width=0, height=0, rows=[];
+      function choose(file) {
+        selected=file;
+        root.querySelector('#file-detail').textContent=`${file.path} · ${file.lines.toLocaleString('en')} lines · ${file.touches} touches${file.test?' · test file':''}`;
+        paint();
+      }
+      function enter(path) {folder.value=path;selected=null;root.querySelector('#file-detail').textContent=path||'All source files';draw();}
+      function draw() {
+        width=root.querySelector('.canvas-wrap').clientWidth;
+        if(!width) return;
+        height=width<450?320:340;
+        const ratio=Math.min(devicePixelRatio||1,2);
+        canvas.width=Math.round(width*ratio);canvas.height=Math.round(height*ratio);canvas.style.height=height+'px';
+        ctx.setTransform(ratio,0,0,ratio,0,0);
+        rows=files.filter(f=>(!folder.value||f.path.startsWith(folder.value+'/'))&&(root.querySelector('#tests').checked||!f.test));
+        const total=d3.sum(rows,d=>d.lines);
+        root.querySelector('#line-count').textContent=total.toLocaleString('en');
+        root.querySelector('#file-count').textContent=rows.length.toLocaleString('en');
+        root.querySelector('#test-share').textContent=(total?Math.round(d3.sum(rows.filter(d=>d.test),d=>d.lines)/total*100):0)+'%';
+        root.querySelector('#change-count').textContent=d3.sum(rows,d=>d.touches).toLocaleString('en');
+        root.querySelector('#back').disabled=!folder.value;
+        const tree={name:folder.value||'Omlorix',children:[]};
+        rows.forEach(file=>{
+          const relative=folder.value?file.path.slice(folder.value.length+1):file.path;
+          const parts=relative.split('/');let current=tree;
+          parts.forEach((name,i)=>{
+            if(i===parts.length-1){current.children.push({...file,name});return;}
+            let child=current.children.find(c=>c.name===name&&c.children);
+            if(!child){child={name,children:[]};current.children.push(child);}
+            current=child;
+          });
+        });
+        const hierarchy=d3.hierarchy(tree).sum(d=>d.lines||0).sort((a,b)=>b.value-a.value);
+        d3.treemap().size([width,height]).paddingInner(1).paddingOuter(2).paddingTop(d=>d.depth<=1?18:0)(hierarchy);
+        nodes=hierarchy.descendants();
+        const ranked=[...rows].sort((a,b)=>b.touches-a.touches||b.lines-a.lines).slice(0,5);
+        const list=root.querySelector('#file-list');list.replaceChildren();
+        ranked.forEach(file=>{
+          const button=document.createElement('button');button.type='button';button.className='file-row';button.dataset.file=file.path;button.setAttribute('aria-label',`Explore ${file.path}: ${file.touches} touches`);
+          const name=document.createElement('span');name.className='file-name';name.textContent=file.path;name.title=file.path;
+          const bar=document.createElement('span');bar.className='bar';bar.setAttribute('aria-hidden','true');
+          const fill=document.createElement('span');fill.style.width=(100*file.touches/Math.max(1,ranked[0]?.touches))+'%';bar.append(fill);
+          const edits=document.createElement('span');edits.className='edits';edits.textContent=String(file.touches);
+          button.append(name,bar,edits);button.addEventListener('focus',()=>choose(file));button.addEventListener('pointerenter',()=>choose(file));button.addEventListener('click',()=>{enter(file.folder);choose(file);});list.append(button);
+        });
+        // The accessible table is built on demand, avoiding thousands of hidden DOM rows.
+        root.querySelector('tbody').replaceChildren();
+        if(root.querySelector('details').open) fillTable();
+        paint();
+      }
+      function paint() {
+        const tokens=getComputedStyle(document.documentElement), token=name=>tokens.getPropertyValue(name).trim();
+        const mode=root.querySelector('#color-mode').value;
+        const color=d3.scaleSequential(d3.interpolateRgb(token('--viz-series-1'),token('--viz-series-3'))).domain([0,Math.max(1,d3.max(rows,d=>d.touches))]);
+        ctx.fillStyle=token('--background');ctx.fillRect(0,0,width,height);
+        nodes.forEach(node=>{
+          const w=node.x1-node.x0,h=node.y1-node.y0;if(w<1||h<1)return;
+          if(node.children){
+            if(node.depth<=1&&w>50){ctx.fillStyle=token('--foreground');ctx.font='11px system-ui';ctx.fillText(node.data.name,node.x0+4,node.y0+12,w-8);}
+            return;
+          }
+          ctx.fillStyle=mode==='churn'?color(node.data.touches):token(node.data.test?'--viz-series-3':node.data.path.startsWith('frontend/')?'--viz-series-2':'--viz-series-1');
+          ctx.fillRect(node.x0,node.y0,w,h);
+          if(selected?.path===node.data.path){ctx.strokeStyle=token('--foreground');ctx.lineWidth=2;ctx.strokeRect(node.x0+1,node.y0+1,w-2,h-2);}
+          if(w>85&&h>25){
+            // Label on a theme surface, so both light and dark modes retain contrast.
+            ctx.fillStyle=token('--background');ctx.globalAlpha=.9;ctx.fillRect(node.x0+2,node.y0+2,w-4,16);ctx.globalAlpha=1;
+            ctx.fillStyle=token('--foreground');ctx.font='10px system-ui';ctx.save();ctx.beginPath();ctx.rect(node.x0+4,node.y0,w-8,h);ctx.clip();ctx.fillText(node.data.name,node.x0+4,node.y0+14);ctx.restore();
+          }
+        });
+        root.querySelector('#color-legend').innerHTML=mode==='churn'?'Fewer <span class="ramp"></span> more changes':'Backend · Frontend · Tests';
+      }
+      function hit(event) {
+        const bounds=canvas.getBoundingClientRect(),x=event.clientX-bounds.left,y=event.clientY-bounds.top;
+        return nodes.find(n=>!n.children&&x>=n.x0&&x<=n.x1&&y>=n.y0&&y<=n.y1)?.data;
+      }
+      function fillTable() {
+        const body=root.querySelector('tbody');if(body.children.length)return;
+        rows.forEach(file=>{const row=body.insertRow();[file.path,file.lines,file.touches].forEach(value=>{row.insertCell().textContent=String(value);});});
+      }
+      canvas.addEventListener('pointermove',event=>{const file=hit(event);if(file)choose(file);});
+      canvas.addEventListener('click',event=>{const file=hit(event);if(file){enter(file.folder);choose(file);}});
+      root.querySelector('#back').addEventListener('click',()=>enter(folder.value.includes('/')?folder.value.slice(0,folder.value.lastIndexOf('/')):''));
+      folder.addEventListener('change',()=>enter(folder.value));
+      root.querySelector('#tests').addEventListener('change',()=>{selected=null;root.querySelector('#file-detail').textContent='Inspect a rectangle or choose a file below.';draw();});
+      root.querySelector('#color-mode').addEventListener('change',paint);
+      root.querySelector('details').addEventListener('toggle',()=>{if(root.querySelector('details').open)fillTable();});
+      addEventListener('omlorix:themechange',paint);
+      new ResizeObserver(draw).observe(root.querySelector('.canvas-wrap'));draw();
+    })();
+  </script>
+</section>

@@ -8,6 +8,9 @@ import json
 import sys
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import parse_qs, urlsplit
+
+from examples import EXAMPLES, example_content
 
 ROOT = Path(__file__).resolve().parents[3]
 PROOF = Path(__file__).resolve().parent
@@ -63,16 +66,21 @@ class Handler(SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(payload['html'].encode())
         elif path == '/__proof__/payload':
+            name = parse_qs(urlsplit(self.path).query).get('example', ['parallelism'])[0]
+            if name not in EXAMPLES:
+                self.send_error(404)
+                return
+            example = EXAMPLES[name]
             payload = visualization.create_visualization_payload(
-                title='The shape of a faster response', mode='wide',
-                summary='Illustrative model, not a benchmark. Increasing parallel workers shortens processing time until coordination overhead dominates. The table provides the values shown in the chart.',
-                content=(PROOF / 'parallelism.html').read_text(),
+                title=example['title'], mode='wide',
+                summary=example['summary'], content=example_content(name),
             )
+            payload['proof'] = example
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
             self.wfile.write(json.dumps(payload).encode())
-        elif path in ('/', '/__proof__/', '/__proof__/proof.css', '/__proof__/proof.js', '/__proof__/verify.js'):
+        elif path in ('/', '/__proof__/', '/__proof__/proof.css', '/__proof__/proof.js', '/__proof__/verify.js', '/__proof__/verify-examples.js'):
             file = PROOF / (path.rsplit('/', 1)[-1] or 'index.html')
             self.send_response(200)
             self.send_header('Content-Type', {'.css': 'text/css', '.js': 'text/javascript', '.html': 'text/html'}[file.suffix] + '; charset=utf-8')

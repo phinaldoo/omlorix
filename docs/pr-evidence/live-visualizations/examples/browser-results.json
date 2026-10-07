@@ -1,0 +1,234 @@
+{
+  "browser": "T3 collaborative Chromium",
+  "date": "2026-10-07",
+  "method": "Production backend payload builder, production renderer/proxy/assets, DOM interaction probes appended only to the proof fixtures.",
+  "runs": [
+    {
+      "checks": [
+        "stacked series and all 168 hourly cells render",
+        "share/count switch redraws scale and values",
+        "week slider updates computed totals",
+        "keyboard-equivalent heatmap selectors update exact value",
+        "heatmap pointer inspection updates the same readout",
+        "source view exposes authored code",
+        "expanded example preserves live state and fits width",
+        "closing expansion restores page interaction",
+        "theme updates without restarting",
+        "no horizontal overflow or remote widget resources",
+        "all interactions complete without a runtime error",
+        "reset restores initial authored values"
+      ],
+      "example": "charts",
+      "viewport": 1280
+    },
+    {
+      "checks": [
+        "canvas treemap renders the measured repository snapshot",
+        "test filter recomputes layout and totals",
+        "folder selector drills into rendering source",
+        "code-area colors redraw canvas",
+        "canvas hit-testing exposes a file and its measurements",
+        "zoom-out goes to the parent folder",
+        "ranked file button selects and reveals a file",
+        "source view exposes authored code",
+        "expanded example preserves live state and fits width",
+        "closing expansion restores page interaction",
+        "theme updates without restarting",
+        "canvas redraws for the new theme",
+        "no horizontal overflow or remote widget resources",
+        "all interactions complete without a runtime error",
+        "reset restores initial authored values"
+      ],
+      "example": "treemap",
+      "viewport": 1280
+    },
+    {
+      "checks": [
+        "bundled TopoJSON and D3 render 177 country geometries",
+        "country selector fits Germany and reports its data",
+        "metric switch changes values and choropleth colors",
+        "keyboard country activation selects Brazil",
+        "zoom-in changes map transform",
+        "zoom-out restores scale",
+        "pointer country selection updates controls",
+        "source view exposes authored code",
+        "expanded example preserves live state and fits width",
+        "map zoom survives expansion and responsive resizing",
+        "closing expansion restores page interaction",
+        "theme updates without restarting",
+        "no horizontal overflow or remote widget resources",
+        "all interactions complete without a runtime error",
+        "reset restores initial authored values"
+      ],
+      "example": "map",
+      "viewport": 1280
+    },
+    {
+      "checks": [
+        "stacked series and all 168 hourly cells render",
+        "share/count switch redraws scale and values",
+        "week slider updates computed totals",
+        "keyboard-equivalent heatmap selectors update exact value",
+        "heatmap pointer inspection updates the same readout",
+        "source view exposes authored code",
+        "expanded example preserves live state and fits width",
+        "closing expansion restores page interaction",
+        "theme updates without restarting",
+        "no horizontal overflow or remote widget resources",
+        "all interactions complete without a runtime error",
+        "reset restores initial authored values"
+      ],
+      "example": "charts",
+      "viewport": 390
+    },
+    {
+      "checks": [
+        "canvas treemap renders the measured repository snapshot",
+        "test filter recomputes layout and totals",
+        "folder selector drills into rendering source",
+        "code-area colors redraw canvas",
+        "canvas hit-testing exposes a file and its measurements",
+        "zoom-out goes to the parent folder",
+        "ranked file button selects and reveals a file",
+        "source view exposes authored code",
+        "expanded example preserves live state and fits width",
+        "closing expansion restores page interaction",
+        "theme updates without restarting",
+        "canvas redraws for the new theme",
+        "no horizontal overflow or remote widget resources",
+        "all interactions complete without a runtime error",
+        "reset restores initial authored values"
+      ],
+      "example": "treemap",
+      "viewport": 390
+    },
+    {
+      "checks": [
+        "bundled TopoJSON and D3 render 177 country geometries",
+        "country selector fits Germany and reports its data",
+        "metric switch changes values and choropleth colors",
+        "keyboard country activation selects Brazil",
+        "zoom-in changes map transform",
+        "zoom-out restores scale",
+        "pointer country selection updates controls",
+        "source view exposes authored code",
+        "expanded example preserves live state and fits width",
+        "map zoom survives expansion and responsive resizing",
+        "closing expansion restores page interaction",
+        "theme updates without restarting",
+        "no horizontal overflow or remote widget resources",
+        "all interactions complete without a runtime error",
+        "reset restores initial authored values"
+      ],
+      "example": "map",
+      "viewport": 390
+    },
+    {
+      "checks": [
+        "stacked series and all 168 hourly cells render",
+        "share/count switch redraws scale and values",
+        "week slider updates computed totals",
+        "keyboard-equivalent heatmap selectors update exact value",
+        "heatmap pointer inspection updates the same readout",
+        "source view exposes authored code",
+        "expanded example preserves live state and fits width",
+        "closing expansion restores page interaction",
+        "theme updates without restarting",
+        "no horizontal overflow or remote widget resources",
+        "all interactions complete without a runtime error",
+        "reset restores initial authored values"
+      ],
+      "example": "charts",
+      "viewport": 320
+    },
+    {
+      "checks": [
+        "canvas treemap renders the measured repository snapshot",
+        "test filter recomputes layout and totals",
+        "folder selector drills into rendering source",
+        "code-area colors redraw canvas",
+        "canvas hit-testing exposes a file and its measurements",
+        "zoom-out goes to the parent folder",
+        "ranked file button selects and reveals a file",
+        "source view exposes authored code",
+        "expanded example preserves live state and fits width",
+        "closing expansion restores page interaction",
+        "theme updates without restarting",
+        "canvas redraws for the new theme",
+        "no horizontal overflow or remote widget resources",
+        "all interactions complete without a runtime error",
+        "reset restores initial authored values"
+      ],
+      "example": "treemap",
+      "viewport": 320
+    },
+    {
+      "checks": [
+        "bundled TopoJSON and D3 render 177 country geometries",
+        "country selector fits Germany and reports its data",
+        "metric switch changes values and choropleth colors",
+        "keyboard country activation selects Brazil",
+        "zoom-in changes map transform",
+        "zoom-out restores scale",
+        "pointer country selection updates controls",
+        "source view exposes authored code",
+        "expanded example preserves live state and fits width",
+        "map zoom survives expansion and responsive resizing",
+        "closing expansion restores page interaction",
+        "theme updates without restarting",
+        "no horizontal overflow or remote widget resources",
+        "all interactions complete without a runtime error",
+        "reset restores initial authored values"
+      ],
+      "example": "map",
+      "viewport": 320
+    }
+  ],
+  "exports": [
+    {
+      "detail": "Atlas 510Nova 510Other 180",
+      "example": "charts",
+      "total": "1,200",
+      "capabilities": {
+        "chat_followup": false,
+        "download": false,
+        "external_data": false,
+        "scripts": true
+      },
+      "remoteResources": []
+    },
+    {
+      "canvas": 2140,
+      "example": "treemap",
+      "files": "14",
+      "folder": "frontend/js/chat/rendering",
+      "lines": "7,502",
+      "capabilities": {
+        "chat_followup": false,
+        "download": false,
+        "external_data": false,
+        "scripts": true
+      },
+      "remoteResources": []
+    },
+    {
+      "countries": 174,
+      "country": "GERMANY",
+      "example": "map",
+      "value": "2,400",
+      "zoom": "7.5\u00d7",
+      "capabilities": {
+        "chat_followup": false,
+        "download": false,
+        "external_data": false,
+        "scripts": true
+      },
+      "remoteResources": []
+    }
+  ],
+  "nativeInput": [
+    "Map zoom-in clicked with the collaborative browser mouse: 1.0\u00d7 \u2192 1.5\u00d7.",
+    "Tab then Enter activated zoom-out: 1.5\u00d7 \u2192 1.0\u00d7."
+  ],
+  "limitations": "No live model generation, authenticated chat session, Firefox, or Safari was exercised."
+}

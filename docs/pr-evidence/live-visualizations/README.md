@@ -59,10 +59,94 @@ external-data capabilities while retaining embedded interactivity.
 
 - `npm run test:frontend`: 1,327 passed.
 - `npm run lint:js` and `npm run lint:python`: passed.
-- `pytest backend/tests/tools/test_visualization.py backend/tests/files/test_canvas_html_preview_proxy.py backend/tests/chats/test_widget_blocks.py -q`: 20 passed.
+- `pytest backend/tests/tools/test_visualization.py backend/tests/files/test_canvas_html_preview_proxy.py backend/tests/chats/test_widget_blocks.py -q`: 23 passed, including all three launch-example fragments through the actual tool's validate/render dispatcher.
 - `python3 dev_scripts/check_translation_keys.py`: all 11 locales match.
 - Browser interaction checks: nine assertions passed at desktop and narrow widths.
 - Canonical visualization metadata and literal source round-trip through chat blocks.
 
 No live provider generation or Firefox/Safari run was performed. The model's
 `validate` action checks structure/policy, not screenshots or JavaScript runtime.
+
+## T3 launch examples: charts, heatmap, code map, and geographic map
+
+The [launch video](https://x.com/theo/status/2107269392874782873) shows a stacked
+area chart and weekly activity heatmap (around 1–6 seconds), then a code treemap
+with filtering, color modes, file inspection, and folder zoom (around 12–24
+seconds). These examples reproduce those interaction types in Omlorix. A
+geographic map is included separately to verify geographic mapping as well.
+
+All seven additional screenshots are unedited browser captures of the same
+production renderer and backend proxy used above, with the page scrolled to the
+visualization. Desktop: 1280 × 1100 CSS pixels. Narrow: 390 × 1100 CSS pixels
+(captured at 2×). These are authored tool-input fixtures, not live model output.
+
+### Stacked charts and activity heatmap
+
+Three stacked series can switch between percentage share and absolute counts.
+The week slider and heatmap pointer/keyboard selectors update exact values.
+The screenshot selects week 9 (1,900 conversations); the narrow view switches
+to counts and week 4 (1,200). All counts and model names are illustrative.
+
+![Stacked area chart and weekly activity heatmap in dark mode](examples/charts-dark.png)
+
+### Code treemap
+
+The real Omlorix snapshot contains 1,679 Python/JavaScript files and 702,615
+physical lines, including comments and whitespace, at `36df43ebc`. It covers
+`backend/app`, `backend/tests`, and `frontend/js`, excluding vendor bundles.
+File touches count commits among the last 100; this is not a complexity score.
+Run `python3 docs/pr-evidence/live-visualizations/examples/build_code_snapshot.py`
+to reproduce the pinned snapshot without changing the checkout.
+
+Canvas renders the dense map. Folder selection, file hit-testing, ranked file
+buttons, test filtering, color switching, and zoom-out all work. The narrow
+view drills into rendering code with tests removed: 12 files, 7,411 lines.
+
+![Omlorix code map showing all 1,679 source files](examples/treemap-dark.png)
+
+![Code map drilled into frontend rendering](examples/treemap-zoom.png)
+
+### Geographic map
+
+The map renders 177 geographic features from embedded Natural Earth geometry
+using the bundled D3/TopoJSON libraries. Country selection, keyboard activation,
+zoom-in/out, world reset, and metric switching work. Germany's illustrative
+values are 2,400 conversations and 180 ms. Zoom is retained during expansion.
+No map tiles, CDN libraries, external requests, or additional permissions are
+needed for these embedded examples.
+
+The unmodified geometry comes from
+[world-atlas 2.0.2](https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json),
+redistributing [Natural Earth](https://www.naturalearthdata.com/about/terms-of-use/).
+The accompanying [ISC license](examples/world-atlas.LICENSE) is retained.
+The data is a fixture, not an automatic basemap included with every visual.
+
+![Geographic map with Germany selected in light mode](examples/map-light.png)
+
+### Narrow layouts and interaction evidence
+
+<img src="examples/charts-mobile.png" alt="390-pixel chart with count mode and week four selected" width="390">
+<img src="examples/treemap-mobile.png" alt="390-pixel code treemap drilled into rendering, with tests excluded" width="390">
+<img src="examples/map-mobile.png" alt="390-pixel geographic map zoomed into Germany, with latency selected" width="390">
+
+With the proof server running, visit each of:
+
+- `http://127.0.0.1:8975/?example=charts&verify`
+- `http://127.0.0.1:8975/?example=treemap&verify`
+- `http://127.0.0.1:8975/?example=map&verify`
+
+Run `await verifyExample()` in each page's console, starting with the authored
+initial state (reload or reset first). This exercises real DOM input, click,
+pointer, and keyboard events through a test-only probe in the opaque iframe.
+It also checks source view, state-preserving expansion, theme redraws,
+overflow, runtime status, absence of remote resource loads, and reset. The
+map zoom buttons were additionally tested with the collaborative browser's
+actual mouse click and Tab/Enter keyboard input.
+
+**126 assertions passed across 1280, 390, and 320 CSS-pixel widths.** Exact
+results are retained in [browser-results.json](examples/browser-results.json).
+The toolbar's standalone HTML export was opened and interacted with for all
+three examples, with no remote resource loads and all host actions disabled.
+Use `await verifyVisualizationExport()` and then open `/__proof__/export` to
+repeat that check without writing a download into the user's Downloads folder.
+No new runtime permission or network access was added to make these pass.

@@ -1,6 +1,8 @@
 """Focused validation tests for durable visualization artifacts."""
 
 import json
+import importlib.util
+from pathlib import Path
 
 import pytest
 
@@ -161,3 +163,28 @@ def test_visualization_summary_round_trips_through_chat_blocks():
     assert blocks[0]['meta']['visualization']['runtime_version'] == 2
     with pytest.raises(VisualizationValidationError, match='summary'):
         create_visualization_payload(title='Example', content=source, summary='x' * 1001)
+
+
+@pytest.mark.parametrize('example', ['charts', 'treemap', 'map'])
+def test_launch_examples_validate_and_stream_without_source_changes(monkeypatch, example):
+    """The exact browser-proof fragments also pass the model's tool path."""
+    examples_path = Path(__file__).resolve().parents[3] / 'docs/pr-evidence/live-visualizations/examples.py'
+    spec = importlib.util.spec_from_file_location('visualization_examples', examples_path)
+    examples = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(examples)
+    source = examples.example_content(example)
+    config = examples.EXAMPLES[example]
+    monkeypatch.setattr(tool_helper, '_admit_tool_invocation_or_payload', lambda *args, **kwargs: None)
+    for action in ('validate', 'render'):
+        resolver = tool_helper.resolve_tool_call(
+            db=None, tool_name='create_visualization',
+            tool_arguments={'action': action, 'title': config['title'], 'content': source, 'summary': config['summary']},
+            user_id='user-1', group_id=None, project_id=None,
+        )
+        if action == 'render':
+            streamed = json.loads(next(resolver))
+            assert streamed['c'] == source.strip()
+            assert streamed['meta']['visualization']['summary'] == config['summary']
+        with pytest.raises(StopIteration) as completed:
+            next(resolver)
+        assert completed.value.value['result']['status'] == ('validated' if action == 'validate' else 'created')

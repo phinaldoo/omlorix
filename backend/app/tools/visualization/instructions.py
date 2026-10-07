@@ -35,6 +35,17 @@ Runtime contract:
   Use <i data-lucide='search' aria-hidden='true'></i> for icons. Inline SVG is
   appropriate for data marks and diagrams, not hand-drawn interface icons.
 - Embed data. Keep the complete UTF-8 fragment under 1 MB; aggregate large data.
+- Geographic maps: embed simplified GeoJSON or TopoJSON geometry alongside the
+  values; the TopoJSON library does not include a basemap. Use topojson.feature
+  and d3.geoPath with a fitted projection. Provide country/region selection and
+  keyboard zoom/reset controls. Remote tile services and CDN map libraries are
+  unavailable. Obtain real geometry with available tools before authoring, or
+  explain that it is missing; never invent boundaries or imply real geography.
+- For dense code maps use d3.hierarchy and d3.treemap with canvas, drill-down,
+  a folder selector and a readable file list. For stacked charts and heatmaps,
+  embed the values, label totals versus percentages, and provide keyboard
+  selectors for the same details exposed by pointer hover. Resolve theme colors
+  before drawing on canvas; CSS variable strings are not canvas color values.
 - The host provides --background, --foreground, --card, --card-foreground,
   --muted, --muted-foreground, --primary, --primary-foreground, --accent,
   --accent-foreground, --border, --ring, and --viz-series-1 through -6.

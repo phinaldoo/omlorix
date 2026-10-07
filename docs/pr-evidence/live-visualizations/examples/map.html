@@ -1,0 +1,103 @@
+<section id="world-map" aria-label="Interactive world map">
+  <style>
+    #world-map .topline, #world-map .selection { display:flex; flex-wrap:wrap; justify-content:space-between; gap:12px; align-items:center; margin-bottom:16px; }
+    #world-map .eyebrow { font-size:12px; letter-spacing:.06em; color:var(--muted-foreground); }
+    #world-map .metric { font-size:30px; font-weight:500; letter-spacing:-.8px; }
+    #world-map .metric small { font-size:13px; letter-spacing:0; color:var(--muted-foreground); }
+    #world-map .controls { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:16px 0; }
+    #world-map .map { border:1px solid var(--border); border-radius:12px; overflow:hidden; background:var(--muted); }
+    #world-map svg { display:block; width:100%; touch-action:none; }
+    #world-map .country { cursor:pointer; }
+    #world-map .country:focus { outline:none; stroke:var(--foreground); stroke-width:2px; }
+    #world-map .zoom { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:12px 0 20px; }
+    #world-map .zoom output { margin-left:auto; }
+    #world-map .legend { display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-size:12px; color:var(--muted-foreground); }
+    #world-map .ramp { width:100px; height:7px; border-radius:4px; background:linear-gradient(90deg,var(--muted),var(--viz-series-1)); }
+    #world-map .selection { border-top:1px solid var(--border); padding-top:16px; }
+    #world-map .note { margin:14px 0 0; font-size:12px; color:var(--muted-foreground); }
+    @media(max-width:450px) { #world-map .controls { grid-template-columns:1fr; } #world-map .metric { font-size:26px; } }
+  </style>
+  <div class="topline"><div><div class="eyebrow">ILLUSTRATIVE GLOBAL ACTIVITY</div><div class="metric">8 <small>countries with sample data</small></div></div><div class="legend"><span>Lower</span><span class="ramp"></span><span>Higher</span></div></div>
+  <div class="controls">
+    <label class="form-label" for="country">Country<select class="form-select" id="country"><option value="">Choose a country</option></select></label>
+    <label class="form-label" for="measure">Measure<select class="form-select" id="measure"><option value="conversations">Conversations</option><option value="latency">Median latency (ms)</option></select></label>
+  </div>
+  <div class="map"><svg role="group" aria-label="World map. Select a highlighted country or use the country selector."></svg></div>
+  <div class="zoom"><button class="btn" id="zoom-in" type="button" aria-label="Zoom in">Zoom in</button><button class="btn" id="zoom-out" type="button" aria-label="Zoom out">Zoom out</button><button class="btn btn-ghost" id="world" type="button">World view</button><output id="zoom-level" class="text-small text-muted">1.0×</output></div>
+  <div class="selection" aria-live="polite"><div><div class="eyebrow" id="selected-country">SELECT A COUNTRY</div><div class="metric"><output id="selected-value">—</output> <small id="selected-unit">conversations</small></div></div><span class="text-small text-muted" id="selected-detail">Embedded data • no remote tiles</span></div>
+  <details><summary class="text-small">View all sample values</summary><div class="table-responsive"><table class="table table-sm"><thead><tr><th scope="col">Country</th><th scope="col">Conversations</th><th scope="col">Latency (ms)</th></tr></thead><tbody></tbody></table></div></details>
+  <p class="note">Geography: Natural Earth, world-atlas 2.0.2. Values are illustrative, not measured service activity. Uncolored countries have no sample data.</p>
+  <script id="world-data" type="application/json">__WORLD_DATA__</script>
+  <script>
+    (() => {
+      const root = document.getElementById('world-map');
+      const world = JSON.parse(root.querySelector('#world-data').textContent);
+      const countries = topojson.feature(world, world.objects.countries).features;
+      const data = [
+        {id:'036',name:'Australia',conversations:1200,latency:240}, {id:'076',name:'Brazil',conversations:1800,latency:320},
+        {id:'124',name:'Canada',conversations:1600,latency:190}, {id:'250',name:'France',conversations:2100,latency:170},
+        {id:'276',name:'Germany',conversations:2400,latency:180}, {id:'356',name:'India',conversations:3600,latency:290},
+        {id:'392',name:'Japan',conversations:2800,latency:210}, {id:'840',name:'United States',conversations:5200,latency:160},
+      ];
+      const byId = new Map(data.map(d => [d.id,d]));
+      const select = root.querySelector('#country');
+      data.forEach(d => select.add(new Option(d.name,d.id)));
+      root.querySelector('tbody').innerHTML = data.map(d=>`<tr><th scope="row">${d.name}</th><td>${d.conversations.toLocaleString('en')}</td><td>${d.latency}</td></tr>`).join('');
+      const svg = d3.select(root.querySelector('svg'));
+      const layer = svg.append('g');
+      const projection = d3.geoNaturalEarth1();
+      const path = d3.geoPath(projection);
+      let width = 0, height = 0;
+      const zoom = d3.zoom().scaleExtent([1,8]).on('zoom', event => {
+        layer.attr('transform',event.transform);
+        root.querySelector('#zoom-level').textContent = event.transform.k.toFixed(1) + '×';
+      });
+      svg.call(zoom).on('dblclick.zoom',null);
+      function update() {
+        const key = root.querySelector('#measure').value;
+        const selected = byId.get(select.value);
+        root.querySelector('#selected-country').textContent = selected?.name.toUpperCase() || 'SELECT A COUNTRY';
+        root.querySelector('#selected-value').textContent = selected ? selected[key].toLocaleString('en') : '—';
+        root.querySelector('#selected-unit').textContent = key === 'latency' ? 'ms median latency' : 'conversations';
+        root.querySelector('#selected-detail').textContent = selected ? `${selected.conversations.toLocaleString('en')} conversations · ${selected.latency} ms median latency` : 'Embedded data • no remote tiles';
+        const colors = getComputedStyle(document.documentElement);
+        const color = d3.scaleSequential(d3.interpolateRgb(colors.getPropertyValue('--muted').trim(), colors.getPropertyValue('--viz-series-1').trim())).domain([0,d3.max(data,d=>d[key])]);
+        layer.selectAll('path').data(countries).join('path').attr('d',path)
+          .attr('fill',d=>byId.has(d.id)?color(byId.get(d.id)[key]):'var(--background)')
+          .attr('stroke',d=>d.id===select.value?'var(--foreground)':'var(--border)')
+          .attr('stroke-width',d=>d.id===select.value?2:0.7).attr('vector-effect','non-scaling-stroke')
+          .attr('class',d=>byId.has(d.id)?'country':null).attr('data-country',d=>d.id)
+          .attr('tabindex',d=>byId.has(d.id)?0:null).attr('role',d=>byId.has(d.id)?'button':null)
+          .attr('aria-label',d=>`${d.properties.name}${byId.has(d.id)?': '+byId.get(d.id)[key]+' '+(key==='latency'?'milliseconds':'conversations'):': no sample data'}`)
+          .attr('aria-pressed',d=>byId.has(d.id)?String(d.id===select.value):null)
+          .on('click',(_,d)=>{if(byId.has(d.id)){select.value=d.id; update();}})
+          .on('keydown',(event,d)=>{if(byId.has(d.id) && ['Enter',' '].includes(event.key)){event.preventDefault(); select.value=d.id; update();}});
+      }
+      function fitSelected() {
+        update();
+        const feature = countries.find(d=>d.id===select.value);
+        if (!feature) return;
+        const [[x0,y0],[x1,y1]] = path.bounds(feature);
+        const k = Math.min(5,0.72/Math.max((x1-x0)/width,(y1-y0)/height));
+        svg.call(zoom.transform,d3.zoomIdentity.translate(width/2,height/2).scale(k).translate(-(x0+x1)/2,-(y0+y1)/2));
+      }
+      function resize() {
+        const next = root.querySelector('.map').clientWidth;
+        if (!next || next === width) return;
+        const previous = d3.zoomTransform(svg.node()), oldWidth = width, oldHeight = height;
+        width=next; height=Math.max(250,Math.min(350,width*0.5));
+        svg.attr('viewBox',`0 0 ${width} ${height}`);
+        projection.fitExtent([[12,16],[width-12,height-16]],{type:'Sphere'});
+        zoom.extent([[0,0],[width,height]]).translateExtent([[-width,-height],[width*2,height*2]]);
+        svg.call(zoom.transform, oldWidth ? d3.zoomIdentity.translate(previous.x*width/oldWidth,previous.y*height/oldHeight).scale(previous.k) : d3.zoomIdentity); update();
+      }
+      select.addEventListener('change',fitSelected);
+      root.querySelector('#measure').addEventListener('change',update);
+      root.querySelector('#zoom-in').addEventListener('click',()=>svg.call(zoom.scaleBy,1.5));
+      root.querySelector('#zoom-out').addEventListener('click',()=>svg.call(zoom.scaleBy,1/1.5));
+      root.querySelector('#world').addEventListener('click',()=>svg.call(zoom.transform,d3.zoomIdentity));
+      addEventListener('omlorix:themechange',update);
+      new ResizeObserver(resize).observe(root.querySelector('.map')); resize();
+    })();
+  </script>
+</section>

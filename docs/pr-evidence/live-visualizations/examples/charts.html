@@ -1,0 +1,90 @@
+<section id="usage-charts" aria-label="Conversation trends and weekly activity">
+  <style>
+    #usage-charts .heading { display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:16px; }
+    #usage-charts .metric { font-size:30px; font-weight:500; letter-spacing:-.7px; }
+    #usage-charts .metric small { font-size:13px; color:var(--muted-foreground); letter-spacing:0; }
+    #usage-charts .legend { display:flex; gap:16px; flex-wrap:wrap; margin-bottom:12px; font-size:12px; color:var(--muted-foreground); }
+    #usage-charts .legend span::before { content:''; display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--viz-series-1); margin-right:6px; }
+    #usage-charts .legend span:nth-child(2)::before { background:var(--viz-series-2); }
+    #usage-charts .legend span:nth-child(3)::before { background:var(--viz-series-3); }
+    #usage-charts .controls { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:12px; }
+    #usage-charts .week-control { display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:12px; margin-top:4px; }
+    #usage-charts .readout { display:flex; flex-wrap:wrap; gap:8px 18px; min-height:28px; font-size:13px; margin:10px 0 20px; }
+    #usage-charts .chart svg, #usage-charts .heat svg { width:100%; display:block; }
+    #usage-charts .heat-title { border-top:1px solid var(--border); padding-top:20px; margin:0 0 6px; font-weight:500; }
+    #usage-charts .axis path { display:none; }
+    #usage-charts .axis line { stroke:var(--border); }
+    #usage-charts .heat-controls { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:6px 0 10px; }
+    #usage-charts .note { color:var(--muted-foreground); font-size:12px; margin:14px 0 0; }
+  </style>
+  <div class="heading"><div class="metric"><output id="week-total"></output> <small>conversations this week</small></div><span class="text-small text-muted">12 weeks · illustrative data</span></div>
+  <div class="controls" role="group" aria-label="Chart measure"><button class="btn" id="share" type="button" aria-pressed="true">Share of conversations</button><button class="btn" id="counts" type="button" aria-pressed="false">Conversation count</button></div>
+  <div class="legend"><span>Atlas</span><span>Nova</span><span>Other</span></div>
+  <div class="chart"><svg role="img" aria-label="Stacked area chart of conversation share by week"></svg></div>
+  <div class="week-control"><label class="text-small" for="week">Inspect week</label><input class="form-range" id="week" type="range" min="1" max="12" value="12"><output class="text-small" id="week-label">Week 12</output></div>
+  <div class="readout" id="week-detail" aria-live="polite"></div>
+  <h3 class="heat-title">When conversations happen</h3>
+  <p class="text-small text-muted">A sample week, in UTC. Select an hour to inspect its count.</p>
+  <div class="heat"><svg role="img" aria-label="Heatmap of conversation counts by day and hour"></svg></div>
+  <div class="heat-controls"><label class="form-label text-small" for="day">Day<select id="day" class="form-select"></select></label><label class="form-label text-small" for="hour">Hour (UTC)<select id="hour" class="form-select"></select></label></div>
+  <output id="hour-detail" class="text-small" aria-live="polite"></output>
+  <details style="margin-top:16px"><summary class="text-small">View weekly chart data</summary><div class="table-responsive"><table class="table table-sm"><thead><tr><th scope="col">Week</th><th scope="col">Atlas</th><th scope="col">Nova</th><th scope="col">Other</th></tr></thead><tbody></tbody></table></div></details>
+  <p class="note">Embedded, illustrative counts. These are fictional model names and usage patterns, not production telemetry.</p>
+  <script>
+    (() => {
+      const root = document.getElementById('usage-charts');
+      const data = [[340,480,180],[410,500,190],[440,520,190],[510,510,180],[650,530,220],[760,510,230],[880,500,220],[1020,510,270],[1150,480,270],[1290,470,240],[1480,510,260],[1650,560,290]].map((d,i)=>({week:i+1,Atlas:d[0],Nova:d[1],Other:d[2],total:d3.sum(d)}));
+      const keys = ['Atlas','Nova','Other'];
+      const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+      const daySelect = root.querySelector('#day'), hourSelect = root.querySelector('#hour');
+      days.forEach((day,i)=>daySelect.add(new Option(day,String(i))));
+      Array.from({length:24},(_,i)=>hourSelect.add(new Option(`${String(i).padStart(2,'0')}:00`,String(i))));
+      daySelect.value='3'; hourSelect.value='15';
+      const hours = days.flatMap((day,d)=>Array.from({length:24},(_,h)=>({day:d,hour:h,value:Math.round((30+190*Math.exp(-(((h-15)/5)**2)))*[0.8,0.9,1,1.1,0.85,0.48,0.42][d])})));
+      let mode = 'share';
+      root.querySelector('tbody').innerHTML = data.map(d=>`<tr><th scope="row">${d.week}</th>${keys.map(k=>`<td>${d[k]}</td>`).join('')}</tr>`).join('');
+      function selectWeek(week) { root.querySelector('#week').value=String(week); draw(); }
+      function draw() {
+        const width=root.querySelector('.chart').clientWidth, height=220;
+        if(!width) return;
+        const current=data[Number(root.querySelector('#week').value)-1];
+        root.querySelector('#week-total').textContent=current.total.toLocaleString('en');
+        root.querySelector('#week-label').textContent=`Week ${current.week}`;
+        root.querySelector('#week-detail').innerHTML=keys.map(k=>`<span>${k} <strong>${mode==='share'?Math.round(current[k]/current.total*100)+'%':current[k].toLocaleString('en')}</strong></span>`).join('');
+        const svg=d3.select(root.querySelector('.chart svg')).attr('viewBox',`0 0 ${width} ${height}`).attr('aria-label',`Stacked area chart of ${mode==='share'?'conversation share':'conversation counts'} by week`);
+        svg.selectAll('*').remove();
+        const x=d3.scaleLinear().domain([1,12]).range([48,width-12]);
+        const y=d3.scaleLinear().domain([0,mode==='share'?1:2500]).range([height-30,12]);
+        const stack=d3.stack().keys(keys).offset(mode==='share'?d3.stackOffsetExpand:d3.stackOffsetNone)(data);
+        svg.append('g').attr('class','axis').attr('transform','translate(48,0)').call(d3.axisLeft(y).ticks(4).tickFormat(mode==='share'?d3.format('.0%'):d3.format('~s')).tickSize(-(width-60)));
+        svg.selectAll('.series').data(stack).join('path').attr('class','series').attr('fill',(_,i)=>`var(--viz-series-${i+1})`).attr('opacity',.83).attr('d',d3.area().x(d=>x(d.data.week)).y0(d=>y(d[0])).y1(d=>y(d[1])).curve(d3.curveMonotoneX));
+        svg.append('g').attr('class','axis').attr('transform',`translate(0,${height-30})`).call(d3.axisBottom(x).tickValues(width<450?[1,4,8,12]:[1,2,4,6,8,10,12]).tickFormat(d=>'W'+d).tickSize(0).tickPadding(10));
+        svg.append('line').attr('x1',x(current.week)).attr('x2',x(current.week)).attr('y1',12).attr('y2',height-30).attr('stroke','var(--foreground)').attr('stroke-dasharray','3 3');
+        svg.on('pointermove click',event=>selectWeek(Math.max(1,Math.min(12,Math.round(x.invert(d3.pointer(event)[0]))))));
+      }
+      function drawHeat() {
+        const width=root.querySelector('.heat').clientWidth, height=160;
+        if(!width) return;
+        const svg=d3.select(root.querySelector('.heat svg')).attr('viewBox',`0 0 ${width} ${height}`);
+        const x=d3.scaleBand().domain(d3.range(24)).range([38,width-4]).padding(.08);
+        const y=d3.scaleBand().domain(d3.range(7)).range([2,130]).padding(.1);
+        const tokens=getComputedStyle(document.documentElement);
+        const color=d3.scaleSequential(d3.interpolateRgb(tokens.getPropertyValue('--muted').trim(),tokens.getPropertyValue('--viz-series-1').trim())).domain([0,d3.max(hours,d=>d.value)]);
+        svg.selectAll('*').remove();
+        svg.selectAll('rect').data(hours).join('rect').attr('data-cell',d=>`${d.day}-${d.hour}`).attr('x',d=>x(d.hour)).attr('y',d=>y(d.day)).attr('width',x.bandwidth()).attr('height',y.bandwidth()).attr('rx',2).attr('fill',d=>color(d.value))
+          .attr('stroke',d=>String(d.day)===daySelect.value&&String(d.hour)===hourSelect.value?'var(--foreground)':'none').attr('stroke-width',2)
+          .on('pointermove click',(_,d)=>{daySelect.value=String(d.day);hourSelect.value=String(d.hour);drawHeat();});
+        days.forEach((day,i)=>svg.append('text').attr('x',0).attr('y',y(i)+y.bandwidth()/2+4).text(day));
+        [0,6,12,18].forEach(h=>svg.append('text').attr('x',x(h)).attr('y',151).text(String(h).padStart(2,'0')));
+        const cell=hours.find(d=>String(d.day)===daySelect.value && String(d.hour)===hourSelect.value);
+        root.querySelector('#hour-detail').textContent=`${days[cell.day]} ${String(cell.hour).padStart(2,'0')}:00 UTC · ${cell.value} conversations`;
+      }
+      ['share','counts'].forEach(key=>root.querySelector('#'+key).addEventListener('click',()=>{mode=key;['share','counts'].forEach(k=>root.querySelector('#'+k).setAttribute('aria-pressed',String(k===key)));draw();}));
+      root.querySelector('#week').addEventListener('input',draw);
+      daySelect.addEventListener('change',drawHeat); hourSelect.addEventListener('change',drawHeat);
+      addEventListener('omlorix:themechange',drawHeat);
+      new ResizeObserver(()=>{draw();drawHeat();}).observe(root.querySelector('.chart'));
+      draw(); drawHeat();
+    })();
+  </script>
+</section>

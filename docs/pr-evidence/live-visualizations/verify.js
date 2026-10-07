@@ -110,7 +110,7 @@ window.verifyVisualizationExport = async () => {
         HTMLAnchorElement.prototype.click = click;
     }
     const html = await captured;
-    if (!html?.startsWith('<!doctype html>') || !html.includes('Three') && !html.includes('Illustrative model')) throw new Error('Missing standalone document');
+    if (!html?.startsWith('<!doctype html>') || !html.includes(proofPayload.visualization.summary)) throw new Error('Missing standalone document or text alternative');
     await fetch('/__proof__/export', { method: 'POST', body: html });
     return { bytes: new Blob([html]).size, url: '/__proof__/export' };
 };
