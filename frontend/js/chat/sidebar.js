@@ -427,7 +427,6 @@ function closeOtherArtifactPreviews(activeSource) {
             window.canvasMarkdownWidget?.hidePreviewPanel?.();
         }],
         ['slide-presentation-preview', () => window.slidePresentationWidget?.hidePreviewPanel?.()],
-        ['notes-preview', () => window.NotesToolSidebar?.hidePreviewPanel?.()],
         ['deep-research-preview', () => window.deepResearchWidget?.closeSidebar?.({ restoreFocus: false })],
         ['skill-draft-preview', () => window.skillDraftWidget?.closeSidebar?.({ restoreFocus: false })],
         ['latex-pdf-preview', () => window.latexPdfWidget?.hidePreviewPanel?.()],

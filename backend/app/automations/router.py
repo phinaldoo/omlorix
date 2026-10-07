@@ -313,7 +313,6 @@ def _automation_to_response(
         schedule_rules=automation.schedule_rules,
         schedule_timezone=automation.schedule_timezone,
         skill_id=automation.skill_id,
-        note_ids=automation.note_ids or [],
         file_ids=automation.file_ids or [],
         mcp_server_ids=getattr(automation, "mcp_server_ids", None) or [],
         webhook_trigger=(
@@ -1042,7 +1041,6 @@ def create_automation_route(
         schedule_rules=schedule_rules,
         schedule_timezone=schedule_timezone,
         skill_id=payload.skill_id,
-        note_ids=payload.note_ids or [],
         file_ids=payload.file_ids or [],
         mcp_server_ids=payload.mcp_server_ids or [],
         is_active=payload.is_active if payload.is_active is not None else True,
@@ -1089,7 +1087,6 @@ def create_automation_route(
             "schedule_rule_count": len(schedule_rules),
             "schedule_timezone": automation.schedule_timezone,
             "skill_id": payload.skill_id,
-            "note_count": len(payload.note_ids or []),
             "file_count": len(payload.file_ids or []),
             "connection_count": len(payload.mcp_server_ids or []),
             "is_active": automation.is_active,
@@ -1167,7 +1164,6 @@ def update_automation_route(
             if "skill_id" in payload.model_fields_set and payload.skill_id is None
             else payload.skill_id
         ),
-        note_ids=payload.note_ids,
         file_ids=payload.file_ids,
         mcp_server_ids=payload.mcp_server_ids,
         is_active=payload.is_active,
@@ -1182,7 +1178,6 @@ def update_automation_route(
             "updated_fields": sorted(getattr(payload, "model_fields_set", set())),
             "schedule_rule_count": len(schedule_rules) if schedule_rules is not None else None,
             "schedule_timezone": automation.schedule_timezone,
-            "note_count": len(payload.note_ids or []) if payload.note_ids is not None else None,
             "file_count": len(payload.file_ids or []) if payload.file_ids is not None else None,
             "connection_count": len(payload.mcp_server_ids or []) if payload.mcp_server_ids is not None else None,
             "is_active": automation.is_active,

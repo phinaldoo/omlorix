@@ -24,7 +24,6 @@ from app.database import Base  # noqa: E402
 from app.files.reference_cleanup import cleanup_file_references  # noqa: E402
 from app.files import reference_cleanup  # noqa: E402
 from app.groups.models import Group, GroupManager, export_groups  # noqa: E402
-from app.notes.models import NoteHistory, Notes  # noqa: E402
 from app.projects.models import Project  # noqa: E402
 from app.tools.deep_research.models import DeepResearchRun  # noqa: E402
 from app.tools.slide_presentation.models import SlidePresentations  # noqa: E402
@@ -32,26 +31,7 @@ from app.tools.slide_presentation.models import SlidePresentations  # noqa: E402
 
 def _session():
     engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(
-        bind=engine,
-        tables=[
-            ChatMessages.__table__,
-            # Chat exports now look up the per-user read state. This focused
-            # in-memory schema therefore needs the table even though this test
-            # does not create a read-state row itself.
-            ChatReadState.__table__,
-            Chats.__table__,
-            Group.__table__,
-            # Group exports include delegated manager assignments, so the
-            # focused schema must provide the queried table even when empty.
-            GroupManager.__table__,
-            Project.__table__,
-            SlidePresentations.__table__,
-            Notes.__table__,
-            NoteHistory.__table__,
-            DeepResearchRun.__table__,
-        ],
-    )
+    Base.metadata.create_all(engine, tables=[Chats.__table__, ChatMessages.__table__, ChatReadState.__table__, Group.__table__, GroupManager.__table__, Project.__table__, SlidePresentations.__table__, DeepResearchRun.__table__])
     return sessionmaker(bind=engine)()
 
 
@@ -149,26 +129,6 @@ def test_cleanup_file_references_scrubs_exports_and_related_file_links():
             ],
         )
     )
-    db.add(
-        Notes(
-            id="note-1",
-            user_id="user-1",
-            content=f"Before {{{{note:file:user-1:{deleted_file_id}|deleted.pdf}}}} after",
-            created_at=now,
-            updated_at=now,
-        )
-    )
-    db.add(
-        NoteHistory(
-            id="history-1",
-            note_id="note-1",
-            user_id="user-1",
-            content=f"Before {{{{note:file:user-1:{deleted_file_id}|deleted.pdf}}}} after",
-            previous_content=f"Old {{{{note:file:user-1:{deleted_file_id}|deleted.pdf}}}}",
-            version_number="1",
-            created_at=now,
-        )
-    )
     db.commit()
 
     cleanup_file_references(db, "user-1", deleted_file_id)
@@ -178,8 +138,6 @@ def test_cleanup_file_references_scrubs_exports_and_related_file_links():
     group_export = export_groups(db)
     project = db.query(Project).filter(Project.id == "project-1").first()
     presentation = db.query(SlidePresentations).filter(SlidePresentations.id == "presentation-1").first()
-    note = db.query(Notes).filter(Notes.id == "note-1").first()
-    history = db.query(NoteHistory).filter(NoteHistory.id == "history-1").first()
     research_run = (
         db.query(DeepResearchRun).filter(DeepResearchRun.id == "research-1").first()
     )
@@ -195,10 +153,6 @@ def test_cleanup_file_references_scrubs_exports_and_related_file_links():
     assert presentation.file_id is None
     assert research_run.artifacts[0]["file_id"] is None
     assert research_run.artifacts[1] == "legacy-artifact-entry"
-    assert deleted_file_id not in note.content
-    assert "deleted.pdf" not in note.content
-    assert deleted_file_id not in history.content
-    assert deleted_file_id not in history.previous_content
 
 
 def test_presentation_source_cleanup_removes_indexed_revision_and_local_tree(
@@ -264,7 +218,6 @@ def test_presentation_source_cleanup_removes_indexed_revision_and_local_tree(
         "_scrub_group_context_settings",
         "_scrub_project_attachment_fields",
         "_scrub_deep_research_artifact_file_ids",
-        "_scrub_note_file_references",
     ):
         monkeypatch.setattr(reference_cleanup, scrubber, lambda *args: 0)
 

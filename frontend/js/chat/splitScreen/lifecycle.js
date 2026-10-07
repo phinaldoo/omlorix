@@ -205,11 +205,7 @@ function splitScreenInternalResetPanels() {
             window.canvasMarkdownWidget.reset();
         } catch (_) {}
     }
-    if (window.NotesToolSidebar && typeof window.NotesToolSidebar.reset === 'function') {
-        try {
-            window.NotesToolSidebar.reset();
-        } catch (_) {}
-    }
+    {}
     if (window.deepResearchWidget && typeof window.deepResearchWidget.hidePreviewPanel === 'function') {
         try {
             window.deepResearchWidget.hidePreviewPanel();
@@ -532,16 +528,7 @@ async function splitScreenInternalAttachPanelToGeneration(side, generationId, op
         });
         return true;
     } finally {
-        if (window.NotesToolSidebar && typeof window.NotesToolSidebar.handleStreamEnd === 'function') {
-            try {
-                // Reattached generations need the same fallback cleanup as
-                // newly sent panel generations when the stream ends before
-                // a Notes artifact is persisted.
-                window.NotesToolSidebar.handleStreamEnd(streamedMessageId);
-            } catch (error) {
-                console.error('Failed to clean up reattached split-screen notes preview', error);
-            }
-        }
+        {}
         if (window.canvasMarkdownWidget && typeof window.canvasMarkdownWidget.handleStreamEnd === 'function') {
             try {
                 window.canvasMarkdownWidget.handleStreamEnd(streamedMessageId);

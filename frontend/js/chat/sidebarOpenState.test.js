@@ -232,7 +232,6 @@ test('artifact preview handoff closes every competing surface and preserves the 
 
     assert.deepEqual(closed, [
         'canvas-preview',
-        'notes-preview',
         ['deep-research-preview', { restoreFocus: false }],
         ['skill-draft-preview', { restoreFocus: false }],
         'latex-pdf-preview',
@@ -315,7 +314,6 @@ test('responsive mode changes commit the final sidebar width with transitions di
 test('all space-reserving artifact previews use the shared temporary-collapse lifecycle', () => {
     const sidebarSource = readFrontendSource(SIDEBAR_PATH, 'utf8');
     const canvasSource = readFrontendSource(CANVAS_WIDGET_PATH, 'utf8');
-    const notesSource = readFrontendSource(NOTES_PATH, 'utf8');
     const presentationSource = readFrontendSource(PRESENTATION_WIDGET_PATH, 'utf8');
     const deepResearchSource = readFrontendSource(
         path.join(__dirname, 'deep-research-widget.js'),
@@ -324,7 +322,6 @@ test('all space-reserving artifact previews use the shared temporary-collapse li
 
     const panelSource = fs.readFileSync(path.join(__dirname, 'chatWorkspace.js'), 'utf8');
     assert.match(panelSource, /setMainSidebarAutoCollapsed\?\.\('canvas-preview', visible\)/);
-    assert.match(notesSource, /setMainSidebarAutoCollapsed\('notes-preview', state\.isVisible\)/);
     assert.match(presentationSource, /setMainSidebarAutoCollapsed\('slide-presentation-preview', visible\)/);
     assert.match(
         deepResearchSource,

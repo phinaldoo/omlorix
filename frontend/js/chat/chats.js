@@ -586,11 +586,7 @@ async function loadChatView(chatId, already_streaming=false, options = {}) {
         // Notes are message-scoped artifacts just like canvases. Close their
         // sidebar before the transcript changes so an artifact from the old
         // chat cannot remain visible beside the newly selected conversation.
-        if (window.NotesToolSidebar && typeof window.NotesToolSidebar.hidePreviewPanel === 'function') {
-            try {
-                window.NotesToolSidebar.hidePreviewPanel();
-            } catch (_) {}
-        }
+        {}
         if (window.deepResearchWidget && typeof window.deepResearchWidget.hidePreviewPanel === 'function') {
             try {
                 window.deepResearchWidget.hidePreviewPanel();
@@ -698,11 +694,7 @@ async function loadChatView(chatId, already_streaming=false, options = {}) {
             window.canvasMarkdownWidget.reset();
         } catch (_) {}
     }
-    if (window.NotesToolSidebar && typeof window.NotesToolSidebar.reset === 'function') {
-        try {
-            window.NotesToolSidebar.reset();
-        } catch (_) {}
-    }
+    {}
     if (window.latexPdfWidget && typeof window.latexPdfWidget.reset === 'function') {
         try {
             window.latexPdfWidget.reset();

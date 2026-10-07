@@ -45,14 +45,6 @@ DEFAULT_GROUP_SETTINGS = {
         "max_files_upload_count": 100,
         "max_user_files_size_gb": 5,
     },
-    "todo": {
-        "enabled_todo": True,
-        "allow_todo_list_share": True
-    },
-    "notes": {
-        "enabled_notes": True,
-        "allow_notes_share": True
-    },
     "memories": {
         "enabled_memories": True,
         # Empty means the model used for the current chat turn. Administrators

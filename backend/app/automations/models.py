@@ -115,7 +115,6 @@ class Automation(Base):
     schedule_rules = Column(JSON, nullable=True, default=list)
     schedule_timezone = Column(String(64), nullable=True)
     skill_id = Column(String, nullable=True)
-    note_ids = Column(JSON, nullable=True, default=list)
     file_ids = Column(JSON, nullable=True, default=list)
     # MCP selection is automation-scoped and opt-in. Keeping the stable server
     # IDs here lets each background execution construct the same explicit
@@ -223,7 +222,6 @@ def create_automation(
     schedule_rules: List[dict] = None,
     schedule_timezone: str | None = None,
     skill_id: str = None,
-    note_ids: List[str] = None,
     file_ids: List[str] = None,
     mcp_server_ids: List[str] = None,
     is_active: bool = True,
@@ -240,7 +238,6 @@ def create_automation(
 
     normalized_skill_id = _normalize_automation_skill_id(db, user_id, normalized_model_id, skill_id)
     normalized_file_ids = _normalize_automation_file_ids(db, user_id, file_ids)
-    normalized_note_ids = _normalize_automation_note_ids(db, user_id, note_ids)
     normalized_mcp_server_ids = _normalize_automation_mcp_server_ids(
         db,
         user_id,
@@ -260,7 +257,6 @@ def create_automation(
         schedule_rules=schedule_rules or [],
         schedule_timezone=schedule_timezone,
         skill_id=normalized_skill_id,
-        note_ids=normalized_note_ids,
         file_ids=normalized_file_ids,
         mcp_server_ids=normalized_mcp_server_ids,
         is_active=is_active,
@@ -320,7 +316,6 @@ def update_automation(
     schedule_rules: List[dict] = None,
     schedule_timezone: str | None = None,
     skill_id: str = None,
-    note_ids: List[str] = None,
     file_ids: List[str] = None,
     mcp_server_ids: List[str] = None,
     is_active: bool = None,
@@ -354,8 +349,6 @@ def update_automation(
             automation.model_id,
             effective_skill_id,
         )
-    if note_ids is not None:
-        automation.note_ids = _normalize_automation_note_ids(db, user_id, note_ids)
     if file_ids is not None:
         automation.file_ids = _normalize_automation_file_ids(db, user_id, file_ids)
     if mcp_server_ids is not None:
@@ -978,58 +971,8 @@ def _normalize_automation_file_ids(db: Session, user_id: str, file_ids: Optional
     return normalized
 
 
-def _normalize_automation_note_ids(db: Session, user_id: str, note_ids: Optional[List[str]]) -> List[str]:
-    """Validate provided note IDs are visible to the user and return a de-duplicated list."""
-    if not note_ids:
-        return []
-
-    from app.notes.models import can_user_view_note
-
-    normalized: List[str] = []
-    seen: set[str] = set()
-    for note_id in note_ids:
-        if not note_id or not isinstance(note_id, str):
-            continue
-        trimmed = note_id.strip()
-        if not trimmed or trimmed in seen:
-            continue
-
-        if not can_user_view_note(db, user_id, trimmed):
-            raise HTTPException(status_code=404, detail=f"Note '{trimmed}' not found or not accessible")
-
-        seen.add(trimmed)
-        normalized.append(trimmed)
-
-    return normalized
 
 
-def remove_note_from_automations(db: Session, user_id: str, note_id: str | None) -> int:
-    """
-    Remove a note ID from all automations owned by the user.
-
-    Returns the number of automations updated.
-    """
-    if not note_id:
-        return 0
-
-    automations = (
-        db.query(Automation)
-        .filter(Automation.user_id == user_id)
-        .filter(Automation.note_ids.isnot(None))
-        .all()
-    )
-
-    updated = 0
-    for automation in automations:
-        note_ids = automation.note_ids if isinstance(automation.note_ids, list) else []
-        if note_id in note_ids:
-            automation.note_ids = [nid for nid in note_ids if nid != note_id]
-            automation.last_updated_at = datetime.now(timezone.utc)
-            updated += 1
-
-    if updated:
-        db.commit()
-    return updated
 
 
 # ---------------------------------------------------------------------------

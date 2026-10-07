@@ -113,6 +113,7 @@
     <link rel="stylesheet" href="/css/chat/files.css">
     <link rel="stylesheet" href="/css/chat/chat-share.css">
     <link rel="stylesheet" href="/css/chat/workspace-core.css">
+    <link rel="stylesheet" href="/css/chat/workspace-sharing.css">
     <link rel="stylesheet" href="/css/chat/workspace-notifications.css">
     <link rel="stylesheet" href="/css/chat/workspace-library.css">
     <link rel="stylesheet" href="/css/chat/workspace-skills.css">
@@ -120,8 +121,6 @@
     <link rel="stylesheet" href="/css/chat/workspace-skill-import.css">
     <link rel="stylesheet" href="/css/chat/workspace-memories.css">
     <link rel="stylesheet" href="/css/chat/connections.css">
-    <link rel="stylesheet" href="/css/chat/todos.css">
-    <link rel="stylesheet" href="/css/chat/notes.css">
     <link rel="stylesheet" href="/css/chat/dragNDrop.css">
     <link rel="stylesheet" href="/css/chat/archived-chats.css">
     <link rel="stylesheet" href="/css/chat/shortcuts.css">
@@ -224,21 +223,11 @@
     <script src="/js/chat/chatBox.js" defer></script>
     <script src="/js/chat/googleDrivePicker.js" defer></script>
     <script src="/js/chat/files.js" defer></script>
-    <script src="/js/chat/fileFolders.js" defer></script>
+    <script src="/js/chat/file-library.js" defer></script>
+    <script src="/js/chat/canvas-library.js" defer></script>
     <script src="/js/chat/workspace.js" defer></script>
     <script src="/js/chat/workspaceNotifications.js" defer></script>
     <script src="/js/chat/workspaceConnections.js" defer></script>
-    <script src="/js/chat/todos.js" defer></script>
-    <script src="/js/chat/notesConflict.js" defer></script>
-    <script src="/js/chat/notes/state.js" defer></script>
-    <script src="/js/chat/notes/api.js" defer></script>
-    <script src="/js/chat/notes/dom.js" defer></script>
-    <script src="/js/chat/notes/render.js" defer></script>
-    <script src="/js/chat/notes/manager.js" defer></script>
-    <script src="/js/chat/notes/manager-lifecycle.js" defer></script>
-    <script src="/js/chat/notes/manager-history.js" defer></script>
-    <script src="/js/chat/notes/sidebar.js" defer></script>
-    <script src="/js/chat/notes.js" defer></script>
     <script src="/js/chat/memories.js" defer></script>
     <script src="/js/chat/skills.js" defer></script>
     <script src="/js/admin/iconPicker.js" defer></script>
@@ -640,12 +629,8 @@
                         <button class="workspace-header-tab" id="workspaceTabAgents" type="button" role="tab" aria-selected="false" aria-controls="workspaceSectionAgents" tabindex="-1" data-workspace-tab="agents">
                             <span data-i18n="workspace_tab_agents">Agents</span>
                         </button>
-                        <button class="workspace-header-tab" id="workspaceTabTodo" type="button" role="tab" aria-selected="false" aria-controls="workspaceSectionTodo" tabindex="-1" data-workspace-tab="todo">
-                            <span data-i18n="workspace_tab_todo">Todo</span>
-                        </button>
-                        <button class="workspace-header-tab" id="workspaceTabNotes" type="button" role="tab" aria-selected="false" aria-controls="workspaceSectionNotes" tabindex="-1" data-workspace-tab="notes">
-                            <span data-i18n="workspace_tab_notes">Notes</span>
-                        </button>
+
+
                         <button class="workspace-header-tab" id="workspaceTabMemories" type="button" role="tab" aria-selected="false" aria-controls="workspaceSectionMemories" tabindex="-1" data-workspace-tab="memories">
                             <span data-i18n="workspace_tab_memories">Memories</span>
                         </button>
@@ -1011,52 +996,22 @@
                         <div class="files-sidebar-backdrop" id="filesSidebarBackdrop" aria-hidden="true"></div>
 
                         <!-- Sidebar - File Folders -->
-                        <div class="files-sidebar" id="filesFolderSidebar">
-                            <div class="files-sidebar-header">
-                                <p class="files-sidebar-title" data-i18n="files_folders_title">Folders</p>
-                                <button class="om-button" id="filesFolderAddBtn" type="button" aria-label="Create new folder" title="New folder" data-i18n-attr="aria-label:files_folder_create_aria;title:files_folder_new">
-                                    <span data-omlorix-icon="plus" width="18" height="18"></span>
-                                </button>
-                            </div>
-                            <div class="files-sidebar-list" id="filesFolderList">
-                                <!-- "All Files" virtual folder always first -->
-                                <div class="files-sidebar-item active" data-folder-id="all" id="filesFolderAll">
-                                    <span class="files-sidebar-item-icon">
-                                        <span data-omlorix-icon="file" width="18" height="18"></span>
-                                    </span>
-                                    <span class="files-sidebar-item-name" data-i18n="files_folder_all">All Files</span>
-                                    <span class="files-sidebar-item-count" id="filesFolderAllCount"></span>
-                                </div>
-                                <!-- "Uncategorized" virtual folder -->
-                                <div class="files-sidebar-item" data-folder-id="uncategorized" id="filesFolderUncategorized">
-                                    <span class="files-sidebar-item-icon">
-                                        <span data-omlorix-icon="layout" width="18" height="18"></span>
-                                    </span>
-                                    <span class="files-sidebar-item-name" data-i18n="files_folder_uncategorized">Uncategorized</span>
-                                    <span class="files-sidebar-item-count" id="filesFolderUncategorizedCount"></span>
-                                </div>
-                                <div class="files-sidebar-divider"></div>
-                                <!-- Dynamic user folders inserted here -->
-                                <div id="filesFolderDynamicList"></div>
-                                <!-- Shared folders section -->
-                                <div id="filesFolderSharedSection" style="display:none;">
-                                    <div class="files-sidebar-divider"></div>
-                                    <div class="files-sidebar-section-label" data-i18n="files_folder_shared_with_me">Shared with me</div>
-                                    <div id="filesFolderSharedList"></div>
-                                </div>
-                            </div>
-                        </div>
+                        <nav class="files-sidebar" id="filesCategorySidebar" aria-label="File categories" data-i18n-attr="aria-label:files_categories">
+                            <div class="files-sidebar-header"><p class="files-sidebar-title" data-i18n="files_categories">Categories</p></div>
+                            <div class="files-sidebar-list" id="filesCategoryList"></div>
+                        </nav>
 
                         <!-- Main content area -->
                         <div class="files-main" id="filesMain">
                             <div class="files-main-header" id="filesMainHeader">
                                 <div class="files-main-header-left">
-                                    <button class="files-main-header-btn" id="filesFolderMobileSidebarToggle" type="button" title="Toggle folders" aria-label="Toggle folders" aria-controls="filesFolderSidebar" aria-expanded="false" data-i18n-attr="title:files_folder_toggle;aria-label:files_folder_toggle">
+                                    <button class="files-main-header-btn" id="filesCategoryMobileSidebarToggle" type="button" title="Toggle categories" aria-label="Toggle categories" aria-controls="filesCategorySidebar" aria-expanded="false" data-i18n-attr="title:files_categories_toggle;aria-label:files_categories_toggle">
                                         <span data-omlorix-icon="folder" width="20" height="20"></span>
                                     </button>
-                                    <h3 class="files-main-header-title" id="filesMainHeaderTitle" data-i18n="files_folder_all">All Files</h3>
+                                    <h3 class="files-main-header-title" id="filesMainHeaderTitle" data-i18n="files_category_all">All Files</h3>
                                 </div>
                                 <div class="files-main-header-right">
+                                    <button id="filesCreateCanvas" class="om-button" type="button"><span data-omlorix-icon="file" width="20" height="20"></span><span data-i18n="canvas_create">New Canvas</span></button>
                                     <button id="filesStorageUsageButton" class="om-button files-storage-usage-button" type="button" title="Storage limits" aria-label="Storage limits" data-i18n-attr="title:files_storage_usage_button;aria-label:files_storage_usage_button">
                                     </button>
                                     <button id="mainContainerHeaderFilesUpload" class="om-button" type="button">
@@ -1092,7 +1047,7 @@
                                     <!-- Empty State -->
                                     <div id="emptyState" class="files-empty-state workspace-notifications-empty">
                                         <div class="files-empty-icon workspace-notifications-empty-icon">
-                                            <span data-omlorix-icon="filePlus"></span>
+                                            <span data-omlorix-icon="file"></span>
                                         </div>
                                         <h3 class="files-empty-title workspace-notifications-empty-title" data-i18n="files_empty_title">No files yet</h3>
                                         <p class="files-empty-description workspace-notifications-empty-text" data-i18n="files_empty_description">Upload files to use them in your conversations.</p>
@@ -1115,242 +1070,10 @@
                 </div>
 
                 <!-- Workspace Todo Section -->
-                <div class="workspace-section" id="workspaceSectionTodo" role="tabpanel" aria-labelledby="workspaceTabTodo" tabindex="0" aria-hidden="true" style="display: none;">
-                    <div class="todos-workspace" id="todosWorkspace">
-                        <!-- Sidebar - Todo Lists -->
-                        <div class="todos-sidebar" id="todosSidebar">
-                            <div class="todos-sidebar-header">
-                                <p class="todos-sidebar-title" data-i18n="todos_sidebar_title">My Lists</p>
-                                <button class="om-button" id="todosSidebarAddBtn" type="button" aria-label="Add new list" data-i18n-attr="aria-label:todos_add_list_aria">
-                                    <span data-omlorix-icon="plus" width="18" height="18"></span>
-                                </button>
-                            </div>
-                            <div class="todos-sidebar-search" id="todosSidebarSearch">
-                                <div class="todos-search-input-wrapper">
-                                    <span data-omlorix-icon="magnifyingGlass" class="todos-search-icon"></span>
-                                    <input type="text" class="todos-search-input" id="todosSidebarSearchInput" placeholder="Search todos..." aria-label="Search todos..." data-i18n-attr="placeholder:todos_search_placeholder;aria-label:todos_search_placeholder" autocomplete="off">
-                                    <button type="button" class="todos-search-clear" id="todosSidebarSearchClear" aria-label="Clear search" data-i18n-attr="aria-label:chats_search_clear_aria">
-                                        <span data-omlorix-icon="close"></span>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="todos-sidebar-list" id="todosSidebarList"></div>
-                        </div>
 
-                        <!-- Main Content -->
-                        <div class="todos-main" id="todosMain">
-                            <!-- Empty State - No List Selected -->
-                            <div class="todos-empty-state workspace-notifications-empty" id="todosEmptyState">
-                                <div class="todos-empty-state-icon workspace-notifications-empty-icon">
-                                    <span data-omlorix-icon="todo"></span>
-                                </div>
-                                <div class="todos-empty-state-content">
-                                    <p class="todos-empty-state-title workspace-notifications-empty-title" data-i18n="todos_empty_title">Select a list</p>
-                                    <p class="todos-empty-state-text workspace-notifications-empty-text" data-i18n="todos_empty_subtitle">Choose a list from the sidebar to view and manage your todos</p>
-                                </div>
-                            </div>
-
-                            <!-- List View (hidden by default) -->
-                            <div class="todos-content" id="todosListView" style="display: none;">
-                                <div class="todos-list-header" id="todosListHeader"></div>
-                                <div class="todos-list-container" id="todosListContainer"></div>
-                                <div class="todos-add-container" id="todosAddContainer">
-                                    <div class="todos-add-form" id="todosAddForm">
-                                        <div class="todos-add-icon" aria-hidden="true">
-                                            <span data-omlorix-icon="plus" width="18" height="18"></span>
-                                        </div>
-                                        <div class="todos-add-fields">
-                                            <input type="text" class="todos-add-input" id="todosAddInput" placeholder="Add a new todo..." aria-label="Add a new todo..." data-i18n-attr="placeholder:todos_add_placeholder;aria-label:todos_add_placeholder" autocomplete="off">
-                                            <input type="text" class="todos-add-notes" id="todosAddNotes" placeholder="Add notes (optional)" aria-label="Add notes (optional)" data-i18n-attr="placeholder:todos_add_notes_placeholder;aria-label:todos_add_notes_placeholder" autocomplete="off">
-                                        </div>
-                                        <div class="todos-add-tools" id="todosAddTools">
-                                            <div class="todos-add-tool">
-                                                <button type="button" class="todos-add-tool-button" id="todosAddScheduleBtn" aria-haspopup="dialog" aria-expanded="false" aria-controls="todosAddSchedulePopover" aria-label="Due date" data-i18n-attr="aria-label:todos_due_label;title:todos_due_label">
-                                                    <span class="todos-add-tool-icon" id="todosAddScheduleIcon" aria-hidden="true"></span>
-                                                </button>
-                                                <div class="todos-add-popover todos-add-schedule-popover" id="todosAddSchedulePopover" role="dialog" aria-labelledby="todosAddScheduleLabel" hidden>
-                                                    <label class="todos-add-popover-label" id="todosAddScheduleLabel" for="todosAddDueAt" data-i18n="todos_due_label">Due date</label>
-                                                    <div class="todos-add-due-inputs">
-                                                        <input type="date" class="todos-add-popover-input" id="todosAddDueAt">
-                                                        <input type="time" class="todos-add-popover-input" id="todosAddDueTime" aria-label="Due time" data-i18n-attr="aria-label:todos_due_time_label">
-                                                    </div>
-                                                    <label class="todos-add-popover-check">
-                                                        <input type="checkbox" class="form-checkbox" id="todosAddAllDay">
-                                                        <span data-i18n="todos_all_day_label">All day</span>
-                                                    </label>
-                                                </div>
-                                            </div>
-                                            <div class="todos-add-tool">
-                                                <button type="button" class="todos-add-tool-button" id="todosAddPriorityBtn" aria-haspopup="menu" aria-expanded="false" aria-controls="todosAddPriorityPopover" aria-label="Priority" data-i18n-attr="aria-label:todos_priority_label;title:todos_priority_label">
-                                                    <span class="todos-add-tool-icon" id="todosAddPriorityIcon" aria-hidden="true"></span>
-                                                </button>
-                                                <div class="todos-add-popover todos-add-priority-popover" id="todosAddPriorityPopover" role="menu" aria-label="Priority" data-i18n-attr="aria-label:todos_priority_label" hidden>
-                                                    <button type="button" class="todos-add-priority-option selected" data-priority="0" role="menuitemradio" aria-checked="true"><span data-i18n="todos_priority_none">No priority</span><span class="todos-add-option-check" aria-hidden="true"></span></button>
-                                                    <button type="button" class="todos-add-priority-option" data-priority="1" role="menuitemradio" aria-checked="false"><span data-i18n="todos_priority_medium">Medium priority</span><span class="todos-add-option-check" aria-hidden="true"></span></button>
-                                                    <button type="button" class="todos-add-priority-option" data-priority="2" role="menuitemradio" aria-checked="false"><span data-i18n="todos_priority_high">High priority</span><span class="todos-add-option-check" aria-hidden="true"></span></button>
-                                                    <select class="todos-add-native-select" id="todosAddPriority" tabindex="-1" aria-hidden="true">
-                                                        <option value="0" data-i18n="todos_priority_none">No priority</option>
-                                                        <option value="1" data-i18n="todos_priority_medium">Medium priority</option>
-                                                        <option value="2" data-i18n="todos_priority_high">High priority</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                            <div class="todos-add-tool">
-                                                <button type="button" class="todos-add-tool-button" id="todosAddTagsBtn" aria-haspopup="dialog" aria-expanded="false" aria-controls="todosAddTagsPopover" aria-label="Tags" data-i18n-attr="aria-label:todos_tags_label;title:todos_tags_label">
-                                                    <span class="todos-add-tool-icon" id="todosAddTagsIcon" aria-hidden="true"></span>
-                                                </button>
-                                                <div class="todos-add-popover todos-add-tags-popover" id="todosAddTagsPopover" role="dialog" aria-labelledby="todosAddTagsLabel" hidden>
-                                                    <label class="todos-add-popover-label" id="todosAddTagsLabel" for="todosAddTags" data-i18n="todos_tags_label">Tags</label>
-                                                    <input type="text" class="todos-add-popover-input" id="todosAddTags" placeholder="Tags" data-i18n-attr="placeholder:todos_tags_placeholder" autocomplete="off">
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Routed create/edit page. The form is rendered by TodosManager
-                                 so create and edit share one accessible editor implementation. -->
-                            <section class="todos-list-editor-page" id="todosListEditorPage" hidden aria-hidden="true"></section>
-                        </div>
-                    </div>
-                </div>
 
                 <!-- Workspace Notes Section -->
-                <div class="workspace-section" id="workspaceSectionNotes" role="tabpanel" aria-labelledby="workspaceTabNotes" tabindex="0" aria-hidden="true" style="display: none;">
-                    <div class="notes-workspace" id="notesWorkspace">
-                        <!-- Sidebar - Notes List -->
-                        <div class="notes-sidebar" id="notesSidebar">
-                            <div class="notes-sidebar-header">
-                                <p class="notes-sidebar-title" data-i18n="notes_sidebar_title">My Notes</p>
-                                <div class="notes-sidebar-header-actions">
-                                    <button class="om-button" id="notesSidebarAddBtn" type="button" aria-label="Add new note" data-i18n-attr="aria-label:notes_add_note_aria">
-                                        <span data-omlorix-icon="plus" width="18" height="18"></span>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="notes-sidebar-search" id="notesSidebarSearch">
-                                <div class="notes-search-input-wrapper">
-                                    <span data-omlorix-icon="magnifyingGlass" class="notes-search-icon"></span>
-                                    <input type="text" class="notes-search-input" id="notesSidebarSearchInput" placeholder="Search notes..." aria-label="Search notes..." data-i18n-attr="placeholder:notes_search_placeholder;aria-label:notes_search_placeholder" autocomplete="off">
-                                    <button type="button" class="notes-search-clear" id="notesSidebarSearchClear" aria-label="Clear search" data-i18n-attr="aria-label:notes_search_clear_aria">
-                                        <span data-omlorix-icon="close"></span>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="notes-sidebar-list" id="notesSidebarList"></div>
-                        </div>
 
-                        <!-- Main Content -->
-                        <div class="notes-main" id="notesMain">
-                            <!-- Empty State - No Note Selected -->
-                            <div class="notes-empty-state workspace-notifications-empty" id="notesEmptyState">
-                                <div class="notes-empty-state-icon workspace-notifications-empty-icon">
-                                    <span data-omlorix-icon="notes_management"></span>
-                                </div>
-                                <div class="notes-empty-state-content">
-                                    <p class="notes-empty-state-title workspace-notifications-empty-title" data-i18n="notes_empty_title">Select a note</p>
-                                    <p class="notes-empty-state-text workspace-notifications-empty-text" data-i18n="notes_empty_subtitle">Choose a note from the sidebar or create a new one to start writing</p>
-                                </div>
-                            </div>
-
-                            <!-- Empty State - No Notes Yet -->
-                            <div class="notes-no-notes-state" id="notesNoNotesState" style="display: none;">
-                                <div class="notes-no-notes-illustration">
-                                    <div class="notes-no-notes-sheets">
-                                        <div class="notes-no-notes-sheet primary">
-                                            <span></span>
-                                            <span></span>
-                                            <span></span>
-                                        </div>
-                                        <div class="notes-no-notes-sheet secondary"></div>
-                                        <div class="notes-no-notes-sheet tertiary"></div>
-                                    </div>
-                                    <div class="notes-no-notes-pencil">
-                                        <div class="notes-no-notes-pencil-body"></div>
-                                        <div class="notes-no-notes-pencil-tip"></div>
-                                    </div>
-                                    <div class="notes-no-notes-sparkles">
-                                        <span></span>
-                                        <span></span>
-                                        <span></span>
-                                    </div>
-                                </div>
-                                <div class="notes-no-notes-content">
-                                    <h2 class="notes-no-notes-title" data-i18n="notes_no_notes_title">Start your first note</h2>
-                                    <p class="notes-no-notes-text" data-i18n="notes_no_notes_subtitle">Capture thoughts, decisions, and ideas in one focused place. Your future self will thank you.</p>
-                                </div>
-                                <button type="button" class="notes-no-notes-btn" id="notesNoNotesCreateBtn">
-                                    <span data-omlorix-icon="plus"></span>
-                                    <span data-i18n="notes_no_notes_cta">Create a note</span>
-                                </button>
-                            </div>
-
-                            <!-- Editor View (hidden by default) -->
-                            <div class="notes-editor-view" id="notesEditorView" style="display: none;">
-                                <div class="notes-editor-header">
-                                    <!-- Keep document state anchored on the left, separate from
-                                         the interactive view and file actions on the right. -->
-                                    <div class="notes-editor-header-leading" id="notesEditorHeaderLeading">
-                                        <button type="button" class="notes-mobile-back-btn" id="notesMobileBackBtn" aria-label="Back to notes" data-i18n-attr="aria-label:notes_back_to_list_aria">
-                                            <span data-omlorix-icon="chevronLeft"></span>
-                                            <span data-i18n="notes_back_to_list">Notes</span>
-                                        </button>
-                                        <div class="notes-save-status saved" id="notesSaveStatus" role="status" aria-live="polite">
-                                            <div class="notes-save-status-indicator saved"></div>
-                                            <span data-i18n="notes_status_saved">Saved</span>
-                                        </div>
-                                    </div>
-                                    <div class="notes-editor-header-actions">
-                                        <div class="notes-editor-view-toggle canvas-markdown-editor-view-toggle" id="notesMarkdownEditorControls" role="tablist" aria-label="Document view" data-i18n-attr="aria-label:markdown_editor_document_view">
-                                            <button class="canvas-markdown-editor-view-btn" id="notesMarkdownTab" type="button" role="tab" aria-selected="false" title="Markdown" data-i18n-attr="title:markdown_editor_tab_markdown">
-                                                <span class="canvas-markdown-editor-view-btn-icon" aria-hidden="true">
-                                                    <span data-omlorix-icon="list"></span>
-                                                </span>
-                                                <span class="canvas-markdown-editor-view-btn-label" data-i18n="markdown_editor_tab_markdown">Markdown</span>
-                                            </button>
-                                            <button class="canvas-markdown-editor-view-btn active" id="notesEditorTab" type="button" role="tab" aria-selected="true" title="Editor" data-i18n-attr="title:markdown_editor_tab_editor">
-                                                <span class="canvas-markdown-editor-view-btn-icon" aria-hidden="true">
-                                                    <span data-omlorix-icon="edit"></span>
-                                                </span>
-                                                <span class="canvas-markdown-editor-view-btn-label" data-i18n="markdown_editor_tab_editor">Editor</span>
-                                            </button>
-                                        </div>
-                                        <button type="button" class="notes-history-btn" id="notesHistoryBtn" aria-label="View history" title="Version History" data-i18n-attr="aria-label:notes_history_aria;title:notes_history_title">
-                                            <span data-omlorix-icon="clock"></span>
-                                        </button>
-                                        <div class="notes-download-controls preview-download-controls">
-                                            <select style="display:none" aria-hidden="true" tabindex="-1" id="notesDownloadFormat" aria-label="Download format" data-i18n-attr="aria-label:notes_download_format_aria" disabled>
-                                                <option value="md" data-i18n="notes_download_md">MD</option>
-                                                <option value="pdf" data-i18n="notes_download_pdf">PDF</option>
-                                            </select>
-                                            <button type="button" class="om-button notes-download-btn disabled" id="notesDownloadBtn" aria-label="Download note" title="Download note" data-i18n-attr="aria-label:notes_download_aria;title:notes_download_aria" aria-disabled="true" disabled>
-                                                <span data-omlorix-icon="download" aria-hidden="true"></span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="notes-editor-shell">
-                                    <section class="notes-editor-pane">
-                                        <div class="notes-markdown-editor-host" id="notesMarkdownEditorHost"></div>
-                                        <textarea
-                                            class="notes-editor-textarea"
-                                            id="notesEditorTextarea"
-                                            placeholder="Start typing your note..."
-                                            data-i18n-attr="placeholder:notes_editor_placeholder"
-                                            hidden
-                                        ></textarea>
-                                        <div class="notes-attachments-strip" id="notesAttachmentsStrip"></div>
-                                        <input type="file" id="notesInlineUploadInput" multiple hidden>
-                                    </section>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Delete Note Confirmation -->
-
-                </div>
 
                 <div class="workspace-section" id="workspaceSectionMemories" role="tabpanel" aria-labelledby="workspaceTabMemories" tabindex="0" aria-hidden="true" style="display: none;">
                     <div class="projects-content" id="memoriesWorkspace">
@@ -2201,9 +1924,9 @@
                                 <button type="button" class="si-filter-btn" data-filter="chat"><span data-i18n="us_shared_items_filter_chats">Chats</span> <span class="si-filter-count">0</span></button>
                                 <button type="button" class="si-filter-btn" data-filter="artifact"><span data-i18n="us_shared_items_filter_artifacts">Canvases</span> <span class="si-filter-count">0</span></button>
                                 <button type="button" class="si-filter-btn" data-filter="project"><span data-i18n="us_shared_items_filter_projects">Projects</span> <span class="si-filter-count">0</span></button>
-                                <button type="button" class="si-filter-btn" data-filter="folder"><span data-i18n="us_shared_items_filter_folders">Folders</span> <span class="si-filter-count">0</span></button>
-                                <button type="button" class="si-filter-btn" data-filter="note"><span data-i18n="us_shared_items_filter_notes">Notes</span> <span class="si-filter-count">0</span></button>
-                                <button type="button" class="si-filter-btn" data-filter="todo"><span data-i18n="us_shared_items_filter_todos">Todos</span> <span class="si-filter-count">0</span></button>
+
+
+
                                 <button type="button" class="si-filter-btn" data-filter="skill"><span data-i18n="us_shared_items_filter_skills">Skills</span> <span class="si-filter-count">0</span></button>
                                 <button type="button" class="si-filter-btn" data-filter="agent"><span data-i18n="us_shared_items_filter_agents">Agents</span> <span class="si-filter-count">0</span></button>
                                 <button type="button" class="si-filter-btn" data-filter="prompt"><span data-i18n="us_shared_items_filter_prompts">Prompts</span> <span class="si-filter-count">0</span></button>
@@ -2359,20 +2082,8 @@
                                                         <span class="toggle-slider"></span>
                                                     </span>
                                                 </label>
-                                                <label class="managed-groups-toggle-row">
-                                                    <span class="managed-groups-toggle-label" data-i18n="us_managed_groups_enable_todo">Enable todo lists</span>
-                                                    <span class="toggle-switch">
-                                                        <input id="managedGroupEnableTodo" type="checkbox" class="toggle-input">
-                                                        <span class="toggle-slider"></span>
-                                                    </span>
-                                                </label>
-                                                <label class="managed-groups-toggle-row">
-                                                    <span class="managed-groups-toggle-label" data-i18n="us_managed_groups_enable_notes">Enable notes</span>
-                                                    <span class="toggle-switch">
-                                                        <input id="managedGroupEnableNotes" type="checkbox" class="toggle-input">
-                                                        <span class="toggle-slider"></span>
-                                                    </span>
-                                                </label>
+
+
                                                 <label class="managed-groups-toggle-row">
                                                     <span class="managed-groups-toggle-label" data-i18n="us_managed_groups_enable_memories">Enable memories</span>
                                                     <span class="toggle-switch">
@@ -2438,20 +2149,8 @@
                                                         <span class="toggle-slider"></span>
                                                     </span>
                                                 </label>
-                                                <label class="managed-groups-toggle-row">
-                                                    <span class="managed-groups-toggle-label" data-i18n="us_managed_groups_allow_todo_share">Allow todo list sharing</span>
-                                                    <span class="toggle-switch">
-                                                        <input id="managedGroupAllowTodoShare" type="checkbox" class="toggle-input">
-                                                        <span class="toggle-slider"></span>
-                                                    </span>
-                                                </label>
-                                                <label class="managed-groups-toggle-row">
-                                                    <span class="managed-groups-toggle-label" data-i18n="us_managed_groups_allow_notes_share">Allow note sharing</span>
-                                                    <span class="toggle-switch">
-                                                        <input id="managedGroupAllowNotesShare" type="checkbox" class="toggle-input">
-                                                        <span class="toggle-slider"></span>
-                                                    </span>
-                                                </label>
+
+
                                                 <label class="managed-groups-toggle-row">
                                                     <span class="managed-groups-toggle-label" data-i18n="us_managed_groups_allow_skill_share">Allow skill sharing</span>
                                                     <span class="toggle-switch">

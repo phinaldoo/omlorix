@@ -150,8 +150,7 @@ constructor() {
     this.activeRequestId = 0;
     this.counts = {
     all: 0,
-    uncategorized: 0,
-    folders: {},
+    categories: {},
     };
 }
 
@@ -222,10 +221,7 @@ setWorkspaceResult(result, { append = false } = {}) {
     this.hasMore = Boolean(result?.has_more);
     this.counts = {
     all: Number(result?.counts?.all) || 0,
-    uncategorized: Number(result?.counts?.uncategorized) || 0,
-    folders: result?.counts?.folders && typeof result.counts.folders === 'object'
-        ? result.counts.folders
-        : {},
+    categories: result?.counts?.categories || {},
     };
 }
 
@@ -347,9 +343,9 @@ get emptyState() { return document.getElementById('emptyState'); },
 get loadingState() { return document.getElementById('filesLoadingState'); },
 get listStatus() { return document.getElementById('filesListStatus'); },
 get filesContainer() { return document.getElementById('filesContainer'); },
-get filesSidebar() { return document.getElementById('filesFolderSidebar'); },
+get filesSidebar() { return document.getElementById('filesCategorySidebar'); },
 get filesSidebarBackdrop() { return document.getElementById('filesSidebarBackdrop'); },
-get filesSidebarToggle() { return document.getElementById('filesFolderMobileSidebarToggle'); },
+get filesSidebarToggle() { return document.getElementById('filesCategoryMobileSidebarToggle'); },
 get searchInput() { return document.getElementById('filesSearchInput'); },
 get searchClear() { return document.getElementById('filesSearchClear'); },
 get fileSortHeaders() { return document.querySelectorAll('.files-table .sortable-column'); },
@@ -1424,8 +1420,6 @@ createFileItem(file) {
     const fileSize = Utils.formatFileSize(file.file_size);
     const downloadLabel = filesT('files_preview_download', 'Download');
     const downloadAria = filesT('files_preview_download_aria', 'Download file');
-    const moveLabel = filesT('files_move', 'Move');
-    const moveAria = filesT('files_move_to_folder', 'Move to folder');
     const editLabel = filesT('files_edit_title', 'Edit file');
     const deleteLabel = filesT('files_delete_action', 'Delete');
     const deleteAria = filesT('files_delete_aria', 'Delete file');
@@ -1450,13 +1444,10 @@ createFileItem(file) {
             <button type="button" class="file-action-btn download" data-file-action="download" data-file-id="${fileId}" title="${Utils.escapeHtml(downloadLabel)}" aria-label="${Utils.escapeHtml(downloadAria)}">
                 ${Icons.download}
             </button>
-            <button type="button" class="file-action-btn" data-file-action="move" data-file-id="${fileId}" title="${Utils.escapeHtml(moveLabel)}" aria-label="${Utils.escapeHtml(moveAria)}" aria-haspopup="menu" aria-expanded="false">
-                ${Icons.folder}
-            </button>
-            <button type="button" class="file-action-btn edit" data-file-action="edit" data-file-id="${fileId}" title="${Utils.escapeHtml(editLabel)}" aria-label="${Utils.escapeHtml(editLabel)}">
+            <button type="button" ${file.can_edit === false ? 'hidden' : ''} class="file-action-btn edit" data-file-action="edit" data-file-id="${fileId}" title="${Utils.escapeHtml(editLabel)}" aria-label="${Utils.escapeHtml(editLabel)}">
                 ${Icons.edit}
             </button>
-            <button type="button" class="file-action-btn delete" data-file-action="delete" data-file-id="${fileId}" title="${Utils.escapeHtml(deleteLabel)}" aria-label="${Utils.escapeHtml(deleteAria)}">
+            <button type="button" ${file.can_delete === false ? 'hidden' : ''} class="file-action-btn delete" data-file-action="delete" data-file-id="${fileId}" title="${Utils.escapeHtml(deleteLabel)}" aria-label="${Utils.escapeHtml(deleteAria)}">
                 ${Icons.trash}
             </button>
         </div>
@@ -1824,13 +1815,6 @@ initFileActionButtons(filesList) {
         return;
     }
 
-    if (action === 'move') {
-        if (typeof window.showMoveToFolderMenu === 'function') {
-        window.showMoveToFolderMenu(fileId, actionButton);
-        }
-        return;
-    }
-
     if (!file) {
         notifyError?.(filesT('files_error_not_found', 'File not found.'));
         return;
@@ -1906,7 +1890,7 @@ initMobileSidebar() {
     /**
      * Update every visual and accessible part of the mobile drawer together.
      * Keeping this state in one function prevents the sidebar and backdrop from
-     * becoming desynchronized when it closes through a folder click or Escape.
+     * becoming desynchronized when it closes through a category click or Escape.
      */
     const setSidebarOpen = (open, { restoreFocus = false } = {}) => {
         const shouldOpen = Boolean(open);
@@ -1943,10 +1927,10 @@ initMobileSidebar() {
 
     filesSidebarBackdrop?.addEventListener('click', () => closeSidebar());
 
-    // Close sidebar when selecting a folder on mobile
+    // Close sidebar when selecting a category on mobile
     filesSidebar.addEventListener('click', (event) => {
-        const folderItem = event.target.closest('.files-sidebar-item');
-        if (folderItem && isCompactLayout()) {
+        const categoryItem = event.target.closest('.files-sidebar-item');
+        if (categoryItem && isCompactLayout()) {
             closeSidebar();
         }
     });
@@ -1983,7 +1967,6 @@ const FileDragDrop = {
     dragGhost: null,
 
     init() {
-        this.setupFolderDropZones();
         document.addEventListener('dragend', () => this.cleanup());
     },
 
@@ -2008,7 +1991,7 @@ const FileDragDrop = {
         fileItem.classList.add('dragging');
 
         // Set drag data
-        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.effectAllowed = 'copy';
         e.dataTransfer.setData('text/plain', fileId);
         e.dataTransfer.setData('application/x-file-id', fileId);
 
@@ -2016,7 +1999,6 @@ const FileDragDrop = {
         this.createDragGhost(fileItem, e);
 
         // Highlight valid drop targets
-        this.highlightDropZones(true);
     },
 
     handleDragEnd(e, fileItem) {
@@ -2055,126 +2037,6 @@ const FileDragDrop = {
         }
     },
 
-    setupFolderDropZones() {
-        // Setup for sidebar folder items - use event delegation
-        const sidebar = document.getElementById('filesFolderSidebar');
-        if (sidebar && !sidebar.dataset.dropZoneInitialized) {
-            sidebar.dataset.dropZoneInitialized = 'true';
-            
-            sidebar.addEventListener('dragover', (e) => {
-                const folderItem = e.target.closest('.files-sidebar-item');
-                if (folderItem && this.draggedFileId) {
-                    e.preventDefault();
-                    e.dataTransfer.dropEffect = 'move';
-                    
-                    // Remove drop-target from other items
-                    sidebar.querySelectorAll('.files-sidebar-item.drop-target').forEach(item => {
-                        if (item !== folderItem) item.classList.remove('drop-target');
-                    });
-                    
-                    folderItem.classList.add('drop-target');
-                }
-            });
-
-            sidebar.addEventListener('dragleave', (e) => {
-                const folderItem = e.target.closest('.files-sidebar-item');
-                if (folderItem) {
-                    // Only remove if we're actually leaving (not entering a child)
-                    const relatedTarget = e.relatedTarget;
-                    if (!folderItem.contains(relatedTarget)) {
-                        folderItem.classList.remove('drop-target');
-                    }
-                }
-            });
-
-            sidebar.addEventListener('drop', async (e) => {
-                const folderItem = e.target.closest('.files-sidebar-item');
-                if (folderItem && this.draggedFileId) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    folderItem.classList.remove('drop-target');
-                    
-                    const folderId = folderItem.dataset.folderId;
-                    const fileId = this.draggedFileId;
-                    
-                    await this.moveFileToFolder(fileId, folderId);
-                }
-                this.cleanup();
-            });
-        }
-    },
-
-    async moveFileToFolder(fileId, folderId) {
-        if (!fileId) return;
-
-        // Handle special folder IDs
-        let targetFolderId = folderId;
-        if (folderId === 'all' || folderId === 'uncategorized') {
-            targetFolderId = null; // Remove from folder
-        }
-
-        try {
-            // Use FolderAPI if available, otherwise call directly
-            if (typeof FolderAPI !== 'undefined' && typeof FolderAPI.moveFile === 'function') {
-                await FolderAPI.moveFile(fileId, targetFolderId);
-            } else {
-                const response = await window.authedFetch('/api/v1/file-folders/move-file', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ file_id: fileId, folder_id: targetFolderId }),
-                });
-                if (!response.ok) throw new Error(filesT('files_move_error', 'Failed to move file'));
-            }
-
-            // Show success notification
-            const file = state.getFileById(fileId);
-            const fileName = file?.meta?.original_filename || filesT('files_file', 'File');
-            const folderName = this.getFolderName(folderId);
-            
-            if (typeof showNotification === 'function') {
-                showNotification(filesFormatT('files_move_success', 'Moved "{filename}" to {folder}', { filename: fileName, folder: folderName }), 'success');
-            }
-
-            // Refresh files list and folder counts
-            if (typeof FilesManager !== 'undefined') {
-                await FilesManager.refresh();
-            }
-            if (typeof FileFoldersManager !== 'undefined') {
-                FileFoldersManager.refreshCounts?.();
-                FolderRenderer?.updateCounts?.();
-            }
-
-        } catch (error) {
-            console.error('Failed to move file:', error);
-            if (typeof notifyError === 'function') {
-                notifyError(filesT('files_move_error', 'Failed to move file'));
-            } else if (typeof showNotification === 'function') {
-                showNotification(filesT('files_move_error', 'Failed to move file'), 'error');
-            }
-        }
-    },
-
-    getFolderName(folderId) {
-        if (folderId === 'all') return filesT('files_folder_all', 'All Files');
-        if (folderId === 'uncategorized' || !folderId) return filesT('files_folder_uncategorized', 'Uncategorized');
-        
-        if (typeof FileFoldersState !== 'undefined') {
-            const folder = FileFoldersState.folders?.find(f => f.id === folderId);
-            if (folder) {
-                return folder.name;
-            }
-        }
-        return filesT('files_folder_generic', 'folder');
-    },
-
-    highlightDropZones(highlight) {
-        const sidebar = document.getElementById('filesFolderSidebar');
-        if (sidebar) {
-            sidebar.classList.toggle('has-dragging-file', highlight);
-        }
-    },
-
     cleanup() {
         this.draggedFileId = null;
         
@@ -2190,7 +2052,7 @@ const FileDragDrop = {
         });
 
         // Remove highlight from sidebar
-        const sidebar = document.getElementById('filesFolderSidebar');
+        const sidebar = document.getElementById('filesCategorySidebar');
         if (sidebar) {
             sidebar.classList.remove('has-dragging-file');
         }
@@ -2237,7 +2099,7 @@ async fetchWorkspaceFiles(options = {}) {
     const params = new URLSearchParams();
     const {
     search = '',
-    folderId = 'all',
+    category = 'all',
     sortField = SORT_CONFIG.DEFAULT_FIELD,
     sortDirection = SORT_CONFIG.DEFAULT_DIRECTION,
     limit = FILES_PAGE_SIZE,
@@ -2249,9 +2111,9 @@ async fetchWorkspaceFiles(options = {}) {
     params.set('search', trimmedSearch);
     }
 
-    const normalizedFolderId = String(folderId || 'all').trim();
-    if (normalizedFolderId && normalizedFolderId !== 'all') {
-    params.set('folder_id', normalizedFolderId);
+    const normalizedCategory = String(category || 'all').trim();
+    if (normalizedCategory && normalizedCategory !== 'all') {
+    params.set('category', normalizedCategory);
     }
 
     params.set('sort_field', SORT_CONFIG.FIELDS.includes(sortField) ? sortField : SORT_CONFIG.DEFAULT_FIELD);
@@ -2288,7 +2150,6 @@ async fetchStorageUsage() {
 async uploadFile(file, onProgress, options = {}) {
     const formData = new FormData();
     formData.append('file', file);
-    if (options.folder_id) formData.append('folder_id', options.folder_id);
 
     const response = await window.authedFetch(API_ENDPOINTS.UPLOAD, {
     method: 'POST',
@@ -2381,14 +2242,14 @@ async editFile(fileId, originalFilename) {
 
 const FileOperations = {
 buildWorkspaceQueryOptions({ offset = 0 } = {}) {
-    const activeFolderId = typeof FileFoldersManager !== 'undefined'
-    && typeof FileFoldersManager.getActiveFolderId === 'function'
-    ? FileFoldersManager.getActiveFolderId()
+    const activeCategory = typeof FileLibraryManager !== 'undefined'
+    && typeof FileLibraryManager.getActiveCategory === 'function'
+    ? FileLibraryManager.getActiveCategory()
     : 'all';
 
     return {
     search: state.searchQuery,
-    folderId: activeFolderId || 'all',
+    category: activeCategory || 'all',
     sortField: state.sortField,
     sortDirection: state.sortDirection,
     limit: state.pageSize,
@@ -2400,8 +2261,8 @@ applyWorkspaceResult(result, { append = false, animate = false } = {}) {
     state.setAnimationState(animate);
     state.setWorkspaceResult(result, { append });
     UI.renderFiles();
-    if (typeof FileFoldersManager !== 'undefined' && typeof FileFoldersManager.updateAfterFilesLoaded === 'function') {
-    FileFoldersManager.updateAfterFilesLoaded();
+    if (typeof FileLibraryManager !== 'undefined' && typeof FileLibraryManager.updateAfterFilesLoaded === 'function') {
+    FileLibraryManager.updateAfterFilesLoaded(state.counts);
     }
     requestAnimationFrame(() => {
     FilesManager.maybeLoadMore();
@@ -2521,17 +2382,10 @@ async uploadSingleFile(file) {
     UI.showProgress(file.name);
 
     try {
-    // Determine folder_id: use active folder from workspace if it's a real folder
-    const uploadOptions = {};
-    if (typeof FileFoldersManager !== 'undefined') {
-        const activeFolderId = FileFoldersManager.getActiveFolderId();
-        if (activeFolderId && activeFolderId !== 'all' && activeFolderId !== 'uncategorized') {
-            uploadOptions.folder_id = activeFolderId;
-        }
-    }
+
     const result = await API.uploadFile(file, (percent) => {
         UI.updateProgress(percent);
-    }, uploadOptions);
+    });
 
     const success = result?.success ?? false;
     const alreadyAdded = Boolean(result?.data?.already_uploaded);
@@ -4410,7 +4264,7 @@ window.fetchFilesPage = async (options = {}) => API.fetchWorkspaceFiles(options)
 window.getCachedFilesList = async ({
     forceRefresh = false,
     search = '',
-    folderId = 'all',
+    category = 'all',
     sortField = 'created_at',
     sortDirection = 'desc',
     limit = FILES_PAGE_SIZE,
@@ -4418,7 +4272,7 @@ window.getCachedFilesList = async ({
 } = {}) => {
     const cacheKey = JSON.stringify({
     search: String(search || '').trim(),
-    folderId: String(folderId || 'all'),
+    category: String(category || 'all'),
     sortField: String(sortField || 'created_at'),
     sortDirection: String(sortDirection || 'desc'),
     limit: Number(limit || FILES_PAGE_SIZE),
@@ -4430,7 +4284,7 @@ window.getCachedFilesList = async ({
     try {
     const payload = await API.fetchWorkspaceFiles({
         search,
-        folderId,
+        category,
         sortField,
         sortDirection,
         limit,
@@ -4488,61 +4342,6 @@ if (!window.__filesImportRefreshListenerBound) {
     window.__filesImportRefreshListenerBound = true;
 }
 
-/**
- * Render a folder's stored preset SVG with the shared workspace resolver.
- */
-function renderMoveMenuFolderIcon(folder) {
-    const iconUtils = window.WorkspaceIconUtils;
-    const iconOptions = Icons.workspaceIconPickerOptions || Icons.folderIconOptions;
-    const iconData = iconUtils.resolveWorkspaceStoredIcon(folder?.icon, {
-        iconOptions,
-        defaultIconId: 'folder',
-    });
 
-    return iconUtils.renderWorkspaceIcon(iconData, {
-        size: 16,
-        defaultIconId: 'folder',
-        iconOptions,
-    });
-}
-
-window.showMoveToFolderMenu = function showMoveToFolderMenu(fileId, triggerButton) {
-    if (!triggerButton) return;
-
-    const folders = (typeof FileFoldersState !== 'undefined' && Array.isArray(FileFoldersState.folders))
-        ? FileFoldersState.folders.filter(f => !f.is_subscribed)
-        : [];
-
-    const currentFile = typeof state.getFileById === 'function' ? state.getFileById(fileId) : null;
-    const currentFolderId = String(currentFile?.folder_id || '').trim();
-    const items = [{
-        folderId: null,
-        label: filesT('files_folder_uncategorized', 'Uncategorized'),
-        iconHtml: Icons.grid,
-        checked: !currentFolderId,
-    }, ...folders.map((folder) => {
-        const folderId = String(folder.id || '').trim();
-        return {
-            folderId,
-            label: folder.name,
-            iconHtml: renderMoveMenuFolderIcon(folder),
-            checked: Boolean(currentFolderId) && currentFolderId === folderId,
-        };
-    })];
-
-    window.openDropdownMenu({
-        trigger: triggerButton,
-        ariaLabel: filesT('files_move_to_folder', 'Move to folder'),
-        items,
-        onSelect: async ({ folderId }) => {
-            if (typeof FileFoldersManager !== 'undefined') {
-                await FileFoldersManager.moveFileToFolder(fileId, folderId);
-                if (typeof notifySuccess === 'function') notifySuccess(filesT('files_moved', 'File moved'));
-            }
-        },
-    });
-};
-
-// Expose FileDragDrop for external access
 window.FileDragDrop = FileDragDrop;
 }

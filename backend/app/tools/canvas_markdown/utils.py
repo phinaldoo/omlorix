@@ -9,13 +9,9 @@ from pathlib import Path
 from collections.abc import Callable
 from typing import Any
 
-from app.file_folders.models import (
-    FILE_FOLDER_SYSTEM_KIND_CANVAS,
-    FileFolders,
-    SharedFileFolderSubscription,
-    can_user_edit_folder,
-)
 from app.files.models import Files, get_file
+from app.files.access import resolve_file_for_edit
+from app.files.history import capture_canvas_history
 from app.files.schemas import HTML_ATTACHMENT_MIME_TYPES
 from app.files.utils import (
     MAX_FILE_SIZE,
@@ -175,9 +171,6 @@ _MIME_TO_CONTENT_TYPE = {
     "text/x-latex": "latex",
     "application/x-latex": "latex",
 }
-_CANVAS_FOLDER_NAME = "Canvas"
-_CANVAS_FOLDER_ICON = "folder"
-_CANVAS_FOLDER_ICON_COLOR = "#6366f1"
 
 
 def _utc_iso() -> str:
@@ -197,7 +190,7 @@ def _next_canvas_revision(meta: dict) -> int:
 def _canvas_revision_meta(meta: dict, *, edit_source: str, edited_by: str | None) -> dict:
     """Build revision metadata used to tell later model turns that a canvas changed."""
     source = str(edit_source or "").strip().lower() or "assistant"
-    if source not in {"assistant", "user", "system"}:
+    if source not in {"assistant", "user", "system", "restore"}:
         source = "assistant"
     return {
         "canvas_revision": _next_canvas_revision(meta),
@@ -205,67 +198,6 @@ def _canvas_revision_meta(meta: dict, *, edit_source: str, edited_by: str | None
         "canvas_last_edited_by": str(edited_by or "").strip(),
         "canvas_last_edit_source": source,
     }
-
-
-def _ensure_canvas_folder_id(db, user_id: str) -> str | None:
-    """Return the user's private Canvas system folder, creating it if needed.
-
-    The folder's persisted ``system_kind`` is the only authoritative identity.
-    Display names are user-editable and may collide with ordinary shared
-    folders, so name matching must never be used for automatic placement.
-    """
-    normalized_user_id = str(user_id or "").strip()
-    if not normalized_user_id:
-        raise ValueError("user_id is required")
-
-    # Some existing unit tests pass tiny stand-ins instead of SQLAlchemy
-    # sessions. Real request/tool paths always provide a DB session with query
-    # and add, so those paths still get the Canvas folder behavior.
-    if not hasattr(db, "query") or not hasattr(db, "add"):
-        return None
-
-    existing_folder = (
-        db.query(FileFolders)
-        .filter(
-            FileFolders.user_id == normalized_user_id,
-            FileFolders.system_kind == FILE_FOLDER_SYSTEM_KIND_CANVAS,
-        )
-        .first()
-    )
-    if existing_folder:
-        # Defense in depth for hand-edited databases or unsafe imported state.
-        # Application sharing endpoints reject system folders, but Canvas must
-        # also fail closed if that invariant has already been violated.
-        has_share_id = any(
-            str(getattr(existing_folder, field, "") or "").strip()
-            for field in ("clone_share_id", "live_share_id", "collaborate_share_id")
-        )
-        has_subscription = (
-            db.query(SharedFileFolderSubscription.id)
-            .filter(SharedFileFolderSubscription.folder_id == existing_folder.id)
-            .first()
-            is not None
-        )
-        if has_share_id or has_subscription:
-            raise ValueError("Canvas system folder must be private")
-        return str(existing_folder.id)
-
-    folder_count = db.query(FileFolders).filter(FileFolders.user_id == normalized_user_id).count()
-    now = datetime.now(timezone.utc)
-    folder = FileFolders(
-        id=str(uuid.uuid4()),
-        user_id=normalized_user_id,
-        name=_CANVAS_FOLDER_NAME,
-        icon=_CANVAS_FOLDER_ICON,
-        icon_color=_CANVAS_FOLDER_ICON_COLOR,
-        order=folder_count,
-        system_kind=FILE_FOLDER_SYSTEM_KIND_CANVAS,
-        created_at=now,
-        updated_at=now,
-    )
-    db.add(folder)
-    db.flush()
-    return str(folder.id)
 
 
 def _validate_canvas_content_bytes(
@@ -711,24 +643,7 @@ def save_canvas_spreadsheet(
     if normalized_expected_revision < 0:
         raise CanvasSpreadsheetInputError("expected_revision must not be negative")
 
-    # Lock the canonical row for the entire read/check/write transaction. The
-    # expected-revision comparison alone would still race if two collaborators
-    # passed it concurrently before either transaction committed.
-    if hasattr(db, "query"):
-        locked_file_query = (
-            db.query(Files)
-            .filter(
-                Files.id == normalized_file_id,
-                Files.user_id == normalized_user_id,
-            )
-        )
-        if hasattr(locked_file_query, "populate_existing"):
-            locked_file_query = locked_file_query.populate_existing()
-        file_record = locked_file_query.with_for_update().first()
-    else:
-        # A few focused unit tests use deliberately tiny session stand-ins.
-        # Production FastAPI requests always take the row-locking branch.
-        file_record = get_file(db, normalized_file_id, normalized_user_id)
+    file_record = get_file(db, normalized_file_id, normalized_user_id)
     if not file_record:
         raise CanvasSpreadsheetInputError(
             "The target spreadsheet was not found for this user."
@@ -784,8 +699,15 @@ def save_canvas_spreadsheet(
     )
     previous_storage_key = str(getattr(file_record, "storage_key", "") or "").strip()
 
+    staged_reference = None
     try:
         with serialized_user_file_quota_admission(db, normalized_user_id):
+            file_record = _lock_canvas_for_edit(db, normalized_user_id, normalized_file_id, str(edited_by or normalized_user_id))
+            existing_meta = dict(file_record.meta or {})
+            current_revision = int(existing_meta.get("canvas_revision") or 0)
+            if current_revision != normalized_expected_revision:
+                raise CanvasSpreadsheetRevisionConflict(expected_revision=normalized_expected_revision, current_revision=current_revision)
+            capture_canvas_history(db, file_record)
             ensure_user_file_upload_capacity(
                 db,
                 normalized_user_id,
@@ -796,11 +718,13 @@ def save_canvas_spreadsheet(
             )
             storage_provider, storage_key, storage_meta = overwrite_existing_file_bytes(
                 user_id=normalized_user_id,
-                file_name=file_record.file_name,
+                file_name=f"{file_record.id}.{uuid.uuid4().hex}{extension}",
                 file_id=file_record.id,
                 file_bytes=file_bytes,
+                update_materialized_cache=False,
             )
 
+            staged_reference = (storage_provider, storage_key)
             next_meta = dict(existing_meta)
             next_meta.update(
                 {
@@ -826,6 +750,7 @@ def save_canvas_spreadsheet(
                     ),
                 }
             )
+            file_record.inline_content = None
             file_record.file_type = target_file_type
             file_record.file_category = get_file_category(target_file_type)
             file_record.file_size = len(file_bytes)
@@ -836,32 +761,14 @@ def save_canvas_spreadsheet(
             file_record.meta = next_meta
             db.add(file_record)
             db.commit()
-            db.refresh(file_record)
-    except HTTPException:
-        db.rollback()
-        raise
     except Exception:
         db.rollback()
-        # Validation failures are raised before this persistence block. Never
-        # turn database or storage exceptions into client-visible ValueErrors;
-        # the route logs/returns its generic internal-error response instead.
+        if staged_reference:
+            delete_storage_reference(storage_provider=staged_reference[0], storage_key=staged_reference[1],
+                                     user_id=normalized_user_id, file_name=file_record.file_name)
         raise
 
-    if previous_storage_key and (
-        previous_storage_provider != storage_provider or previous_storage_key != storage_key
-    ):
-        try:
-            delete_storage_reference(
-                storage_provider=previous_storage_provider,
-                storage_key=previous_storage_key,
-                user_id=normalized_user_id,
-                file_name=file_record.file_name,
-            )
-        except Exception:
-            # The newly committed object is authoritative. Old-object cleanup
-            # remains best effort, matching textual Canvas saves.
-            pass
-
+    invalidate_materialized_file_cache(file_id=str(file_record.id), file_name=file_record.file_name)
     return {
         "file_id": str(file_record.id),
         "file_name": requested_name,
@@ -895,12 +802,7 @@ def _save_canvas_spreadsheet_with_thread_session(**kwargs) -> dict:
             )
             if (
                 record is None
-                or not record.folder_id
-                or not can_user_edit_folder(
-                    session,
-                    actor_user_id,
-                    record.folder_id,
-                )
+                or not resolve_file_for_edit(session, actor_user_id, str(record.id))
             ):
                 raise HTTPException(status_code=404, detail="File not found")
         return save_canvas_spreadsheet(session, **kwargs)
@@ -1080,36 +982,12 @@ def save_canvas_markdown(
                 # Lock and reload the canonical row after taking the
                 # cross-worker admission lock. A refresh alone does not
                 # serialize two concurrent revision checks.
-                if normalized_expected_revision is not None:
-                    if hasattr(db, "query"):
-                        locked_file_query = (
-                            db.query(Files)
-                            .filter(
-                                Files.id == str(file_id),
-                                Files.user_id == str(user_id),
-                            )
-                        )
-                        if hasattr(locked_file_query, "populate_existing"):
-                            locked_file_query = locked_file_query.populate_existing()
-                        file_record = locked_file_query.with_for_update().first()
-                    else:
-                        file_record = get_file(db, str(file_id), str(user_id))
-                    if not file_record:
-                        raise ValueError("The target canvas file was not found for this user.")
-                    latest_meta = (
-                        file_record.meta if isinstance(file_record.meta, dict) else {}
-                    )
-                    try:
-                        current_revision = int(latest_meta.get("canvas_revision") or 0)
-                    except (TypeError, ValueError):
-                        # Persisted corruption must never accidentally satisfy
-                        # a valid non-negative client revision.
-                        current_revision = -1
-                    if current_revision != normalized_expected_revision:
-                        raise CanvasRevisionConflict(
-                            expected_revision=normalized_expected_revision,
-                            current_revision=current_revision,
-                        )
+                file_record = _lock_canvas_for_edit(db, str(user_id), str(file_id), str(edited_by or user_id))
+                current_revision = int((file_record.meta or {}).get("canvas_revision") or 0)
+                if normalized_expected_revision is not None and current_revision != normalized_expected_revision:
+                    raise CanvasRevisionConflict(expected_revision=normalized_expected_revision,
+                                                 current_revision=current_revision)
+                capture_canvas_history(db, file_record)
                 # Read cleanup metadata from the same canonical row used for
                 # the write, including when the revision path reloaded it.
                 previous_storage_provider = str(
@@ -1200,15 +1078,13 @@ def save_canvas_markdown(
                         if isinstance(reference, dict)
                     ][:20]
 
+                file_record.inline_content = None
                 file_record.file_type = target_file_type
                 file_record.file_category = target_category
                 file_record.file_size = len(content_bytes)
                 file_record.storage_provider = storage_provider
                 file_record.storage_key = storage_key
                 file_record.storage_meta = storage_meta
-                # Editing content must not silently relocate the file.  Its
-                # current folder is an authorization boundary chosen by the
-                # user, and changing it here could broaden or revoke access.
                 file_record.last_updated_at = datetime.now(timezone.utc)
                 file_record.meta = meta
                 db.add(file_record)
@@ -1231,7 +1107,6 @@ def save_canvas_markdown(
                         }
                     )
                 db.commit()
-                db.refresh(file_record)
         except HTTPException:
             db.rollback()
             _compensate_staged_canvas_storage(
@@ -1277,24 +1152,6 @@ def save_canvas_markdown(
             )
             logger.exception("Failed to update Canvas file")
             raise CanvasPersistenceError("Failed to update canvas file") from exc
-
-        if (
-            previous_storage_key
-            and (
-                previous_storage_provider != storage_provider
-                or previous_storage_key != storage_key
-            )
-        ):
-            try:
-                delete_storage_reference(
-                    storage_provider=previous_storage_provider,
-                    storage_key=previous_storage_key,
-                    user_id=str(user_id),
-                    file_name=file_record.file_name,
-                )
-            except Exception:
-                # Keep write successful even if old object cleanup fails.
-                pass
 
         _notify_implicit_canvas_asset_approvals(
             db,
@@ -1394,9 +1251,7 @@ def save_canvas_markdown(
             )
 
     try:
-        # The system-folder lookup and insert must share the same per-user lock
-        # as quota admission. Otherwise, two simultaneous first saves can both
-        # observe a missing Canvas folder and race on its unique system kind.
+        # Admission and persistence share the same per-user lock.
         with serialized_user_file_quota_admission(db, str(user_id)):
             ensure_user_file_upload_capacity(
                 db,
@@ -1405,11 +1260,9 @@ def save_canvas_markdown(
                 max_files_limit=max_files_limit,
                 max_user_storage_limit_bytes=max_user_storage_limit_bytes,
             )
-            canvas_folder_id = _ensure_canvas_folder_id(db, str(user_id))
 
             # Capacity was checked while holding this lock, so omit the limits
-            # here to avoid a redundant nested admission check. The persistence
-            # helper commits both the pending folder and file record together.
+            # here to avoid a redundant nested admission check.
             file_record = persist_generated_file_bytes(
                 db=db,
                 user_id=str(user_id),
@@ -1449,7 +1302,6 @@ def save_canvas_markdown(
                 },
                 file_id=stored_file_id,
                 file_name=stored_file_name,
-                folder_id=canvas_folder_id,
                 # The helper flushes the source row, invokes this callback, and
                 # commits both the row and authoritative grants together. Its
                 # existing failure path also deletes the uploaded object.
@@ -1496,3 +1348,11 @@ def save_canvas_markdown(
             }
         )
     return result
+
+
+def _lock_canvas_for_edit(db, owner_id, file_id, actor_id):
+    record = (db.query(Files).filter(Files.id == file_id, Files.user_id == owner_id)
+        .populate_existing().with_for_update().first())
+    if not record or not resolve_file_for_edit(db, actor_id, file_id):
+        raise HTTPException(status_code=404, detail="File not found")
+    return record

@@ -67,7 +67,6 @@ class AutomationCreate(BaseModel):
     schedule_rules: Optional[List[ScheduleRule]] = Field(default_factory=list)
     schedule_timezone: Optional[str] = Field(None, description="Timezone for recurring schedule rules")
     skill_id: Optional[str] = Field(None)
-    note_ids: Optional[List[str]] = Field(default_factory=list)
     file_ids: Optional[List[str]] = Field(default_factory=list)
     mcp_server_ids: Optional[List[str]] = Field(default_factory=list, max_length=100)
     is_active: Optional[bool] = Field(True)
@@ -90,7 +89,6 @@ class AutomationUpdate(BaseModel):
     schedule_rules: Optional[List[ScheduleRule]] = Field(None)
     schedule_timezone: Optional[str] = Field(None, description="Timezone for recurring schedule rules")
     skill_id: Optional[str] = Field(None)
-    note_ids: Optional[List[str]] = Field(None)
     file_ids: Optional[List[str]] = Field(None)
     mcp_server_ids: Optional[List[str]] = Field(None, max_length=100)
     is_active: Optional[bool] = Field(None)
@@ -113,7 +111,6 @@ class AutomationResponse(BaseModel):
     schedule_rules: Optional[List[dict]]
     schedule_timezone: Optional[str]
     skill_id: Optional[str]
-    note_ids: Optional[List[str]]
     file_ids: Optional[List[str]]
     mcp_server_ids: Optional[List[str]]
     webhook_trigger: Optional["AutomationWebhookTriggerResponse"] = None

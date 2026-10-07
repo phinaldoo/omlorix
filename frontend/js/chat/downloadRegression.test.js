@@ -52,53 +52,16 @@ test('LaTeX canvas downloads expose live TeX source and the current rendered PDF
     assert.match(source, /selectedFormat === 'pdf' && !hasCurrentLatexPdf\(draft, editState\)/);
 });
 
-test('notes download uses guarded format helper and pinned note id', () => {
-    const source = readFrontendSource(path.join(CHAT_DIR, 'notes.js'), 'utf8');
 
-    assert.match(source, /const selectedNoteId = NotesState\.selectedNoteId;/);
-    assert.match(source, /typeof window\.chatDownloadControls\?\.getSelectedDownloadFormat === 'function'/);
-    assert.match(source, /await this\.saveCurrentNote\(selectedNoteId\)/);
-    assert.match(source, /waitForNoteSaveToSettle\(\(\) => NotesState\.isSaving\)/);
-    assert.match(source, /NotesAPI\.downloadNote\(selectedNoteId, 'pdf'\)/);
-    assert.match(source, /async saveCurrentNote\(noteId = NotesState\.selectedNoteId\)/);
-    assert.match(source, /const selectedNoteId = state\.activeNoteId;/);
-    assert.match(source, /waitForNoteSaveToSettle\(\(\) => state\.isSaving\)/);
-    assert.match(source, /NotesAPI\.downloadNote\(selectedNoteId, 'pdf'\)/);
-    assert.match(source, /const savedNoteId = state\.activeNoteId;/);
-    assert.match(source, /saveRequest = NotesAPI\.updateNote\(savedNoteId, nextContent, expectedUpdatedAt\);/);
-    assert.match(source, /state\.activeSavePromise = saveRequest;[\s\S]*const updated = await saveRequest;/);
-    assert.match(source, /if \(state\.activeNoteId !== savedNoteId\) return true;/);
-    assert.doesNotMatch(source, /window\.chatDownloadControls\s*\?\s*window\.chatDownloadControls\.getSelectedDownloadFormat/);
-});
 
-test('notes tool preview exposes downloads and canvas-style result widget', () => {
-    const notesSource = readFrontendSource(path.join(CHAT_DIR, 'notes.js'), 'utf8');
-    const nativeWidgetsSource = readFrontendSource(path.join(CHAT_DIR, 'native-tool-widgets.js'), 'utf8');
-    const dropdownSource = readFrontendSource(path.join(CHAT_DIR, 'canvasFilesDropdown.js'), 'utf8');
-    const helperSource = readFrontendSource(path.join(CHAT_DIR, '../../../backend/app/tools/helper.py'), 'utf8');
 
-    assert.match(notesSource, /id="notes-tool-DownloadFormat"[\s\S]*value="md"[\s\S]*notes_download_md/);
-    assert.match(notesSource, /id="notes-tool-DownloadFormat"[\s\S]*value="pdf"[\s\S]*notes_download_pdf/);
-    assert.match(notesSource, /id="notes-tool-PreviewDownload"[\s\S]*notes_download_aria/);
-    assert.doesNotMatch(notesSource, /notes-tool-(?:Undo|Redo)Btn/);
-    assert.match(notesSource, /id="notes-tool-CopyBtn"[\s\S]*notes_share_copy_action/);
-    assert.match(notesSource, /NotesAPI\.downloadNote\(selectedNoteId, 'pdf'\)/);
-    assert.match(notesSource, /function registerHeaderNote\(noteId, title = ''\)/);
-    assert.match(notesSource, /dropdown\.registerFile\(`note:\$\{id\}`, displayTitle, 'note'/);
-    assert.match(notesSource, /canvasFilesDropdown\.unregisterFile\(`note:\$\{noteId\}`\)/);
-    assert.match(dropdownSource, /if \(type === 'note'\) return _t\('canvas_files_type_note', 'Note'\);/);
-    assert.match(helperSource, /_build_frontend_widget_payload\(\s*"notes_result"/);
-    assert.match(nativeWidgetsSource, /element\('div', 'canvas-markdown-result-widget notes-tool-result-widget'\)/);
-});
 
 test('preview format actions reuse the shared dropdown and omit custom split-button styling', () => {
     const controls = readFrontendSource(path.join(CHAT_DIR, 'downloadControls.js'), 'utf8');
     const canvas = readFrontendSource(path.join(CHAT_DIR, 'canvas-widget.js'), 'utf8');
-    const notes = readFrontendSource(path.join(CHAT_DIR, 'notes.js'), 'utf8');
     const css = readFrontendSource(path.join(CHAT_DIR, '../../css/chat/slide-presentation-widget.css'), 'utf8');
     assert.match(controls, /window.openDropdownMenu/);
     assert.match(controls, /await onDownload\(event\)/);
     assert.match(canvas, /bindDownloadFormatMenu\(previewDownloadFormat/);
-    assert.equal((notes.match(/bindDownloadFormatMenu\?\./g) || []).length, 2);
     assert.doesNotMatch(css, /custom-download|preview-download-controls|preview-download-select/);
 });

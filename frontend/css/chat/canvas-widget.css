@@ -1548,3 +1548,34 @@ body.canvas-markdown-preview-resizing .canvas-pdf-document-viewer {
     opacity: 0;
     pointer-events: none;
 }
+
+/* Saved versions and per-document collaborators share the Canvas surface. */
+.canvas-library-panel {
+    position: absolute;
+    inset: 64px 0 0;
+    z-index: 12;
+    padding: 20px;
+    overflow-y: auto;
+    background: var(--background);
+    color: var(--text-color);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+.canvas-library-toolbar, .canvas-library-member {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 12px;
+}
+.canvas-library-toolbar h3 { margin: 0; }
+.canvas-library-versions { display: grid; gap: 6px; }
+.canvas-library-versions button { text-align: start; padding: 10px; justify-content: flex-start; }
+.canvas-library-versions button[aria-pressed="true"] { background: var(--surface-elevated); outline: 1px solid var(--accent-color); }
+.canvas-library-source { width: 100%; min-height: 180px; flex: 1; resize: vertical; padding: 12px; background: var(--surface-elevated); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 8px; font-family: monospace; }
+.canvas-library-member { margin-block: 12px; }
+.canvas-library-member label { display: grid; gap: 6px; flex: 1; }
+.canvas-library-member input, .canvas-library-member select { padding: 10px; background: var(--surface-elevated); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 8px; }
+.canvas-library-panel [role="status"]:empty { display: none; }
+.canvas-library-panel :focus-visible { outline: 2px solid var(--accent-color); outline-offset: 2px; }

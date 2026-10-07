@@ -7,6 +7,16 @@ from app.tools.results import _copy_result_fields, _content_metadata
 def _compact_canvas_result(payload: Any) -> Any:
     if not isinstance(payload, dict):
         return payload
+    if isinstance(payload.get("items"), list):
+        return {
+            "items": [
+                _copy_result_fields(item, ("file_id", "filename", "canvas_revision"))
+                for item in payload["items"][:100]
+                if isinstance(item, dict)
+            ],
+            "has_more": bool(payload.get("has_more")),
+            "next_offset": payload.get("next_offset"),
+        }
     compact = _copy_result_fields(
         payload,
         (

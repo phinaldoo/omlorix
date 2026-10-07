@@ -12,9 +12,6 @@ from app.groups.init import get_user_group_setting_value
 from app.tools.utils import (
     web_search,
     get_weather,
-    TODO_TOOL_OPERATIONS,
-    todos_tool,
-    notes_tool,
     WEBHOOK_MANAGEMENT_USER_MESSAGE,
     automations_tool,
     skills_tool,
@@ -196,38 +193,8 @@ def _build_frontend_widget_payload(
     }
 
 
-def _notes_tool_note_title(content: str | None, fallback: str = "Untitled note") -> str:
-    """Extract a compact, plain title from Markdown note content for chat widgets."""
-    text = str(content or "").strip()
-    if not text:
-        return fallback
-    for line in text.splitlines():
-        cleaned = line.strip().lstrip("#").strip()
-        if cleaned:
-            return cleaned[:80]
-    return fallback
 
 
-def _build_notes_widget_payload(note: dict[str, Any], *, operation: str) -> dict[str, Any] | None:
-    """Build a data-only result card when the Notes tool creates a note."""
-    if str(operation or "").strip().lower() != "create":
-        return None
-
-    note_id = str(note.get("id") or "").strip()
-    if not note_id:
-        return None
-
-    content = str(note.get("content") or "")
-    title = _notes_tool_note_title(content)
-    view_data = {
-        "note_id": note_id,
-        "title": title,
-        "operation": operation,
-    }
-    return _build_frontend_widget_payload(
-        "notes_result",
-        view_data,
-    )
 
 AVAILABLE_TOOLS = [
     "create_visualization",
@@ -238,8 +205,6 @@ AVAILABLE_TOOLS = [
     "video_generation",
     "audio_generation",
     "music_generation",
-    "todos",
-    "notes",
     "automations",
     "skills",
     "canvas",
@@ -292,8 +257,6 @@ def _execute_custom_tool_if_available(
 
 def _ensure_feature_enabled(user_id: str, db, feature: str) -> None:
     feature_map = {
-        "todo": ("todo", "enabled_todo", "Todo feature disabled for your group."),
-        "notes": ("notes", "enabled_notes", "Notes feature disabled for your group."),
         "automations": ("automations", "enabled_automations", "Automations feature disabled for your group."),
         "skills": ("skills", "enabled_skills", "Skills feature disabled for your group."),
     }
@@ -930,61 +893,6 @@ def _resolve_tool_call(
             "widget": widget_payload,
         }
 
-    elif tool_name == "todos":
-        _ensure_feature_enabled(user_id, db, "todo")
-        operation = str(_require_arg(tool_args, "type")).strip().lower()
-        if operation not in TODO_TOOL_OPERATIONS:
-            allowed_operations = ", ".join(TODO_TOOL_OPERATIONS)
-            raise ValueError(f"type must be one of: {allowed_operations}")
-
-        if tool_args.get("is_done") is not None:
-            tool_args["is_done"] = _coerce_bool(tool_args["is_done"], "is_done")
-        if tool_args.get("is_marked") is not None:
-            tool_args["is_marked"] = _coerce_bool(tool_args["is_marked"], "is_marked")
-
-        result = todos_tool(
-            db=db,
-            user_id=user_id,
-            type=operation,
-            entity=tool_args.get("entity"),
-            todo_list_id=tool_args.get("todo_list_id"),
-            todo_id=tool_args.get("todo_id"),
-            title=tool_args.get("title"),
-            description=tool_args.get("description"),
-            icon=tool_args.get("icon"),
-            sort_order=tool_args.get("sort_order"),
-            content=tool_args.get("content"),
-            notes=tool_args.get("notes"),
-            priority=tool_args.get("priority"),
-            due_at=tool_args.get("due_at"),
-            order=tool_args.get("order"),
-            is_done=tool_args.get("is_done"),
-            is_marked=tool_args.get("is_marked"),
-            clear_due_at=_coerce_bool(tool_args["clear_due_at"], "clear_due_at") if tool_args.get("clear_due_at") is not None else False,
-            all_day=_coerce_bool(tool_args["all_day"], "all_day") if tool_args.get("all_day") is not None else None,
-            status=tool_args.get("status"),
-            subtasks=tool_args.get("subtasks"),
-            links=tool_args.get("links"),
-            attachments=tool_args.get("attachments"),
-            tags=tool_args.get("tags"),
-            query=tool_args.get("query"),
-            view=tool_args.get("view"),
-            priority_min=tool_args.get("priority_min"),
-            no_due_date=_coerce_bool(tool_args["no_due_date"], "no_due_date") if tool_args.get("no_due_date") is not None else None,
-            todo_ids=tool_args.get("todo_ids"),
-            action=tool_args.get("action"),
-            target_list_id=tool_args.get("target_list_id"),
-            limit=tool_args.get("limit"),
-            offset=tool_args.get("offset"),
-            cursor=tool_args.get("cursor"),
-        )
-        _raise_if_tool_error_payload(result, tool_name=tool_name)
-        content = (
-            stringify_tool_result_content_for_persistence(tool_name, result)
-            if operation in {"create", "edit", "bulk"}
-            else json.dumps(result, ensure_ascii=False, separators=(",", ":"))
-        )
-
     elif tool_name == "image_generation":
         description = tool_args.get("description") if isinstance(tool_args, dict) else None
         if not description or not str(description).strip():
@@ -1188,93 +1096,6 @@ def _resolve_tool_call(
             "file_id": music_gen_id,
         }
 
-    elif tool_name == "notes":
-        _ensure_feature_enabled(user_id, db, "notes")
-        operation = str(_require_arg(tool_args, "type")).strip().lower()
-        if operation not in {"list", "view", "view_many", "create", "edit"}:
-            raise ValueError("type must be one of: list, view, view_many, create, edit")
-        result = notes_tool(
-            db=db,
-            user_id=user_id,
-            type=operation,
-            note_id=tool_args.get("note_id"),
-            note_ids=tool_args.get("note_ids"),
-            content=tool_args.get("content"),
-            start_snippet=tool_args.get("start_snippet"),
-            end_snippet=tool_args.get("end_snippet"),
-            edits=tool_args.get("edits"),
-            expected_updated_at=tool_args.get("expected_updated_at"),
-            query=tool_args.get("query"),
-            heading=tool_args.get("heading"),
-            start_line=tool_args.get("start_line"),
-            end_line=tool_args.get("end_line"),
-            max_chars=tool_args.get("max_chars", DEFAULT_TOOL_TEXT_READ_CHARS),
-            limit=tool_args.get("limit"),
-            offset=tool_args.get("offset"),
-            cursor=tool_args.get("cursor"),
-        )
-        _raise_if_tool_error_payload(result, tool_name=tool_name)
-        note_payload = result.get("note") if isinstance(result, dict) else None
-        if operation in {"create", "edit"} and isinstance(note_payload, dict):
-            content = json.dumps(
-                {
-                    "status": "saved",
-                    "operation": operation,
-                    "note_id": note_payload.get("id"),
-                    "updated_at": note_payload.get("updated_at"),
-                    "content_length": len(str(note_payload.get("content") or "")),
-                    "edit_count": note_payload.get("edit_count"),
-                    "instruction": (
-                        "Use note_id and updated_at as the version for a following edit. "
-                        "The saved note body is not repeated in chat history."
-                    ),
-                },
-                ensure_ascii=False,
-                separators=(",", ":"),
-            )
-        else:
-            content = json.dumps(result, ensure_ascii=False, separators=(",", ":"))
-        if operation in {"view", "create", "edit"} and isinstance(note_payload, dict):
-            event_payload = {
-                "note_id": note_payload.get("id"),
-                "content": note_payload.get("content", ""),
-                "created": operation == "create",
-                "operation": operation,
-                "updated_at": note_payload.get("updated_at"),
-            }
-            notes_tool_meta = {
-                "notes": True,
-                "note_id": event_payload.get("note_id"),
-                "operation": event_payload.get("operation"),
-            }
-            yield json.dumps({"t": "notes_evt", "event": "saved", "data": event_payload}, ensure_ascii=False) + "\n"
-            widget_payload = _build_notes_widget_payload(note_payload, operation=operation)
-            if widget_payload:
-                yield _stream_widget_event(widget_payload, tool_name="notes")
-                return {
-                    "content": content,
-                    "documents": documents,
-                    "images": images,
-                    "videos": videos,
-                    "audios": audios,
-                    "youtube": youtube,
-                    "webpages": webpages,
-                    "result": result,
-                    "widget": widget_payload,
-                    "tool_meta": notes_tool_meta,
-                }
-            return {
-                "content": content,
-                "documents": documents,
-                "images": images,
-                "videos": videos,
-                "audios": audios,
-                "youtube": youtube,
-                "webpages": webpages,
-                "result": result,
-                "tool_meta": notes_tool_meta,
-            }
-
     elif tool_name == "automations":
         try:
             _ensure_feature_enabled(user_id, db, "automations")
@@ -1350,7 +1171,6 @@ def _resolve_tool_call(
         schedule_rules = tool_args.get("schedule_rules")
         schedule_timezone = tool_args.get("schedule_timezone")
         skill_id = tool_args.get("skill_id")
-        note_ids = tool_args.get("note_ids")
         file_ids = tool_args.get("file_ids")
         mcp_server_ids = tool_args.get("mcp_server_ids")
         is_active = tool_args.get("is_active")
@@ -1403,7 +1223,6 @@ def _resolve_tool_call(
                 schedule_rules=schedule_rules,
                 schedule_timezone=schedule_timezone,
                 skill_id=skill_id,
-                note_ids=note_ids,
                 file_ids=file_ids,
                 mcp_server_ids=mcp_server_ids,
                 is_active=is_active,
@@ -1470,6 +1289,39 @@ def _resolve_tool_call(
     elif tool_name == "canvas":
         tool_args = parse_canvas_tool_arguments(tool_args)
         canvas_type = tool_args.get("type")
+        if canvas_type == "list":
+            from app.files.access import accessible_files_query
+            from app.files.models import Files
+            from sqlalchemy import or_
+
+            query = accessible_files_query(db, str(user_id)).filter(or_(
+                Files.meta["canvas"].as_boolean().is_(True),
+                Files.meta["canvas_type"].as_string().isnot(None),
+            ))
+            if tool_args.get("query"):
+                query = query.filter(or_(
+                    Files.file_name.icontains(tool_args["query"], autoescape=True),
+                    Files.meta["original_filename"].as_string().icontains(tool_args["query"], autoescape=True),
+                ))
+            limit, offset = tool_args.get("limit", 20), tool_args.get("offset", 0)
+            rows = query.order_by(Files.last_updated_at.desc(), Files.id).offset(offset).limit(limit + 1).all()
+            result = {
+                "items": [
+                    {
+                        "file_id": row.id,
+                        "filename": (row.meta or {}).get("original_filename") or row.file_name,
+                        "canvas_revision": int((row.meta or {}).get("canvas_revision") or 0),
+                    }
+                    for row in rows[:limit]
+                ],
+                "has_more": len(rows) > limit,
+                "next_offset": offset + limit if len(rows) > limit else None,
+            }
+            return {
+                "content": json.dumps(result, ensure_ascii=False), "result": result,
+                "documents": documents, "images": images, "videos": videos, "audios": audios,
+                "youtube": youtube, "webpages": webpages,
+            }
         if str(canvas_type or "").strip().lower() == "view":
             target_file_id = tool_args.get("file_id") or tool_args.get("id")
             view_result = view_canvas_file(
@@ -1507,10 +1359,14 @@ def _resolve_tool_call(
         presentation_transformer = None
         presentation_asset_file_ids: list[str] | None = None
         supplied_canvas_file_ids = tool_args.get("file_ids")
+        canvas_owner_id = str(user_id)
         if target_file_id:
-            from app.files.models import get_file as get_owned_file
-
-            target_record = get_owned_file(db, str(target_file_id), str(user_id))
+            from app.files.access import resolve_file_for_edit
+            access = resolve_file_for_edit(db, str(user_id), str(target_file_id))
+            if not access:
+                raise HTTPException(status_code=404, detail="File not found")
+            canvas_owner_id = access.storage_owner_user_id
+            target_record = access.record
             target_meta = target_record.meta if target_record and isinstance(target_record.meta, dict) else {}
             if target_meta.get("slide_presentation_source") is True:
                 from app.tools.slide_presentation.sanitizer import (
@@ -1532,7 +1388,7 @@ def _resolve_tool_call(
                 )
                 presentation_asset_file_ids = validate_slide_presentation_asset_file_ids(
                     db,
-                    str(user_id),
+                    canvas_owner_id,
                     requested_asset_ids,
                 )
 
@@ -1541,13 +1397,14 @@ def _resolve_tool_call(
                     return prepare_slide_presentation_html(
                         value,
                         db=db,
-                        user_id=str(user_id),
+                        user_id=canvas_owner_id,
                         allowed_file_ids=presentation_asset_file_ids,
                     )
 
         save_result = save_canvas_markdown(
             db=db,
-            user_id=str(user_id),
+            user_id=canvas_owner_id,
+            edited_by=str(user_id),
             content=str(canvas_content) if canvas_content is not None else None,
             content_type=canvas_type,
             filename=filename,
@@ -1578,7 +1435,7 @@ def _resolve_tool_call(
         if save_result.get("content_type") == "html" and save_result.get("file_id"):
             from app.files.models import get_file as get_owned_file
 
-            saved_record = get_owned_file(db, str(save_result["file_id"]), str(user_id))
+            saved_record = get_owned_file(db, str(save_result["file_id"]), canvas_owner_id)
             saved_meta = saved_record.meta if saved_record and isinstance(saved_record.meta, dict) else {}
             if saved_meta.get("slide_presentation_source") is True:
                 # Persist the bundle only when this edit explicitly supplied
@@ -1611,7 +1468,7 @@ def _resolve_tool_call(
                             or 0
                         )
                         render_job = enqueue_presentation_rerender(
-                            user_id=str(user_id),
+                            user_id=canvas_owner_id,
                             presentation_id=str(save_result["file_id"]),
                             expected_revision=revision,
                             generation_id=generation_id,
@@ -1632,7 +1489,7 @@ def _resolve_tool_call(
 
                         rerender = rerender_presentation_source(
                             db=db,
-                            user_id=str(user_id),
+                            user_id=canvas_owner_id,
                             html_file_id=str(save_result["file_id"]),
                             html=str(save_result.get("content") or ""),
                         )

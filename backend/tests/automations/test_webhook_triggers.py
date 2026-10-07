@@ -334,7 +334,6 @@ def test_create_automation_can_create_webhook_in_same_request(monkeypatch):
         schedule_rules=[],
         schedule_timezone=None,
         skill_id=None,
-        note_ids=[],
         file_ids=[],
         is_active=True,
         last_triggered_at=None,

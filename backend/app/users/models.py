@@ -836,8 +836,7 @@ def hard_delete_user(
     )
     from app.connections.models import ConnectionOAuthState, UserConnection
     from app.feedback.models import ModelFeedback
-    from app.file_folders.models import FileFolders, SharedFileFolderSubscription
-    from app.files.models import FileArtifactShare, Files
+    from app.files.models import FileArtifactShare, FileMember, Files
     from app.files.utils import delete_storage_reference
     from app.files.storage import (
         get_local_user_files_base_dir,
@@ -847,7 +846,6 @@ def hard_delete_user(
     from app.llmstats.models import LLMGenerationStatistic, ToolCallStatistic
     from app.mcp.models import MCPOAuthState, MCPServer
     from app.memories.models import Memory
-    from app.notes.models import NoteHistory, Notes, SharedNoteSubscription
     from app.projects.models import (
         Project,
         ProjectMember,
@@ -862,7 +860,6 @@ def hard_delete_user(
         _delete_skill_directory,
     )
     from app.automations.models import Automation
-    from app.todos.models import SharedTodoListSubscription, TodoLists, Todos
     from app.tools.slide_presentation.models import SlidePresentations
     from app.tools.slide_presentation.storage import delete_slide_presentation_artifacts
     from app.userNotifications.models import remove_user_references_from_notifications
@@ -1004,64 +1001,6 @@ def hard_delete_user(
             .delete(synchronize_session=False)
         )
 
-        # Delete todo lists/todos owned by the user and all related subscriptions.
-        user_todo_list_rows = (
-            db.query(TodoLists.id).filter(TodoLists.user_id == user_id).all()
-        )
-        if user_todo_list_rows:
-            todo_list_ids = [todo_list_id for (todo_list_id,) in user_todo_list_rows]
-            (
-                db.query(SharedTodoListSubscription)
-                .filter(SharedTodoListSubscription.todo_list_id.in_(todo_list_ids))
-                .delete(synchronize_session=False)
-            )
-            (
-                db.query(Todos)
-                .filter(Todos.todo_list.in_(todo_list_ids))
-                .delete(synchronize_session=False)
-            )
-            (
-                db.query(TodoLists)
-                .filter(TodoLists.id.in_(todo_list_ids))
-                .delete(synchronize_session=False)
-            )
-        (
-            db.query(SharedTodoListSubscription)
-            .filter(SharedTodoListSubscription.subscriber_id == user_id)
-            .delete(synchronize_session=False)
-        )
-
-        # Delete notes, note history, and note subscriptions.
-        user_note_ids = [
-            note_id
-            for (note_id,) in db.query(Notes.id).filter(Notes.user_id == user_id).all()
-        ]
-        if user_note_ids:
-            (
-                db.query(SharedNoteSubscription)
-                .filter(SharedNoteSubscription.note_id.in_(user_note_ids))
-                .delete(synchronize_session=False)
-            )
-            (
-                db.query(NoteHistory)
-                .filter(NoteHistory.note_id.in_(user_note_ids))
-                .delete(synchronize_session=False)
-            )
-            (
-                db.query(Notes)
-                .filter(Notes.id.in_(user_note_ids))
-                .delete(synchronize_session=False)
-            )
-        (
-            db.query(NoteHistory)
-            .filter(NoteHistory.user_id == user_id)
-            .delete(synchronize_session=False)
-        )
-        (
-            db.query(SharedNoteSubscription)
-            .filter(SharedNoteSubscription.subscriber_id == user_id)
-            .delete(synchronize_session=False)
-        )
         # Capture every Deep Research workspace before deleting the user. Runs
         # without a persisted chat would otherwise be removed by the user FK
         # cascade without leaving enough metadata to clean cloud artifacts.
@@ -1116,7 +1055,7 @@ def hard_delete_user(
                         )
                     )
                 )
-            elif storage_key:
+            elif storage_key and storage_provider != "inline":
                 adapter = get_user_file_storage_adapter_for_provider(storage_provider)
                 post_commit_cleanup_actions.append(
                     lambda adapter=adapter, storage_key=storage_key: (
@@ -1124,7 +1063,12 @@ def hard_delete_user(
                     )
                 )
 
+        from app.files.history import stage_history_deletion
+        for file_row in user_files:
+            post_commit_cleanup_actions.extend(stage_history_deletion(db, file_row.id))
+        db.query(FileMember).filter(FileMember.user_id == user_id).delete(synchronize_session=False)
         if user_file_ids:
+            db.query(FileMember).filter(FileMember.file_id.in_(user_file_ids)).delete(synchronize_session=False)
             (
                 db.query(FileArtifactShare)
                 .filter(FileArtifactShare.file_id.in_(user_file_ids))
@@ -1139,28 +1083,6 @@ def hard_delete_user(
         (
             db.query(FileArtifactShare)
             .filter(FileArtifactShare.user_id == user_id)
-            .delete(synchronize_session=False)
-        )
-
-        # Delete folders and folder-sharing rows linked to the user.
-        user_folder_rows = (
-            db.query(FileFolders.id).filter(FileFolders.user_id == user_id).all()
-        )
-        if user_folder_rows:
-            user_folder_ids = [folder_id for (folder_id,) in user_folder_rows]
-            (
-                db.query(SharedFileFolderSubscription)
-                .filter(SharedFileFolderSubscription.folder_id.in_(user_folder_ids))
-                .delete(synchronize_session=False)
-            )
-            (
-                db.query(FileFolders)
-                .filter(FileFolders.id.in_(user_folder_ids))
-                .delete(synchronize_session=False)
-            )
-        (
-            db.query(SharedFileFolderSubscription)
-            .filter(SharedFileFolderSubscription.subscriber_id == user_id)
             .delete(synchronize_session=False)
         )
 

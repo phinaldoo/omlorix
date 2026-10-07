@@ -462,7 +462,7 @@ def send(
         )
         raise HTTPException(status_code=400, detail={"code": "chat_model_required"})
     logger.info(
-        "[chat-send] request received user=%s group=%s chat_id=%s model_id=%s temp_chat=%s message_length=%s image_count=%s video_count=%s audio_count=%s document_count=%s skill_id=%s skill_count=%s note_count=%s prompt_count=%s reference_part_count=%s chat_reference_count=%s custom_settings_keys=%s byok=%s",
+        "[chat-send] request received user=%s group=%s chat_id=%s model_id=%s temp_chat=%s message_length=%s image_count=%s video_count=%s audio_count=%s document_count=%s skill_id=%s skill_count=%s prompt_count=%s reference_part_count=%s chat_reference_count=%s custom_settings_keys=%s byok=%s",
         user.id,
         user.group_id,
         payload.chat_id,
@@ -475,7 +475,6 @@ def send(
         len(payload.document_ids or []),
         payload.skill_id,
         safe_count(payload.skill_ids),
-        safe_count(payload.note_ids),
         safe_count(payload.prompt_ids),
         safe_count(payload.reference_parts),
         safe_count(payload.chat_reference_ids),
@@ -577,7 +576,6 @@ def send(
             "document_count": len(payload.document_ids or []),
             "skill_id": payload.skill_id,
             "skill_count": len(payload.skill_ids or []),
-            "note_count": len(payload.note_ids or []),
             "prompt_count": len(payload.prompt_ids or []),
             "subagent_target_mode": "automatic" if authorized_subagent_targets is None else "selected",
             "subagent_target_count": len(authorized_subagent_targets or []),
@@ -719,7 +717,6 @@ def send(
                 session,
                 skill_id=payload.skill_id,
                 skill_ids=payload.skill_ids,
-                note_ids=payload.note_ids,
                 prompt_ids=payload.prompt_ids,
                 reference_parts=payload.reference_parts,
                 chat_reference_ids=payload.chat_reference_ids,
@@ -1199,7 +1196,7 @@ def regenerate(
     Creates a new assistant message with incremented retry_count.
     Uses the currently selected model (can be different from original).
     
-    Body: `RegenerateMessageRequest` with `chat_id`, `user_message_id`, optional `model_id`, `skill_id`/`skill_ids`, `note_ids`, `prompt_ids`.
+    Body: `RegenerateMessageRequest` with `chat_id`, `user_message_id`, optional `model_id`, `skill_id`/`skill_ids`, `prompt_ids`.
     
     Returns: a text/plain streaming response similar to /send.
     """
@@ -1261,14 +1258,13 @@ def regenerate(
 
     retry_guidance_meta = _retry_guidance_log_metadata(payload.retry_guidance)
     logger.info(
-        "[Regenerate] request_user=%s chat_id=%s user_message_id=%s model_id=%s skill_id=%s skill_count=%s note_count=%s prompt_count=%s chat_reference_count=%s retry_guidance_mode=%s retry_guidance_preset=%s retry_guidance_custom_instruction_length=%s custom_settings_keys=%s",
+        "[Regenerate] request_user=%s chat_id=%s user_message_id=%s model_id=%s skill_id=%s skill_count=%s prompt_count=%s chat_reference_count=%s retry_guidance_mode=%s retry_guidance_preset=%s retry_guidance_custom_instruction_length=%s custom_settings_keys=%s",
         user.id,
         payload.chat_id,
         payload.user_message_id,
         payload.model_id,
         payload.skill_id,
         safe_count(payload.skill_ids),
-        safe_count(payload.note_ids),
         safe_count(payload.prompt_ids),
         safe_count(payload.chat_reference_ids),
         retry_guidance_meta["mode"],
@@ -1326,7 +1322,6 @@ def regenerate(
                 session,
                 skill_id=payload.skill_id,
                 skill_ids=payload.skill_ids,
-                note_ids=payload.note_ids,
                 prompt_ids=payload.prompt_ids,
                 chat_reference_ids=payload.chat_reference_ids,
                 retry_guidance=payload.retry_guidance,

@@ -281,7 +281,6 @@ test('mention menu replaces its private model cache and rerenders when open', ()
         modelMentionState,
         skillMentionState,
         filterSkills: () => ['skills'],
-        filterNotes: () => ['notes'],
         filterPrompts: () => ['prompts'],
         filterModels: () => modelMentionState.models,
         renderMentionDropdown: (...args) => renders.push(args),
@@ -293,7 +292,7 @@ test('mention menu replaces its private model cache and rerenders when open', ()
     assert.equal(modelMentionState.models, models);
     assert.equal(modelMentionState.lastFetched, 12345);
     assert.equal(renders.length, 1);
-    assert.equal(renders[0][3], models);
+    assert.equal(renders[0][2], models);
 });
 
 test('agent create, edit, and delete flows refresh model consumers', () => {

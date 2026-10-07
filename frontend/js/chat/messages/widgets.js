@@ -661,46 +661,6 @@ function appendAssistantWidget(messageId, widgetHtml, widgetType,
         if (existingWidget) return;
     }
 
-    // A notes create stream injects its result card before persistence.
-    // Upgrade that same wrapper with the canonical backend payload instead of
-    // appending a second card after notes_evt:saved.
-    if (widgetType === 'notes_result') {
-        const toolResult = widgetMeta && typeof widgetMeta === 'object' && widgetMeta.tool_result
-            && typeof widgetMeta.tool_result === 'object'
-            ? widgetMeta.tool_result
-            : null;
-        const operation = String(toolResult?.operation || '').trim().toLowerCase();
-        // Notes cards represent artifact creation only. Keep the tool activity
-        // row for edit/view calls, including older persisted widget payloads,
-        // without appending another card for the same note.
-        if (operation && operation !== 'create') {
-            return;
-        }
-        const noteId = String(toolResult?.note_id || '').trim();
-        const existingWidget = noteId
-            ? assistantMessageContainer.querySelector(
-                `.notes-tool-result-widget[data-note-id="${CSS.escape(noteId)}"]`
-            )
-            : null;
-        if (existingWidget) {
-            finalizeThinkingBlocks(assistantMessageContainer);
-            const existingWrapper = existingWidget.closest('.assistant-widget');
-            if (existingWrapper) {
-                existingWrapper.dataset.widgetType = 'notes_result';
-                existingWrapper.__chatWidgetPayload = {
-                    type: 'notes_result',
-                    html: String(widgetHtml ?? ''),
-                    meta: cloneSerializableWidgetMeta(widgetMeta),
-                };
-            }
-            if (window.NotesToolSidebar && typeof window.NotesToolSidebar.scanForWidgets === 'function') {
-                window.NotesToolSidebar.scanForWidgets(existingWrapper || existingWidget);
-            }
-            applyAssistantMessageAccessibility(assistantMessageContainer, { messageId, streaming: true });
-            return;
-        }
-    }
-
     if (
         widgetType === 'mcp_app'
         && widgetMeta
@@ -959,15 +919,7 @@ function hydrateWidgetByName(widgetType, widgetWrapper, widgetMeta = null, widge
         }
     }
 
-    if (widgetType === 'notes_result'
-        && window.NotesToolSidebar
-        && typeof window.NotesToolSidebar.scanForWidgets === 'function') {
-        try {
-            window.NotesToolSidebar.scanForWidgets(widgetWrapper);
-        } catch (error) {
-            console.error('[notes-tool] Failed to initialize note widget after append', error);
-        }
-    }
+    {}
 }
 
 /**

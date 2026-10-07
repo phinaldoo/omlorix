@@ -814,6 +814,7 @@
         updateShareButtonState();
         refreshWidgetOpenButtonStates();
         if (!previewVisible) {
+            document.dispatchEvent(new CustomEvent('canvas-document-changed', { detail: null }));
             hideReferenceToolbar();
         } else {
             refreshReferenceSelectionState();
@@ -1738,11 +1739,13 @@
                 const pendingSave = draftSavePromises.get(fileId);
                 if (pendingSave) await pendingSave;
                 if (!isCurrentLoad()) return;
-                const spreadsheetSnapshot = await loadSpreadsheetFromFile(fileId);
+                const [spreadsheetSnapshot, spreadsheetRecord] = await Promise.all([loadSpreadsheetFromFile(fileId), loadCanvasFileRecord(fileId)]);
                 if (!isCurrentLoad()) return;
                 const canvasRevision = Number(spreadsheetSnapshot.canvasRevision) || 0;
                 const updated = updateDraft(fileId, {
                     binaryContent: spreadsheetSnapshot.bytes,
+                    canEdit: spreadsheetRecord?.can_edit !== false,
+                    canManage: spreadsheetRecord?.can_delete !== false,
                     content: '',
                     status: t('canvas_status_saved', 'Saved'),
                     statusKind: 'saved',
@@ -1776,7 +1779,7 @@
             } else {
                 [content, fileRecord] = await Promise.all([
                     loadContentFromFile(fileId),
-                    detectedType === 'latex' ? loadCanvasFileRecord(fileId) : Promise.resolve(null),
+                    loadCanvasFileRecord(fileId),
                 ]);
                 if (!isCurrentLoad()) return;
             }
@@ -1790,6 +1793,8 @@
                 : '';
             const updated = updateDraft(fileId, {
                 content,
+                canEdit: fileRecord?.can_edit !== false,
+                canManage: fileRecord?.can_delete !== false,
                 status: detectedType === 'latex' && renderRevision !== canvasRevision
                     ? t('canvas_latex_preview_stale', 'Preview is out of date')
                     : t('canvas_status_saved', 'Saved'),

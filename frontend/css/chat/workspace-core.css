@@ -371,12 +371,12 @@ body.canvas-markdown-compact-main-layout.workspace-view-active #workspaceContain
     color: var(--text-color-secondary);
 }
 
-/* Shared workspace sidebars: Files, Todos, Notes */
-:where(.files-workspace, .todos-workspace, .notes-workspace) {
+/* File library sidebar */
+:where(.files-workspace) {
     gap: 0;
 }
 
-:where(.files-sidebar, .todos-sidebar, .notes-sidebar) {
+:where(.files-sidebar) {
     width: 280px;
     min-width: 220px;
     max-width: 320px;
@@ -386,7 +386,7 @@ body.canvas-markdown-compact-main-layout.workspace-view-active #workspaceContain
     overflow: hidden;
 }
 
-:where(.files-sidebar-header, .todos-sidebar-header, .notes-sidebar-header) {
+:where(.files-sidebar-header) {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -394,30 +394,25 @@ body.canvas-markdown-compact-main-layout.workspace-view-active #workspaceContain
     border-bottom: 1px solid var(--border-color);
 }
 
-:where(.files-sidebar-title, .todos-sidebar-title, .notes-sidebar-title) {
+:where(.files-sidebar-title) {
     font-size: 14px;
     font-weight: 600;
     color: var(--text-color);
     margin: 0;
 }
 
-.notes-sidebar-header-actions {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
 
-:where(.files-sidebar-list, .todos-sidebar-list, .notes-sidebar-list) {
+:where(.files-sidebar-list) {
     flex: 1;
     overflow-y: auto;
     padding: 8px;
 }
 
-:where(.files-sidebar-list, .todos-sidebar-list, .notes-sidebar-list)::-webkit-scrollbar {
+:where(.files-sidebar-list)::-webkit-scrollbar {
     width: 6px;
 }
 
-:where(.files-sidebar-list, .todos-sidebar-list, .notes-sidebar-list)::-webkit-scrollbar-thumb {
+:where(.files-sidebar-list)::-webkit-scrollbar-thumb {
     background: var(--border-color);
     border-radius: 3px;
 }
@@ -442,9 +437,6 @@ body.canvas-markdown-compact-main-layout.workspace-view-active #workspaceContain
     animation: spin 0.75s linear infinite;
 }
 
-.notes-file-picker-sentinel {
-    grid-column: 1 / -1;
-}
 
 @media (prefers-reduced-motion: reduce) {
     .workspace-infinite-scroll-sentinel::after {
@@ -452,7 +444,7 @@ body.canvas-markdown-compact-main-layout.workspace-view-active #workspaceContain
     }
 }
 
-:where(.files-sidebar-item, .todos-list-item) {
+:where(.files-sidebar-item) {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -465,68 +457,39 @@ body.canvas-markdown-compact-main-layout.workspace-view-active #workspaceContain
     color: var(--text-color);
 }
 
-.todos-list-item {
-    padding: 0;
-}
 
-.todos-list-item-select-btn {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex: 1 1 auto;
-    width: 100%;
-    min-width: 0;
-    padding: 10px 12px;
-    border: 0;
-    border-radius: 10px;
-    background: transparent;
-    color: inherit;
-    font: inherit;
-    text-align: left;
-    cursor: pointer;
-}
 
-.todos-list-item:not(.todos-marked-list-item) > .todos-list-item-select-btn {
-    padding-inline-end: 48px;
-}
 
 @media (hover: hover) and (pointer: fine) {
-    :where(.files-sidebar-item, .todos-list-item):hover {
+    :where(.files-sidebar-item):hover {
         background: var(--hover);
     }
 }
 
-:where(.files-sidebar-item, .todos-list-item):focus {
+:where(.files-sidebar-item):focus {
     outline: none;
 }
 
-:where(.files-sidebar-item, .todos-list-item):focus-visible {
+:where(.files-sidebar-item):focus-visible {
     outline: 2px solid var(--primary-color);
     outline-offset: -2px;
 }
 
-.todos-list-item-select-btn:focus {
-    outline: none;
-}
 
-.todos-list-item-select-btn:focus-visible {
-    outline: 2px solid var(--primary-color);
-    outline-offset: -2px;
-}
 
-:where(.files-sidebar-item.active, .todos-list-item.active) {
+:where(.files-sidebar-item.active) {
     background: var(--primary-light);
 }
 
-:where(.files-sidebar-item.active .files-sidebar-item-icon:not(.has-color), .files-sidebar-item.active .files-sidebar-item-name, .todos-list-item.active .todos-list-item-icon, .todos-list-item.active .todos-list-item-name) {
+:where(.files-sidebar-item.active .files-sidebar-item-icon:not(.has-color), .files-sidebar-item.active .files-sidebar-item-name) {
     color: var(--primary-color);
 }
 
-:where(.files-sidebar-item.active .files-sidebar-item-name, .todos-list-item.active .todos-list-item-name) {
+:where(.files-sidebar-item.active .files-sidebar-item-name) {
     font-weight: 600;
 }
 
-:where(.files-sidebar-item-icon, .todos-list-item-icon) {
+:where(.files-sidebar-item-icon) {
     width: 32px;
     height: 32px;
     display: flex;
@@ -538,12 +501,12 @@ body.canvas-markdown-compact-main-layout.workspace-view-active #workspaceContain
     flex-shrink: 0;
 }
 
-:where(.files-sidebar-item-icon svg, .todos-list-item-icon svg) {
+:where(.files-sidebar-item-icon svg) {
     width: 18px;
     height: 18px;
 }
 
-:where(.files-sidebar-item-name, .todos-list-item-name) {
+:where(.files-sidebar-item-name) {
     font-size: 14px;
     font-weight: 500;
     color: var(--text-color);
@@ -554,7 +517,7 @@ body.canvas-markdown-compact-main-layout.workspace-view-active #workspaceContain
     min-width: 0;
 }
 
-:where(.files-sidebar-item-count, .todos-list-item-count) {
+:where(.files-sidebar-item-count) {
     font-size: 12px;
     color: var(--text-color-secondary);
     padding: 2px 8px;
@@ -789,29 +752,10 @@ body.canvas-markdown-compact-main-layout.workspace-view-active #workspaceContain
 .projects-create-textarea.input-error,
 .memories-editor-textarea.input-error,
 .memories-import-textarea.input-error,
-.todos-list-editor-input.input-error,
-.todos-list-editor-textarea.input-error,
-.files-edit-modal-input.input-error,
-.files-folder-modal-input.input-error {
-    border-color: var(--error-color, #e53935) !important;
-    box-shadow: 0 0 0 1px var(--error-color, #e53935);
-}
 
 .projects-create-input.input-error:focus,
 .projects-create-textarea.input-error:focus,
 .memories-editor-textarea.input-error:focus,
 .memories-import-textarea.input-error:focus,
-.todos-list-editor-input.input-error:focus,
-.todos-list-editor-textarea.input-error:focus,
-.files-edit-modal-input.input-error:focus,
-.files-folder-modal-input.input-error:focus {
-    border-color: var(--error-color, #e53935) !important;
-    box-shadow: 0 0 0 2px rgba(229, 57, 53, 0.2);
-}
 
 .projects-create-input-group.has-error .skills-input-hint,
-.todos-list-editor-field.has-error .skills-input-hint,
-.files-edit-modal-field.has-error .skills-input-hint,
-.files-folder-modal-field.has-error .skills-input-hint {
-    display: none;
-}

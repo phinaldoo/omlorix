@@ -132,13 +132,13 @@ def get_group_form_schema(db: Session, group_id: str | None = None) -> GroupForm
     )
 
     populate_sections_with_values(schema_copy, payload)
-    from app.tools.registry import RETIRED_STUDY_TOOL_ALIASES
+    from app.tools.registry import RETIRED_STUDY_TOOL_ALIASES, RETIRED_WORKSPACE_TOOL_ALIASES
 
     for section in schema_copy.sections:
         for field in section.fields:
             if field.key == "settings.chat.byok_allowed_tools" and isinstance(field.value, list):
                 field.value = list(dict.fromkeys(
-                    RETIRED_STUDY_TOOL_ALIASES.get(name, name) for name in field.value
+                    RETIRED_WORKSPACE_TOOL_ALIASES.get(name, RETIRED_STUDY_TOOL_ALIASES.get(name, name)) for name in field.value
                 ))
     return schema_copy
 

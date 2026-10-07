@@ -167,7 +167,6 @@ def test_automation_generation_uses_request_scoped_mcp_allowlist(monkeypatch):
         system_instruction_sections=[
             {"title": "Skill Instructions", "content": "Follow the saved skill."},
         ],
-        note_ids=["note-1"],
     )
 
     monkeypatch.setattr(jobs, "get_model", lambda *_args: model)
@@ -190,14 +189,12 @@ def test_automation_generation_uses_request_scoped_mcp_allowlist(monkeypatch):
         "enabled_mcp_servers": ["notion-server", "github-server"],
     }
     assert captured["request"].system_instruction_sections == runtime_context.system_instruction_sections
-    assert captured["request"].note_ids == ["note-1"]
 
 
-def test_automation_runtime_context_resolves_skill_notes_and_typed_files(monkeypatch):
+def test_automation_runtime_context_resolves_skill_and_typed_files(monkeypatch):
     from app.chats import utils as chat_utils
     from app.files import access as file_access
     from app.llm.system_instruction import personality
-    from app.notes import models as note_models
     from app.skills import models as skill_models
 
     monkeypatch.setattr(
@@ -220,7 +217,6 @@ def test_automation_runtime_context_resolves_skill_notes_and_typed_files(monkeyp
             "document": ["skill-file:skill-1:references/guide.pdf"],
         },
     )
-    monkeypatch.setattr(note_models, "can_user_view_note", lambda *_args: True)
     monkeypatch.setattr(
         personality,
         "get_user_personality_system_instruction_section",
@@ -242,7 +238,6 @@ def test_automation_runtime_context_resolves_skill_notes_and_typed_files(monkeyp
         db=object(),
         automation=SimpleNamespace(
             skill_id="skill-1",
-            note_ids=["note-1", "note-1"],
             file_ids=["image-1", "video-1", "audio-1", "document-1"],
         ),
         user=SimpleNamespace(id="user-1"),
@@ -253,7 +248,6 @@ def test_automation_runtime_context_resolves_skill_notes_and_typed_files(monkeyp
         {"title": "User Personality Preferences", "content": "Be concise."},
         {"title": "Skill Instructions", "content": "[Skill 1]\nFollow the saved skill."},
     ]
-    assert context.note_ids == ["note-1"]
     assert context.image_ids == ["image-1"]
     assert context.video_ids == ["video-1"]
     assert context.audio_ids == ["audio-1"]
@@ -263,28 +257,6 @@ def test_automation_runtime_context_resolves_skill_notes_and_typed_files(monkeyp
     ]
 
 
-def test_automation_runtime_context_rejects_revoked_note_before_generation(monkeypatch):
-    from app.llm.system_instruction import personality
-    from app.notes import models as note_models
-
-    monkeypatch.setattr(
-        personality,
-        "get_user_personality_system_instruction_section",
-        lambda *_args: None,
-    )
-    monkeypatch.setattr(note_models, "can_user_view_note", lambda *_args: False)
-
-    with pytest.raises(jobs.AutomationExecutionRejected) as exc:
-        jobs._resolve_automation_runtime_context(
-            db=object(),
-            automation=SimpleNamespace(skill_id=None, note_ids=["revoked-note"], file_ids=[]),
-            user=SimpleNamespace(id="user-1"),
-            model=SimpleNamespace(settings={}),
-        )
-
-    assert exc.value.status_code == 404
-    assert exc.value.message == "A configured note is no longer accessible"
-    assert exc.value.notify_user is True
 
 
 def test_claim_due_automations_only_claims_due_rows(db_session):
@@ -477,7 +449,6 @@ def test_execute_automation_job_uses_snapshot_and_ignores_replay(db_session, mon
     monkeypatch.setattr(jobs, "_create_automation_failure_notification", lambda *_args, **_kwargs: None)
     runtime_context = jobs.AutomationRuntimeContext(
         system_instruction_sections=[{"title": "Skill Instructions", "content": "Use the skill"}],
-        note_ids=["note-1"],
         image_ids=["image-1"],
         video_ids=["video-1"],
         audio_ids=["audio-1"],
@@ -502,7 +473,6 @@ def test_execute_automation_job_uses_snapshot_and_ignores_replay(db_session, mon
                 "prompt": execution_config.prompt,
                 "model_id": execution_config.model_id,
                 "user_id": user.id,
-                "note_ids": runtime_context.note_ids,
             }
         )
 
@@ -543,7 +513,6 @@ def test_execute_automation_job_uses_snapshot_and_ignores_replay(db_session, mon
             "prompt": "Original prompt",
             "model_id": "model-1",
             "user_id": "user-1",
-            "note_ids": ["note-1"],
         }
     ]
 
@@ -925,7 +894,6 @@ def test_canonical_automation_roundtrip_remaps_mcp_context_into_execution(
         user=SimpleNamespace(id="restored-user"),
         runtime_context=SimpleNamespace(
             system_instruction_sections=[],
-            note_ids=[],
         ),
     )
 

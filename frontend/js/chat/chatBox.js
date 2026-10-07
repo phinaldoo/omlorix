@@ -2,9 +2,7 @@ if (typeof window !== 'undefined') {
   window.getSelectedSkillIds = getSelectedSkillIds;
   window.clearAllSkillAttachments = clearAllSkillAttachments;
   window.removeSkillAttachment = removeSkillAttachment;
-  window.getSelectedNoteIds = getSelectedNoteIds;
-  window.clearAllNoteAttachments = clearAllNoteAttachments;
-  window.removeNoteAttachment = removeNoteAttachment;
+
   window.getSelectedPromptIds = getSelectedPromptIds;
   window.clearAllPromptAttachments = clearAllPromptAttachments;
   window.removePromptAttachment = removePromptAttachment;
@@ -361,7 +359,7 @@ function captureChatComposerStateSnapshot() {
     uploadedFiles,
     uploadedFileIds: uploadedFiles.map((file) => normalizeChatComposerSnapshotId(file?.file_id ?? file?.id)).filter(Boolean),
     skills: collectChatComposerEntitySnapshots(selectedSkillIds, skillMetadataMap, 'Skill'),
-    notes: collectChatComposerEntitySnapshots(selectedNoteIds, noteMetadataMap, 'Note'),
+
     prompts: collectChatComposerEntitySnapshots(selectedPromptIds, promptMetadataMap, 'Prompt'),
     mcpConnectors: collectChatComposerEntitySnapshots(selectedMcpServerIds, mcpConnectorMetadataMap, 'MCP Server'),
     chatReferences: getSelectedChatReferencePayload(),
@@ -467,7 +465,7 @@ function applyChatComposerStateSnapshot(state, {
       }
       clearChatUploadedFilesSelection({ notify: false });
       clearAllSkillAttachments();
-      clearAllNoteAttachments();
+
       clearAllPromptAttachments();
       clearAllMcpConnectorAttachments();
       clearAllChatReferenceAttachments();
@@ -520,17 +518,6 @@ function applyChatComposerStateSnapshot(state, {
       }
       seenSkillIds.add(id);
       addSkillAttachment(normalized);
-    });
-
-    const seenNoteIds = new Set();
-    (Array.isArray(snapshot.notes) ? snapshot.notes : []).forEach((candidate) => {
-      const normalized = normalizeChatComposerEntitySnapshot(candidate, 'Note');
-      const id = normalizeChatComposerSnapshotId(normalized?.id);
-      if (!normalized || !id || seenNoteIds.has(id)) {
-        return;
-      }
-      seenNoteIds.add(id);
-      addNoteAttachment(normalized);
     });
 
     const seenPromptIds = new Set();
@@ -784,7 +771,7 @@ function createSelectionActionTooltip({
   };
 }
 
-// Canvas and Notes load after chatBox.js and consume this shared component.
+// Canvas loads after chatBox.js and consumes this shared component.
 window.createSelectionActionTooltip = createSelectionActionTooltip;
 
 function isSelectionTooltipVisible() {

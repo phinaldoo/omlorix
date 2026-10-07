@@ -775,6 +775,31 @@
             hidePreviewPanel,
             setHtmlViewMode,
             reset,
+            getActiveDocument: () => {
+                const draft = draftMap.get(state.activeDraftKey);
+                return draft ? { fileId: draft.fileId, fileName: draft.fileName,
+                    contentType: draft.contentType, revision: draft.canvasRevision,
+                    canEdit: draft.canEdit !== false, canManage: draft.canManage !== false } : null;
+            },
+            flushActiveDocument: async () => {
+                await saveActiveDraftEdits();
+                const edit = draftEditStateMap.get(state.activeDraftKey);
+                if (edit?.dirty && !edit.error) await saveActiveDraftEdits();
+                return !draftEditStateMap.get(state.activeDraftKey)?.dirty;
+            },
+            reloadActiveDocument: async () => {
+                const key = state.activeDraftKey;
+                const draft = draftMap.get(key);
+                if (!draft?.fileId) return;
+                const timer = autoSaveTimers.get(key);
+                if (timer) clearTimeout(timer);
+                autoSaveTimers.delete(key);
+                destroyActiveMarkdownEditor();
+                destroyActiveSpreadsheetEditor({ persistPending: false, commitPending: false });
+                draftEditStateMap.delete(key);
+                draftMap.delete(key);
+                await openPreviewForFile(draft.fileId, draft.fileName, draft.contentType);
+            },
             // Workspace file rows use this public query to provide the same
             // open/close toggle behavior as Canvas result cards.
             isPreviewOpenForFile: (fileId) => Boolean(

@@ -61,7 +61,6 @@ class AutomationRuntimeContext:
     """Authorized context material resolved immediately before an automation run."""
 
     system_instruction_sections: list[dict[str, str]]
-    note_ids: list[str]
     image_ids: list[str]
     video_ids: list[str]
     audio_ids: list[str]
@@ -154,7 +153,6 @@ def _resolve_automation_runtime_context(
     )
     from app.files.access import get_accessible_file
     from app.llm.system_instruction.personality import get_user_personality_system_instruction_section
-    from app.notes.models import can_user_view_note
     from app.skills.models import _resolve_accessible_skill_for_user
 
     requested_skill_id = str(getattr(automation, "skill_id", None) or "").strip() or None
@@ -198,14 +196,6 @@ def _resolve_automation_runtime_context(
         skill_content=skill_content,
     )
 
-    note_ids = _normalize_reference_ids(getattr(automation, "note_ids", None))
-    for note_id in note_ids:
-        if not can_user_view_note(db, user.id, note_id):
-            raise AutomationExecutionRejected(
-                "A configured note is no longer accessible",
-                status_code=404,
-                notify_user=True,
-            )
 
     file_ids_by_field: dict[str, list[str]] = {
         "images": [],
@@ -238,7 +228,6 @@ def _resolve_automation_runtime_context(
 
     return AutomationRuntimeContext(
         system_instruction_sections=system_instruction_sections,
-        note_ids=note_ids,
         image_ids=_merge_attachment_ids(file_ids_by_field["images"], skill_file_attachments.get("images")),
         video_ids=_merge_attachment_ids(file_ids_by_field["videos"], skill_file_attachments.get("videos")),
         audio_ids=_merge_attachment_ids(file_ids_by_field["audios"], skill_file_attachments.get("audios")),
@@ -595,7 +584,6 @@ def _generate_automation_response(
                 temp_request_flag=False,
                 settings_override=settings_override,
                 system_instruction_sections=runtime_context.system_instruction_sections,
-                note_ids=runtime_context.note_ids,
                 user_role=getattr(user, "role", None),
                 extra={"chat_id": chat_id},
             )

@@ -30,10 +30,18 @@ Third-party product names, logos, brands, and trademarks are the property of the
 
 ### Reusable workspaces
 
-- Organize chats and context in projects alongside files, folders, notes, prompts, todos, bookmarks, and memories.
+- Organize chats and context in projects alongside a file library grouped by type, Canvas documents and checklists, prompts, bookmarks, and memories.
 - Build reusable agents and skills with their own instructions and supporting files.
 - Connect MCP servers and third-party services, then use them from chats and agents.
 - Schedule automations, receive notifications, trigger workflows through webhooks, and import supported ChatGPT export archives.
+
+### Files and Canvas
+
+The Files library is flat: its category filters and counts follow the files you can access (Canvas, PDFs, images, slides, spreadsheets, documents, audio, video, archives, and other files). Create a Markdown document with **New Canvas**, or ask the model to find and edit an existing Canvas. Markdown checkboxes replace standalone Todo lists.
+
+Canvas saves retain immutable earlier versions. Editors can preview, download, and restore them from **Version history**; restoring creates another version, and stale saves return a conflict instead of overwriting newer edits. Owners manage viewer/editor access per document. New editors cannot read history from before their access was granted. Historical source bytes count toward the owner's storage quota and are included in file backups.
+
+Upgrading migrates existing Notes, their history, Todo lists (including task metadata), and accepted folder sharing permissions into Canvas files and per-file access. Automation note attachments become file attachments. The old Notes, Todo, and folder APIs and share URLs are retired; owners can issue new Canvas links. Old account archives still import note/task content into Canvas, but retired share URLs are not restored. Back up before upgrading: rolling back this data conversion requires restoring the pre-upgrade backup.
 
 ### Collaboration and governance
 

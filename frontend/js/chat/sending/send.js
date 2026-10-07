@@ -146,7 +146,7 @@ async function sendMessage(message="", attaching=false, attachGenerationId=null,
             // consumed by the successful-send cleanup path.
             notifyWarning?.(getChatPreviewTranslation(
                 'chat_realtime_request_context_unsupported',
-                'Prompts, notes, and selected passages are not supported during a live call. End the call to send them. They remain attached.',
+                'Prompts and selected passages are not supported during a live call. End the call to send them. They remain attached.',
             ));
             return false;
         }
@@ -389,19 +389,13 @@ async function sendMessage(message="", attaching=false, attachGenerationId=null,
         }
         notifyRequestAccepted();
     } else {
-        if (typeof window.NotesToolSidebar?.flushPendingEdits === 'function') {
-            const notesSaved = await window.NotesToolSidebar.flushPendingEdits();
-            if (!notesSaved) {
-                finalizeGenerationState();
-                return;
-            }
-        }
+        {}
         const payloadImageIds = composerContext?.imageIds || [];
         const payloadVideoIds = composerContext?.videoIds || [];
         const payloadAudioIds = composerContext?.audioIds || [];
         const payloadDocumentIds = composerContext?.documentIds || [];
         const payloadSkillIds = composerContext?.skillIds || [];
-        const payloadNoteIds = composerContext?.noteIds || [];
+
         const payloadPromptIds = composerContext?.promptIds || [];
         const payloadReferenceParts = composerContext?.referenceParts || [];
         const payloadChatReferenceIds = composerContext?.chatReferenceIds || [];
@@ -434,7 +428,7 @@ async function sendMessage(message="", attaching=false, attachGenerationId=null,
                 audio_ids: payloadAudioIds,
                 document_ids: payloadDocumentIds,
                 skill_ids: payloadSkillIds.length ? payloadSkillIds : null,
-                note_ids: payloadNoteIds,
+
                 prompt_ids: payloadPromptIds.length ? payloadPromptIds : null,
                 reference_parts: payloadReferenceParts.length ? payloadReferenceParts : null,
                 chat_reference_ids: payloadChatReferenceIds.length ? payloadChatReferenceIds : null,
@@ -466,13 +460,7 @@ async function sendMessage(message="", attaching=false, attachGenerationId=null,
                     messageId,
                     document.getElementById('chatAreaContainer')
                 );
-                if (window.NotesToolSidebar && typeof window.NotesToolSidebar.handleStreamEnd === 'function') {
-                    try {
-                        window.NotesToolSidebar.handleStreamEnd(messageId);
-                    } catch (cleanupError) {
-                        console.error('Failed to clean up notes live preview after cancellation', cleanupError);
-                    }
-                }
+                {}
                 if (window.canvasMarkdownWidget && typeof window.canvasMarkdownWidget.handleStreamEnd === 'function') {
                     try {
                         window.canvasMarkdownWidget.handleStreamEnd(messageId);
@@ -724,7 +712,7 @@ async function sendMessage(message="", attaching=false, attachGenerationId=null,
             }
             const hasMaterializedPayload = obj?.t === 'm_id'
                 || obj?.t === 'regen'
-                || ['c', 'r', 't_c', 't_cd', 'e', 'wg', 'subagent_evt', 'deep_research_evt', 'slide_presentation_evt', 'latex_pdf_evt', 'canvas_evt', 'notes_evt', 'f', 'a_id', 't_g', 'n_t'].includes(obj?.t);
+                || ['c', 'r', 't_c', 't_cd', 'e', 'wg', 'subagent_evt', 'deep_research_evt', 'slide_presentation_evt', 'latex_pdf_evt', 'canvas_evt', 'f', 'a_id', 't_g', 'n_t'].includes(obj?.t);
             if (hasMaterializedPayload) {
                 streamReceivedAnyEvent = true;
             }
@@ -887,13 +875,7 @@ async function sendMessage(message="", attaching=false, attachGenerationId=null,
                         window.canvasMarkdownWidget.handleToolCallEvent(obj, messageId);
                     } catch (_) {}
                 }
-                if (window.NotesToolSidebar && typeof window.NotesToolSidebar.handleToolCallEvent === 'function') {
-                    try {
-                        window.NotesToolSidebar.handleToolCallEvent(obj, messageId);
-                    } catch (error) {
-                        console.error('Failed to start notes live preview', error);
-                    }
-                }
+                {}
 
                 syncMediaGenPlaceholder(
                     messageId,
@@ -918,25 +900,13 @@ async function sendMessage(message="", attaching=false, attachGenerationId=null,
                         window.canvasMarkdownWidget.handleToolCallDeltaEvent(obj, messageId);
                     } catch (_) {}
                 }
-                if (window.NotesToolSidebar && typeof window.NotesToolSidebar.handleToolCallDeltaEvent === 'function') {
-                    try {
-                        window.NotesToolSidebar.handleToolCallDeltaEvent(obj, messageId);
-                    } catch (error) {
-                        console.error('Failed to update notes live preview', error);
-                    }
-                }
+                {}
             } else if (obj.t === "r_f") {
                 // Reasoning finished, change the assistant reasoning title
                 temp_reasoning_time = obj.d;
             } else if (obj.t === "e") {
                 generationTerminalStatus = 'error';
-                if (window.NotesToolSidebar && typeof window.NotesToolSidebar.handleStreamEnd === 'function') {
-                    try {
-                        window.NotesToolSidebar.handleStreamEnd(messageId);
-                    } catch (error) {
-                        console.error('Failed to clean up notes live preview after stream error', error);
-                    }
-                }
+                {}
                 if (window.canvasMarkdownWidget && typeof window.canvasMarkdownWidget.handleStreamEnd === 'function') {
                     try {
                         window.canvasMarkdownWidget.handleStreamEnd(messageId);
@@ -1099,15 +1069,6 @@ async function sendMessage(message="", attaching=false, attachGenerationId=null,
                         window.canvasMarkdownWidget.handleCanvasEvent(obj, messageId);
                     } catch (_) {}
                 }
-            } else if (obj.t === "notes_evt") {
-                clearMediaGenPlaceholderForNonFileEvent(messageId);
-                if (window.NotesToolSidebar && typeof window.NotesToolSidebar.handleNotesEvent === 'function') {
-                    try {
-                        window.NotesToolSidebar.handleNotesEvent(obj, messageId);
-                    } catch (error) {
-                        console.error('Failed to handle notes stream event', error);
-                    }
-                }
             } else if (obj.t === "f") {
                 // File rendering
                 if (last_appended_message_type === "loading") {
@@ -1233,15 +1194,7 @@ async function sendMessage(message="", attaching=false, attachGenerationId=null,
                 // user-completed response. Structured `done` makes this a no-op.
                 window.finalizeInterruptedAssistantStream?.(messageId, transcriptRoot);
             }
-            if (window.NotesToolSidebar && typeof window.NotesToolSidebar.handleStreamEnd === 'function') {
-                try {
-                    // Also covers user cancellation, disconnects, and tool-level
-                    // failures returned to the model without an `e` event.
-                    window.NotesToolSidebar.handleStreamEnd(messageId);
-                } catch (error) {
-                    console.error('Failed to clean up notes live preview after generation', error);
-                }
-            }
+            {}
             if (window.canvasMarkdownWidget && typeof window.canvasMarkdownWidget.handleStreamEnd === 'function') {
                 try {
                     window.canvasMarkdownWidget.handleStreamEnd(messageId);

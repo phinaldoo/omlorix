@@ -50,13 +50,9 @@ NON_I18N_T_CALL_ARGUMENTS = {
 MUST_BE_LOCALIZED = {
     "color_label_amber",
     "common_continue",
-    "notes_no_notes_subtitle",
-    "notes_recording_details_ready",
     "preset_save_description",
     "slide_presentation_preparing",
     "split_screen_too_narrow_desc",
-    "todos_accept_desc",
-    "todos_create_list_desc_placeholder",
     "us_set_password_desc",
     "chat_send_failed_retry",
     "latex_pdf_compile_failed_desc",

@@ -15,10 +15,10 @@ test('Workspace navigation implements desktop tabs and a compact title menu', ()
     assert.match(markup, /id="mainHeaderWorkspace" role="tablist"/);
     const desktopTabsMarkup = markup.match(/<nav\b[^>]*id="mainHeaderWorkspace"[\s\S]*?<\/nav>/)?.[0];
     assert.ok(desktopTabsMarkup, 'Missing desktop Workspace tablist markup');
-    assert.equal((desktopTabsMarkup.match(/role="tab"/g) || []).length, 10);
+    assert.equal((desktopTabsMarkup.match(/role="tab"/g) || []).length, 8);
     assert.equal((desktopTabsMarkup.match(/aria-selected="true"/g) || []).length, 1);
-    assert.equal((desktopTabsMarkup.match(/aria-selected="false"/g) || []).length, 9);
-    assert.equal((desktopTabsMarkup.match(/aria-controls="workspaceSection/g) || []).length, 10);
+    assert.equal((desktopTabsMarkup.match(/aria-selected="false"/g) || []).length, 7);
+    assert.equal((desktopTabsMarkup.match(/aria-controls="workspaceSection/g) || []).length, 8);
     assert.match(markup, /id="workspaceSectionNotifications" role="tabpanel" aria-labelledby="workspaceTabNotifications"/);
     assert.match(markup, /id="workspaceSectionBookmarks" role="tabpanel" aria-labelledby="workspaceTabBookmarks"/);
     assert.match(markup, /class="om-button" id="workspaceMobileTrigger"[^>]+aria-haspopup="menu"/);

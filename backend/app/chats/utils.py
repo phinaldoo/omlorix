@@ -1583,7 +1583,6 @@ def send_message(
     db,
     skill_id: str | None = None,
     skill_ids: list[str] | None = None,
-    note_ids: list[str] | None = None,
     prompt_ids: list[str] | None = None,
     reference_parts: list[str] | None = None,
     chat_reference_ids: list[str] | None = None,
@@ -2261,14 +2260,9 @@ def send_message(
         user_id=user_id,
         chat_history=chat_history,
     )
-    notes_update_context = _build_notes_user_edit_context(
-        db,
-        user_id=user_id,
-        chat_history=chat_history,
-    )
     from app.chats.visualization_state import visualization_followup_context
     chat_reference_context = _join_latest_user_context(
-        chat_reference_context, canvas_update_context, notes_update_context,
+        chat_reference_context, canvas_update_context,
         visualization_followup_context(chat_history),
     )
     if effective_skill_ids:
@@ -2319,7 +2313,6 @@ def send_message(
                 reference_id=reference_id,
                 system_instruction_sections=system_instruction_sections,
                 assistant_metadata=assistant_metadata,
-                note_ids=note_ids,
                 reference_parts=reference_parts,
                 chat_reference_context=chat_reference_context,
                 user_role=user_role,
@@ -3306,194 +3299,12 @@ def _collect_canvas_file_ids_from_chat_history(chat_history: list) -> set[str]:
     return file_ids
 
 
-def _collect_note_ids_from_value(value, *, in_note_context: bool = False) -> set[str]:
-    """Collect note IDs from structured notes tool payloads in chat history."""
-    note_ids: set[str] = set()
-    if isinstance(value, dict):
-        meta = value.get("meta") if isinstance(value.get("meta"), dict) else {}
-        tool_label = str(
-            value.get("tool_name")
-            or meta.get("tool_name")
-            or ""
-        ).strip()
-        block_type = str(value.get("type") or "").strip().lower()
-        legacy_call = str(value.get("content") or "").lstrip()
-        is_notes_block = (
-            tool_label == "notes"
-            or tool_label.startswith("notes(")
-            or (
-                block_type == "tool_call"
-                and legacy_call.startswith("notes(")
-            )
-        )
-        current_note_context = in_note_context or is_notes_block
-        direct_note_id = value.get("note_id")
-        if isinstance(direct_note_id, str) and direct_note_id.strip():
-            note_ids.add(direct_note_id.strip())
-
-        if current_note_context:
-            direct_id = value.get("id")
-            if isinstance(direct_id, str) and direct_id.strip():
-                note_ids.add(direct_id.strip())
-
-        for key, child in value.items():
-            child_note_context = current_note_context or key in {"note", "notes"}
-            note_ids.update(_collect_note_ids_from_value(child, in_note_context=child_note_context))
-    elif isinstance(value, list):
-        for child in value:
-            note_ids.update(_collect_note_ids_from_value(child, in_note_context=in_note_context))
-    elif isinstance(value, str) and in_note_context:
-        decoded = _decode_jsonish(value)
-        if isinstance(decoded, (dict, list)):
-            note_ids.update(_collect_note_ids_from_value(decoded, in_note_context=True))
-    return note_ids
 
 
-def _collect_note_ids_from_chat_history(chat_history: list) -> set[str]:
-    """Collect notes referenced by notes tool calls/results in the current chat history."""
-    note_ids: set[str] = set()
-    for message in chat_history or []:
-        content = message.get("content") if isinstance(message, dict) else getattr(message, "content", None)
-        decoded = _decode_jsonish(content)
-        note_ids.update(_collect_note_ids_from_value(decoded))
-    return note_ids
 
 
-def _note_title_from_content(content: str | None) -> str:
-    """Return a short human-readable note title for stale-note context."""
-    text = str(content or "").strip()
-    if not text:
-        return "Untitled note"
-    for line in text.splitlines():
-        cleaned = line.strip().lstrip("#").strip()
-        if cleaned:
-            return cleaned[:80]
-    return "Untitled note"
 
 
-def _build_notes_user_edit_context(db, *, user_id: str, chat_history: list) -> str | None:
-    """Build user prompt context for notes edited after the last assistant turn."""
-    last_assistant_at = _last_assistant_message_time(chat_history)
-    if last_assistant_at is None:
-        return None
-
-    candidate_note_ids = sorted(_collect_note_ids_from_chat_history(chat_history))[
-        :MAX_TRACKED_ARTIFACT_IDS
-    ]
-    if not candidate_note_ids:
-        return None
-
-    try:
-        from app.notes.models import NoteHistory, Notes, SharedNoteSubscription
-    except Exception:
-        logger.warning("Failed to import note models for edit context.", exc_info=True)
-        return None
-
-    try:
-        notes = db.query(Notes).filter(Notes.id.in_(candidate_note_ids)).all()
-        notes_by_id = {str(note.id): note for note in notes}
-        subscriptions = (
-            db.query(SharedNoteSubscription)
-            .filter(
-                SharedNoteSubscription.note_id.in_(candidate_note_ids),
-                SharedNoteSubscription.subscriber_id == str(user_id),
-            )
-            .all()
-        )
-        subscriptions_by_note_id = {
-            str(subscription.note_id): subscription for subscription in subscriptions
-        }
-        ranked_history = (
-            db.query(
-                NoteHistory.note_id.label("note_id"),
-                NoteHistory.actor_type.label("actor_type"),
-                NoteHistory.version_number.label("version_number"),
-                NoteHistory.created_at.label("created_at"),
-                NoteHistory.id.label("id"),
-                func.row_number()
-                .over(
-                    partition_by=NoteHistory.note_id,
-                    order_by=(
-                        NoteHistory.created_at.desc(),
-                        NoteHistory.id.desc(),
-                    ),
-                )
-                .label("history_rank"),
-            )
-            .filter(
-                NoteHistory.note_id.in_(candidate_note_ids),
-                NoteHistory.created_at > last_assistant_at,
-            )
-            .subquery()
-        )
-        history_rows = (
-            db.query(
-                ranked_history.c.note_id,
-                ranked_history.c.actor_type,
-                ranked_history.c.version_number,
-                ranked_history.c.created_at,
-                ranked_history.c.id,
-            )
-            .filter(ranked_history.c.history_rank == 1)
-            .all()
-        )
-    except Exception:
-        logger.warning("Failed to batch note edit history for chat context.", exc_info=True)
-        return None
-
-    latest_history_by_note_id = {
-        str(history_row.note_id): history_row for history_row in history_rows
-    }
-
-    changed_notes: list[dict[str, str]] = []
-    for note_id in candidate_note_ids:
-        try:
-            note = notes_by_id.get(str(note_id))
-            if not note:
-                continue
-            is_owner = str(note.user_id) == str(user_id)
-            subscription = subscriptions_by_note_id.get(str(note_id))
-            share_type = str(getattr(subscription, "share_type", "") or "")
-            share_is_active = (
-                (share_type == "live" and bool(note.live_share_id))
-                or (share_type == "collaborate" and bool(note.collaborate_share_id))
-            )
-            if not is_owner and not share_is_active:
-                continue
-            latest_history = latest_history_by_note_id.get(str(note_id))
-            if not latest_history or str(latest_history.actor_type or "").strip().lower() != "user":
-                continue
-            edited_at = _as_utc_datetime(latest_history.created_at)
-            if edited_at is None or edited_at <= last_assistant_at:
-                continue
-            changed_notes.append(
-                {
-                    "note_id": str(note.id),
-                    "title": _note_title_from_content(note.content),
-                    "version": str(latest_history.version_number or ""),
-                    "edited_at": edited_at.isoformat(),
-                }
-            )
-        except Exception:
-            logger.warning("Failed to inspect note edit history for chat context.", exc_info=True)
-            continue
-
-    if not changed_notes:
-        return None
-
-    changed_notes = sorted(changed_notes, key=lambda item: (item["edited_at"], item["title"]))[-5:]
-    lines = [
-        "The user edited one or more notes after your last response. The note contents in your prior conversation context may be stale.",
-        "Before commenting on, summarizing, or editing any listed note, call the notes tool with type='view' and that note_id to load the current saved contents.",
-        "Changed notes:",
-    ]
-    for item in changed_notes:
-        version = f", version={item['version']}" if item["version"] else ""
-        lines.append(
-            f"- note_id={item['note_id']}, title={item['title']}{version}, edited_at={item['edited_at']}"
-        )
-
-    return "## Note Updates\n\n" + "\n".join(lines)
 
 
 def _canvas_content_type_from_file_record(file_record: Files) -> str:
@@ -3565,7 +3376,7 @@ def _build_canvas_user_edit_user_context(db, *, user_id: str, chat_history: list
         is_canvas = meta.get("canvas") is True or canvas_type in {"markdown", "mermaid", "csv", "html", "spreadsheet"}
         if not is_canvas:
             continue
-        if str(meta.get("canvas_last_edit_source") or "").strip().lower() != "user":
+        if str(meta.get("canvas_last_edit_source") or "").strip().lower() not in {"user", "restore"}:
             continue
 
         edited_at = _parse_iso_utc(meta.get("canvas_last_edited_at"))
@@ -5149,7 +4960,6 @@ def regenerate_message(
     db,
     skill_id: str | None = None,
     skill_ids: list[str] | None = None,
-    note_ids: list[str] | None = None,
     prompt_ids: list[str] | None = None,
     chat_reference_ids: list[str] | None = None,
     retry_guidance: RetryGuidance | None = None,
@@ -5164,7 +4974,7 @@ def regenerate_message(
     """
     retry_guidance_meta = _retry_guidance_log_metadata(retry_guidance)
     logger.info(
-        "[Regenerate] utils.start user=%s group=%s chat=%s user_msg=%s model=%s skill=%s skill_count=%s note_count=%s prompt_count=%s chat_reference_count=%s retry_guidance_mode=%s retry_guidance_preset=%s retry_guidance_custom_instruction_length=%s byok=%s custom_keys=%s",
+        "[Regenerate] utils.start user=%s group=%s chat=%s user_msg=%s model=%s skill=%s skill_count=%s prompt_count=%s chat_reference_count=%s retry_guidance_mode=%s retry_guidance_preset=%s retry_guidance_custom_instruction_length=%s byok=%s custom_keys=%s",
         user_id,
         group_id,
         chat_id,
@@ -5172,7 +4982,6 @@ def regenerate_message(
         model_id,
         skill_id,
         safe_count(skill_ids),
-        safe_count(note_ids),
         safe_count(prompt_ids),
         safe_count(chat_reference_ids),
         retry_guidance_meta["mode"],
@@ -5520,14 +5329,9 @@ def regenerate_message(
         user_id=user_id,
         chat_history=filtered_history,
     )
-    notes_update_context = _build_notes_user_edit_context(
-        db,
-        user_id=user_id,
-        chat_history=filtered_history,
-    )
     from app.chats.visualization_state import visualization_followup_context
     chat_reference_context = _join_latest_user_context(
-        chat_reference_context, canvas_update_context, notes_update_context,
+        chat_reference_context, canvas_update_context,
         visualization_followup_context(filtered_history),
     )
     assistant_metadata = _build_retry_guidance_metadata(retry_guidance)
@@ -5564,7 +5368,6 @@ def regenerate_message(
                 reference_id=user_message_id,
                 system_instruction_sections=system_instruction_sections,
                 assistant_metadata=assistant_metadata,
-                note_ids=note_ids,
                 chat_reference_context=chat_reference_context,
                 retry_count=new_retry_count,
                 user_role=user_role,

@@ -19,9 +19,7 @@ from app.tools.code_execution.utils import (
   code_execution_supports_external_pip_packages,
 )
 from app.tools.schemas import tool_schemas
-from app.tools.registry import RETIRED_STUDY_TOOL_ALIASES
-from app.tools.todos.utils import TODO_TOOL_OPERATIONS, todos_tool
-from app.tools.notes.utils import notes_tool
+from app.tools.registry import RETIRED_STUDY_TOOL_ALIASES, RETIRED_WORKSPACE_TOOL_ALIASES
 from app.tools.automations.utils import WEBHOOK_MANAGEMENT_USER_MESSAGE, automations_tool
 from app.tools.skills.utils import skills_tool
 from app.tools.websearch.utils import web_search
@@ -40,8 +38,6 @@ available_tools = {
     "subagent": None,
     'web_search': web_search,
     "weather": get_weather,
-    "todos": todos_tool,
-    "notes": notes_tool,
     "automations": automations_tool,
     "skills": skills_tool,
     "image_generation": image_generation,
@@ -236,6 +232,7 @@ def get_tool_schemas(
   tool_name_aliases = {
     "get_weather": "weather",
     **RETIRED_STUDY_TOOL_ALIASES,
+    **RETIRED_WORKSPACE_TOOL_ALIASES,
     # Existing model settings should transparently receive the unified Canvas
     # tool after the dedicated model-facing LaTeX tool is retired.
     "latex_pdf": "canvas",
@@ -432,18 +429,11 @@ def resolve_enabled_tools(
   seen: set[str] = set()
   mcp_requested = False
   legacy_aliases = {
-    "list_todo_lists": "todos",
-    "view_todo_list": "todos",
-    "toggle_todo": "todos",
-    "create_todo": "todos",
-    "create_todo_list": "todos",
-    "list_notes": "notes",
-    "create_note": "notes",
-    "edit_note": "notes",
     "code_execution_internal": "code_execution",
     "slide_presentation_legacy": "slide_presentation",
     "get_weather": "weather",
     **RETIRED_STUDY_TOOL_ALIASES,
+    **RETIRED_WORKSPACE_TOOL_ALIASES,
     "latex_pdf": "canvas",
   }
 

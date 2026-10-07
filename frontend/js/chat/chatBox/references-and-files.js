@@ -3,8 +3,8 @@ const selectedReferenceParts = [];
 const selectedSkillIds = new Set();
 const skillMetadataMap = new Map();
 
-const selectedNoteIds = new Set();
-const noteMetadataMap = new Map();
+
+
 
 const selectedPromptIds = new Set();
 const promptMetadataMap = new Map();
@@ -411,7 +411,7 @@ function buildUploadedFilesQueryOptions({ surface = 'quickpick', offset = 0 } = 
 
   return {
     search,
-    folderId: 'all',
+    category: 'all',
     limit: CHAT_UPLOADED_FILES_PAGE_LIMIT,
     offset,
     ...getUploadedFilesSortOptions('timestamp'),
@@ -421,7 +421,7 @@ function buildUploadedFilesQueryOptions({ surface = 'quickpick', offset = 0 } = 
 function getUploadedFilesQueryKey(options = {}) {
   return JSON.stringify({
     search: String(options.search || '').trim(),
-    folderId: String(options.folderId || 'all'),
+    category: String(options.category || 'all'),
     sortField: String(options.sortField || 'created_at'),
     sortDirection: String(options.sortDirection || 'desc'),
     limit: Number(options.limit || CHAT_UPLOADED_FILES_PAGE_LIMIT),
@@ -463,10 +463,7 @@ async function fetchUploadedFilesPage(options = {}) {
   if (trimmedSearch) {
     params.set('search', trimmedSearch);
   }
-  const folderId = String(options.folderId || 'all').trim();
-  if (folderId && folderId !== 'all') {
-    params.set('folder_id', folderId);
-  }
+  if (options.category && options.category !== 'all') params.set('category', options.category);
   params.set('sort_field', options.sortField || 'created_at');
   params.set('sort_direction', options.sortDirection || 'desc');
   params.set('limit', String(options.limit || CHAT_UPLOADED_FILES_PAGE_LIMIT));

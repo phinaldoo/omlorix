@@ -56,8 +56,6 @@ async function initChatSetup() {
         initUserProfileUI(chatSetup.first_name, chatSetup.last_name, chatSetup.email); // First name, last name, email
         initProjectsSidebar(chatSetup.enable_projects, chatSetup.allow_project_share); // If projects are enabled
         initAutomationsSidebar(chatSetup.enable_automations); // If automations are enabled
-        initWorkspaceTodos(chatSetup.enable_todo, chatSetup.allow_todo_list_share); // If todos are enabled
-        initWorkspaceNotes(chatSetup.enable_notes, chatSetup.allow_notes_share); // If notes are enabled
         initWorkspaceMemories(chatSetup.enable_memories); // If memories are enabled
         initWorkspaceBookmarks(chatSetup.enable_bookmarks, chatSetup.allow_bookmark_share); // If bookmarks are enabled
         // The workspace remains available when any connection family is

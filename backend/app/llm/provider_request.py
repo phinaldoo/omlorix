@@ -73,7 +73,6 @@ class ProviderRequest:
     reference_id: str | None = None
     system_instruction_sections: list[dict[str, str]] | None = None
     assistant_metadata: dict | None = None
-    note_ids: list[str] | None = None
     reference_parts: list[str] | None = None
     chat_reference_context: str | None = None
     retry_count: int | None = None
@@ -125,7 +124,6 @@ def _chat_kwargs(request: ProviderRequest) -> dict[str, Any]:
         "reference_id": request.reference_id,
         "system_instruction_sections": request.system_instruction_sections,
         "assistant_metadata": request.assistant_metadata,
-        "note_ids": request.note_ids,
         "reference_parts": request.reference_parts,
         "chat_reference_context": request.chat_reference_context,
         "user_role": request.user_role,

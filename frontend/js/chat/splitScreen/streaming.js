@@ -68,7 +68,7 @@ async function splitScreenInternalSendToPanel(message, side, composerContext = {
         const payloadAudioIds = composerContext.audioIds || [];
         const payloadDocumentIds = composerContext.documentIds || [];
         const payloadSkillIds = composerContext.skillIds || [];
-        const payloadNoteIds = composerContext.noteIds || [];
+
         const payloadPromptIds = composerContext.promptIds || [];
         const payloadReferenceParts = composerContext.referenceParts || [];
         const payloadChatReferenceIds = composerContext.chatReferenceIds || [];
@@ -93,7 +93,7 @@ async function splitScreenInternalSendToPanel(message, side, composerContext = {
                 audio_ids: payloadAudioIds,
                 document_ids: payloadDocumentIds,
                 skill_ids: payloadSkillIds.length ? payloadSkillIds : null,
-                note_ids: payloadNoteIds.length ? payloadNoteIds : [],
+
                 prompt_ids: payloadPromptIds.length ? payloadPromptIds : null,
                 reference_parts: payloadReferenceParts.length ? payloadReferenceParts : null,
                 chat_reference_ids: payloadChatReferenceIds.length ? payloadChatReferenceIds : null,
@@ -190,13 +190,7 @@ async function splitScreenInternalSendToPanel(message, side, composerContext = {
         window.ChatScrollManager?.endStream?.(area);
         // Fallback cleanup when a preflight or stream closes without an
         // explicit terminal event.
-        if (window.NotesToolSidebar && typeof window.NotesToolSidebar.handleStreamEnd === 'function') {
-            try {
-                window.NotesToolSidebar.handleStreamEnd(streamedMessageId);
-            } catch (error) {
-                console.error('Failed to clean up split-screen notes preview after generation', error);
-            }
-        }
+        {}
         if (window.canvasMarkdownWidget && typeof window.canvasMarkdownWidget.handleStreamEnd === 'function') {
             try {
                 window.canvasMarkdownWidget.handleStreamEnd(streamedMessageId);
@@ -599,13 +593,7 @@ async function splitScreenInternalProcessStream(res, side, message, container, a
                         console.error('Failed to start split-screen canvas preview', error);
                     }
                 }
-                if (window.NotesToolSidebar && typeof window.NotesToolSidebar.handleToolCallEvent === 'function') {
-                    try {
-                        window.NotesToolSidebar.handleToolCallEvent(obj, messageId);
-                    } catch (error) {
-                        console.error('Failed to start split-screen notes preview', error);
-                    }
-                }
+                {}
                 if (typeof syncMediaGenPlaceholder === 'function') {
                     syncMediaGenPlaceholder(
                         messageId,
@@ -636,25 +624,13 @@ async function splitScreenInternalProcessStream(res, side, message, container, a
                         console.error('Failed to update split-screen canvas preview', error);
                     }
                 }
-                if (window.NotesToolSidebar && typeof window.NotesToolSidebar.handleToolCallDeltaEvent === 'function') {
-                    try {
-                        window.NotesToolSidebar.handleToolCallDeltaEvent(obj, messageId);
-                    } catch (error) {
-                        console.error('Failed to update split-screen notes preview', error);
-                    }
-                }
+                {}
 
             } else if (obj.t === 'r_f') {
                 temp_reasoning_time = obj.d;
 
             } else if (obj.t === 'e') {
-                if (window.NotesToolSidebar && typeof window.NotesToolSidebar.handleStreamEnd === 'function') {
-                    try {
-                        window.NotesToolSidebar.handleStreamEnd(messageId);
-                    } catch (error) {
-                        console.error('Failed to clean up split-screen notes preview after stream error', error);
-                    }
-                }
+                {}
                 if (window.canvasMarkdownWidget && typeof window.canvasMarkdownWidget.handleStreamEnd === 'function') {
                     try {
                         window.canvasMarkdownWidget.handleStreamEnd(messageId);
@@ -784,18 +760,6 @@ async function splitScreenInternalProcessStream(res, side, message, container, a
                         window.canvasMarkdownWidget.handleCanvasEvent(obj, messageId);
                     } catch (error) {
                         console.error('Failed to finalize split-screen canvas preview', error);
-                    }
-                }
-
-            } else if (obj.t === 'notes_evt') {
-                if (typeof clearMediaGenPlaceholderForNonFileEvent === 'function') {
-                    clearMediaGenPlaceholderForNonFileEvent(messageId);
-                }
-                if (window.NotesToolSidebar && typeof window.NotesToolSidebar.handleNotesEvent === 'function') {
-                    try {
-                        window.NotesToolSidebar.handleNotesEvent(obj, messageId);
-                    } catch (error) {
-                        console.error('Failed to finalize split-screen notes preview', error);
                     }
                 }
 
@@ -979,22 +943,7 @@ async function splitScreenInternalSend(message, options = {}) {
 
     // Notes uses one shared editor. Flush it once before fan-out so a
     // dual-panel turn cannot race two saves or send only one side.
-    if (typeof window.NotesToolSidebar?.flushPendingEdits === 'function') {
-        try {
-            const notesSaved = await window.NotesToolSidebar.flushPendingEdits();
-            if (!notesSaved) {
-                notifyError(splitScreenInternalSplitScreenT('split_screen_send_cancelled_notes_unsaved', 'Message send cancelled because note changes could not be saved'));
-                if (restoreDraftOnFailure) splitScreenInternalRestoreSplitDraftAfterFailedSend(normalizedMessage);
-                releaseComposerDispatch();
-                return false;
-            }
-        } catch (error) {
-            notifyError(error?.message || splitScreenInternalSplitScreenT('notes_error_save_note', 'Failed to save note'));
-            if (restoreDraftOnFailure) splitScreenInternalRestoreSplitDraftAfterFailedSend(normalizedMessage);
-            releaseComposerDispatch();
-            return false;
-        }
-    }
+    {}
 
     const requestSettlements = new Map();
     const settledFailures = [];

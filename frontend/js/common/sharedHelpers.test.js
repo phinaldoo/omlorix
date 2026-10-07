@@ -20,7 +20,7 @@ test('shared frontend helpers preserve form, picker, and preview behavior in Chr
 
 test('entry pages load extracted helpers before their consumers', () => {
     for (const [page, helper, consumer] of [
-        ['index.html', 'common/publicUsers.js', 'chat/todos.js'],
+        ['index.html', 'common/publicUsers.js', 'chat/skills.js'],
         ['index.html', 'common/textPreview.js', 'chat/files.js'],
         ['chat_share.html', 'common/textPreview.js', 'chat-share.js'],
         ...['index.html', 'admin.html', 'server_setup.html'].map((page) => [page, 'common/dependencyUtils.js', 'admin/helper/settingsController.js']),

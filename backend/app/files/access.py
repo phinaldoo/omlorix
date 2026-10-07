@@ -1,147 +1,150 @@
 from dataclasses import dataclass
 
-from sqlalchemy import and_, or_
-from sqlalchemy.orm import Session
+from sqlalchemy import or_
+from sqlalchemy.orm import Session, aliased
 
-from app.file_folders.models import (
-    FileFolders,
-    SharedFileFolderSubscription,
-    can_user_edit_folder,
-)
-from app.files.models import Files
+from app.files.models import FileMember, Files
 
 
 @dataclass(frozen=True)
 class ResolvedFileAccess:
-    """A file authorized for one action plus its real storage-owner context.
-
-    File authorization and storage materialization deliberately use different
-    identities.  The actor proves that the operation is allowed, while the
-    owning user ID is used only to locate the already-authorized storage object.
-    Keeping both values in one immutable result prevents callers from silently
-    replacing the actor with the owner, which caused the LaTeX Canvas IDOR.
-    """
+    """Keep the authenticated actor separate from the file's storage owner."""
 
     record: Files
     storage_owner_user_id: str
 
 
-def valid_shared_folder_subscription_filter():
-    return or_(
-        and_(
-            SharedFileFolderSubscription.share_type == "live",
-            FileFolders.live_share_id.isnot(None),
-            FileFolders.live_share_id != "",
-        ),
-        and_(
-            SharedFileFolderSubscription.share_type == "collaborate",
-            FileFolders.collaborate_share_id.isnot(None),
-            FileFolders.collaborate_share_id != "",
-        ),
-    )
-
-
 def accessible_files_query(db: Session, user_id: str):
-    own_folder_ids = db.query(FileFolders.id).filter(FileFolders.user_id == user_id)
-    subscribed_file_exists = (
-        db.query(FileFolders.id)
-        .join(SharedFileFolderSubscription, SharedFileFolderSubscription.folder_id == FileFolders.id)
+    membership = (
+        db.query(FileMember.file_id)
         .filter(
-            FileFolders.id == Files.folder_id,
-            SharedFileFolderSubscription.subscriber_id == user_id,
-            valid_shared_folder_subscription_filter(),
-            or_(
-                FileFolders.user_id == Files.user_id,
-                SharedFileFolderSubscription.share_type == "collaborate",
-            ),
+            FileMember.file_id == Files.id,
+            FileMember.user_id == str(user_id),
+            FileMember.role.in_(("viewer", "editor")),
+        )
+        .exists()
+    )
+    # A generated PDF follows its canonical source's current membership. The
+    # reciprocal, same-owner link prevents arbitrary imported metadata from
+    # granting access to another owner's files; revocation takes effect at once.
+    source = aliased(Files)
+    source_member = aliased(FileMember)
+    derivative = (
+        db.query(source.id)
+        .join(source_member, source_member.file_id == source.id)
+        .filter(
+            source.id == Files.meta["latex_source_file_id"].as_string(),
+            source.user_id == Files.user_id,
+            source.meta["latex_pdf_file_id"].as_string() == Files.id,
+            Files.file_type == "application/pdf",
+            source_member.user_id == str(user_id),
+            source_member.role.in_(("viewer", "editor")),
         )
         .exists()
     )
     return db.query(Files).filter(
-        or_(
-            Files.user_id == user_id,
-            and_(
-                Files.user_id != user_id,
-                Files.folder_id.isnot(None),
-                Files.folder_id.in_(own_folder_ids),
-            ),
-            and_(
-                Files.user_id != user_id,
-                Files.folder_id.isnot(None),
-                subscribed_file_exists,
-            ),
-        )
+        or_(Files.user_id == str(user_id), membership, derivative)
     )
 
 
-def accessible_folder_files_query(db: Session, user_id: str, folder_id: str):
-    return accessible_files_query(db, user_id).filter(Files.folder_id == folder_id)
-
-
 def get_accessible_file(db: Session, user_id: str, file_id: str):
-    return accessible_files_query(db, user_id).filter(Files.id == file_id).first()
+    return accessible_files_query(db, user_id).filter(Files.id == str(file_id)).first()
 
 
 def resolve_file_for_read(
     db: Session, actor_user_id: str, file_id: str
 ) -> ResolvedFileAccess | None:
-    """Resolve a file readable by the authenticated actor.
-
-    A file ID is only an identifier.  It never grants access by itself.  The
-    returned owner identity is storage metadata and must not be reused as the
-    authorization principal for another file.
-    """
-
-    record = get_accessible_file(db, str(actor_user_id), str(file_id))
-    if not record:
-        return None
-    return ResolvedFileAccess(
-        record=record,
-        storage_owner_user_id=str(record.user_id),
-    )
+    record = get_accessible_file(db, actor_user_id, file_id)
+    return ResolvedFileAccess(record, str(record.user_id)) if record else None
 
 
 def resolve_file_for_edit(
     db: Session, actor_user_id: str, file_id: str
 ) -> ResolvedFileAccess | None:
-    """Resolve a file the actor may edit without changing its owner.
-
-    Owners can always edit their own files.  A non-owner must have explicit
-    collaborative edit access to the file's current folder; view-only folder
-    subscriptions are intentionally insufficient.
-    """
-
-    normalized_actor_id = str(actor_user_id or "").strip()
-    normalized_file_id = str(file_id or "").strip()
-    if not normalized_actor_id or not normalized_file_id:
+    access = resolve_file_for_read(db, actor_user_id, file_id)
+    if not access:
         return None
+    if access.storage_owner_user_id == str(actor_user_id):
+        return access
+    member = (
+        db.query(FileMember)
+        .filter(
+            FileMember.file_id == str(file_id), FileMember.user_id == str(actor_user_id)
+        )
+        .populate_existing()
+        .first()
+    )
+    return access if member and member.role == "editor" else None
+
+
+def require_owned_file(db: Session, user_id: str, file_id: str):
+    from fastapi import HTTPException
 
     record = (
         db.query(Files)
-        .filter(Files.id == normalized_file_id)
+        .filter(Files.id == file_id, Files.user_id == str(user_id))
+        .with_for_update()
         .first()
     )
     if not record:
-        return None
-    if str(record.user_id) == normalized_actor_id:
-        return ResolvedFileAccess(record, str(record.user_id))
-    if not record.folder_id or not can_user_edit_folder(
-        db, normalized_actor_id, str(record.folder_id)
-    ):
-        return None
-    return ResolvedFileAccess(record, str(record.user_id))
+        raise HTTPException(status_code=404, detail="File not found")
+    return record
 
 
-def count_accessible_folder_files(db: Session, user_id: str, folder_id: str) -> int:
-    return accessible_folder_files_query(db, user_id, folder_id).count()
+def list_file_members(db: Session, file_id: str, *, limit: int, offset: int):
+    from app.users.models import User
+
+    rows = (
+        db.query(FileMember, User.email)
+        .join(User, User.id == FileMember.user_id)
+        .filter(
+            FileMember.file_id == file_id,
+        )
+        .order_by(FileMember.user_id)
+        .offset(offset)
+        .limit(limit + 1)
+        .all()
+    )
+    return {
+        "items": [
+            {
+                "user_id": member.user_id,
+                "email": email,
+                "role": member.role,
+                "granted_at": member.granted_at,
+            }
+            for member, email in rows[:limit]
+        ],
+        "has_more": len(rows) > limit,
+    }
 
 
-def shared_folder_preview_files_query(db: Session, folder_id: str, share_type: str):
-    query = db.query(Files).filter(Files.folder_id == folder_id)
-    if share_type == "collaborate":
-        return query
-    return query.join(FileFolders, FileFolders.id == Files.folder_id).filter(Files.user_id == FileFolders.user_id)
+def stage_file_member(db: Session, owner_id: str, file_id: str, email: str, role: str):
+    """Called under the owning file lock; permission changes share its edit lock."""
+    from datetime import datetime, timezone
+    from fastapi import HTTPException
+    from app.files.sharing import ensure_artifact_file_sharing_allowed_for_user
+    from app.users.models import User, build_user_email_match
 
-
-def count_shared_folder_preview_files(db: Session, folder_id: str, share_type: str) -> int:
-    return shared_folder_preview_files_query(db, folder_id, share_type).count()
+    ensure_artifact_file_sharing_allowed_for_user(owner_id, db)
+    target = (
+        db.query(User)
+        .filter(build_user_email_match(email), User.is_active.is_(True))
+        .first()
+    )
+    if not target or str(target.id) == owner_id:
+        raise HTTPException(status_code=400, detail="file_member_unavailable")
+    member = db.get(FileMember, (file_id, str(target.id)))
+    if not member:
+        if db.query(FileMember).filter(FileMember.file_id == file_id).count() >= 200:
+            raise HTTPException(status_code=400, detail="file_member_limit")
+        member = FileMember(
+            file_id=file_id,
+            user_id=str(target.id),
+            granted_at=datetime.now(timezone.utc),
+        )
+    elif member.role != role:
+        member.granted_at = datetime.now(timezone.utc)
+    member.role = role
+    db.add(member)
+    return member, target

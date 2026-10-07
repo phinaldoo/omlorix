@@ -18,6 +18,7 @@ from app.files.models import (
     list_project_files,
     Files,
     FileArtifactShare,
+    FileMember,
     get_file,
 )
 from app.files.access import (
@@ -25,7 +26,6 @@ from app.files.access import (
     get_accessible_file,
     resolve_file_for_edit,
     resolve_file_for_read,
-    valid_shared_folder_subscription_filter,
 )
 from app.files.canvas_assets import (
     CanvasAssetAccessError,
@@ -91,6 +91,7 @@ from app.files.pdf_preview import (
     resolve_pdf_preview_record,
     resolve_pdf_preview_path,
 )
+from app.files.categories import file_category_expression
 from app.files.html_preview import get_canvas_html_preview_proxy_payload
 from app.files.statistics import get_user_file_storage_usage
 from app.files.utils import (
@@ -123,11 +124,6 @@ from app.connections.models import (
     consume_connection_oauth_audit_subject,
     resolve_connection_oauth_audit_subject,
 )
-from app.file_folders.models import (
-    FileFolders,
-    SharedFileFolderSubscription,
-    can_user_edit_folder,
-)
 from app.users.models import get_user
 from app.groups.init import get_group_setting_value, update_group_settings
 from app.groups.management import require_group_capability
@@ -141,6 +137,7 @@ from app.logging.models import (
 from app.userNotifications.models import UserNotifications, create_user_notification
 from app.settings.utils import get_public_url
 from app.tools.canvas_markdown.utils import (
+    CanvasRevisionConflict,
     CanvasSpreadsheetInputError,
     CanvasSpreadsheetRevisionConflict,
     save_canvas_markdown,
@@ -298,14 +295,10 @@ def _apply_workspace_filters(
     query,
     *,
     search: str | None = None,
-    folder_id: str | None = None,
+    category: str | None = None,
 ):
-    active_folder_id = str(folder_id or "").strip()
-    if active_folder_id and active_folder_id != "all":
-        if active_folder_id == "uncategorized":
-            query = query.filter(or_(Files.folder_id.is_(None), Files.folder_id == ""))
-        else:
-            query = query.filter(Files.folder_id == active_folder_id)
+    if category and category != "all":
+        query = query.filter(file_category_expression() == category)
 
     normalized_query = re.sub(r"\s+", " ", str(search or "").strip().lower())
     if normalized_query:
@@ -341,106 +334,22 @@ def _apply_workspace_sort(query, sort_field: str, sort_direction: str):
     return query.order_by(order, _workspace_name_expr().asc(), Files.id.asc())
 
 
-def _fetch_file_folders_by_id(db: Session, folder_ids: set[str]) -> dict[str, FileFolders]:
-    if not folder_ids:
-        return {}
-    rows = db.query(FileFolders).filter(FileFolders.id.in_(sorted(folder_ids))).all()
-    return {str(row.id): row for row in rows}
-
-
-def _fetch_subscriptions_by_folder(
-    db: Session,
-    user_id: str,
-    folder_ids: set[str],
-) -> dict[str, tuple[FileFolders, SharedFileFolderSubscription]]:
-    if not folder_ids:
-        return {}
-    rows = (
-        db.query(FileFolders, SharedFileFolderSubscription)
-        .join(SharedFileFolderSubscription, SharedFileFolderSubscription.folder_id == FileFolders.id)
-        .filter(
-            FileFolders.id.in_(sorted(folder_ids)),
-            SharedFileFolderSubscription.subscriber_id == user_id,
-            valid_shared_folder_subscription_filter(),
-        )
-        .all()
-    )
-    return {str(folder.id): (folder, subscription) for folder, subscription in rows}
-
-
 def _decorate_accessible_file_records(db: Session, user_id: str, file_records: list[Files]) -> list[FileList]:
-    if not file_records:
-        return []
-
-    folder_ids = {
-        str(file_record.folder_id)
-        for file_record in file_records
-        if str(getattr(file_record, "folder_id", "") or "").strip()
-    }
-    folders_by_id = _fetch_file_folders_by_id(db, folder_ids)
-    owned_folders_by_id = {
-        folder_id: folder
-        for folder_id, folder in folders_by_id.items()
-        if str(getattr(folder, "user_id", "")) == str(user_id)
-    }
-    subscribed_by_folder = _fetch_subscriptions_by_folder(db, user_id, folder_ids)
-    display_name_cache: dict[str, str] = {}
-
-    def display_name(target_user_id: str) -> str:
-        normalized = str(target_user_id or "").strip()
-        if not normalized:
-            return "Unknown"
-        if normalized not in display_name_cache:
-            display_name_cache[normalized] = _get_user_display_name(get_user(db, normalized))
-        return display_name_cache[normalized]
-
-    current_user_name: str | None = None
-    serialized_files: list[FileList] = []
-    seen_ids: set[str] = set()
-
-    for file_record in file_records:
-        file_model = FileList.model_validate(file_record)
-        file_id = str(file_model.file_id or "").strip()
-        if not file_id or file_id in seen_ids:
-            continue
-        seen_ids.add(file_id)
-
-        if str(getattr(file_record, "user_id", "")) == str(user_id):
-            serialized_files.append(file_model)
-            continue
-
-        folder_id = str(getattr(file_record, "folder_id", "") or "").strip()
-        if folder_id in owned_folders_by_id:
-            folder = owned_folders_by_id.get(folder_id)
-            if current_user_name is None:
-                current_user_name = display_name(user_id)
-            meta = dict(file_model.meta or {})
-            meta.update({
-                "shared": True,
-                "shared_folder_id": folder_id,
-                "shared_folder_name": folder.name if folder else None,
-                "shared_owner_name": current_user_name,
-                "shared_contributor_name": display_name(getattr(file_record, "user_id", "")),
-            })
-            file_model.meta = meta
-            serialized_files.append(minimize_shared_file_response(file_model))
-            continue
-
-        folder_subscription = subscribed_by_folder.get(folder_id)
-        if folder_subscription:
-            folder, subscription = folder_subscription
-            meta = dict(file_model.meta or {})
-            meta.update({
-                "shared": True,
-                "shared_folder_id": folder_id,
-                "shared_folder_name": folder.name,
-                "shared_owner_name": display_name(getattr(folder, "user_id", "")),
-                "shared_share_type": subscription.share_type,
-            })
-            file_model.meta = meta
-            serialized_files.append(minimize_shared_file_response(file_model))
-
-    return serialized_files
+    ids = [str(record.id) for record in file_records]
+    roles = dict(db.query(FileMember.file_id, FileMember.role).filter(
+        FileMember.user_id == str(user_id), FileMember.file_id.in_(ids),
+    ).all()) if ids else {}
+    result = []
+    for record in file_records:
+        item = FileList.model_validate(record)
+        owned = str(record.user_id) == str(user_id)
+        item.can_edit = owned or roles.get(str(record.id)) == "editor"
+        item.can_delete = owned
+        if not owned:
+            item.meta = {**(item.meta or {}), "shared": True}
+            item = minimize_shared_file_response(item)
+        result.append(item)
+    return result
 
 
 def _build_accessible_files_page_payloads(
@@ -461,26 +370,10 @@ def _build_accessible_files_page_payloads(
 
 
 def _compute_workspace_counts_from_query(db: Session, user_id: str) -> FilesWorkspaceCounts:
-    folder_counts: dict[str, int] = {}
-    uncategorized = 0
-    total = 0
-
-    rows = (
-        accessible_files_query(db, user_id)
-        .with_entities(Files.folder_id, func.count(Files.id))
-        .group_by(Files.folder_id)
-        .all()
-    )
-    for folder_id, count in rows:
-        count_value = int(count or 0)
-        total += count_value
-        normalized_folder_id = str(folder_id or "").strip()
-        if normalized_folder_id:
-            folder_counts[normalized_folder_id] = count_value
-        else:
-            uncategorized += count_value
-
-    return FilesWorkspaceCounts(all=total, uncategorized=uncategorized, folders=folder_counts)
+    category = file_category_expression()
+    rows = accessible_files_query(db, user_id).with_entities(category, func.count(Files.id)).group_by(category).all()
+    categories = {key: int(count) for key, count in rows if count}
+    return FilesWorkspaceCounts(all=sum(categories.values()), categories=categories)
 
 
 def _list_workspace_file_payloads(
@@ -488,7 +381,7 @@ def _list_workspace_file_payloads(
     user_id: str,
     *,
     search: str | None,
-    folder_id: str | None,
+    category: str | None,
     sort_field: str,
     sort_direction: str,
     limit: int,
@@ -497,7 +390,7 @@ def _list_workspace_file_payloads(
     query = _apply_workspace_filters(
         accessible_files_query(db, user_id),
         search=search,
-        folder_id=folder_id,
+        category=category,
     )
     total = query.order_by(None).count()
     rows = (
@@ -543,21 +436,14 @@ def _resolve_download_audit_subject(db: Session, actor_user_id: str, file_id: st
             "actor_user_id": actor_user_id,
             "file_id": file_id,
         }
-    accessed_via_shared_folder = str(file_record.user_id) != str(actor_user_id)
-
-    folder_record = None
-    if file_record.folder_id:
-        folder_record = db.query(FileFolders).filter(FileFolders.id == file_record.folder_id).first()
-
     return {
         "actor_user_id": actor_user_id,
         "owner_user_id": file_record.user_id,
         "file_id": file_record.id,
-        "folder_id": file_record.folder_id,
-        "folder_owner_user_id": folder_record.user_id if folder_record else None,
         "project_id": file_record.project_id,
-        "access_via_shared_folder": accessed_via_shared_folder,
+        "access_via_membership": str(file_record.user_id) != str(actor_user_id),
     }
+
 
 
 # -------------------
@@ -578,7 +464,7 @@ def get_files_route(
 @files_router.get("/workspace", response_model=FilesWorkspaceResponse)
 def get_workspace_files_route(
     search: str | None = Query(None),
-    folder_id: str | None = Query(None),
+    category: str | None = Query(None, max_length=40),
     sort_field: str = Query("name"),
     sort_direction: str = Query("asc"),
     limit: int = Query(50, ge=1, le=200),
@@ -591,7 +477,7 @@ def get_workspace_files_route(
         db,
         user.id,
         search=search if isinstance(search, str) else None,
-        folder_id=folder_id if isinstance(folder_id, str) else None,
+        category=category if isinstance(category, str) else None,
         sort_field=sort_field,
         sort_direction=sort_direction,
         limit=limit,
@@ -910,7 +796,6 @@ async def upload_file_route(
     request: Request,
     file: UploadFile = File(...),
     project_id: str | None = Form(None),
-    folder_id: str | None = Form(None),
     group_context_id: str | None = Form(None),
     model_id: str | None = Form(None),
     user = Depends(verified_user),
@@ -938,9 +823,6 @@ async def upload_file_route(
         if resolved_selection.base_model.id != resolved_selection.selected_model_id:
             ensure_user_access_to_model(user_id, resolved_selection.base_model.id, db)
 
-    if folder_id and not can_user_edit_folder(db, user_id, folder_id):
-        raise HTTPException(status_code=403, detail="You do not have access to this folder")
-
     group_context_existing_ids: list[str] | None = None
     if group_context_id:
         # Group-context authorization follows delegated hierarchy permissions,
@@ -962,7 +844,6 @@ async def upload_file_route(
         project_id,
         user_id,
         db,
-        folder_id=folder_id,
     )
 
     if (
@@ -1018,7 +899,6 @@ async def upload_file_route(
                 "content_type": file.content_type,
                 "file_size": file_size,
                 "project_id": project_id,
-                "folder_id": folder_id,
                 "group_context_updated": bool(group_context_id),
             },
         )
@@ -1336,6 +1216,7 @@ def save_canvas_file_route(
             content=str(payload.content or ""),
             content_type=str(payload.content_type or "markdown"),
             filename=payload.filename,
+            expected_revision=payload.expected_revision,
             file_id=payload.file_id,
             project_id=None,
             edit_source="user",
@@ -1352,6 +1233,8 @@ def save_canvas_file_route(
         )
     except HTTPException:
         raise
+    except CanvasRevisionConflict as exc:
+        raise HTTPException(status_code=409, detail={"code": exc.code, "current_revision": exc.current_revision}) from exc
     except CanvasAssetAccessError as exc:
         # A generic stable code avoids revealing whether an attacker-supplied
         # UUID exists while still allowing every frontend locale to explain
@@ -1653,8 +1536,7 @@ async def save_canvas_spreadsheet_route(
         candidate = db.query(Files).filter(Files.id == normalized_file_id).first()
         if (
             not candidate
-            or not candidate.folder_id
-            or not can_user_edit_folder(db, actor_user_id, candidate.folder_id)
+            or not resolve_file_for_edit(db, actor_user_id, str(candidate.id))
         ):
             raise HTTPException(status_code=404, detail="File not found")
         target_user_id = candidate.user_id
@@ -2169,3 +2051,7 @@ def get_files_by_ids_route(
         return []
     files = db.query(Files).filter(Files.id.in_(file_ids)).all()
     return [FileList.model_validate(f) for f in files]
+
+
+from app.files.canvas_router import canvas_router
+files_router.include_router(canvas_router)

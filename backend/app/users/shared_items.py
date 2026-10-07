@@ -2,16 +2,6 @@ _SHARED_ITEM_URL_PREFIXES = {
     "chat": "/chats/shared",
     "artifact": "/canvas/shared",
     "project": "/projects/join",
-    "note": {
-        "clone": "/notes/clone",
-        "live": "/notes/live",
-        "collaborate": "/notes/collaborate",
-    },
-    "todo": {
-        "clone": "/todos/clone",
-        "live": "/todos/live",
-        "collaborate": "/todos/collaborate",
-    },
     "skill": {
         "clone": "/skills/clone",
         "live": "/skills/live",
@@ -26,11 +16,6 @@ _SHARED_ITEM_URL_PREFIXES = {
         "clone": "/agents/clone",
         "live": "/agents/live",
         "collaborate": "/agents/collaborate",
-    },
-    "folder": {
-        "clone": "/folders/clone",
-        "live": "/folders/live",
-        "collaborate": "/folders/collaborate",
     },
 }
 
@@ -53,18 +38,6 @@ _SHARED_ITEM_CAPABILITIES = {
         "share_type": False,
         "rotate_link": True,
     },
-    "note": {
-        "password": False,
-        "expiry": False,
-        "share_type": True,
-        "rotate_link": False,
-    },
-    "todo": {
-        "password": False,
-        "expiry": False,
-        "share_type": True,
-        "rotate_link": False,
-    },
     "skill": {
         "password": False,
         "expiry": False,
@@ -78,12 +51,6 @@ _SHARED_ITEM_CAPABILITIES = {
         "rotate_link": False,
     },
     "agent": {
-        "password": False,
-        "expiry": False,
-        "share_type": True,
-        "rotate_link": False,
-    },
-    "folder": {
         "password": False,
         "expiry": False,
         "share_type": True,

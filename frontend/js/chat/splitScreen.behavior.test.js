@@ -56,7 +56,6 @@ test('split-screen sends the complete composer context and retains failed turns'
         'audio_ids',
         'document_ids',
         'skill_ids',
-        'note_ids',
         'prompt_ids',
         'reference_parts',
         'chat_reference_ids',
@@ -519,7 +518,6 @@ test('accepted split stream failures restore the full untouched composer context
         message: '',
         uploadedFiles: [{ file_id: 'file-1', name: 'Original name' }],
         skills: [{ id: 'skill-1', title: 'Original title' }],
-        notes: [{ id: 'note-1' }],
         prompts: [],
         chatReferences: [{ chat_id: 'chat-1', title: 'Original chat' }],
         referenceParts: ['selected text'],
@@ -533,7 +531,7 @@ test('accepted split stream failures restore the full untouched composer context
     assert.equal(getFingerprint(original), getFingerprint(metadataOnlyChange));
     assert.notEqual(
         getFingerprint(original),
-        getFingerprint({ ...original, notes: [{ id: 'note-2' }] }),
+        getFingerprint({ ...original, prompts: [{ id: 'prompt-2' }] }),
         'a new message-scoped selection must make the restore guard fail'
     );
     assert.notEqual(

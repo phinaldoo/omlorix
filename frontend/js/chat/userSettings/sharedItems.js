@@ -16,9 +16,9 @@
         chat: Icons.chatFilesChooseChats,
         artifact: Icons.file,
         project: Icons.folder,
-        folder: Icons.folder,
-        note: Icons.notes_management,
-        todo: Icons.todo_management,
+
+
+
         skill: Icons.skills_management,
         agent: Icons.omlorix,
         prompt: Icons.omlorix,
@@ -29,9 +29,9 @@
         chat: { iconSvg: ICON_SVGS.chat, color: '#3b82f6' },
         artifact: { iconSvg: ICON_SVGS.artifact, color: '#8b5cf6' },
         project: { iconSvg: ICON_SVGS.project, color: '#f59e0b' },
-        folder: { iconSvg: ICON_SVGS.folder, color: '#14b8a6' },
-        note: { iconSvg: ICON_SVGS.note, color: '#10b981' },
-        todo: { iconSvg: ICON_SVGS.todo, color: '#ef4444' },
+
+
+
         skill: { iconSvg: ICON_SVGS.skill, color: '#6366f1' },
         agent: { iconSvg: ICON_SVGS.agent, color: '#0f766e' },
         prompt: { iconSvg: ICON_SVGS.prompt, color: '#ec4899' },
@@ -41,9 +41,9 @@
         chat: { password: true, expiry: true, share_type: false, rotate_link: false },
         artifact: { password: true, expiry: true, share_type: false, rotate_link: false },
         project: { password: true, expiry: true, share_type: false, rotate_link: true },
-        folder: { password: false, expiry: false, share_type: true, rotate_link: false },
-        note: { password: false, expiry: false, share_type: true, rotate_link: false },
-        todo: { password: false, expiry: false, share_type: true, rotate_link: false },
+
+
+
         skill: { password: false, expiry: false, share_type: true, rotate_link: false },
         agent: { password: false, expiry: false, share_type: true, rotate_link: false },
         prompt: { password: false, expiry: false, share_type: true, rotate_link: false },
@@ -176,12 +176,9 @@
                 return t('us_shared_items_type_artifact', 'Canvas');
             case 'project':
                 return t('us_shared_items_type_project', 'Project');
-            case 'folder':
-                return t('us_shared_items_type_folder', 'Folder');
-            case 'note':
-                return t('us_shared_items_type_note', 'Note');
-            case 'todo':
-                return t('us_shared_items_type_todo', 'Todo');
+
+
+
             case 'skill':
                 return t('us_shared_items_type_skill', 'Skill');
             case 'agent':
@@ -517,12 +514,12 @@
             chat: { url: '/api/v1/chats/share/delete', body: { chat_id: id } },
             artifact: { url: '/api/v1/files/canvas/share/delete', body: { share_id: item.share_id } },
             project: { url: '/api/v1/projects/share/link/delete', body: { project_id: id } },
-            note: { url: '/api/v1/notes/share/delete', body: { note_id: id, share_type: item.share_type || null } },
-            todo: { url: '/api/v1/todo/lists/share/delete', body: { todo_list_id: id, share_type: item.share_type || null } },
+
+
             skill: { url: '/api/v1/skills/share/delete', body: { skill_id: id, share_type: item.share_type || null } },
             agent: { url: '/api/v1/agents/share/delete', body: { agent_id: id, share_type: item.share_type || null } },
             prompt: { url: '/api/v1/prompts/share/delete', body: { prompt_id: id, share_type: item.share_type || null } },
-            folder: { url: '/api/v1/file-folders/share/delete', body: { folder_id: id, share_type: item.share_type || null } },
+
         };
         return endpoints[item.type] || null;
     }
@@ -1265,18 +1262,8 @@
     function getShareTypeMutationEndpoints(item) {
         const resourceId = getResourceId(item);
         const definitions = {
-            note: {
-                createUrl: '/api/v1/notes/share',
-                createBody: (shareType) => ({ note_id: resourceId, share_type: shareType }),
-                deleteUrl: '/api/v1/notes/share/delete',
-                deleteBody: (shareType) => ({ note_id: resourceId, share_type: shareType }),
-            },
-            todo: {
-                createUrl: '/api/v1/todo/lists/share',
-                createBody: (shareType) => ({ todo_list_id: resourceId, share_type: shareType }),
-                deleteUrl: '/api/v1/todo/lists/share/delete',
-                deleteBody: (shareType) => ({ todo_list_id: resourceId, share_type: shareType }),
-            },
+
+
             skill: {
                 createUrl: '/api/v1/skills/share',
                 createBody: (shareType) => ({ skill_id: resourceId, share_type: shareType }),
@@ -1295,12 +1282,7 @@
                 deleteUrl: '/api/v1/prompts/share/delete',
                 deleteBody: (shareType) => ({ prompt_id: resourceId, share_type: shareType }),
             },
-            folder: {
-                createUrl: '/api/v1/file-folders/share',
-                createBody: (shareType) => ({ folder_id: resourceId, share_type: shareType }),
-                deleteUrl: '/api/v1/file-folders/share/delete',
-                deleteBody: (shareType) => ({ folder_id: resourceId, share_type: shareType }),
-            },
+
         };
         return definitions[item.type] || null;
     }

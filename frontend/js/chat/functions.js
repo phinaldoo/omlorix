@@ -86,28 +86,6 @@ function updateWorkspaceFeatureVisibility(tabName, isEnabled) {
 }
 
 
-function initWorkspaceTodos(enable_todo, allow_todo_share = true) {
-    const isEnabled = enable_todo === true;
-    const allowShare = allow_todo_share !== false;
-    updateWorkspaceFeatureVisibility('todo', isEnabled);
-    if (typeof window !== 'undefined') {
-        window.enableTodoFeature = isEnabled;
-        window.allowTodoListShareFeature = allowShare;
-    }
-}
-
-
-function initWorkspaceNotes(enable_notes, allow_notes_share = true) {
-    const isEnabled = enable_notes === true;
-    const allowShare = allow_notes_share !== false;
-    updateWorkspaceFeatureVisibility('notes', isEnabled);
-    if (typeof window !== 'undefined') {
-        window.enableNotesFeature = isEnabled;
-        window.allowNoteShareFeature = allowShare;
-    }
-}
-
-
 function initWorkspaceMemories(enable_memories) {
     const isEnabled = enable_memories === true;
     updateWorkspaceFeatureVisibility('memories', isEnabled);

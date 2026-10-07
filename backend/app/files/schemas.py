@@ -36,7 +36,8 @@ class FileList(BaseModel):
     file_type: str
     file_size: int
     project_id: str | None = None
-    folder_id: str | None = None
+    can_edit: bool = True
+    can_delete: bool = True
     created_at: datetime
     meta: dict | None = None
 
@@ -71,8 +72,7 @@ def minimize_shared_file_response(file_model: FileList) -> FileList:
 
 class FilesWorkspaceCounts(BaseModel):
     all: int = 0
-    uncategorized: int = 0
-    folders: dict[str, int] = Field(default_factory=dict)
+    categories: dict[str, int] = Field(default_factory=dict)
 
 
 class FilesWorkspaceResponse(BaseModel):
@@ -168,6 +168,7 @@ class FileRenameRequest(BaseModel):
 
 
 class CanvasFileSaveRequest(BaseModel):
+    expected_revision: int = Field(ge=0)
     file_id: str = Field(..., min_length=1)
     content: str = Field(default="", max_length=512 * 1024 * 1024)
     content_type: Literal["markdown", "mermaid", "csv", "html", "latex"] = "markdown"
@@ -847,3 +848,53 @@ SUPPORTED_EXTRACT_TEXT_MIME_TYPES = set(
     + MARKITDOWN_MIME_TYPES
     + list(HTML_ATTACHMENT_MIME_TYPES)
 )
+
+
+class CanvasCreateRequest(BaseModel):
+    filename: str = Field(default="canvas.md", min_length=1, max_length=200)
+    content: str = Field(default="", max_length=1024 * 1024)
+    content_type: Literal["markdown", "mermaid", "csv", "html", "latex"] = "markdown"
+
+
+class CanvasHistoryItem(BaseModel):
+    id: str
+    revision: int
+    created_at: datetime
+    edit_source: str
+    file_name: str
+    file_size: int
+    content_type: str
+
+
+class CanvasHistoryResponse(BaseModel):
+    items: list[CanvasHistoryItem]
+    has_more: bool
+    current_revision: int
+
+
+class CanvasRestoreRequest(BaseModel):
+    version_id: str = Field(min_length=1, max_length=128)
+    expected_revision: int = Field(ge=0)
+
+
+class FileMemberRequest(BaseModel):
+    email: str = Field(min_length=3, max_length=320)
+    role: Literal["viewer", "editor"] = "viewer"
+
+
+class FileMemberResponse(BaseModel):
+    user_id: str
+    email: str
+    role: Literal["viewer", "editor"]
+    granted_at: datetime
+
+
+class FileMemberListResponse(BaseModel):
+    items: list[FileMemberResponse]
+    has_more: bool
+
+
+class CanvasRestoreResponse(BaseModel):
+    file_id: str
+    file_name: str
+    canvas_revision: int

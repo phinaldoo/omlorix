@@ -435,7 +435,6 @@ def test_automation_mutations_emit_content_free_tool_audits(monkeypatch):
         schedule_rules=[{"days": [0], "times": ["08:00"]}],
         schedule_timezone="Europe/Berlin",
         skill_id="skill-1",
-        note_ids=["note-1"],
         file_ids=["file-1"],
         mcp_server_ids=["server-1"],
     )
@@ -477,7 +476,6 @@ def test_automation_mutations_emit_content_free_tool_audits(monkeypatch):
         schedule_rules=automation.schedule_rules,
         schedule_timezone=automation.schedule_timezone,
         skill_id="skill-1",
-        note_ids=["note-1"],
         file_ids=["file-1"],
         mcp_server_ids=["server-1"],
     )
@@ -509,7 +507,6 @@ def test_automation_mutations_emit_content_free_tool_audits(monkeypatch):
         "schedule_rule_count": 1,
         "schedule_timezone": "Europe/Berlin",
         "skill_id": "skill-1",
-        "note_count": 1,
         "file_count": 1,
         "connection_count": 1,
         "is_active": True,

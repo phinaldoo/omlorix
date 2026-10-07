@@ -153,38 +153,7 @@ const TOOL_HEADER_CONFIG = {
             },
         },
     },
-    notes: {
-        icon: () => Icons?.file || Icons?.document || Icons?.globe,
-        displayNameKey: 'assistant_tool_notes_name',
-        displayName: 'Notes',
-        inProgressKey: 'assistant_tool_notes_in_progress',
-        inProgress: 'Writing note',
-        inProgressWithArg: null,
-        completedKey: 'assistant_tool_notes_completed',
-        completed: 'Saved note',
-        completedWithArg: null,
-        argKey: null,
-        operations: {
-            list: {
-                inProgressKey: 'assistant_tool_notes_list_in_progress',
-                inProgress: 'Listing notes',
-                completedKey: 'assistant_tool_notes_list_completed',
-                completed: 'Listed notes',
-            },
-            edit: {
-                inProgressKey: 'assistant_tool_notes_edit_in_progress',
-                inProgress: 'Updating note',
-                completedKey: 'assistant_tool_notes_edit_completed',
-                completed: 'Updated note',
-            },
-            view: {
-                inProgressKey: 'assistant_tool_notes_view_in_progress',
-                inProgress: 'Viewing note',
-                completedKey: 'assistant_tool_notes_view_completed',
-                completed: 'Viewed note',
-            },
-        },
-    },
+
     code_execution: {
         icon: () => Icons?.document || Icons?.globe,
         displayNameKey: 'assistant_tool_code_execution_name',

@@ -242,16 +242,8 @@ const MODEL_SELECT_TOOL_META = {
         fallback: 'Weather',
         icon: Icons.model_tool_weather,
     },
-    todos: {
-        key: 'model_select_tool_todos',
-        fallback: 'Todos',
-        icon: Icons.checklist,
-    },
-    notes: {
-        key: 'model_select_tool_notes',
-        fallback: 'Notes',
-        icon: Icons.model_tool_notes,
-    },
+
+
     automations: {
         key: 'model_select_tool_automations',
         fallback: 'Automations',

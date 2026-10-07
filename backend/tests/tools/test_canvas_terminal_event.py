@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 import json
 from types import SimpleNamespace
 from unittest.mock import MagicMock
@@ -102,3 +104,13 @@ def test_canvas_update_requires_a_revision_before_saving(monkeypatch):
     else:
         raise AssertionError("An existing Canvas update must require a revision")
     save.assert_not_called()
+
+
+@pytest.fixture(autouse=True)
+def resolve_owned_canvas_for_tool_doubles(monkeypatch):
+    from app.files import access, models
+    from types import SimpleNamespace
+    def resolve(db, actor, file_id):
+        record = models.get_file(db, file_id, actor)
+        return SimpleNamespace(record=record, storage_owner_user_id=actor) if record else None
+    monkeypatch.setattr(access, "resolve_file_for_edit", resolve)

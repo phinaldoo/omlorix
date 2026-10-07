@@ -48,44 +48,9 @@ function assertSiblingButtons(template, rowClass, primaryClass, menuClass) {
     assert.ok(menuStart > primaryEnd, `${menuClass} must be a sibling of ${primaryClass}`);
 }
 
-test('Notes rows render sibling primary and options buttons without delegated keyboard leakage', () => {
-    const renderSource = read('notes/render.js');
-    const lifecycleSource = read('notes/manager-lifecycle.js');
-    const managerSource = read('notes/manager.js');
 
-    assertSiblingButtons(
-        returnedTemplateAfter(renderSource, 'noteItem(note, isActive)'),
-        'notes-list-item',
-        'notes-list-item-select-btn',
-        'notes-list-item-menu-btn',
-    );
-    assertSiblingButtons(
-        returnedTemplateAfter(lifecycleSource, 'renderSearchResultItem(note, query)'),
-        'notes-list-item',
-        'notes-list-item-select-btn',
-        'notes-list-item-menu-btn',
-    );
-    assert.match(managerSource, /closest\('\.notes-list-item-select-btn'\)/);
-    assert.doesNotMatch(managerSource, /sidebarList\.addEventListener\('keydown'/);
-});
 
-test('Todo rows render sibling primary and options buttons and use native keyboard activation', () => {
-    const source = read('todos.js');
 
-    assertSiblingButtons(
-        returnedTemplateAfter(source, 'listItem(list, isActive)'),
-        'todos-list-item',
-        'todos-list-item-select-btn',
-        'todos-list-item-menu-btn',
-    );
-    const markedTemplate = returnedTemplateAfter(source, 'markedListItem(count)');
-    const markedOpeningTag = markedTemplate.match(/<div class="todos-list-item[^>]+>/)?.[0] || '';
-    assert.ok(markedOpeningTag);
-    assert.doesNotMatch(markedOpeningTag, /\b(?:role|tabindex|aria-pressed)=/);
-    assert.match(markedTemplate, /<button type="button" class="todos-list-item-select-btn"/);
-    assert.match(source, /closest\('\.todos-list-item-select-btn'\)/);
-    assert.doesNotMatch(source, /sidebarList\.addEventListener\('keydown'/);
-});
 
 test('normal and project chat rows keep the menu button outside the navigation link', () => {
     const cases = [

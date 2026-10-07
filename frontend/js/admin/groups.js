@@ -83,7 +83,6 @@
         projects: Icons.folder,
         automations: Icons.admin_sidebar_automations,
         todo: Icons.admin_sidebar_todo,
-        notes: Icons.admin_sidebar_notes,
         memories: Icons.admin_sidebar_memories,
         prompts: Icons.admin_sidebar_prompts,
         bookmarks: Icons.admin_sidebar_bookmarks,

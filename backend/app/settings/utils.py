@@ -1047,10 +1047,6 @@ def get_chat_setup(user_id: str, db: Session):
     enable_projects = get_user_group_setting_value(user_id, "projects", "enable_projects", db)
     allow_project_share = get_user_group_setting_value(user_id, "projects", "allow_project_share", db)
     enable_automations = get_user_group_setting_value(user_id, "automations", "enabled_automations", db)
-    enable_todo = get_user_group_setting_value(user_id, "todo", "enabled_todo", db)
-    allow_todo_list_share = get_user_group_setting_value(user_id, "todo", "allow_todo_list_share", db)
-    enable_notes = get_user_group_setting_value(user_id, "notes", "enabled_notes", db)
-    allow_notes_share = get_user_group_setting_value(user_id, "notes", "allow_notes_share", db)
     enable_memories = get_user_group_setting_value(user_id, "memories", "enabled_memories", db)
     enable_bookmarks = get_user_group_setting_value(user_id, "bookmarks", "enabled_bookmarks", db)
     allow_bookmark_share = get_user_group_setting_value(user_id, "bookmarks", "allow_bookmark_share", db)
@@ -1333,9 +1329,6 @@ def get_chat_setup(user_id: str, db: Session):
         "enable_projects": coerce_bool(enable_projects, default=False),
         "allow_project_share": coerce_bool(allow_project_share, default=True),
         "enable_automations": coerce_bool(enable_automations, default=False),
-        "enable_todo": coerce_bool(enable_todo, default=False),
-        "allow_todo_list_share": coerce_bool(allow_todo_list_share, default=True),
-        "allow_notes_share": coerce_bool(allow_notes_share, default=True),
         "allow_prompt_share": coerce_bool(allow_prompt_share, default=True),
         "enable_bookmarks": coerce_bool(enable_bookmarks, default=False),
         "allow_bookmark_share": coerce_bool(allow_bookmark_share, default=True),
@@ -1381,7 +1374,6 @@ def get_chat_setup(user_id: str, db: Session):
         "byok_title_generation_model_id": byok_title_generation_model_id or "",
         "byok_default_scrape_provider": byok_default_scrape_provider or "",
         "byok_default_search_provider": byok_default_search_provider or "",
-        "enable_notes": coerce_bool(enable_notes, default=False),
         "enable_memories": coerce_bool(enable_memories, default=False),
         "enable_skills": coerce_bool(enable_skills, default=False),
         "enable_prompts": coerce_bool(enable_prompts, default=False),

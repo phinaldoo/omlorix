@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from app.files.models import CanvasHistory, FileMember
+
 from pathlib import Path
 import threading
 from contextlib import nullcontext
@@ -19,7 +21,7 @@ def _session():
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(
         bind=engine,
-        tables=[Files.__table__, FileQuotaReservation.__table__],
+        tables=[Files.__table__, CanvasHistory.__table__, FileMember.__table__, FileQuotaReservation.__table__],
     )
     return sessionmaker(bind=engine)()
 
@@ -198,7 +200,7 @@ def test_concurrent_reservations_admit_exactly_one_last_slot(monkeypatch, tmp_pa
     )
     Base.metadata.create_all(
         bind=engine,
-        tables=[Files.__table__, FileQuotaReservation.__table__],
+        tables=[Files.__table__, CanvasHistory.__table__, FileMember.__table__, FileQuotaReservation.__table__],
     )
     session_factory = sessionmaker(bind=engine)
     _configure_quota(monkeypatch, max_files=1)

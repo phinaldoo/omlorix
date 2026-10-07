@@ -37,11 +37,9 @@ from app.chats.export_security import (
 )
 from app.chats.models import ChatReadState, Chats, ChatMessages
 from app.memories.service import MemoryScope, export_memories
-from app.notes.models import export_user_notes
 from app.projects.models import Project
 from app.automations.models import Automation
 from app.feedback.models import ModelFeedback
-from app.todos.models import TodoLists, Todos
 from app.groups.models import get_group
 from app.utils.email import normalize_email
 
@@ -790,78 +788,10 @@ def _stream_user_activity_logs_json(user_id: str, db_log) -> Iterator[str]:
     yield from _stream_json_object_fields(fields)
 
 
-def _export_user_notes(user_id: str, db) -> Dict[str, Any]:
-    """Export notes through the feature-owned, round-trippable contract.
-
-    Keeping the note payload in its native format preserves version history
-    and explicitly supported sharing metadata.
-    """
-    return export_user_notes(db, user_id)
 
 
-def _stream_user_notes_json(user_id: str, db) -> Iterator[str]:
-    """Stream the canonical notes payload as one JSON value.
-
-    The outer archive remains streamed per user. Notes are materialized only
-    for the current user so their feature exporter can correlate revisions and
-    subscriptions without creating an all-users in-memory payload.
-    """
-    yield _json_dumps(_strip_nulls(_export_user_notes(user_id, db)))
 
 
-def _export_user_todos(user_id: str, db) -> list[Dict[str, Any]]:
-    """Export todo lists and todos for a user."""
-    todo_lists = list(
-        _iter_query_rows(
-            db.query(TodoLists)
-            .filter(TodoLists.user_id == user_id)
-            .order_by(TodoLists.created_at.asc(), TodoLists.id.asc())
-        )
-    )
-    if not todo_lists:
-        return []
-
-    exported: list[Dict[str, Any]] = []
-    for todo_list in todo_lists:
-        todos = (
-            db.query(Todos)
-            .filter(Todos.todo_list == todo_list.id)
-            .order_by(Todos.order.asc(), Todos.created_at.asc(), Todos.id.asc())
-        )
-        payload = _model_as_dict(todo_list)
-        payload["todos"] = _serialize_query_models(todos)
-        exported.append(payload)
-    return exported
-
-
-def _stream_todo_list_export_json(todo_list: TodoLists, db) -> Iterator[str]:
-    payload = _model_as_dict(todo_list)
-    todos_query = (
-        db.query(Todos)
-        .filter(Todos.todo_list == todo_list.id)
-        .order_by(Todos.order.asc(), Todos.created_at.asc(), Todos.id.asc())
-    )
-    fields: list[tuple[str, Any, bool]] = [
-        (key, value, False) for key, value in payload.items()
-    ]
-    fields.append(("todos", _stream_model_query_json_array(todos_query), True))
-    yield from _stream_json_object_fields(fields)
-
-
-def _stream_user_todos_json_array(user_id: str, db) -> Iterator[str]:
-    query = (
-        db.query(TodoLists)
-        .filter(TodoLists.user_id == user_id)
-        .order_by(TodoLists.created_at.asc(), TodoLists.id.asc())
-    )
-    yield "["
-    first = True
-    for todo_list in _iter_query_rows(query):
-        if not first:
-            yield ","
-        first = False
-        yield from _stream_todo_list_export_json(todo_list, db)
-    yield "]"
 
 
 def _export_user_memories(user_id: str, db) -> Dict[str, Any]:
@@ -1233,114 +1163,11 @@ def _stream_user_skill_files_json_array(user_id: str, db) -> Iterator[str]:
     yield "]"
 
 
-def _export_user_file_folders(user_id: str, db) -> Dict[str, Any]:
-    """Export file folders and accepted shared-folder subscriptions."""
-    from app.file_folders.models import FileFolders, SharedFileFolderSubscription
-
-    folders = (
-        db.query(FileFolders)
-        .filter(FileFolders.user_id == user_id)
-        .order_by(
-            FileFolders.order.asc(), FileFolders.created_at.asc(), FileFolders.id.asc()
-        )
-    )
-    subscription_rows = (
-        db.query(SharedFileFolderSubscription)
-        .filter(SharedFileFolderSubscription.subscriber_id == user_id)
-        .order_by(
-            SharedFileFolderSubscription.subscribed_at.asc(),
-            SharedFileFolderSubscription.id.asc(),
-        )
-    )
-    serialized_folders = _serialize_query_models(folders)
-    subscriptions = list(_iter_query_rows(subscription_rows))
-    folder_ids = {
-        str(getattr(subscription, "folder_id", "") or "").strip()
-        for subscription in subscriptions
-        if str(getattr(subscription, "folder_id", "") or "").strip()
-    }
-    folders_by_id: Dict[str, Any] = {}
-    if folder_ids:
-        folders_by_id = {
-            str(folder.id): folder
-            for folder in db.query(FileFolders)
-            .filter(FileFolders.id.in_(sorted(folder_ids)))
-            .all()
-        }
-    return {
-        "owned": serialized_folders,
-        "subscriptions": [
-            _serialize_shared_file_folder_subscription_for_export(
-                subscription, folders_by_id.get(str(subscription.folder_id))
-            )
-            for subscription in subscriptions
-        ],
-    }
 
 
-def _query_user_file_folders(user_id: str, db):
-    from app.file_folders.models import FileFolders
-
-    return (
-        db.query(FileFolders)
-        .filter(FileFolders.user_id == user_id)
-        .order_by(
-            FileFolders.order.asc(), FileFolders.created_at.asc(), FileFolders.id.asc()
-        )
-    )
 
 
-def _query_user_file_folder_subscriptions(user_id: str, db):
-    from app.file_folders.models import SharedFileFolderSubscription
 
-    return (
-        db.query(SharedFileFolderSubscription)
-        .filter(SharedFileFolderSubscription.subscriber_id == user_id)
-        .order_by(
-            SharedFileFolderSubscription.subscribed_at.asc(),
-            SharedFileFolderSubscription.id.asc(),
-        )
-    )
-
-
-def _share_id_for_folder_subscription(folder, share_type: Any) -> str | None:
-    normalized_share_type = str(share_type or "").strip().lower()
-    if folder is None:
-        return None
-    if normalized_share_type == "live":
-        return str(getattr(folder, "live_share_id", "") or "").strip() or None
-    if normalized_share_type == "collaborate":
-        return str(getattr(folder, "collaborate_share_id", "") or "").strip() or None
-    if normalized_share_type == "clone":
-        return str(getattr(folder, "clone_share_id", "") or "").strip() or None
-    return None
-
-
-def _serialize_shared_file_folder_subscription_for_export(
-    subscription, folder
-) -> Dict[str, Any]:
-    entry = _model_as_dict(subscription)
-    target_share_id = _share_id_for_folder_subscription(folder, entry.get("share_type"))
-    if target_share_id:
-        entry["target_share_id"] = target_share_id
-    if folder is not None:
-        entry["target_folder_name"] = getattr(folder, "name", None)
-        entry["target_folder_owner_user_id"] = getattr(folder, "user_id", None)
-    return _strip_nulls(entry)
-
-
-def _stream_user_file_folder_subscriptions_json_array(
-    user_id: str, db
-) -> Iterator[str]:
-    exported = _export_user_file_folders(user_id, db).get("subscriptions", [])
-    yield "["
-    first = True
-    for entry in exported:
-        if not first:
-            yield ","
-        first = False
-        yield _json_dumps(entry)
-    yield "]"
 
 
 def _export_agent_asset_entry(asset) -> Dict[str, Any]:
@@ -1838,11 +1665,7 @@ def _build_user_data_export_coverage() -> Dict[str, Any]:
         "auth",
         "activity_logs",
         "chats",
-        "notes",
-        "todos",
         "files",
-        "file_folders",
-        "shared_file_folder_subscriptions",
         "projects",
         "automations",
         "feedback",

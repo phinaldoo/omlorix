@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from app.files.models import CanvasHistory, FileMember
+
 from io import BytesIO
 from pathlib import Path
 import hashlib
@@ -40,7 +42,7 @@ class _EmptyDb:
 
 def _session():
     engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(bind=engine, tables=[Files.__table__])
+    Base.metadata.create_all(bind=engine, tables=[Files.__table__, CanvasHistory.__table__, FileMember.__table__])
     return sessionmaker(bind=engine)()
 
 

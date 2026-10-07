@@ -20,7 +20,6 @@ def test_canvas_latex_render_uses_stored_revision_and_shared_render_limit(monkey
     source = SimpleNamespace(
         id="source-1",
         user_id="user-1",
-        folder_id=None,
         meta={"canvas_type": "latex", "canvas_revision": 4},
     )
     monkeypatch.setattr(
@@ -81,7 +80,6 @@ def test_shared_canvas_latex_render_keeps_actor_separate_from_owner(monkeypatch)
     source = SimpleNamespace(
         id="source-1",
         user_id="owner-1",
-        folder_id="folder-1",
         meta={"canvas_type": "latex", "canvas_revision": 2},
     )
 

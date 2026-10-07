@@ -163,7 +163,6 @@ def test_create_meeting_transcript_persists_governance_metadata(monkeypatch):
             file_type=kwargs["file_type"],
             file_size=len(kwargs["file_bytes"]),
             project_id=kwargs["project_id"],
-            folder_id=None,
             created_at=None,
             meta=kwargs["meta"],
         )

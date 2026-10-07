@@ -634,7 +634,7 @@ function closeChatPreviewPanelsForUserSettings() {
         window.canvasMarkdownWidget,
         window.deepResearchWidget,
         window.latexPdfWidget,
-        window.NotesToolSidebar,
+
     ].forEach((widget) => {
         if (widget && typeof widget.hidePreviewPanel === 'function') {
             try {

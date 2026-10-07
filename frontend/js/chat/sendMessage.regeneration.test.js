@@ -163,7 +163,6 @@ test('switching assistant versions closes message-specific preview sidebars', ()
     assert.match(closeSource, /window\.slidePresentationWidget/);
     assert.match(closeSource, /window\.canvasMarkdownWidget/);
     assert.match(closeSource, /window\.latexPdfWidget/);
-    assert.match(closeSource, /window\.NotesToolSidebar/);
     assert.match(closeSource, /window\.closeCitationsSidebar/);
     assert.match(switchSource, /closeAssistantVersionPreviewSidebars\(\);/);
 });

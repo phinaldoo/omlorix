@@ -1402,3 +1402,13 @@ def test_canvas_presentation_edit_persists_assets_before_rerender(monkeypatch):
     ]
     assert len(canvas_events) == 1
     assert canvas_events[0]["data"]["artifact_kind"] == "slide_presentation"
+
+
+@pytest.fixture(autouse=True)
+def resolve_owned_canvas_for_tool_doubles(monkeypatch):
+    from app.files import access, models
+    from types import SimpleNamespace
+    def resolve(db, actor, file_id):
+        record = models.get_file(db, file_id, actor)
+        return SimpleNamespace(record=record, storage_owner_user_id=actor) if record else None
+    monkeypatch.setattr(access, "resolve_file_for_edit", resolve)

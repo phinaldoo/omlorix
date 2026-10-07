@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from app.files.models import CanvasHistory, FileMember
+
 import asyncio
 from io import BytesIO
 import logging
@@ -40,7 +42,7 @@ def _session():
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(
         bind=engine,
-        tables=[Files.__table__, FileQuotaReservation.__table__],
+        tables=[Files.__table__, CanvasHistory.__table__, FileMember.__table__, FileQuotaReservation.__table__],
     )
     return sessionmaker(bind=engine)()
 
@@ -112,7 +114,6 @@ def test_upload_resolves_custom_agent_and_authorizes_its_backing_model(monkeypat
             _request(),
             _upload(b"\x89PNG\r\n\x1a\n", "screenshot.png"),
             project_id=None,
-            folder_id=None,
             group_context_id=None,
             model_id="agent-1",
             user=_user(),
@@ -173,7 +174,6 @@ def test_model_upload_accepts_unsupported_model_format_type(monkeypatch, tmp_pat
             _request(),
             _upload(b"%PDF-1.7\n", "image.png"),
             project_id=None,
-            folder_id=None,
             group_context_id=None,
             model_id="model-1",
             user=_user(),
@@ -211,7 +211,6 @@ def test_storage_upload_failure_is_not_masked_by_logging(monkeypatch, tmp_path, 
                 _request(),
                 _upload(b"%PDF-1.7\n", "document.pdf"),
                 project_id=None,
-                folder_id=None,
                 group_context_id=None,
                 model_id=None,
                 user=_user(),
@@ -247,7 +246,6 @@ def test_model_upload_accepts_detected_type_even_when_extension_looks_unsupporte
             _request(),
             _upload(b"\x89PNG\r\n\x1a\n", "report.pdf"),
             project_id=None,
-            folder_id=None,
             group_context_id=None,
             model_id="model-1",
             user=_user(),
@@ -285,7 +283,6 @@ def test_model_upload_accepts_extension_fallback_when_content_detection_disagree
             _request(),
             _upload(b"%PDF-1.7\n", "image.png"),
             project_id=None,
-            folder_id=None,
             group_context_id=None,
             model_id="model-1",
             user=_user(),

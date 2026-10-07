@@ -79,9 +79,7 @@ def _bound_persisted_tool_result(tool_name: str | None, value: Any) -> Any:
 _RECEIPT_MODULES = {
     "canvas": "canvas_markdown",
     "latex_pdf": "canvas_markdown",
-    "notes": "notes",
     "skills": "skills",
-    "todos": "todos",
     "automations": "automations",
 }
 

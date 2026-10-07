@@ -88,7 +88,6 @@ def _serialize_automation(
         "created_at": datetime_to_iso(getattr(automation, "created_at", None)),
         "last_updated_at": datetime_to_iso(getattr(automation, "last_updated_at", None)),
     }
-    note_ids = automation.note_ids or []
     file_ids = automation.file_ids or []
     mcp_server_ids = getattr(automation, "mcp_server_ids", None) or []
     if include_detail:
@@ -102,7 +101,6 @@ def _serialize_automation(
             {
                 "prompt": automation.prompt,
                 "schedule_rules": automation.schedule_rules,
-                "note_ids": note_ids,
                 "file_ids": file_ids,
                 "mcp_server_ids": mcp_server_ids,
                 "webhook_trigger": _serialize_webhook_trigger(webhook_trigger),
@@ -113,7 +111,6 @@ def _serialize_automation(
             {
                 "prompt_length": len(str(automation.prompt or "")),
                 "schedule_rule_count": len(automation.schedule_rules or []),
-                "note_count": len(note_ids),
                 "file_count": len(file_ids),
                 "mcp_server_count": len(mcp_server_ids),
             }
@@ -387,7 +384,6 @@ def _build_information_response(
                     "schedule_rules",
                     "schedule_timezone",
                     "skill_id",
-                    "note_ids",
                     "file_ids",
                     "mcp_server_ids",
                     "is_active",
@@ -405,7 +401,6 @@ def _build_information_response(
                     "schedule_rules",
                     "schedule_timezone",
                     "skill_id",
-                    "note_ids",
                     "file_ids",
                     "mcp_server_ids",
                     "is_active",
@@ -467,7 +462,6 @@ def automations_tool(
     schedule_rules: Optional[List[Dict[str, Any]]] = None,
     schedule_timezone: Optional[str] = None,
     skill_id: Optional[str] = None,
-    note_ids: Optional[List[str]] = None,
     file_ids: Optional[List[str]] = None,
     mcp_server_ids: Optional[List[str]] = None,
     # Kept as a defensive compatibility boundary for stale tool calls emitted
@@ -488,7 +482,6 @@ def automations_tool(
 
     for field_name, value, maximum in (
         ("schedule_rules", schedule_rules, 100),
-        ("note_ids", note_ids, 20),
         ("file_ids", file_ids, 20),
         ("mcp_server_ids", mcp_server_ids, 100),
     ):
@@ -580,7 +573,6 @@ def automations_tool(
                 schedule_rules=schedule_rules or [],
                 schedule_timezone=resolve_schedule_timezone(),
                 skill_id=skill_id,
-                note_ids=note_ids or [],
                 file_ids=file_ids or [],
                 mcp_server_ids=mcp_server_ids or [],
                 is_active=True if is_active is None else bool(is_active),
@@ -597,7 +589,6 @@ def automations_tool(
                     "schedule_rule_count": len(automation.schedule_rules or []),
                     "schedule_timezone": automation.schedule_timezone,
                     "skill_id": automation.skill_id,
-                    "note_count": len(automation.note_ids or []),
                     "file_count": len(automation.file_ids or []),
                     "connection_count": len(
                         getattr(automation, "mcp_server_ids", None) or []
@@ -640,7 +631,6 @@ def automations_tool(
                     else None
                 ),
                 skill_id=skill_id,
-                note_ids=note_ids,
                 file_ids=file_ids,
                 mcp_server_ids=mcp_server_ids,
                 is_active=is_active,
@@ -664,7 +654,6 @@ def automations_tool(
                             ("schedule_rules", schedule_rules),
                             ("schedule_timezone", schedule_timezone),
                             ("skill_id", skill_id),
-                            ("note_ids", note_ids),
                             ("file_ids", file_ids),
                             ("mcp_server_ids", mcp_server_ids),
                             ("is_active", is_active),

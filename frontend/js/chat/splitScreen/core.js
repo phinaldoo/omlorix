@@ -484,7 +484,7 @@ function splitScreenInternalGetComposerContextSnapshot() {
         audioIds: Array.isArray(attachmentPayload.audioIds) ? attachmentPayload.audioIds : [],
         documentIds: Array.isArray(attachmentPayload.documentIds) ? attachmentPayload.documentIds : [],
         skillIds: typeof window.getSelectedSkillIds === 'function' ? window.getSelectedSkillIds() : [],
-        noteIds: typeof window.getSelectedNoteIds === 'function' ? window.getSelectedNoteIds() : [],
+
         promptIds: typeof window.getSelectedPromptIds === 'function' ? window.getSelectedPromptIds() : [],
         referenceParts: typeof window.getSelectedReferenceParts === 'function' ? window.getSelectedReferenceParts() : [],
         chatReferenceIds: typeof window.getSelectedChatReferenceIds === 'function' ? window.getSelectedChatReferenceIds() : [],
@@ -503,7 +503,6 @@ function splitScreenInternalComposerContextHasContent(context) {
         'audioIds',
         'documentIds',
         'skillIds',
-        'noteIds',
         'promptIds',
         'referenceParts',
         'chatReferenceIds',
@@ -540,7 +539,7 @@ function splitScreenInternalGetComposerSnapshotFingerprint(snapshot) {
         message: String(source.message || ''),
         uploadedFileIds,
         skillIds: collectIds(source.skills, (item) => item?.id),
-        noteIds: collectIds(source.notes, (item) => item?.id),
+
         promptIds: collectIds(source.prompts, (item) => item?.id),
         chatReferenceIds: collectIds(source.chatReferences, (item) => item?.chat_id ?? item?.id),
         referenceParts: Array.isArray(source.referenceParts)
