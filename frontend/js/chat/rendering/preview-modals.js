@@ -181,6 +181,7 @@ async function mountVisualizerPreview(target, source, options = {}) {
                 <span class="visualizer-preview-badge">${escapeHtml(title)}</span>
             </div>
             <div class="visualizer-preview-toolbar-actions">
+                <button type="button" class="visualizer-preview-action" data-preview-action="design" hidden aria-expanded="false" ${label('visualization_design', 'Design controls')}>${MARKDOWN_SETTINGS_SVG}</button>
                 <button type="button" class="visualizer-preview-action" data-preview-action="source" aria-pressed="false" ${label('visualization_view_source', 'View source')}>${MARKDOWN_CODE_SVG}</button>
                 <button type="button" class="visualizer-preview-action" data-preview-action="reset" ${label('visualization_reset', 'Reset visualization')}>${MARKDOWN_RESET_ZOOM_SVG}</button>
                 <button type="button" class="visualizer-preview-action" data-preview-action="download" disabled ${label('visualization_save_html', 'Download HTML')}>${MARKDOWN_DOWNLOAD_SVG}</button>
@@ -188,6 +189,7 @@ async function mountVisualizerPreview(target, source, options = {}) {
                 <button type="button" class="visualizer-preview-action visualizer-preview-close" data-visualizer-close ${label('files_preview_close_aria', 'Close preview')}>${MARKDOWN_CLOSE_SVG}</button>
             </div>
         </div>
+        <div class="visualizer-state-status" hidden><span role="status" aria-live="polite"></span><button type="button" class="visualizer-preview-action" data-preview-action="retry-state" hidden ${label('visualization_retry_state', 'Retry saving')}>${MARKDOWN_RELOAD_SVG}</button></div>
         <div class="visualizer-preview-status" role="status" aria-live="polite"></div>
         <div class="visualizer-preview-stage" id="${id}-view"><div class="visualizer-preview-frame-shell"></div></div>
         <div class="visualizer-preview-source" id="${id}-source" hidden><pre tabindex="0"><code></code></pre></div>
@@ -200,6 +202,23 @@ async function mountVisualizerPreview(target, source, options = {}) {
     const sourceButton = surface.querySelector('[data-preview-action="source"]');
     sourceButton.setAttribute('aria-controls', `${id}-source`);
     const statusNode = surface.querySelector('.visualizer-preview-status');
+    const stateStatus = surface.querySelector('.visualizer-state-status');
+    let stateLoaded = false;
+    const stateStore = createVisualizationStateStore(options, (state) => {
+        const labels = {
+            saving: ['visualization_state_saving', 'Saving selections…'],
+            saved: ['visualization_state_saved', 'Selections saved'],
+            local: ['visualization_state_local', 'Selections stay in this session'],
+            error: ['visualization_state_error', 'Changes are not saved. Retry when connected.'],
+            conflict: ['visualization_state_conflict', 'Changed in another tab. Reload saved selections.'],
+        };
+        stateStatus.hidden = false;
+        stateStatus.querySelector('span').textContent = getChatPreviewTranslation(...labels[state]);
+        const retry = stateStatus.querySelector('button');
+        retry.hidden = !['error', 'conflict'].includes(state);
+        retry.setAttribute('aria-label', getChatPreviewTranslation(state === 'conflict' ? 'visualization_reload_state' : 'visualization_retry_state', state === 'conflict' ? 'Reload saved selections' : 'Retry saving'));
+    });
+
     const controller = {
         collapse() {},
         status(state) {
@@ -224,6 +243,7 @@ async function mountVisualizerPreview(target, source, options = {}) {
         clearTimeout(timeout);
         visibilityObserver?.disconnect();
         controller.collapse();
+        stateStore.dispose();
         iframe?.remove();
     };
     ensureCodeBlockPreviewMessageListener();
@@ -233,11 +253,15 @@ async function mountVisualizerPreview(target, source, options = {}) {
         clearTimeout(timeout);
         controller.status('loading');
         try {
+            if (!stateLoaded) { await stateStore.load(); stateLoaded = true; }
             assets = await loadVisualizerRuntimeAssets(allowScripts, source);
             if (disposed || generation !== renderGeneration) return false;
             const proxyRuntime = window.OmlorixCanvasHtmlPreview;
             if (!proxyRuntime?.render) throw new Error('Missing visualization proxy');
             iframe?.remove();
+            const designButton = surface.querySelector('[data-preview-action="design"]');
+            designButton.hidden = true;
+            designButton.setAttribute('aria-expanded', 'false');
             iframe = document.createElement('iframe');
             iframe.className = 'visualizer-preview-frame';
             iframe.title = title;
@@ -248,6 +272,13 @@ async function mountVisualizerPreview(target, source, options = {}) {
             iframe.dataset.visualizationCapabilities = JSON.stringify(capabilities);
             iframe.style.height = '240px';
             visualizationSurfaces.set(iframe, {
+                saveState(patch) { return stateStore.update(patch); },
+                designOpen(open) {
+                    const button = surface.querySelector('[data-preview-action="design"]');
+                    button.setAttribute('aria-expanded', String(open));
+                    if (!open) button.focus({ preventScroll: true });
+                },
+                designAvailable() { surface.querySelector('[data-preview-action="design"]').hidden = false; },
                 status(state) { clearTimeout(timeout); controller.status(state); },
                 collapse() { controller.collapse(); },
                 moveFocus(backwards) {
@@ -260,7 +291,7 @@ async function mountVisualizerPreview(target, source, options = {}) {
             });
             surface.querySelector('.visualizer-preview-frame-shell').replaceChildren(iframe);
             const previewDocument = buildVisualizerPreviewDocument(source, iframe.dataset.previewFrameId, {
-                title, allowScripts, capabilities, runtimeCss: assets.css, ...assets,
+                title, allowScripts, capabilities, savedState: stateStore.snapshot, runtimeCss: assets.css, ...assets,
             });
             timeout = setTimeout(() => controller.status('error'), 15000);
             iframe.addEventListener('canvashtmlpreviewload', (event) => {
@@ -284,6 +315,15 @@ async function mountVisualizerPreview(target, source, options = {}) {
         if (!button) return;
         if (button.hasAttribute('data-visualizer-close')) return controller.collapse();
         switch (button.dataset.previewAction) {
+            case 'design': {
+                const open = button.getAttribute('aria-expanded') !== 'true';
+                button.setAttribute('aria-expanded', String(open));
+                iframe?.contentWindow?.postMessage({ type: VISUALIZATION_CONTROL_MESSAGE_TYPE, previewId: iframe.dataset.previewFrameId, open }, window.location.origin);
+                break;
+            }
+            case 'retry-state':
+                void stateStore.retry().then((reloaded) => { if (reloaded) void render(); }).catch(() => {});
+                break;
             case 'source': {
                 const showSource = sourcePane.hidden;
                 sourcePane.hidden = !showSource;
@@ -295,12 +335,13 @@ async function mountVisualizerPreview(target, source, options = {}) {
                 expandVisualizationSurface(surface, controller, button);
                 break;
             case 'reset':
+                void stateStore.update({ widgetState: null, design: {} }).catch(() => {});
                 void render();
                 break;
             case 'download': {
                 if (!assets) break;
                 const html = buildVisualizerPreviewDocument(source, 'standalone', {
-                    title, summary: options.summary, allowScripts, capabilities: { scripts: allowScripts }, runtimeCss: assets.css, ...assets,
+                    title, summary: options.summary, allowScripts, savedState: stateStore.snapshot, capabilities: { scripts: allowScripts }, runtimeCss: assets.css, ...assets,
                 });
                 const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
                 const link = document.createElement('a');
@@ -325,7 +366,10 @@ async function mountVisualizerPreview(target, source, options = {}) {
     return render();
 }
 
-window.OmlorixVisualizer = Object.freeze({ mount: mountVisualizerPreview });
+window.OmlorixVisualizer = Object.freeze({
+    mount: mountVisualizerPreview,
+    flushState: () => Promise.all(Array.from(visualizationStateStores, (store) => store.flush().catch(() => {}))),
+});
 
 async function mountVegaPreview(target, source, options = {}) {
     if (!(target instanceof Element)) {

@@ -61,8 +61,47 @@ Runtime contract:
 - mode='normal' is the default. Use 'wide' for several related panels or a
   desktop interface preview. Always adapt to a 320px mobile viewport and to
   expansion; measure chart containers with ResizeObserver, not fixed widths.
-- Interaction state survives switching between visual and source and expanding
-  or closing. Reset and reloading the chat restore the authored initial state.
+- Restore selections from window.omlorix.visualization.widgetState?.privateContent
+  before the initial render. On meaningful changes call
+  await window.omlorix.visualization.setWidgetState({modelContent, privateContent}).
+  Each call replaces the snapshot; missing fields become null. Use modelContent
+  for concise selected values useful for follow-ups and privateContent for UI
+  restoration. Only modelContent reaches the model; never save secrets, images,
+  DOM nodes or large datasets. The combined widget/design snapshot is <=16 KiB.
+  Listen to 'omlorix:statechange' (event.detail.widgetState) when useful. Saving
+  never starts a turn. Catch rejected promises. Owned chats persist across reloads;
+  temporary/shared previews are session-only. Reset clears saved selections.
+- For mockups, use the runtime-provided Tweak helper. Do not load a package or
+  draw your own settings panel. Example:
+    const state = {radius: 18, accent: '#7c3aed', compact: false, size: 'Medium'};
+    function render() {
+      card.style.borderRadius = state.radius + 'px';
+      card.style.borderColor = state.accent;
+      card.style.padding = state.compact ? '12px' : '24px';
+      card.style.fontSize = {Small:'14px', Medium:'16px', Large:'18px'}[state.size];
+    }
+    render();
+    const tweak = new Tweak({container: card, onChange: render});
+    tweak.addSlider(state, 'radius', {label: 'Corner radius', min: 0, max: 40, unit: 'px'});
+    tweak.addColorPicker(state, 'accent', {label: 'Accent', reference: '--card-accent'});
+    tweak.addToggle(state, 'compact', {label: 'Compact'});
+    tweak.addSelect(state, 'size', {label: 'Size', options: ['Small', 'Medium', 'Large']});
+  Give every container a stable unique id and descriptive aria-label. Use one
+  Tweak per editable component (max24), at most12 controls per component and12
+  select options. Slider step defaults to1. Select options can also be
+  {label,value} strings. Color values are six-digit hex. Reference is optional
+  code/CSS provenance without spaces. onChange must redraw deterministically,
+  including original previews and reset; it must never send a message. Dispose
+  removed components with tweak.dispose(). The host owns panel controls,
+  persistence, original preview, reset and confirmed Apply in chat (declare
+  chat_followup to enable it). Saved design values are available to follow-ups.
+- To compare mockups, put direct children with unique descriptive data-variant
+  names in a .viz-carousel with a stable unique id and aria-label. Show the first
+  child and mark the rest hidden. The runtime provides previous/next, a named
+  picker and count. It toggles hidden without replacing DOM and saves selection.
+  Keep variant stages at the same responsive height. Tweak groups inside hidden
+  variants are hidden too; groups outside are shared. Navigation is local and
+  must not start a chat, audio or animation.
 
 Design:
 - Make one visual the focus, with only the controls that help answer the user.

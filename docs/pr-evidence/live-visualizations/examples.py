@@ -3,6 +3,13 @@ from pathlib import Path
 
 PROOF = Path(__file__).resolve().parent
 EXAMPLES = {
+    'mockup': {
+        'title': 'Shape your workspace',
+        'question': 'Show two directions for a welcome screen. Let me tune the design and remember my choices.',
+        'intro': 'Switch directions, adjust the controls, and compare with the original. The selected variant and design values are restored on reload.',
+        'after': 'This is an interactive design study. The controls are supplied by Omlorix; the model only declares the editable properties.',
+        'summary': 'Two workspace welcome-screen variants, Focus and Discover, with editable corner radius, accent color, hint visibility and heading style.',
+    },
     'parallelism': {
         'title': 'The shape of a faster response',
         'summary': 'Illustrative model, not a benchmark. Increasing parallel workers shortens processing time until coordination overhead dominates. The table provides the values shown in the chart.',

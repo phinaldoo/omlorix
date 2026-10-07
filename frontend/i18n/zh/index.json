@@ -4786,5 +4786,22 @@
   "visualization_save_html": "下载 HTML",
   "visualization_text_alternative": "文字说明",
   "visualization_loading": "正在准备可视化…",
-  "visualization_run_error": "此可视化无法运行。请重置或要求提供修正后的版本。"
+  "visualization_run_error": "此可视化无法运行。请重置或要求提供修正后的版本。",
+  "visualization_design": "设计控件",
+  "visualization_original": "预览原始设计",
+  "visualization_reset_design": "重置设计",
+  "visualization_submit_design": "在聊天中应用",
+  "visualization_design_prompt": "请根据以下所选方案和设计更改更新此模型：",
+  "visualization_variants": "方案",
+  "visualization_previous_variant": "上一个",
+  "visualization_next_variant": "下一个",
+  "visualization_state_error": "更改尚未保存。连接后请重试。",
+  "visualization_state_invalid": "可视化状态必须是小于 16 KiB 的有效 JSON。",
+  "visualization_state_saving": "正在保存选择…",
+  "visualization_state_saved": "选择已保存",
+  "visualization_state_local": "选择仅保留在本次会话中",
+  "visualization_state_conflict": "已在其他标签页中更改。请重新加载已保存的选择。",
+  "visualization_retry_state": "重试保存",
+  "visualization_reload_state": "重新加载已保存的选择",
+  "visualization_state_unavailable": "无法获取已保存的选择。"
 }

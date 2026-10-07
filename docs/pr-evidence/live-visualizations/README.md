@@ -3,7 +3,8 @@
 These screenshots show the production Omlorix visualization renderer, local D3
 bundle, design tokens, and the real backend proxy document and HTTP security
 headers. The conversation around it is an isolated fixture. This does not
-require an account, a database, or a live model invocation. The sample is an
+require an account, a running PostgreSQL server, or a live model invocation. The
+state extensions below use a disposable local SQLite fixture database. The sample is an
 explicitly illustrative parallel-processing model, not measured benchmark data.
 
 Captured in the T3 collaborative Chromium browser: desktop at 1280 × 1024 CSS
@@ -20,7 +21,7 @@ inspected. No generated mockup images or screenshot edits are involved.
 
 ## Reproduce
 
-From the repository root:
+From the repository root, using Python with the backend dependencies installed:
 
 ```sh
 python3 docs/pr-evidence/live-visualizations/serve.py
@@ -150,3 +151,43 @@ three examples, with no remote resource loads and all host actions disabled.
 Use `await verifyVisualizationExport()` and then open `/__proof__/export` to
 repeat that check without writing a download into the user's Downloads folder.
 No new runtime permission or network access was added to make these pass.
+
+
+## Saved selections and mockup controls
+
+The `mockup` fixture declares two variants and four Tweak control types. The
+runtime supplies the panel, temporary original preview, reset and follow-up
+submission. These are real browser screenshots, not generated images:
+
+![Saved design controls](state/design-desktop.png)
+
+<img src="state/design-mobile.png" alt="Discover variant and its design controls in dark mode at 390 CSS pixels" width="390">
+
+![Map restored after reloading](state/map-restored.png)
+
+![Chart selections restored after reloading](state/charts-restored.png)
+
+Open `?example=mockup&verify`, then run `await verifyStateAndDesign()` with the
+panel initially closed. The 16 checks cover all control types, original preview
+without writes, independent variant edits, visibility, persisted values and
+cancelled/confirmed follow-ups. The confirmation/send functions in this fixture
+record requests without sending a real chat message. They exercise the production
+host bridge; no provider generation is claimed. Checks passed at 1280 and 390
+CSS pixels; a separate 320px check verified controls remain within the frame.
+
+The fixture's GET/PUT adapter calls the production state service and Pydantic
+schemas with a fixed fixture owner and a disposable SQLite database at
+`/tmp/omlorix-visual-state-proof.sqlite`. It does not exercise a logged-in app or
+PostgreSQL locking. Backend tests separately verify ownership denial, revision
+conflicts, source identity, size bounds, model/private separation, export/import,
+clone independence and public-share filtering. PostgreSQL migration SQL was
+compiled in offline mode; a live PostgreSQL migration was not run locally.
+
+Reload checks restored Focus/Discover edits, Germany + latency + 5× map zoom,
+and chart counts + week 7 + Tuesday 09:00. Native Tab/ArrowRight adjusted the
+slider. Standalone export retained the edited design and working variant
+navigation with authenticated host actions disabled. `Reset visualization`
+clears the snapshot; `Reset design` clears styling while preserving the selected
+variant. Temporary and shared previews keep local changes without writing the
+owner's saved state. The classic example checks now mount temporary previews so
+prior saved selections cannot change their expected initial values.

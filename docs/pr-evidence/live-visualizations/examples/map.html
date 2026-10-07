@@ -31,6 +31,15 @@
   <script>
     (() => {
       const root = document.getElementById('world-map');
+      const api = window.omlorix.visualization;
+      const saved = api.widgetState?.privateContent || {};
+      let restoring = true;
+      function save() {
+        if (restoring) return;
+        const t = d3.zoomTransform(svg.node());
+        api.setWidgetState({ modelContent: { country: select.selectedOptions[0]?.textContent, measure: root.querySelector('#measure').value },
+          privateContent: { country: select.value, measure: root.querySelector('#measure').value, zoom: { k: t.k, x: t.x / width, y: t.y / height } } }).catch(() => {});
+      }
       const world = JSON.parse(root.querySelector('#world-data').textContent);
       const countries = topojson.feature(world, world.objects.countries).features;
       const data = [
@@ -42,6 +51,8 @@
       const byId = new Map(data.map(d => [d.id,d]));
       const select = root.querySelector('#country');
       data.forEach(d => select.add(new Option(d.name,d.id)));
+      select.value = saved.country || '';
+      root.querySelector('#measure').value = saved.measure || 'conversations';
       root.querySelector('tbody').innerHTML = data.map(d=>`<tr><th scope="row">${d.name}</th><td>${d.conversations.toLocaleString('en')}</td><td>${d.latency}</td></tr>`).join('');
       const svg = d3.select(root.querySelector('svg'));
       const layer = svg.append('g');
@@ -51,9 +62,11 @@
       const zoom = d3.zoom().scaleExtent([1,8]).on('zoom', event => {
         layer.attr('transform',event.transform);
         root.querySelector('#zoom-level').textContent = event.transform.k.toFixed(1) + '×';
+        save();
       });
       svg.call(zoom).on('dblclick.zoom',null);
       function update() {
+        save();
         const key = root.querySelector('#measure').value;
         const selected = byId.get(select.value);
         root.querySelector('#selected-country').textContent = selected?.name.toUpperCase() || 'SELECT A COUNTRY';
@@ -89,7 +102,9 @@
         svg.attr('viewBox',`0 0 ${width} ${height}`);
         projection.fitExtent([[12,16],[width-12,height-16]],{type:'Sphere'});
         zoom.extent([[0,0],[width,height]]).translateExtent([[-width,-height],[width*2,height*2]]);
-        svg.call(zoom.transform, oldWidth ? d3.zoomIdentity.translate(previous.x*width/oldWidth,previous.y*height/oldHeight).scale(previous.k) : d3.zoomIdentity); update();
+        const initial = saved.zoom ? d3.zoomIdentity.translate(saved.zoom.x * width, saved.zoom.y * height).scale(saved.zoom.k) : d3.zoomIdentity;
+        svg.call(zoom.transform, oldWidth ? d3.zoomIdentity.translate(previous.x*width/oldWidth,previous.y*height/oldHeight).scale(previous.k) : initial); update();
+        restoring = false;
       }
       select.addEventListener('change',fitSelected);
       root.querySelector('#measure').addEventListener('change',update);
@@ -98,6 +113,7 @@
       root.querySelector('#world').addEventListener('click',()=>svg.call(zoom.transform,d3.zoomIdentity));
       addEventListener('omlorix:themechange',update);
       new ResizeObserver(resize).observe(root.querySelector('.map')); resize();
+
     })();
   </script>
 </section>

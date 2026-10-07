@@ -218,6 +218,31 @@ class ImportedChatRecord(_ChatImportSchema):
         return _validate_import_field_size(value, info.field_name)
 
 
+class VisualizationSnapshot(BaseModel):
+    widgetState: dict[str, Any] | None = None
+    design: dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def validate_snapshot(self):
+        if self.widgetState is not None:
+            self.widgetState = {key: self.widgetState.get(key) for key in ("modelContent", "privateContent")}
+        try:
+            encoded = json.dumps({"widgetState": self.widgetState, "design": self.design}, ensure_ascii=False, allow_nan=False)
+        except (ValueError, TypeError, RecursionError) as exc:
+            raise ValueError("visualization_state_invalid") from exc
+        if len(encoded.encode()) > 16 * 1024:
+            raise ValueError("visualization_state_invalid")
+        return self
+
+
+class VisualizationStateResponse(VisualizationSnapshot):
+    revision: int = Field(default=0, ge=0)
+
+
+class VisualizationStateRequest(VisualizationStateResponse):
+    model_config = ConfigDict(extra="forbid")
+
+
 class ImportedChatMessage(_ChatImportSchema):
     _content_size_bytes: int = PrivateAttr(default=0)
 
@@ -229,6 +254,14 @@ class ImportedChatMessage(_ChatImportSchema):
     generation: Optional[Any] = None
     thinking: Optional[Any] = None
     retry_count: Optional[int] = Field(default=None, ge=0, le=CHAT_IMPORT_MAX_RETRY_COUNT)
+    visualization_states: Optional[dict[str, Any]] = None
+
+    @field_validator("visualization_states")
+    @classmethod
+    def validate_visualization_states(cls, value):
+        from app.chats.visualization_state import normalize_visualization_states
+        return normalize_visualization_states(value)
+
     bookmarked: StrictBool = False
     images: Optional[Any] = None
     videos: Optional[Any] = None
@@ -265,7 +298,7 @@ class ImportedChatMessage(_ChatImportSchema):
             raise ValueError(
                 "content exceeds the per-message import content limit."
             )
-        self._content_size_bytes = content_size
+        self._content_size_bytes = content_size + _import_value_size_bytes(self.visualization_states)
         return self
 
 

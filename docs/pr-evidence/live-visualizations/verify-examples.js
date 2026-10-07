@@ -30,6 +30,11 @@ window.installExampleProbe = source => source + '<script>(' + function () {
         const controls = Object.fromEntries([...document.querySelectorAll('input, select')].map(node => [node.id, node.type === 'checkbox' ? node.checked : node.value]));
         const state = {
             instance, outputs, controls,
+            widgetState: window.omlorix?.visualization.widgetState,
+            designPanelOpen: Boolean(document.querySelector('.omlorix-design-panel') && !document.querySelector('.omlorix-design-panel').hidden),
+            designGroups: [...document.querySelectorAll('[data-design-group]')].filter(node => !node.hidden).map(node => node.dataset.designGroup),
+            variants: [...document.querySelectorAll('[data-variant]')].map(node => ({ name: node.dataset.variant, hidden: node.hidden })),
+            cards: Object.fromEntries([...document.querySelectorAll('.card[id]')].map(node => [node.id, { radius: node.style.borderRadius, accent: node.style.getPropertyValue('--mockup-accent'), hint: !node.querySelector('.hint')?.hidden, heading: node.querySelector('h3')?.style.fontSize }])),
             // Do not cause the production loader to include otherwise unused libraries.
             libraries: Object.fromEntries([['d', '3'], ['topo', 'json']].map(parts => [parts.join(''), typeof window[parts.join('')]])),
             canvasHash: pixels ? hash(pixels) : null,
@@ -69,6 +74,7 @@ window.verifyExample = async () => {
             await tick();
         }
     };
+    await window.proofMount(undefined, { temporary: true, savedState: {} });
     await ready();
     const example = new URLSearchParams(location.search).get('example');
     const initial = await inspectExample();

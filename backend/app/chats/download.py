@@ -2285,6 +2285,7 @@ def _serialize_chat_message_export(message: ChatMessages) -> dict[str, Any]:
         "thinking": getattr(message, "thinking", None),
         "retry_count": getattr(message, "retry_count", 0),
         "bookmarked": bool(getattr(message, "bookmarked", False)),
+        "visualization_states": getattr(message, "visualization_states", None),
         "images": attachments["images"],
         "videos": attachments["videos"],
         "audios": attachments["audios"],

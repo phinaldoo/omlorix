@@ -33,6 +33,8 @@ from app.chats.models import (
     get_bookmarked_messages,
 )
 from app.chats.schemas import (
+    VisualizationStateRequest,
+    VisualizationStateResponse,
     SendChatRequest,
     SendChatRequestModelSettings,
     SaveTemporaryChatRequest,
@@ -2841,3 +2843,15 @@ def get_bookmarks_route(db: Session = Depends(get_db), user: User = Depends(veri
     """
     _ensure_bookmarks_enabled_for_user(user.id, db)
     return get_bookmarked_messages(user.id, db)
+
+
+@chats_router.get("/messages/{message_id}/visualizations/{tool_call_id}/state", response_model=VisualizationStateResponse)
+def get_visualization_state(message_id: str, tool_call_id: str, db: Session = Depends(get_db), user: User = Depends(verified_user)):
+    from app.chats.visualization_state import visualization_state
+    return visualization_state(user.id, message_id, tool_call_id, db)
+
+
+@chats_router.put("/messages/{message_id}/visualizations/{tool_call_id}/state", response_model=VisualizationStateResponse)
+def save_visualization_state(message_id: str, tool_call_id: str, payload: VisualizationStateRequest, db: Session = Depends(get_db), user: User = Depends(verified_user)):
+    from app.chats.visualization_state import visualization_state
+    return visualization_state(user.id, message_id, tool_call_id, db, payload)

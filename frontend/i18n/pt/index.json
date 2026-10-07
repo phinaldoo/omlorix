@@ -4791,5 +4791,22 @@
   "visualization_save_html": "Baixar HTML",
   "visualization_text_alternative": "Alternativa em texto",
   "visualization_loading": "Preparando visualização…",
-  "visualization_run_error": "Não foi possível executar esta visualização. Redefina-a ou solicite uma versão corrigida."
+  "visualization_run_error": "Não foi possível executar esta visualização. Redefina-a ou solicite uma versão corrigida.",
+  "visualization_design": "Controles de design",
+  "visualization_original": "Ver original",
+  "visualization_reset_design": "Redefinir design",
+  "visualization_submit_design": "Aplicar no chat",
+  "visualization_design_prompt": "Atualize este protótipo com estas variantes selecionadas e alterações de design:",
+  "visualization_variants": "Variantes",
+  "visualization_previous_variant": "Anterior",
+  "visualization_next_variant": "Próxima",
+  "visualization_state_error": "As alterações não foram salvas. Tente novamente quando houver conexão.",
+  "visualization_state_invalid": "O estado da visualização deve ser um JSON válido menor que 16 KiB.",
+  "visualization_state_saving": "Salvando seleções…",
+  "visualization_state_saved": "Seleções salvas",
+  "visualization_state_local": "As seleções ficam nesta sessão",
+  "visualization_state_conflict": "Alterado em outra aba. Recarregue as seleções salvas.",
+  "visualization_retry_state": "Tentar salvar novamente",
+  "visualization_reload_state": "Recarregar seleções salvas",
+  "visualization_state_unavailable": "As seleções salvas não estão disponíveis."
 }

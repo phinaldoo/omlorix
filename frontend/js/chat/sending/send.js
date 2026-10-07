@@ -408,6 +408,7 @@ async function sendMessage(message="", attaching=false, attachGenerationId=null,
         const payloadSubagentTargets = Object.prototype.hasOwnProperty.call(sendOptions, 'subagentTargets')
             ? sendOptions.subagentTargets
             : composerContext?.subagentTargets;
+        await window.OmlorixVisualizer?.flushState?.();
         const tempChatHistory = tempModeActive ? serializeTemporaryChatHistory() : '';
 
         const projectId = chatContainer.getAttribute('data-project-id') || '';

@@ -468,6 +468,7 @@ def clone_chat_message_for_new_chat(
         reference_id=new_reference_id,
         generation=cloned_generation,
         thinking=message.thinking,
+        visualization_states=deepcopy(getattr(message, "visualization_states", None)),
         retry_count=message.retry_count,
         bookmarked=False,
         created_at=message.created_at or datetime.now(timezone.utc),
@@ -848,6 +849,7 @@ class ChatMessages(Base):
     generation = Column(JSON, nullable=True, default={"generation_number": 1})
     thinking = Column(String, nullable=True)
     retry_count = Column(SAInteger, nullable=False, default=0)
+    visualization_states = Column(JSON, nullable=True)
     bookmarked = Column(Boolean, default=False)
     created_at = Column(DateTime, nullable=False)
 

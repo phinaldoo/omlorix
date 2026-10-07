@@ -35,6 +35,22 @@ async function handleVisualizationHostRequest(event, data) {
     const capabilities = getVisualizationFrameCapabilities(frame);
 
     try {
+        const surface = visualizationSurfaces.get(frame);
+        if (action === 'save-state' || action === 'save-design') {
+            const result = await surface?.saveState(action === 'save-state' ? { widgetState: payload.widgetState } : { design: payload.design });
+            postVisualizationHostResponse(frame, previewId, requestId, true, result);
+            return;
+        }
+        if (action === 'design-open') {
+            surface?.designOpen(payload.open === true);
+            postVisualizationHostResponse(frame, previewId, requestId, true, {});
+            return;
+        }
+        if (action === 'design-available') {
+            surface?.designAvailable();
+            postVisualizationHostResponse(frame, previewId, requestId, true, {});
+            return;
+        }
         if (action === 'send-follow-up') {
             if (capabilities.chat_followup !== true || typeof sendMessage !== 'function') {
                 throw new Error(getChatPreviewTranslation(
@@ -273,6 +289,9 @@ function ensureCodeBlockPreviewMessageListener() {
     codeBlockPreviewMessageListenerInitialized = true;
     document.addEventListener('keydown', (event) => activeVisualizationSurface?.keydown(event));
     ensureVisualizationThemeObserver();
+    const flushState = () => { for (const store of visualizationStateStores) void store.flush().catch(() => {}); };
+    window.addEventListener('pagehide', flushState);
+    document.addEventListener('visibilitychange', () => { if (document.hidden) flushState(); });
 }
 
 function getPreviewThemeMode() {
@@ -393,7 +412,7 @@ async function loadVisualizerRuntimeAssets(includeLibraries = false, source = ''
         return { css };
     }
     const requested = Object.entries(VISUALIZATION_RUNTIME_ASSET_PATHS).filter(([name]) =>
-        name !== 'css' && (String(source).includes(name) || (name === 'lucide' && String(source).includes('data-lucide')))
+        name !== 'css' && (name === 'controls' || String(source).includes(name) || (name === 'lucide' && String(source).includes('data-lucide')))
     );
     const libraries = await Promise.all(requested.map(([name, path]) => {
         if (!visualizationRuntimeLibraryPromises.has(name)) {
@@ -816,3 +835,129 @@ function updateFeedbackModalCharCount(charCountElement, valueLength, maxLength =
  * in an opaque-origin sandbox where the two explicit permission switches are
  * authoritative.
  */
+
+function getVisualizationControlLabels() {
+    const t = getChatPreviewTranslation;
+    return {
+        design: t('visualization_design', 'Design controls'),
+        close: t('common_close', 'Close'),
+        original: t('visualization_original', 'Preview original'),
+        resetDesign: t('visualization_reset_design', 'Reset design'),
+        submit: t('visualization_submit_design', 'Apply in chat'),
+        submitPrompt: t('visualization_design_prompt', 'Update this mockup using these selected variants and design changes:'),
+        variants: t('visualization_variants', 'Variants'),
+        previous: t('visualization_previous_variant', 'Previous'),
+        next: t('visualization_next_variant', 'Next'),
+        saveError: t('visualization_state_error', 'Changes are not saved. Retry when connected.'),
+        invalid: t('visualization_state_invalid', 'Visualization state must be valid JSON smaller than 16 KiB.'),
+    };
+}
+
+function createVisualizationStateStore(options, notify) {
+    let snapshot = JSON.parse(JSON.stringify(options.savedState || { widgetState: null, design: {}, revision: 0 }));
+    let revision = snapshot.revision || 0;
+    let dirty = false, timer, flight, waiters = [], loaded = false, conflict = false;
+    const persistent = Boolean((options.messageId || options.getMessageId) && options.toolCallId && !options.temporary
+        && document.body?.dataset?.page !== 'chat-share');
+    let boundMessageId = options.messageId || '';
+    const messageId = () => (boundMessageId ||= options.getMessageId?.() || '');
+    const fetchState = (init) => (typeof authedFetch === 'function' ? authedFetch : window.fetch)(
+        `/api/v1/chats/messages/${encodeURIComponent(messageId())}/visualizations/${encodeURIComponent(options.toolCallId)}/state`, init);
+    const observer = options.messageElement && typeof MutationObserver === 'function' ? new MutationObserver(() => {
+        if (messageId()) void flush().catch(() => {});
+    }) : null;
+    observer?.observe(options.messageElement, { attributes: true, attributeFilter: ['data-assistant-message-id'] });
+    async function load() {
+        if (!persistent) { loaded = true; notify('local'); return snapshot; }
+        if (!messageId()) return snapshot;
+        loaded = false;
+        try {
+            const response = await fetchState({ method: 'GET' });
+            // The widget can appear before its streaming message is committed.
+            if (response.status === 404) { loaded = false; return snapshot; }
+            if (!response.ok) throw new Error('load');
+            const saved = await response.json();
+            revision = saved.revision;
+            snapshot = saved;
+            loaded = true;
+            conflict = false;
+            notify('saved');
+        } catch (_) { notify('error'); }
+        return snapshot;
+    }
+    async function flush() {
+        clearTimeout(timer);
+        timer = null;
+        if (flight) { await flight; return dirty ? flush() : undefined; }
+        if (!dirty) return;
+        if (persistent && !messageId()) {
+            waiters.splice(0).forEach(({ resolve }) => resolve({ persisted: false }));
+            return;
+        }
+        const pending = waiters;
+        waiters = [];
+        dirty = false;
+        flight = (async () => {
+            if (conflict) throw new Error('conflict');
+            if (!persistent) { options.onStateChange?.(snapshot); notify('local'); return { persisted: false }; }
+            notify('saving');
+            if (!loaded) {
+                const response = await fetchState({ method: 'GET' });
+                if (!response.ok) throw new Error('load');
+                const current = await response.json();
+                // Do not overwrite a snapshot we were unable to load initially.
+                if (current.revision !== revision) { conflict = true; throw new Error('conflict'); }
+                loaded = true;
+            }
+            const response = await fetchState({ method: 'PUT', keepalive: true, headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ widgetState: snapshot.widgetState ?? null, design: snapshot.design || {}, revision }) });
+            if (response.status === 409) { conflict = true; throw new Error('conflict'); }
+            if (!response.ok) throw new Error('save');
+            const saved = await response.json();
+            revision = saved.revision;
+            snapshot.revision = revision;
+            options.onStateChange?.(snapshot);
+            notify('saved');
+            return { persisted: true };
+        })();
+        try {
+            const result = await flight;
+            pending.forEach(({ resolve }) => resolve(result));
+        } catch (error) {
+            dirty = true;
+            notify(conflict ? 'conflict' : 'error');
+            pending.forEach(({ reject }) => reject(error));
+            throw error;
+        } finally { flight = null; }
+        if (dirty) return flush();
+    }
+    function update(patch) {
+        try {
+            const next = { widgetState: snapshot.widgetState ?? null, design: snapshot.design || {}, ...patch };
+            const serialized = JSON.stringify(next);
+            if (new TextEncoder().encode(serialized).length > 16384 || (next.widgetState !== null && (typeof next.widgetState !== 'object' || Array.isArray(next.widgetState)))
+                || !next.design || typeof next.design !== 'object' || Array.isArray(next.design)) throw new Error('invalid');
+            snapshot = { ...JSON.parse(serialized), revision };
+            // Temporary chats serialize widget payloads directly for follow-ups.
+            options.onStateChange?.(snapshot);
+            dirty = true;
+            notify(persistent ? 'saving' : 'local');
+            if (!timer) timer = setTimeout(() => { void flush().catch(() => {}); }, 450);
+            return new Promise((resolve, reject) => { waiters.push({ resolve, reject }); });
+        } catch (error) { notify('error'); return Promise.reject(error); }
+    }
+    const store = { load, flush, update, get snapshot() { return snapshot; },
+        async retry() {
+            if (conflict || !dirty) {
+                await load();
+                if (loaded) dirty = false;
+                return loaded;
+            }
+            await flush();
+            return false;
+        },
+        dispose() { observer?.disconnect(); clearTimeout(timer); void flush().catch(() => {}); visualizationStateStores.delete(store); },
+    };
+    visualizationStateStores.add(store);
+    return store;
+}

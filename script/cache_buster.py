@@ -46,6 +46,7 @@ FILENAME_HASH_LENGTH = 8
 # documents as well as lazily loaded vendor scripts.
 STATIC_HASH_EXCLUDES = {
     "css/chat/visualization-runtime.css",
+    "js/chat/rendering/visualization-controls.js",
     "js/vendor/d3.min.js",
     "js/vendor/lucide.min.js",
     "js/vendor/mermaid.min.js",

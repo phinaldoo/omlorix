@@ -808,6 +808,15 @@ function appendAssistantWidget(messageId, widgetHtml, widgetType,
             renderVisualizationError();
         } else {
             Promise.resolve(window.OmlorixVisualizer.mount(widgetWrapper, decodedHtml, {
+                getMessageId: () => assistantMessageContainer.dataset.assistantMessageId || '',
+                messageElement: assistantMessageContainer,
+                toolCallId: widgetMeta?.tool_call_id || '',
+                temporary: Boolean(window.isTemporaryChatModeActive?.()),
+                savedState: visualizationMeta.saved_state,
+                onStateChange(snapshot) {
+                    widgetWrapper.__chatWidgetPayload.meta.visualization ||= {};
+                    widgetWrapper.__chatWidgetPayload.meta.visualization.saved_state = snapshot;
+                },
                 title: visualizationMeta.title || '',
                 summary: visualizationMeta.summary || '',
                 mode: visualizationMeta.mode || 'normal',

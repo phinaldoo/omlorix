@@ -33,18 +33,26 @@
   <script>
     (() => {
       const root = document.getElementById('usage-charts');
+      const api = window.omlorix.visualization, saved = api.widgetState?.privateContent || {};
       const data = [[340,480,180],[410,500,190],[440,520,190],[510,510,180],[650,530,220],[760,510,230],[880,500,220],[1020,510,270],[1150,480,270],[1290,470,240],[1480,510,260],[1650,560,290]].map((d,i)=>({week:i+1,Atlas:d[0],Nova:d[1],Other:d[2],total:d3.sum(d)}));
       const keys = ['Atlas','Nova','Other'];
       const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
       const daySelect = root.querySelector('#day'), hourSelect = root.querySelector('#hour');
       days.forEach((day,i)=>daySelect.add(new Option(day,String(i))));
       Array.from({length:24},(_,i)=>hourSelect.add(new Option(`${String(i).padStart(2,'0')}:00`,String(i))));
-      daySelect.value='3'; hourSelect.value='15';
+      daySelect.value=saved.day || '3'; hourSelect.value=saved.hour || '15';
+      root.querySelector('#week').value = saved.week || '12';
       const hours = days.flatMap((day,d)=>Array.from({length:24},(_,h)=>({day:d,hour:h,value:Math.round((30+190*Math.exp(-(((h-15)/5)**2)))*[0.8,0.9,1,1.1,0.85,0.48,0.42][d])})));
-      let mode = 'share';
+      let mode = saved.mode || 'share';
+      ['share','counts'].forEach(k=>root.querySelector('#'+k).setAttribute('aria-pressed',String(k===mode)));
+      function save() {
+        const state = {mode, week: root.querySelector('#week').value, day: daySelect.value, hour: hourSelect.value};
+        api.setWidgetState({modelContent: {...state, day: days[Number(state.day)]}, privateContent: state}).catch(()=>{});
+      }
       root.querySelector('tbody').innerHTML = data.map(d=>`<tr><th scope="row">${d.week}</th>${keys.map(k=>`<td>${d[k]}</td>`).join('')}</tr>`).join('');
       function selectWeek(week) { root.querySelector('#week').value=String(week); draw(); }
       function draw() {
+        save();
         const width=root.querySelector('.chart').clientWidth, height=220;
         if(!width) return;
         const current=data[Number(root.querySelector('#week').value)-1];
@@ -63,6 +71,7 @@
         svg.on('pointermove click',event=>selectWeek(Math.max(1,Math.min(12,Math.round(x.invert(d3.pointer(event)[0]))))));
       }
       function drawHeat() {
+        save();
         const width=root.querySelector('.heat').clientWidth, height=160;
         if(!width) return;
         const svg=d3.select(root.querySelector('.heat svg')).attr('viewBox',`0 0 ${width} ${height}`);

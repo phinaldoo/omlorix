@@ -99,7 +99,8 @@ function escapeEmbeddedScriptSource(source) {
     return String(source || '').replace(/<\/script/gi, '<\\/script');
 }
 
-function buildVisualizerBridgeScript(previewId, capabilities = {}) {
+function buildVisualizerBridgeScript(previewId, capabilities = {}, options = {}) {
+    const controlsConfig = JSON.stringify({ initialState: options.savedState || {}, labels: getVisualizationControlLabels(), standalone: previewId === 'standalone' }).replace(/</g, '\\u003c');
     const previewIdLiteral = JSON.stringify(String(previewId || ''));
     const capabilitiesLiteral = JSON.stringify({
         scripts: capabilities?.scripts !== false,
@@ -199,6 +200,10 @@ function buildVisualizerBridgeScript(previewId, capabilities = {}) {
             else entry.reject(new Error(String(data.error || 'The visualization request failed.')));
             return;
         }
+        if (data.type === '${VISUALIZATION_CONTROL_MESSAGE_TYPE}' && data.previewId === previewId) {
+            controls?.setDesignOpen(data.open === true);
+            return;
+        }
         if (data.type === '${VISUALIZATION_THEME_MESSAGE_TYPE}' && data.previewId === previewId) {
             expanded = data.expanded === true;
             const tokens = data.tokens && typeof data.tokens === 'object' ? data.tokens : {};
@@ -216,9 +221,12 @@ function buildVisualizerBridgeScript(previewId, capabilities = {}) {
         }
     });
 
+    const controls = window.createOmlorixVisualizationControls?.({ ...${controlsConfig}, request, followup: capabilities.chat_followup, reportHeight: queueHeight });
     window.omlorix = Object.freeze({
         visualization: Object.freeze({
             capabilities,
+            get widgetState() { return controls?.widgetState || null; },
+            setWidgetState(value) { return controls ? controls.setWidgetState(value) : Promise.reject(new Error('State unavailable')); },
             sendFollowUpMessage(options) {
                 if (!capabilities.chat_followup) {
                     return Promise.reject(new Error('Chat follow-up capability was not requested.'));
@@ -343,12 +351,12 @@ function buildVisualizerPreviewDocument(source, previewId, options = {}) {
     const themeVariables = buildVisualizerThemeCssVariables();
     const runtimeCss = String(options.runtimeCss || '');
     const runtimeLibraries = allowScripts
-        ? [options.d3, options.topojson, options.lucide]
+        ? [options.d3, options.topojson, options.lucide, options.controls]
             .filter(Boolean)
             .map((library) => `<script>${escapeEmbeddedScriptSource(library)}</script>`)
             .join('')
         : '';
-    const bridgeScript = buildVisualizerBridgeScript(previewId, options.capabilities || {});
+    const bridgeScript = buildVisualizerBridgeScript(previewId, options.capabilities || {}, options);
     const helperHead = [
         '<meta charset="utf-8">',
         '<meta name="viewport" content="width=device-width, initial-scale=1">',

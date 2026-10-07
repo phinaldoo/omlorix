@@ -4806,5 +4806,22 @@
   "visualization_save_html": "تنزيل HTML",
   "visualization_text_alternative": "بديل نصي",
   "visualization_loading": "جارٍ تحضير التصور…",
-  "visualization_run_error": "تعذر تشغيل هذا التصور. أعد ضبطه أو اطلب نسخة مصححة."
+  "visualization_run_error": "تعذر تشغيل هذا التصور. أعد ضبطه أو اطلب نسخة مصححة.",
+  "visualization_design": "أدوات ضبط التصميم",
+  "visualization_original": "معاينة الأصل",
+  "visualization_reset_design": "إعادة ضبط التصميم",
+  "visualization_submit_design": "تطبيق في المحادثة",
+  "visualization_design_prompt": "حدّث هذا النموذج باستخدام البدائل المحددة وتغييرات التصميم التالية:",
+  "visualization_variants": "البدائل",
+  "visualization_previous_variant": "السابق",
+  "visualization_next_variant": "التالي",
+  "visualization_state_error": "لم تُحفظ التغييرات. أعد المحاولة عند الاتصال.",
+  "visualization_state_invalid": "يجب أن تكون حالة العرض المرئي بصيغة JSON صالحة وأقل من 16 KiB.",
+  "visualization_state_saving": "جارٍ حفظ الاختيارات…",
+  "visualization_state_saved": "تم حفظ الاختيارات",
+  "visualization_state_local": "تبقى الاختيارات في هذه الجلسة",
+  "visualization_state_conflict": "تم التغيير في علامة تبويب أخرى. أعد تحميل الاختيارات المحفوظة.",
+  "visualization_retry_state": "إعادة محاولة الحفظ",
+  "visualization_reload_state": "إعادة تحميل الاختيارات المحفوظة",
+  "visualization_state_unavailable": "الاختيارات المحفوظة غير متاحة."
 }

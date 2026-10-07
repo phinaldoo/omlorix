@@ -1731,3 +1731,6 @@ body.visualization-expanded { overflow: hidden; }
         min-height: 36px;
     }
 }
+
+.markdown-body .visualizer-state-status { display: flex; align-items: center; gap: 8px; padding: 0 16px 8px; font-size: 12px; color: var(--text-color-secondary); }
+.markdown-body .visualizer-state-status[hidden], .markdown-body .visualizer-preview-action[hidden] { display: none; }

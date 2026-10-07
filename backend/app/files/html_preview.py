@@ -84,6 +84,7 @@ CANVAS_HTML_PREVIEW_PROXY_DOCUMENT = r"""<!doctype html>
     const VISUALIZATION_TO_VIEW = new Set([
       'omlorix:visualization-response',
       'omlorix:visualization-theme',
+      'omlorix:visualization-control',
     ]);
     const root = document.getElementById('canvas-preview-root');
     const persistentStorage = new Map();

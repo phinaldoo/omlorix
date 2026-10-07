@@ -4786,5 +4786,22 @@
   "visualization_save_html": "HTML herunterladen",
   "visualization_text_alternative": "Textalternative",
   "visualization_loading": "Visualisierung wird vorbereitet…",
-  "visualization_run_error": "Diese Visualisierung konnte nicht ausgeführt werden. Setze sie zurück oder bitte um eine korrigierte Version."
+  "visualization_run_error": "Diese Visualisierung konnte nicht ausgeführt werden. Setze sie zurück oder bitte um eine korrigierte Version.",
+  "visualization_design": "Design anpassen",
+  "visualization_original": "Original ansehen",
+  "visualization_reset_design": "Design zurücksetzen",
+  "visualization_submit_design": "Im Chat anwenden",
+  "visualization_design_prompt": "Aktualisiere diesen Entwurf mit diesen ausgewählten Varianten und Designänderungen:",
+  "visualization_variants": "Varianten",
+  "visualization_previous_variant": "Zurück",
+  "visualization_next_variant": "Weiter",
+  "visualization_state_error": "Änderungen wurden nicht gespeichert. Bei bestehender Verbindung erneut versuchen.",
+  "visualization_state_invalid": "Der Visualisierungszustand muss gültiges JSON mit weniger als 16 KiB sein.",
+  "visualization_state_saving": "Auswahl wird gespeichert…",
+  "visualization_state_saved": "Auswahl gespeichert",
+  "visualization_state_local": "Die Auswahl bleibt in dieser Sitzung",
+  "visualization_state_conflict": "In einem anderen Tab geändert. Gespeicherte Auswahl neu laden.",
+  "visualization_retry_state": "Speichern erneut versuchen",
+  "visualization_reload_state": "Gespeicherte Auswahl neu laden",
+  "visualization_state_unavailable": "Gespeicherte Auswahl nicht verfügbar."
 }

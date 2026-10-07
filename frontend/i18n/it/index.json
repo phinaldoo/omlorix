@@ -4791,5 +4791,22 @@
   "visualization_save_html": "Scarica HTML",
   "visualization_text_alternative": "Alternativa testuale",
   "visualization_loading": "Preparazione della visualizzazione…",
-  "visualization_run_error": "Impossibile eseguire questa visualizzazione. Reimpostala o richiedi una versione corretta."
+  "visualization_run_error": "Impossibile eseguire questa visualizzazione. Reimpostala o richiedi una versione corretta.",
+  "visualization_design": "Controlli del design",
+  "visualization_original": "Mostra originale",
+  "visualization_reset_design": "Ripristina design",
+  "visualization_submit_design": "Applica nella chat",
+  "visualization_design_prompt": "Aggiorna questo mockup con le varianti selezionate e queste modifiche al design:",
+  "visualization_variants": "Varianti",
+  "visualization_previous_variant": "Precedente",
+  "visualization_next_variant": "Successiva",
+  "visualization_state_error": "Le modifiche non sono state salvate. Riprova quando sei connesso.",
+  "visualization_state_invalid": "Lo stato della visualizzazione deve essere JSON valido inferiore a 16 KiB.",
+  "visualization_state_saving": "Salvataggio delle selezioni…",
+  "visualization_state_saved": "Selezioni salvate",
+  "visualization_state_local": "Le selezioni rimangono in questa sessione",
+  "visualization_state_conflict": "Modificato in un’altra scheda. Ricarica le selezioni salvate.",
+  "visualization_retry_state": "Riprova a salvare",
+  "visualization_reload_state": "Ricarica le selezioni salvate",
+  "visualization_state_unavailable": "Le selezioni salvate non sono disponibili."
 }

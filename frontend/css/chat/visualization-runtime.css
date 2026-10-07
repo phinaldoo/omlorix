@@ -352,3 +352,16 @@ svg [data-chart-hover-guide] {
         transition-duration: 0.01ms !important;
     }
 }
+
+/* Runtime-owned design tools and named variant navigation. */
+.omlorix-design-panel { margin: 16px; padding: 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); }
+.omlorix-design-panel > .viz-row { justify-content: space-between; }
+.omlorix-design-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 16px; margin: 12px 0; }
+.omlorix-design-group { min-width: 0; border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+.omlorix-design-group legend { color: var(--muted-foreground); padding-inline: 5px; font-size: 13px; }
+.omlorix-design-control { display: grid; grid-template-columns: minmax(0, 1fr) minmax(60px, 1fr) auto; align-items: center; gap: 10px; margin: 10px 0; font-size: 13px; }
+.omlorix-design-control input[type=color] { padding: 2px; width: 100%; height: 30px; }
+.omlorix-design-control input[type=checkbox] { justify-self: start; width: 18px; height: 18px; }
+.omlorix-design-panel [aria-pressed=true] { background: var(--accent); color: var(--accent-foreground); }
+.omlorix-variant-nav { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; margin: 12px; }
+.omlorix-variant-nav select { width: auto; max-width: min(100%, 220px); }
