@@ -34,6 +34,19 @@ CANVAS_HTML_PREVIEW_PROXY_CSP = "; ".join(
     ]
 )
 
+# srcdoc is inline content, so frame-src 'none' permits its initial document
+# while blocking subsequent navigations, including location.href. Deliver this
+# on the PROXY response: a meta policy inside authored content cannot constrain
+# that content's own navigation. No network request or authenticated hydration
+# is needed for an inline visualization.
+VISUALIZATION_PREVIEW_PROXY_CSP = "; ".join([
+    "default-src 'none'", "script-src 'unsafe-inline'", "style-src 'unsafe-inline'",
+    "img-src data: blob:", "font-src data:", "media-src data: blob:",
+    "connect-src 'none'", "frame-src 'none'", "child-src 'none'",
+    "worker-src 'none'", "object-src 'none'", "base-uri 'none'",
+    "form-action 'none'", "frame-ancestors 'self'",
+])
+
 
 # This document contains trusted Omlorix bootstrap code only.  Authored HTML is
 # transferred after load and is never inserted into the proxy's own DOM; it is
@@ -55,6 +68,7 @@ CANVAS_HTML_PREVIEW_PROXY_DOCUMENT = r"""<!doctype html>
   <script>
   (() => {
     'use strict';
+    const VISUALIZATION_ONLY = false;
 
     const READY = 'omlorix-canvas-html-preview-ready';
     const READY_REQUEST = 'omlorix-canvas-html-preview-ready-request';
@@ -64,10 +78,13 @@ CANVAS_HTML_PREVIEW_PROXY_DOCUMENT = r"""<!doctype html>
     const VISUALIZATION_TO_HOST = new Set([
       'omlorix-code-block-preview-height',
       'omlorix:visualization-request',
+      'omlorix:visualization-status',
+      'omlorix:visualization-key',
     ]);
     const VISUALIZATION_TO_VIEW = new Set([
       'omlorix:visualization-response',
       'omlorix:visualization-theme',
+      'omlorix:visualization-control',
     ]);
     const root = document.getElementById('canvas-preview-root');
     const persistentStorage = new Map();
@@ -272,23 +289,20 @@ CANVAS_HTML_PREVIEW_PROXY_DOCUMENT = r"""<!doctype html>
     async function render(message) {
       renderGeneration += 1;
       const generation = renderGeneration;
-      const allowExternalContent = message.allowExternalContent === true;
-      const allowAuthenticatedFileHydration = message.allowAuthenticatedFileHydration === true;
+      const allowExternalContent = !VISUALIZATION_ONLY && message.allowExternalContent === true;
+      const allowAuthenticatedFileHydration = !VISUALIZATION_ONLY && message.allowAuthenticatedFileHydration === true;
       relayVisualizationMessages = message.relayVisualizationMessages === true;
-      // Browsers allow a sandboxed iframe to navigate itself, and no shipped
-      // CSP directive blocks that navigation. Therefore arbitrary authored
-      // scripts may run only after the viewer grants external content.
-      //
-      // Static visualizations are the only exception: their caller removes
-      // every authored script and requests this mode together with no eval,
-      // no authenticated hydration, and the narrow visualization bridge.
+      // Canvas's proxy permits frame navigation, so authored scripts there
+      // still require the external-content grant. The visualization-only
+      // endpoint instead inherits frame-src 'none' from its HTTP response.
+      // Keep the legacy static host-bootstrap exception for older clients.
       const trustedLocalScripts = message.trustedLocalScripts === true
         && message.allowEval === false
         && relayVisualizationMessages
         && !allowAuthenticatedFileHydration
         && !allowExternalContent;
-      const allowScripts = message.allowScripts === true && (allowExternalContent || trustedLocalScripts);
-      const allowEval = allowScripts && !trustedLocalScripts && message.allowEval !== false;
+      const allowScripts = message.allowScripts === true && (VISUALIZATION_ONLY || allowExternalContent || trustedLocalScripts);
+      const allowEval = !VISUALIZATION_ONLY && allowScripts && !trustedLocalScripts && message.allowEval !== false;
       const preparedDocument = prepareDocument(
         message.html,
         allowScripts,
@@ -303,7 +317,8 @@ CANVAS_HTML_PREVIEW_PROXY_DOCUMENT = r"""<!doctype html>
 
       const nextView = document.createElement('iframe');
       const sandbox = [];
-      if (allowScripts) sandbox.push('allow-scripts', 'allow-modals');
+      if (allowScripts) sandbox.push('allow-scripts');
+      if (allowScripts && !VISUALIZATION_ONLY) sandbox.push('allow-modals');
       // Form submission and popups are network/navigation capabilities, not
       // prerequisites for local controls. Keep them behind the same explicit
       // external-content grant as remote resources and connections.
@@ -311,11 +326,19 @@ CANVAS_HTML_PREVIEW_PROXY_DOCUMENT = r"""<!doctype html>
       nextView.setAttribute('sandbox', sandbox.join(' '));
       nextView.setAttribute('referrerpolicy', 'no-referrer');
       nextView.setAttribute('title', String(message.title || 'Canvas HTML preview'));
+      let viewLoaded = false;
       nextView.addEventListener('load', () => {
-        parent.postMessage({ type: LOADED, previewId: String(message.previewId || '') }, location.origin);
-      }, { once: true });
+        parent.postMessage({ type: LOADED, previewId: String(message.previewId || ''), navigated: viewLoaded }, location.origin);
+        viewLoaded = true;
+      });
       nextView.srcdoc = hydratedDocument;
       root.replaceChildren(nextView);
+      if (VISUALIZATION_ONLY) {
+        document.documentElement.style.background = 'transparent';
+        document.body.style.background = 'transparent';
+        root.style.background = 'transparent';
+        nextView.style.background = 'transparent';
+      }
       view = nextView;
     }
 
@@ -332,6 +355,13 @@ CANVAS_HTML_PREVIEW_PROXY_DOCUMENT = r"""<!doctype html>
       }
       if (event.source !== parent || event.origin !== location.origin) return;
       if (relayVisualizationMessages && VISUALIZATION_TO_VIEW.has(event.data?.type)) {
+        if (VISUALIZATION_ONLY && event.data.type === 'omlorix:visualization-theme') {
+          // Match the opaque child's color scheme to avoid the browser painting
+          // its transparent canvas with a different default background.
+          const mode = event.data.mode === 'dark' ? 'dark' : 'light';
+          document.documentElement.style.colorScheme = mode;
+          if (view) view.style.colorScheme = mode;
+        }
         view?.contentWindow?.postMessage(event.data, '*');
         return;
       }
@@ -357,13 +387,15 @@ CANVAS_HTML_PREVIEW_PROXY_DOCUMENT = r"""<!doctype html>
 """
 
 
-def get_canvas_html_preview_proxy_payload() -> dict[str, object]:
+def get_canvas_html_preview_proxy_payload(*, visualization: bool = False) -> dict[str, object]:
     """Return the trusted Canvas preview proxy and its non-cacheable headers."""
 
     return {
-        "html": CANVAS_HTML_PREVIEW_PROXY_DOCUMENT,
+        "html": CANVAS_HTML_PREVIEW_PROXY_DOCUMENT.replace(
+            "const VISUALIZATION_ONLY = false;", "const VISUALIZATION_ONLY = true;"
+        ) if visualization else CANVAS_HTML_PREVIEW_PROXY_DOCUMENT,
         "headers": {
-            "Content-Security-Policy": CANVAS_HTML_PREVIEW_PROXY_CSP,
+            "Content-Security-Policy": VISUALIZATION_PREVIEW_PROXY_CSP if visualization else CANVAS_HTML_PREVIEW_PROXY_CSP,
             "Cache-Control": "no-store, private",
             "Pragma": "no-cache",
             "Expires": "0",

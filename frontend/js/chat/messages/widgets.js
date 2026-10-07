@@ -740,7 +740,8 @@ function appendAssistantWidget(messageId, widgetHtml, widgetType,
     widgetWrapper.dataset.widgetType = widgetType || 'unknown';
     // Insert the widget HTML (decode if HTML entities were escaped)
     let decodedHtml = widgetHtml;
-    if (typeof widgetHtml === 'string' && widgetHtml.includes('&lt;')) {
+    if (typeof widgetHtml === 'string' && widgetHtml.includes('&lt;')
+        && !(widgetType === 'visualization' && widgetMeta?.visualization?.runtime_version >= 2)) {
         // HTML was entity-encoded, decode it
         const decoder = document.createElement('textarea');
         decoder.innerHTML = widgetHtml;
@@ -807,7 +808,17 @@ function appendAssistantWidget(messageId, widgetHtml, widgetType,
             renderVisualizationError();
         } else {
             Promise.resolve(window.OmlorixVisualizer.mount(widgetWrapper, decodedHtml, {
+                getMessageId: () => assistantMessageContainer.dataset.assistantMessageId || '',
+                messageElement: assistantMessageContainer,
+                toolCallId: widgetMeta?.tool_call_id || '',
+                temporary: Boolean(window.isTemporaryChatModeActive?.()),
+                savedState: visualizationMeta.saved_state,
+                onStateChange(snapshot) {
+                    widgetWrapper.__chatWidgetPayload.meta.visualization ||= {};
+                    widgetWrapper.__chatWidgetPayload.meta.visualization.saved_state = snapshot;
+                },
                 title: visualizationMeta.title || '',
+                summary: visualizationMeta.summary || '',
                 mode: visualizationMeta.mode || 'normal',
                 capabilities: visualizationMeta.capabilities || {
                     scripts: widgetMeta?.allow_scripts === true,
@@ -816,7 +827,6 @@ function appendAssistantWidget(messageId, widgetHtml, widgetType,
                     download: false,
                 },
                 allowExpand: true,
-                allowScripts: false,
                 isWidget: true,
             })).catch((error) => {
                 renderVisualizationError();

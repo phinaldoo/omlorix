@@ -43,16 +43,23 @@ const MARKDOWN_SETTINGS_SVG = Icons.settings;
 const CODE_BLOCK_HTML_PREVIEW_MESSAGE_TYPE = 'omlorix-code-block-preview-height';
 const VISUALIZATION_HOST_REQUEST_MESSAGE_TYPE = 'omlorix:visualization-request';
 const VISUALIZATION_HOST_RESPONSE_MESSAGE_TYPE = 'omlorix:visualization-response';
+const VISUALIZATION_CONTROL_MESSAGE_TYPE = 'omlorix:visualization-control';
+const visualizationStateStores = new Set();
 const VISUALIZATION_THEME_MESSAGE_TYPE = 'omlorix:visualization-theme';
+const VISUALIZATION_STATUS_MESSAGE_TYPE = 'omlorix:visualization-status';
+const VISUALIZATION_KEY_MESSAGE_TYPE = 'omlorix:visualization-key';
+const visualizationSurfaces = new WeakMap();
+let activeVisualizationSurface = null;
 const VISUALIZATION_MAX_FOLLOWUP_LENGTH = 4000;
 const VISUALIZATION_MAX_DOWNLOAD_BYTES = 2 * 1024 * 1024;
 // These runtime assets deliberately keep stable filenames because the build
 // cannot rewrite URLs embedded in JavaScript. Keep an explicit query version
 // so a previously cached failure or an older runtime is never reused after an
 // asset-contract update.
-const VISUALIZATION_RUNTIME_ASSET_VERSION = '1';
+const VISUALIZATION_RUNTIME_ASSET_VERSION = '3.0.1';
 const VISUALIZATION_RUNTIME_ASSET_PATHS = Object.freeze({
     css: `/css/chat/visualization-runtime.css?v=${VISUALIZATION_RUNTIME_ASSET_VERSION}`,
+    controls: `/js/chat/rendering/visualization-controls.js?v=${VISUALIZATION_RUNTIME_ASSET_VERSION}`,
     d3: `/js/vendor/d3.min.js?v=${VISUALIZATION_RUNTIME_ASSET_VERSION}`,
     topojson: `/js/vendor/topojson-client.min.js?v=${VISUALIZATION_RUNTIME_ASSET_VERSION}`,
     lucide: `/js/vendor/lucide.min.js?v=${VISUALIZATION_RUNTIME_ASSET_VERSION}`,
@@ -64,6 +71,5 @@ const CODE_BLOCK_COLLAPSE_ANIMATION_DURATION_MS = 320;
 let codeBlockPreviewMessageListenerInitialized = false;
 let visualizationThemeObserverInitialized = false;
 let visualizationRuntimeCssPromise = null;
-let visualizationRuntimeLibrariesPromise = null;
+const visualizationRuntimeLibraryPromises = new Map();
 let vegaExternalConsentCounter = 0;
-

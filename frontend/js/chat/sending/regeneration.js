@@ -598,6 +598,7 @@ async function triggerRegeneration(assistantMessageId, { retryGuidance = null, o
             });
             const { byokPayload, body } = requestBody;
             clearUnsupportedFileWarningState();
+            await window.OmlorixVisualizer?.flushState?.();
             const response = await window.authedFetch('/api/v1/chats/regenerate', {
                 method: 'POST',
                 headers: {

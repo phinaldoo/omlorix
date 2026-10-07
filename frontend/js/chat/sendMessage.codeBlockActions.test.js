@@ -28,11 +28,12 @@ const CODE_BLOCK_KEYS = [
     'code_block_run_python_stream_locked',
     'code_block_running_python',
     'visualization_preview_label',
-    'visualization_preview_title',
-    'visualization_preview_aria',
-    'visualization_preview_empty',
-    'visualization_preview_static_frame_title',
-    'visualization_preview_interactive_frame_title',
+    'visualization_view_source',
+    'visualization_reset',
+    'visualization_save_html',
+    'visualization_text_alternative',
+    'visualization_loading',
+    'visualization_run_error',
     'code_block_open_large_preview',
     'code_block_mermaid_navigation',
     'canvas_html_preview_settings',
@@ -71,7 +72,6 @@ const CODE_BLOCK_KEYS = [
     'visualization_download_allow',
     'visualization_download_too_large',
     'visualization_action_unsupported',
-    'visualization_runtime_unavailable',
 ];
 
 test('message sending scripts load completely and in dependency order', () => {
@@ -296,34 +296,17 @@ test('code block action translations exist in every supported locale', () => {
     });
 });
 
-test('inline visualization previews default to static rendering until interactive mode is requested', () => {
+test('inline visualizations use the dedicated no-network proxy with automatic local scripts', () => {
     const source = SEND_MESSAGE_SOURCE;
-    const cspMatch = source.match(/function buildVisualizerPreviewContentSecurityPolicy\(allowScripts = false\) \{([\s\S]*?)\n\}/);
-
-    assert.ok(cspMatch, 'buildVisualizerPreviewContentSecurityPolicy not found');
-    assert.match(cspMatch[1], /connect-src 'none';/);
-    assert.doesNotMatch(cspMatch[1], /http:/);
-    assert.match(source, /const ALLOWED_PREVIEW_ACTIONS = Object\.freeze\(\['expand', 'run-interactive'\]\);/);
-    assert.match(source, /data-preview-action="run-interactive"/);
-    assert.doesNotMatch(source, /view-source|openVisualizerSourceModal|visualizer-preview-source-btn/);
-    assert.doesNotMatch(source, /function isVisualizerLanguage|openVisualizerPreviewModal|previewKind === 'visualizer'/);
-    assert.doesNotMatch(source, /\b(?:visualizer|visualiser|visualize|visualise|llmviz|modelviz): 'html'/);
-    assert.match(source, /function stripVisualizerAuthoredScripts\(source\)/);
-    assert.match(source, /window\.OmlorixCanvasHtmlPreview/);
-    assert.match(source, /proxyRuntime\.render\(iframe, previewDocument/);
-    assert.match(source, /allowScripts: true,/);
-    assert.match(source, /allowEval: false,/);
-    assert.match(source, /allowExternalContent: allowScripts,/);
-    assert.match(source, /trustedLocalScripts: !allowScripts,/);
-    assert.match(source, /relayVisualizationMessages: true,/);
-    assert.doesNotMatch(source, /iframe\.srcdoc = buildVisualizerPreviewDocument/);
-    assert.match(source, /const sourceText = allowScripts \? rawSourceText : stripVisualizerAuthoredScripts\(rawSourceText\)/);
-    assert.doesNotMatch(source, /shouldReduceVisualizerAnimations/);
-    assert.match(source, /allowScripts: false,\s*\n\s*isModal: true,/);
-    assert.match(
-        source,
-        /window\.OmlorixVisualizer = Object\.freeze\(\{\s*\n\s*mount: mountVisualizerPreview,/
-    );
+    const csp = extractFunction(source, 'buildVisualizerPreviewContentSecurityPolicy');
+    assert.match(csp, /connect-src 'none'/);
+    assert.doesNotMatch(csp, /https?:/);
+    assert.match(source, /visualization: true, allowScripts: true, allowEval: false/);
+    assert.match(source, /allowExternalContent: false, hydrateAuthenticatedFiles: false/);
+    assert.doesNotMatch(source, /data-preview-action="run-interactive"/);
+    assert.match(source, /sourcePane\.hidden = !showSource/);
+    assert.match(source, /surface\.classList\.add\('is-expanded'\)/);
+    assert.match(source, /window\.OmlorixVisualizer = Object\.freeze/);
 });
 
 test('legacy visualization fences render as ordinary code blocks', () => {

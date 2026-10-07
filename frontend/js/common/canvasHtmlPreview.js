@@ -7,6 +7,7 @@
     'use strict';
 
     const PROXY_URL = '/api/v1/files/canvas/html-preview-proxy';
+    const VISUALIZATION_PROXY_URL = '/api/v1/files/canvas/visualization-preview-proxy';
     const PROXY_SANDBOX = 'allow-scripts allow-same-origin allow-modals allow-downloads allow-forms allow-popups';
     const READY_MESSAGE = 'omlorix-canvas-html-preview-ready';
     const READY_REQUEST_MESSAGE = 'omlorix-canvas-html-preview-ready-request';
@@ -201,6 +202,7 @@
             if (!frame || !state) return;
 
             if (event.data?.type === READY_MESSAGE) {
+                if (state.ready) return;
                 state.ready = true;
                 postCurrentDocument(frame, state);
                 return;
@@ -211,6 +213,7 @@
                     detail: {
                         allowScripts: state.allowScripts,
                         allowExternalContent: state.allowExternalContent,
+                        navigated: event.data.navigated === true,
                     },
                 }));
             }
@@ -260,11 +263,15 @@
                 }
                 frame.dataset.canvasHtmlPreviewState = 'loading';
             });
-            frame.setAttribute('sandbox', PROXY_SANDBOX);
+            // Select the restrictive HTTP policy before any authored code is
+            // sent. This choice is immutable for the lifetime of this frame.
+            state.visualization = options.visualization === true;
+            state.proxyUrl = state.visualization ? VISUALIZATION_PROXY_URL : PROXY_URL;
+            frame.setAttribute('sandbox', state.visualization ? 'allow-scripts allow-same-origin' : PROXY_SANDBOX);
             frame.setAttribute('referrerpolicy', 'no-referrer');
             frame.dataset.canvasHtmlPreviewState = 'loading';
             frame.removeAttribute('srcdoc');
-            frame.src = PROXY_URL;
+            frame.src = state.proxyUrl;
         }
 
         state.html = String(source || '');
@@ -276,6 +283,12 @@
         state.trustedLocalScripts = permissions.trustedLocalScripts;
         state.hydrateAuthenticatedFiles = options.hydrateAuthenticatedFiles !== false;
         state.relayVisualizationMessages = options.relayVisualizationMessages === true;
+        if (state.visualization) {
+            state.allowScripts = options.allowScripts === true;
+            state.allowEval = false;
+            state.allowExternalContent = false;
+            state.hydrateAuthenticatedFiles = false;
+        }
         frame.dataset.canvasHtmlScripts = state.allowScripts ? 'enabled' : 'disabled';
         frame.dataset.canvasHtmlExternalContent = state.allowExternalContent ? 'enabled' : 'blocked';
         postCurrentDocument(frame, state);
@@ -288,7 +301,7 @@
         if (!state) return false;
         state.ready = false;
         frame.dataset.canvasHtmlPreviewState = 'loading';
-        frame.src = `${PROXY_URL}?reload=${Date.now()}`;
+        frame.src = `${state.proxyUrl}?reload=${Date.now()}`;
         return true;
     }
 

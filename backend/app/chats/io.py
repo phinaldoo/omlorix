@@ -11,6 +11,7 @@ from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from app.chats.compliance import ComplianceWatermarkResolver
+from app.chats.visualization_state import normalize_visualization_states
 from app.chats.models import Chats, ChatMessages
 from app.chats.download import export_chat_full, current_chat_export_version
 from app.chats.export_security import is_chat_excluded_from_default_export
@@ -527,6 +528,7 @@ def _import_single_chat(
             thinking=_encode_json_field(msg.get("thinking")),
             retry_count=_safe_int(msg.get("retry_count")) or 0,
             bookmarked=bool(msg.get("bookmarked")),
+            visualization_states=normalize_visualization_states(msg.get("visualization_states")),
             created_at=msg_created,
         )
         db.add(message)

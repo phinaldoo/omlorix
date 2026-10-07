@@ -17,7 +17,7 @@ from typing import Any
 
 VISUALIZATION_MAX_BYTES = 1024 * 1024
 VISUALIZATION_MAX_TITLE_LENGTH = 120
-VISUALIZATION_RUNTIME_VERSION = 1
+VISUALIZATION_RUNTIME_VERSION = 2
 VISUALIZATION_MODES = {"normal", "wide"}
 
 _DOCUMENT_TAG_PATTERN = re.compile(r"<\s*(?:!doctype|html|head|body)\b", re.IGNORECASE)
@@ -178,6 +178,7 @@ def create_visualization_payload(
     content: Any,
     mode: Any = "normal",
     capabilities: Any = None,
+    summary: Any = None,
 ) -> dict[str, Any]:
     """Create the canonical provider-neutral visualization widget payload."""
 
@@ -186,6 +187,9 @@ def create_visualization_payload(
         raise VisualizationValidationError("title is required")
     if len(normalized_title) > VISUALIZATION_MAX_TITLE_LENGTH:
         raise VisualizationValidationError(f"title must be {VISUALIZATION_MAX_TITLE_LENGTH} characters or fewer")
+    normalized_summary = str(summary or "").strip()
+    if len(normalized_summary) > 1000:
+        raise VisualizationValidationError("summary must be 1000 characters or fewer")
     normalized_mode = str(mode or "normal").strip().lower()
     if normalized_mode not in VISUALIZATION_MODES:
         raise VisualizationValidationError("mode must be one of: normal, wide")
@@ -194,6 +198,7 @@ def create_visualization_payload(
     normalized_capabilities = _normalize_capabilities(capabilities)
     metadata = {
         "title": normalized_title,
+        "summary": normalized_summary,
         "mode": normalized_mode,
         "root_id": info.root_id,
         "runtime_version": VISUALIZATION_RUNTIME_VERSION,
@@ -206,8 +211,8 @@ def create_visualization_payload(
         "type": "visualization",
         "html": fragment,
         "render_mode": "visualization",
-        # Authored scripts remain disabled on first render.  This flag records
-        # that the viewer may opt into the interactive enhancement.
+        # The version-2 renderer runs local scripts in the dedicated no-network
+        # proxy. Explicit scripts=false continues to produce an inert visual.
         "allow_scripts": normalized_capabilities["scripts"],
         "model_context": {
             "status": "created",

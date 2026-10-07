@@ -384,6 +384,9 @@ def get_default_system_instruction(db, tools, knowledge_cutoff, user_id, web_sea
 
 
     tools_explanations = ""
+    if "create_visualization" in tool_names:
+        from app.tools.visualization.instructions import VISUALIZATION_INSTRUCTIONS
+        tools_explanations += "\n" + VISUALIZATION_INSTRUCTIONS
     if "web_search" in tool_names:
         tools_explanations += "\n" + web_search_tool
 

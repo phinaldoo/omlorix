@@ -186,9 +186,10 @@ tool_schemas: dict[str, dict] = {
       "name": "create_visualization",
       "type": "function",
       "description": (
-          "Create a polished inline visualization when seeing or interacting with the result materially improves the answer. "
-          "Use Mermaid for simple static node-and-edge diagrams and Vega-Lite for ordinary declarative charts; use this tool "
-          "for bespoke interactive explainers, simulations, maps, dense grids, timelines, comparisons, and UI mockups. "
+          "Create a live visual directly in the conversation: charts, interactive explainers, simulations, maps, "
+          "timelines, comparisons, and UI mockups. Use proactively when seeing or changing something helps the user understand. "
+          "Use action=validate for optional structure/policy checks without displaying a widget; fix errors, then use "
+          "action=render (default) to publish. Validation does not execute JavaScript or produce a screenshot. "
           "Provide one self-contained HTML fragment under 1 MB with a stable root id. D3 v7, topojson, and lucide are bundled "
           "as globals. Do not use fetch, XMLHttpRequest, WebSocket, EventSource, external scripts, full HTML documents, "
           "document.currentScript, or window.openai. Use window.omlorix.visualization for approved external data or chat follow-ups."
@@ -196,6 +197,11 @@ tool_schemas: dict[str, dict] = {
       "parameters": {
           "type": "object",
           "properties": {
+              "action": {
+                  "type": "string",
+                  "enum": ["validate", "render"],
+                  "description": "Validate without publishing, or render in the conversation. Defaults to render.",
+              },
               "title": {
                   "type": "string",
                   "maxLength": 120,
@@ -204,7 +210,12 @@ tool_schemas: dict[str, dict] = {
               "mode": {
                   "type": "string",
                   "enum": ["normal", "wide"],
-                  "description": "Use wide only for several compact panels that must remain side by side for comparison.",
+                  "description": "Use normal for a single visual; wide for a dashboard or desktop mockup. Both can expand without resetting controls.",
+              },
+              "summary": {
+                  "type": "string",
+                  "maxLength": 1000,
+                  "description": "Short text alternative with the main result, units, and assumptions, in the user's language. Remains available if the visual fails.",
               },
               "content": {
                   "type": "string",
@@ -212,7 +223,8 @@ tool_schemas: dict[str, dict] = {
                   "description": (
                       "Literal HTML fragment containing markup plus optional inline style and script. The first non-style/script "
                       "element must have a stable id. Use native controls, responsive sizing, theme variables, accessible names, "
-                      "and a useful static first render before JavaScript enhancement."
+                      "and embedded data. Local JavaScript runs immediately in an isolated, no-network sandbox. "
+                      "Use --background, --foreground, --muted-foreground, --border, --primary, and --viz-series-1 through -6."
                   ),
               },
               "capabilities": {
@@ -220,7 +232,7 @@ tool_schemas: dict[str, dict] = {
                   "properties": {
                       "scripts": {
                           "type": "boolean",
-                          "description": "Whether the viewer may enable authored JavaScript interactions.",
+                          "description": "Whether to run local JavaScript (default true). Network, popups, navigation, and application access remain blocked.",
                       },
                       "external_data": {
                           "type": "boolean",

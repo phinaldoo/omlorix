@@ -6,7 +6,7 @@
  */
 :root {
     color-scheme: light dark;
-    font-family: "IBM Plex Sans", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-family: var(--font-family, system-ui, sans-serif);
     font-size: var(--font-size-base);
 }
 
@@ -15,7 +15,7 @@ body {
     margin: 0;
     padding: 0;
     min-width: 0;
-    background: transparent;
+    background: var(--background);
     color: var(--foreground);
 }
 
@@ -147,6 +147,28 @@ p {
 .btn-block {
     width: 100%;
 }
+
+.nav-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin-block: 0.75rem;
+}
+.nav-link {
+    padding: 0.45rem 0.75rem;
+    border: 0;
+    border-radius: 0.5rem;
+    background: transparent;
+    color: var(--muted-foreground);
+    cursor: pointer;
+}
+.nav-link[aria-selected="true"] {
+    background: var(--primary);
+    color: var(--primary-foreground);
+}
+.nav-justified > .nav-link { flex: 1; }
+[hidden] { display: none !important; }
+.tabular-nums { font-variant-numeric: tabular-nums; }
 
 .viz-tile {
     width: 100%;
@@ -330,3 +352,16 @@ svg [data-chart-hover-guide] {
         transition-duration: 0.01ms !important;
     }
 }
+
+/* Runtime-owned design tools and named variant navigation. */
+.omlorix-design-panel { margin: 16px; padding: 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); }
+.omlorix-design-panel > .viz-row { justify-content: space-between; }
+.omlorix-design-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 16px; margin: 12px 0; }
+.omlorix-design-group { min-width: 0; border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+.omlorix-design-group legend { color: var(--muted-foreground); padding-inline: 5px; font-size: 13px; }
+.omlorix-design-control { display: grid; grid-template-columns: minmax(0, 1fr) minmax(60px, 1fr) auto; align-items: center; gap: 10px; margin: 10px 0; font-size: 13px; }
+.omlorix-design-control input[type=color] { padding: 2px; width: 100%; height: 30px; }
+.omlorix-design-control input[type=checkbox] { justify-self: start; width: 18px; height: 18px; }
+.omlorix-design-panel [aria-pressed=true] { background: var(--accent); color: var(--accent-foreground); }
+.omlorix-variant-nav { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; margin: 12px; }
+.omlorix-variant-nav select { width: auto; max-width: min(100%, 220px); }

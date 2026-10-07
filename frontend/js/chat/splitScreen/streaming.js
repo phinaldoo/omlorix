@@ -108,6 +108,7 @@ async function splitScreenInternalSendToPanel(message, side, composerContext = {
 
         let res;
         try {
+            await window.OmlorixVisualizer?.flushState?.();
             res = await window.authedFetch('/api/v1/chats/send', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

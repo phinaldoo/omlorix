@@ -1,17 +1,31 @@
 # Visualization
 
-**Visualization** lets a model create an interactive chart, comparison, simulator, or explorable explanation inside a chat response. It needs no separate rendering service.
+**Visualization** enables models to create live inline charts, comparisons, simulations, maps, and interface previews. It needs no rendering service or model-specific integration. Enable it on the permitted models using the shared [Tool Rollout Checklist](0_tool_rollout.md).
 
-Complete the shared [Tool Rollout Checklist](0_tool_rollout.md), then use the checks below for this tool.
+## Generation and runtime
 
-## Enable and test
+The provider-neutral `create_visualization` tool accepts `title`, `content`, optional `summary`, `mode` (`normal` or `wide`), and optional host-action capabilities. `action=render` is the default and emits a durable chat widget. `action=validate` checks the same structure, size, and authoring rules without displaying a widget. Validation does not execute JavaScript or produce screenshots. Errors can be repaired before rendering.
 
-1. Select **Visualization** on each allowed model.
-2. Test a small chart, adjustable controls, wide view, keyboard operation, theme changes, and an invalid visualization.
-3. Test each optional action the visualization offers, such as preparing a follow-up message, requesting public external data, or downloading a file.
+Enabled models receive an authoring guide covering when to create a visual, theme tokens, available controls and libraries, responsive charts, accessibility, and consent-gated actions. Fragments are limited to 1 MiB of UTF-8. D3, TopoJSON, and Lucide are supplied from local versioned assets when referenced. A long transcript mounts visuals only as they approach the viewport; generation never starts a server-side browser.
 
-Visualizations run in a restricted preview and must ask the user before supported host actions. They are still model-generated interactive content: treat inputs, labels, calculations, links, and external data requests as untrusted.
+The trusted `/api/v1/files/canvas/visualization-preview-proxy` endpoint has an HTTP Content Security Policy that disallows network connections, frame navigation, workers, forms, and external resources. It embeds authored content in an opaque sandbox with only `allow-scripts`. No application storage or authenticated file hydration is exposed. The proxy is public to support shared chats, contains no user data, and permits framing only by the application origin. Canvas's separate, consent-based HTML preview retains its existing permissions.
 
-Require accessible labels, keyboard support, sufficient contrast, and a text or table alternative. Users should verify important values against the source data. Interactivity may not survive export or sharing, so important conclusions should also appear in normal chat text.
+Local scripts run immediately unless `capabilities.scripts=false`. Follow-up messages, public external-data requests, and generated downloads remain separately gated by capability and user confirmation. Shared chats disable authenticated host actions. Host toolbar actions are outside the sandbox.
+
+## Compatibility and checks
+
+Existing visualization blocks use the new renderer. Version-2 source, summary, mode, and capability metadata stay in the existing chat block format and follow chat backup, import, export, and sharing; apply migration `visualization_state_20261007` to add the nullable `chat_messages.visualization_states` JSON column. Existing messages need no backfill. Snapshots are stored separately from generated HTML and retained by chat/user-data exports, imports, branching, duplication, and database backups. Standalone HTML includes local runtime assets and the current snapshot, and disables host actions.
+
+## Saved state and mockup authoring
+
+`window.omlorix.visualization.widgetState` provides the restored snapshot. `setWidgetState({modelContent, privateContent})` replaces it; omitted fields become null. Listen for `omlorix:statechange` with `event.detail.widgetState`. `modelContent` is a concise selection summary available to follow-ups; `privateContent` is for restoring UI values and is never added to model context. The combined widget/design JSON limit is 16 KiB, with at most 32 saved widgets and 256 KiB per message. The latest eight snapshots, bounded to 4 KiB, supplement the next user turn across providers. Snapshots that exceed this context allowance are omitted; keep model-visible summaries concise. Never put secrets or large datasets into snapshots.
+
+The owner-only GET/PUT `/api/v1/chats/messages/{message_id}/visualizations/{tool_call_id}/state` endpoints enforce chat ownership, current project access, widget identity and source identity. PUT requires the revision returned by GET; conflicting tabs receive 409. Saves are coalesced, flushed before follow-ups and on page hiding, and queued until a live message has a server ID. Changes update only the bounded JSON column. Shared and temporary previews use local session state and do not write the owner's snapshot. Saving does not initiate generation. Failed saves remain visible and can be retried.
+
+Models declare editable components through `new Tweak({container, onChange})`, with stable container IDs and descriptive `aria-label`s. `addSlider`, `addColorPicker`, `addToggle`, and `addSelect` bind properties on a local state object. The injected Omlorix runtime supplies the accessible panel, original preview, reset and capability-gated, confirmed follow-up. It is not an external Tweak.js dependency. Groups inside inactive variants are hidden; groups outside are shared. Callback functions should only redraw locally. Up to 24 components, 12 controls each and 12 select options are supported; use `.dispose()` for removed components.
+
+A `.viz-carousel` with a stable ID and direct children carrying unique `data-variant` names gets previous/next buttons, a named picker and a counter. Variant switching toggles `hidden` without rebuilding the DOM. It persists independently of widget state. Exported files include the same design and variant controls and start with the downloaded snapshot; further changes in the file remain local.
+
+Test local controls, source view, reset, HTML download, expansion/collapse, theme changes, a narrow viewport, keyboard focus, text alternatives, and malformed scripts. Verify optional host actions individually and test shared chats. Models should use accessible labels, sufficient contrast, honest units/scales, and text or table equivalents. Validation is an authoring aid; the browser sandbox enforces isolation independently, including for imported content.
 
 Use [Canvas](16_canvas.md) for durable editable documents and [Image Generation](6_image_generation.md) for raster artwork.

@@ -2873,7 +2873,7 @@ test('only explicit arbitrary HTML widgets use opaque iframe rendering', () => {
     assert.doesNotMatch(source, /iframe\.srcdoc = buildBackendWidgetIframeDocument\(decodedHtml, frameId\)/);
 });
 
-test('visualization widgets use the shared static-first renderer and keep large arguments hidden', () => {
+test('visualization widgets use the shared live renderer and keep large arguments hidden', () => {
     const source = streamMessagesSource;
     const appendSource = extractFunction(source, 'appendAssistantWidget');
 
@@ -2883,7 +2883,7 @@ test('visualization widgets use the shared static-first renderer and keep large 
     assert.match(appendSource, /widgetType \|\| ''\)\.trim\(\)\.toLowerCase\(\) === 'visualization'/);
     assert.match(appendSource, /window\.OmlorixVisualizer\.mount/);
     assert.match(appendSource, /classList\.add\('markdown-body', 'assistant-visualization-widget'\)/);
-    assert.match(appendSource, /allowScripts: false/);
+    assert.match(appendSource, /summary: visualizationMeta\.summary/);
     assert.match(appendSource, /visualizationMeta\.capabilities/);
     assert.ok(
         appendSource.indexOf("=== 'visualization'") < appendSource.indexOf('shouldRenderBackendWidgetIframe'),

@@ -2266,7 +2266,11 @@ def send_message(
         user_id=user_id,
         chat_history=chat_history,
     )
-    chat_reference_context = _join_latest_user_context(chat_reference_context, canvas_update_context, notes_update_context)
+    from app.chats.visualization_state import visualization_followup_context
+    chat_reference_context = _join_latest_user_context(
+        chat_reference_context, canvas_update_context, notes_update_context,
+        visualization_followup_context(chat_history),
+    )
     if effective_skill_ids:
         logger.debug(
             "[ChatGeneration] utils.skills_loaded user=%s chat=%s skill_ids=%s",
@@ -5521,7 +5525,11 @@ def regenerate_message(
         user_id=user_id,
         chat_history=filtered_history,
     )
-    chat_reference_context = _join_latest_user_context(chat_reference_context, canvas_update_context, notes_update_context)
+    from app.chats.visualization_state import visualization_followup_context
+    chat_reference_context = _join_latest_user_context(
+        chat_reference_context, canvas_update_context, notes_update_context,
+        visualization_followup_context(filtered_history),
+    )
     assistant_metadata = _build_retry_guidance_metadata(retry_guidance)
     assistant_metadata.update(selection_metadata)
 
