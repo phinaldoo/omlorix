@@ -8,8 +8,6 @@ RATE_LIMIT_TOOL_LABEL_I18N_KEYS: dict[str, str] = {
     "subagent": "rate_limit_tool_label_subagent",
     "web_search": "rate_limit_tool_label_web_search",
     "weather": "rate_limit_tool_label_weather",
-    "flashcards": "rate_limit_tool_label_flashcards",
-    "quiz": "rate_limit_tool_label_quiz",
     "todos": "rate_limit_tool_label_todos",
     "notes": "rate_limit_tool_label_notes",
     "automations": "rate_limit_tool_label_automations",
@@ -29,8 +27,6 @@ RATE_LIMIT_TOOL_DESCRIPTION_I18N_KEYS: dict[str, str] = {
     "create_visualization": "rate_limit_tool_description_create_visualization",
     "web_search": "rate_limit_tool_description_web_search",
     "weather": "rate_limit_tool_description_weather",
-    "flashcards": "rate_limit_tool_description_flashcards",
-    "quiz": "rate_limit_tool_description_quiz",
     "todos": "rate_limit_tool_description_todos",
     "notes": "rate_limit_tool_description_notes",
     "automations": "rate_limit_tool_description_automations",
@@ -50,8 +46,6 @@ BUILTIN_RATE_LIMIT_TOOLS: tuple[dict[str, str], ...] = (
     {"key": "create_visualization", "label": "Visualization", "description": "Create an inline interactive visualization.", "source": "built_in"},
     {"key": "web_search", "label": "Web search", "description": "Search and retrieve web or image results.", "source": "built_in"},
     {"key": "weather", "label": "Weather", "description": "Fetch weather conditions and forecasts.", "source": "built_in"},
-    {"key": "flashcards", "label": "Flashcards", "description": "Create flashcard study widgets.", "source": "built_in"},
-    {"key": "quiz", "label": "Quiz", "description": "Create quiz study widgets.", "source": "built_in"},
     {"key": "image_generation", "label": "Image generation", "description": "Generate images.", "source": "built_in"},
     {"key": "video_generation", "label": "Video generation", "description": "Generate videos.", "source": "built_in"},
     {"key": "audio_generation", "label": "Audio generation", "description": "Generate audio.", "source": "built_in"},
@@ -77,12 +71,20 @@ BUILTIN_RATE_LIMIT_TOOLS: tuple[dict[str, str], ...] = (
     {"key": "code_execution", "label": "Code execution", "description": "Execute code in the sandbox.", "source": "built_in"},
 )
 
+# Compatibility for saved model/group settings and imported rate-limit policies.
+# These names are never advertised or dispatched as tools.
+RETIRED_STUDY_TOOL_ALIASES = {
+    "quiz": "create_visualization",
+    "create_quiz": "create_visualization",
+    "flashcards": "create_visualization",
+    "create_flashcards": "create_visualization",
+}
+
 TOOL_KEY_ALIASES = {
     "code_execution_internal": "code_execution",
     "slide_presentation_legacy": "slide_presentation",
     "get_weather": "weather",
-    "create_flashcards": "flashcards",
-    "create_quiz": "quiz",
+    **RETIRED_STUDY_TOOL_ALIASES,
 }
 
 

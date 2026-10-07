@@ -225,7 +225,7 @@
         'automations_management': ['automations'],
         'skills_management': ['skills'],
         'information': ['weather'],
-        'education': ['quiz', 'flashcards'],
+        'education': ['create_visualization'],
         'media_generation': ['image_generation', 'video_generation', 'audio_generation', 'music_generation'],
         'presentations': ['slide_presentation'],
         'research': ['deep_research'],

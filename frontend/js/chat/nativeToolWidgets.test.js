@@ -46,13 +46,8 @@ test('every locale translates native widget controls', () => {
     const requiredKeys = [
         'weather_unknown_location',
         'weather_daily_forecast',
-        'quiz_complete',
-        'quiz_score',
-        'quiz_next',
-        'flashcards_shuffle',
-        'flashcards_show_answer',
-        'flashcards_summary',
-        'flashcards_study_again',
+        'study_legacy_archive',
+        'flashcards_answer',
     ];
     for (const locale of fs.readdirSync(i18nRoot)) {
         const dictionary = JSON.parse(fs.readFileSync(path.join(i18nRoot, locale, 'index.json'), 'utf8'));
@@ -60,5 +55,31 @@ test('every locale translates native widget controls', () => {
             assert.equal(typeof dictionary[key], 'string', `${locale} is missing ${key}`);
             assert.ok(dictionary[key].trim(), `${locale} has an empty ${key}`);
         }
+    }
+});
+
+
+test('historical study content remains readable without executable markup or study controls', () => {
+    class Node {
+        constructor(tag) { this.tag = tag; this.children = []; this.textContent = ''; }
+        append(...nodes) { this.children.push(...nodes); }
+        appendChild(node) { this.append(node); }
+        replaceChildren(...nodes) { this.children = nodes; }
+    }
+    const window = {};
+    require('node:vm').runInNewContext(widgetSource, { window, document: { createElement: (tag) => new Node(tag) } });
+    const root = new Node('div');
+    for (const [type, data] of [
+        ['quiz', { questions: [{ question: '<img onerror=alert(1)>', options: ['A', 'B'], correct_option_index: 1, explanation: 'Because B' }] }],
+        ['flashcards', { cards: [{ front: '<script>bad()</script>', back: 'Meaning', hint: 'Hint' }] }],
+    ]) {
+        assert.equal(window.nativeToolWidgets.render(root, type, data), true);
+        const nodes = [];
+        const walk = (node) => { nodes.push(node); node.children.forEach(walk); };
+        walk(root);
+        assert.equal(nodes.filter((node) => node.tag === 'details').length, 1);
+        assert.equal(nodes.some((node) => ['script', 'img', 'button', 'input'].includes(node.tag)), false);
+        assert.ok(nodes.some((node) => node.textContent.startsWith('Answer: ')));
+        assert.ok(nodes.some((node) => node.tag === 'summary' && node.textContent.startsWith('<')));
     }
 });

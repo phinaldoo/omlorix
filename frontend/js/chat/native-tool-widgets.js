@@ -145,266 +145,37 @@
         root.replaceChildren(widget);
     }
 
-    /** Render an accessible, keyboard-native multiple-choice quiz. */
-    function renderQuiz(root, data) {
-        const questions = Array.isArray(data.questions) ? data.questions : [];
-        const widget = element('section', 'native-tool-widget quiz-native-widget');
-        const header = element('header', 'native-widget-header');
-        const titleWrap = element('div', 'native-widget-title-wrap');
-        titleWrap.append(
-            element('p', 'native-widget-eyebrow', t('assistant_tool_quiz_name', 'Quiz')),
-            element('h3', 'native-widget-title', data.title || t('assistant_tool_quiz_name', 'Quiz')),
+    /** Read-only compatibility for saved/imported study widgets from retired tools. */
+    function renderLegacyStudy(root, data) {
+        const widget = element('section', 'native-tool-widget legacy-study-widget');
+        widget.append(
+            element('h3', 'native-widget-title', data.title || ''),
             element('p', 'native-widget-subtitle', data.description || ''),
+            element('p', 'native-widget-subtitle', t('study_legacy_archive', 'Saved study material. Ask for an interactive visualization to practice it again.')),
         );
-        const progress = element('span', 'native-widget-progress-copy');
-        header.append(titleWrap, progress);
-        const body = element('div', 'quiz-native-body');
-        const feedback = element('p', 'native-widget-feedback');
-        feedback.setAttribute('role', 'status');
-        feedback.setAttribute('aria-live', 'polite');
-        let index = 0;
-        let score = 0;
-        let answered = false;
-
-        function showQuestion() {
-            answered = false;
-            feedback.textContent = '';
-            body.replaceChildren();
-            if (index >= questions.length) {
-                progress.textContent = '';
-                body.append(
-                    element('h4', 'native-widget-result-title', t('quiz_complete', 'Quiz complete')),
-                    element('p', 'native-widget-result-copy', tf('quiz_score', 'You scored {score} out of {total}.', {
-                        score,
-                        total: questions.length,
-                    })),
-                );
-                const restart = button('native-widget-primary-button', t('quiz_restart', 'Try again'));
-                restart.addEventListener('click', () => {
-                    index = 0;
-                    score = 0;
-                    showQuestion();
-                });
-                body.appendChild(restart);
-                return;
+        const questions = Array.isArray(data.questions) ? data.questions.slice(0, 20) : [];
+        const cards = Array.isArray(data.cards) ? data.cards.slice(0, 40) : [];
+        [...questions, ...cards].forEach((item) => {
+            if (!item || typeof item !== 'object') return;
+            const details = element('details');
+            details.appendChild(element('summary', '', item.question || item.front || ''));
+            const options = Array.isArray(item.options) ? item.options : [];
+            if (options.length) {
+                const list = element('ol');
+                options.forEach((option) => list.appendChild(element('li', '', option)));
+                details.appendChild(list);
             }
-
-            const question = questions[index] || {};
-            progress.textContent = tf('quiz_progress', '{current} of {total}', {
-                current: index + 1,
-                total: questions.length,
-            });
-            const fieldset = element('fieldset', 'quiz-native-fieldset');
-            const legend = element('legend', 'quiz-native-question', question.question || '');
-            fieldset.appendChild(legend);
-            (Array.isArray(question.options) ? question.options : []).forEach((option, optionIndex) => {
-                const optionButton = button('quiz-native-option', option);
-                optionButton.dataset.optionIndex = String(optionIndex);
-                optionButton.addEventListener('click', () => {
-                    if (answered) return;
-                    answered = true;
-                    const correctIndex = numberValue(question.correct_option_index, -1);
-                    const correct = optionIndex === correctIndex;
-                    if (correct) score += 1;
-                    fieldset.querySelectorAll('button').forEach((candidate) => {
-                        candidate.disabled = true;
-                        const candidateIndex = numberValue(candidate.dataset.optionIndex, -1);
-                        if (candidateIndex === correctIndex) candidate.dataset.answer = 'correct';
-                        if (candidate === optionButton && !correct) candidate.dataset.answer = 'incorrect';
-                    });
-                    feedback.textContent = correct
-                        ? t('quiz_correct', 'Correct.')
-                        : t('quiz_incorrect', 'Not quite.');
-                    if (question.explanation) {
-                        feedback.textContent += ` ${question.explanation}`;
-                    }
-                    next.hidden = false;
-                    next.focus();
-                });
-                fieldset.appendChild(optionButton);
-            });
-            const next = button('native-widget-primary-button', index + 1 === questions.length
-                ? t('quiz_view_results', 'View results')
-                : t('quiz_next', 'Next question'));
-            next.hidden = true;
-            next.addEventListener('click', () => {
-                index += 1;
-                showQuestion();
-            });
-            body.append(fieldset, feedback, next);
-        }
-
-        widget.append(header, body);
+            const answer = Number.isInteger(item.correct_option_index)
+                ? options[item.correct_option_index] : item.back;
+            if (answer) details.appendChild(element('p', '', `${t('flashcards_answer', 'Answer')}: ${answer}`));
+            for (const text of [item.explanation, item.hint, item.example, item.pronunciation, item.category, item.note]) {
+                if (text) details.appendChild(element('p', '', text));
+            }
+            widget.appendChild(details);
+        });
         root.replaceChildren(widget);
-        showQuestion();
     }
 
-    /** Render a self-contained study session without executing payload scripts. */
-    function renderFlashcards(root, data) {
-        const originalCards = Array.isArray(data.cards) ? data.cards.map((card) => ({ ...card })) : [];
-        let cards = originalCards.map((card) => ({ ...card }));
-        let index = 0;
-        let revealed = false;
-        let reversed = false;
-        let shuffled = false;
-        let mastered = 0;
-        let reviews = 0;
-        const widget = element('section', 'native-tool-widget flashcards-native-widget');
-        const header = element('header', 'native-widget-header');
-        const titleWrap = element('div', 'native-widget-title-wrap');
-        titleWrap.append(
-            element('p', 'native-widget-eyebrow', t('assistant_tool_flashcards_name', 'Flashcards')),
-            element('h3', 'native-widget-title', data.title || t('assistant_tool_flashcards_name', 'Flashcards')),
-            element('p', 'native-widget-subtitle', data.description || ''),
-        );
-        const controls = element('div', 'native-widget-header-actions');
-        const shuffle = button('native-widget-pill', t('flashcards_shuffle', 'Shuffle'));
-        const reverse = button('native-widget-pill', t('flashcards_reverse', 'Reverse'));
-        shuffle.setAttribute('aria-pressed', 'false');
-        reverse.setAttribute('aria-pressed', 'false');
-        controls.append(shuffle, reverse);
-        header.append(titleWrap, controls);
-
-        const metrics = element('div', 'native-widget-metrics');
-        const queueValue = element('dd');
-        const masteryValue = element('dd');
-        const reviewValue = element('dd');
-        [
-            [t('flashcards_queue', 'Queue'), queueValue],
-            [t('flashcards_mastery', 'Mastered'), masteryValue],
-            [t('flashcards_reviews', 'Reviews'), reviewValue],
-        ].forEach(([label, value]) => {
-            const item = element('dl', 'native-widget-metric');
-            item.append(element('dt', '', label), value);
-            metrics.appendChild(item);
-        });
-
-        const stage = element('div', 'flashcards-native-stage');
-        const cardButton = button('flashcards-native-card');
-        const sideLabel = element('span', 'flashcards-native-side-label');
-        const cardText = element('strong', 'flashcards-native-text');
-        const support = element('div', 'flashcards-native-support');
-        cardButton.append(sideLabel, cardText, support);
-        const actions = element('div', 'native-widget-actions');
-        const flip = button('native-widget-primary-button', t('flashcards_show_answer', 'Show answer'));
-        const again = button('native-widget-secondary-button', t('flashcards_again', 'Again'));
-        const hard = button('native-widget-secondary-button', t('flashcards_hard', 'Hard'));
-        const good = button('native-widget-primary-button', t('flashcards_got_it', 'Got it'));
-        actions.append(flip, again, hard, good);
-
-        function currentCard() {
-            return cards[index] || null;
-        }
-
-        function renderCard() {
-            const card = currentCard();
-            queueValue.textContent = String(Math.max(cards.length - index, 0));
-            masteryValue.textContent = `${mastered}/${originalCards.length}`;
-            reviewValue.textContent = String(reviews);
-            if (!card) {
-                stage.replaceChildren(
-                    element('h4', 'native-widget-result-title', t('flashcards_complete', 'Deck finished')),
-                    element('p', 'native-widget-result-copy', tf('flashcards_summary', '{mastered} of {total} cards mastered.', {
-                        mastered,
-                        total: originalCards.length,
-                    })),
-                );
-                const restart = button('native-widget-primary-button', t('flashcards_study_again', 'Study again'));
-                restart.addEventListener('click', reset);
-                stage.appendChild(restart);
-                actions.hidden = true;
-                return;
-            }
-
-            if (!stage.contains(cardButton)) stage.replaceChildren(cardButton);
-            actions.hidden = false;
-            const front = reversed ? card.back : card.front;
-            const back = reversed ? card.front : card.back;
-            sideLabel.textContent = revealed
-                ? t('flashcards_answer', 'Answer')
-                : t('flashcards_prompt', 'Prompt');
-            cardText.textContent = revealed ? back : front;
-            cardButton.classList.toggle('is-revealed', revealed);
-            cardButton.setAttribute('aria-label', revealed
-                ? t('flashcards_hide_answer', 'Show prompt')
-                : t('flashcards_show_answer', 'Show answer'));
-            support.replaceChildren();
-            if (revealed) {
-                [
-                    [t('flashcards_example', 'Example'), card.example],
-                    [t('flashcards_hint', 'Hint'), card.hint],
-                    [t('flashcards_note', 'Note'), card.note],
-                ].filter((item) => item[1]).forEach(([label, value]) => {
-                    const item = element('p', 'flashcards-native-support-item');
-                    item.append(element('span', '', `${label}: `), document.createTextNode(String(value)));
-                    support.appendChild(item);
-                });
-            }
-            flip.hidden = revealed;
-            again.hidden = hard.hidden = good.hidden = !revealed;
-        }
-
-        function toggleReveal() {
-            if (!currentCard()) return;
-            revealed = !revealed;
-            renderCard();
-        }
-
-        function rate(kind) {
-            if (!revealed || !currentCard()) return;
-            reviews += 1;
-            if (kind === 'good') mastered += 1;
-            if (kind === 'again') {
-                cards.splice(Math.min(index + 3, cards.length), 0, { ...currentCard() });
-            }
-            if (kind === 'hard') {
-                cards.splice(Math.min(index + 5, cards.length), 0, { ...currentCard() });
-            }
-            index += 1;
-            revealed = false;
-            renderCard();
-        }
-
-        function reset() {
-            cards = originalCards.map((card) => ({ ...card }));
-            index = 0;
-            revealed = false;
-            mastered = 0;
-            reviews = 0;
-            renderCard();
-        }
-
-        cardButton.addEventListener('click', toggleReveal);
-        flip.addEventListener('click', toggleReveal);
-        again.addEventListener('click', () => rate('again'));
-        hard.addEventListener('click', () => rate('hard'));
-        good.addEventListener('click', () => rate('good'));
-        reverse.addEventListener('click', () => {
-            reversed = !reversed;
-            reverse.setAttribute('aria-pressed', String(reversed));
-            reverse.classList.toggle('is-active', reversed);
-            reset();
-        });
-        shuffle.addEventListener('click', () => {
-            shuffled = !shuffled;
-            shuffle.setAttribute('aria-pressed', String(shuffled));
-            shuffle.classList.toggle('is-active', shuffled);
-            reset();
-            if (shuffled) {
-                for (let cursor = cards.length - 1; cursor > 0; cursor -= 1) {
-                    const swapIndex = Math.floor(Math.random() * (cursor + 1));
-                    [cards[cursor], cards[swapIndex]] = [cards[swapIndex], cards[cursor]];
-                }
-            }
-            renderCard();
-        });
-
-        widget.append(header, metrics, stage, actions);
-        root.replaceChildren(widget);
-        renderCard();
-    }
-
-    /** Build the card shell consumed by the existing deep-research controller. */
     function renderDeepResearch(root, data) {
         const terminal = Boolean(data.terminal) || ['completed', 'failed', 'error', 'cancelled'].includes(String(data.status));
         const progressValue = terminal ? 100 : 4;
@@ -538,8 +309,8 @@
 
     const RENDERERS = {
         weather: renderWeather,
-        quiz: renderQuiz,
-        flashcards: renderFlashcards,
+        quiz: renderLegacyStudy,
+        flashcards: renderLegacyStudy,
         deep_research: renderDeepResearch,
         skill_draft: renderSkillDraft,
         notes_result: renderNotesResult,

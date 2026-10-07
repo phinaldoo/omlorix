@@ -26,7 +26,7 @@ TOOL_CATEGORIES: dict[str, list[str]] = {
     "automations_management": ["automations"],
     "skills_management": ["skills"],
     "information": ["weather"],
-    "education": ["quiz", "flashcards"],
+    "education": ["create_visualization"],
     "media_generation": ["image_generation", "video_generation", "audio_generation", "music_generation"],
     "presentations": ["slide_presentation"],
     "research": ["deep_research"],
@@ -60,6 +60,9 @@ def _compute_tool_categories(tool_list: list[str]) -> dict:
             "uncategorized": [],
         }
     
+    from app.tools.registry import normalize_rate_limit_tool_key
+
+    tool_list = list(dict.fromkeys(normalize_rate_limit_tool_key(name) for name in tool_list))
     tool_set = set(tool_list)
     categories_status = {}
     

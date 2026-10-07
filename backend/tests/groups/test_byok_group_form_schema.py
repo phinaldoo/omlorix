@@ -39,3 +39,19 @@ def test_memory_group_settings_expose_switch_and_dependent_model_select():
     assert model.default == ""
     assert model.dependency == enabled.key
     assert model.dependency_value is True
+
+
+def test_retired_study_tools_remain_selected_in_group_editor(monkeypatch):
+    from types import SimpleNamespace
+    from app.admin.groups import models
+
+    for name in ("_hydrate_parent_group_select", "_hydrate_manager_user_selects", "_hydrate_model_selects", "_hydrate_admin_skills_select", "_hydrate_byok_allowed_tools_select", "_hydrate_byok_websearch_provider_selects"):
+        monkeypatch.setattr(models, name, lambda *args, **kwargs: None)
+    monkeypatch.setattr(models, "get_group", lambda *args: SimpleNamespace(id="g", name="Group", parent_id=None))
+    settings = {"chat": {"byok_allowed_tools": ["quiz", "flashcards", "create_visualization"]}}
+    monkeypatch.setattr(models, "get_group_settings", lambda *args: settings)
+    monkeypatch.setattr(models, "list_group_managers", lambda *args: [])
+    schema = models.get_group_form_schema(None, "g")
+    field = next(field for section in schema.sections for field in section.fields if field.key == "settings.chat.byok_allowed_tools")
+    assert field.value == ["create_visualization"]
+    assert settings["chat"]["byok_allowed_tools"] == ["quiz", "flashcards", "create_visualization"]

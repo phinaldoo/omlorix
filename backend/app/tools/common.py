@@ -9,8 +9,6 @@ tools_not_yield_arguments = [
     "video_generation",
     "audio_generation",
     "music_generation",
-    "flashcards",
-    "quiz",
     "slide_presentation",
 ]
 

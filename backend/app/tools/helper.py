@@ -12,8 +12,6 @@ from app.groups.init import get_user_group_setting_value
 from app.tools.utils import (
     web_search,
     get_weather,
-    create_flashcards,
-    create_quiz,
     TODO_TOOL_OPERATIONS,
     todos_tool,
     notes_tool,
@@ -236,8 +234,6 @@ AVAILABLE_TOOLS = [
     "subagent",
     "web_search",
     "weather",
-    "flashcards",
-    "quiz",
     "image_generation",
     "video_generation",
     "audio_generation",
@@ -922,48 +918,6 @@ def _resolve_tool_call(
         if result and result.get("status") != "error" and result.get("current_weather"):
             widget_payload = _build_frontend_widget_payload("weather", result)
             yield _stream_widget_event(widget_payload, tool_name="weather")
-        return {
-            "content": content,
-            "documents": documents,
-            "images": images,
-            "videos": videos,
-            "audios": audios,
-            "youtube": youtube,
-            "webpages": webpages,
-            "result": result,
-            "widget": widget_payload,
-        }
-
-    elif tool_name == "quiz":
-        title = tool_args.get("title") if isinstance(tool_args, dict) else None
-        description = tool_args.get("description") if isinstance(tool_args, dict) else None
-        questions = tool_args.get("questions") if isinstance(tool_args, dict) else None
-        result = create_quiz(title=title, description=description, questions=questions)
-        _raise_if_tool_error_payload(result, tool_name=tool_name)
-        content = json.dumps(result, ensure_ascii=False, separators=(",", ":"))
-        widget_payload = _build_frontend_widget_payload("quiz", result)
-        yield _stream_widget_event(widget_payload, tool_name="quiz")
-        return {
-            "content": content,
-            "documents": documents,
-            "images": images,
-            "videos": videos,
-            "audios": audios,
-            "youtube": youtube,
-            "webpages": webpages,
-            "result": result,
-            "widget": widget_payload,
-        }
-
-    elif tool_name == "flashcards":
-        title = tool_args.get("title") if isinstance(tool_args, dict) else None
-        description = tool_args.get("description") if isinstance(tool_args, dict) else None
-        cards = tool_args.get("cards") if isinstance(tool_args, dict) else None
-        result = create_flashcards(title=title, description=description, cards=cards)
-        _raise_if_tool_error_payload(result, tool_name=tool_name)
-        content = json.dumps(result, ensure_ascii=False, separators=(",", ":"))
-        widget_payload = _build_frontend_widget_payload("flashcards", result)
-        yield _stream_widget_event(widget_payload, tool_name="flashcards")
         return {
             "content": content,
             "documents": documents,

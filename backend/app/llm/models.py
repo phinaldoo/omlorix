@@ -2123,8 +2123,9 @@ def _validate_rate_limit_model_ids(db, model_ids: Any) -> list[str]:
 def _validate_rate_limit_tool_keys(db, tool_keys: Any) -> list[str]:
     normalized = _normalize_rate_limit_ids(tool_keys, "tool_keys", allow_empty=False)
     try:
-        from app.tools.registry import list_rate_limit_tool_keys
+        from app.tools.registry import list_rate_limit_tool_keys, normalize_rate_limit_tool_key
 
+        normalized = list(dict.fromkeys(normalize_rate_limit_tool_key(key) for key in normalized))
         known_tool_keys = set(list_rate_limit_tool_keys(db))
     except Exception:
         logger.warning("Failed to load tool registry while validating rate limit tool keys", exc_info=True)
@@ -2392,8 +2393,10 @@ def _rate_limit_applies_to_user(rate_limit: RateLimit, user_id: str, group_id: s
 def _tool_rate_limit_applies_to_user(rate_limit: RateLimit, user_id: str, group_id: str | None, tool_key: str) -> bool:
     if getattr(rate_limit, "target_type", RATE_LIMIT_TARGET_TYPE_MODEL) != RATE_LIMIT_TARGET_TYPE_TOOL:
         return False
-    tool_keys = set(rate_limit.tool_keys or [])
-    if tool_key not in tool_keys:
+    from app.tools.registry import normalize_rate_limit_tool_key
+
+    tool_keys = {normalize_rate_limit_tool_key(key) for key in rate_limit.tool_keys or []}
+    if normalize_rate_limit_tool_key(tool_key) not in tool_keys:
         return False
     return rate_limit_targets_user(rate_limit, user_id, group_id)
 

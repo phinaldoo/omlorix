@@ -77,7 +77,12 @@ from app.llm.models import (
     renew_dictation_duration_rate_limit_lease,
     normalize_llm_provider_status,
 )
-from app.tools.registry import get_rate_limit_tool, list_rate_limit_tools
+from app.tools.registry import (
+    RETIRED_STUDY_TOOL_ALIASES,
+    get_rate_limit_tool,
+    list_rate_limit_tools,
+    normalize_rate_limit_tool_key,
+)
 from app.tools.widget_frames import create_widget_frame_payload, get_widget_frame_payload
 from app.llm.schemas import (
     ProviderEnum,
@@ -411,7 +416,10 @@ def _coerce_bool(value) -> bool:
 def _build_rate_limit_payload(db: Session, rate_limit_obj) -> dict[str, Any]:
     target_type = getattr(rate_limit_obj, "target_type", RATE_LIMIT_TARGET_TYPE_MODEL) or RATE_LIMIT_TARGET_TYPE_MODEL
     model_ids = list(rate_limit_obj.model_ids or [])
-    tool_keys = list(getattr(rate_limit_obj, "tool_keys", None) or [])
+    tool_keys = list(dict.fromkeys(
+        normalize_rate_limit_tool_key(key)
+        for key in getattr(rate_limit_obj, "tool_keys", None) or []
+    ))
     user_ids = list(rate_limit_obj.user_ids or [])
     group_ids = list(rate_limit_obj.group_ids or [])
 
@@ -663,6 +671,12 @@ def _schema_to_payload(schema_obj: Any) -> dict[str, Any]:
         schema_obj = schema_obj
     payload = jsonable_encoder(schema_obj) if schema_obj is not None else {}
     if isinstance(payload, dict) and isinstance(payload.get("sections"), list):
+        for section in payload["sections"]:
+            for field in section.get("fields", []):
+                if field.get("key") == "tools" and isinstance(field.get("value"), list):
+                    field["value"] = list(dict.fromkeys(
+                        RETIRED_STUDY_TOOL_ALIASES.get(name, name) for name in field["value"]
+                    ))
         return payload
     return {"sections": []}
 

@@ -13,14 +13,13 @@ from app.tools.music_generation.utils import music_generation
 # ``view_canvas_file`` remains an intentional re-export consumed by
 # ``app.tools.helper`` alongside the registry helpers in this module.
 from app.tools.canvas_markdown.utils import save_canvas_markdown, view_canvas_file  # noqa: F401
-from app.tools.flashcards.utils import create_flashcards
-from app.tools.quiz.utils import create_quiz
 from app.tools.deep_research.utils import deep_research
 from app.tools.code_execution.utils import (
   build_code_execution_tool_schema,
   code_execution_supports_external_pip_packages,
 )
 from app.tools.schemas import tool_schemas
+from app.tools.registry import RETIRED_STUDY_TOOL_ALIASES
 from app.tools.todos.utils import TODO_TOOL_OPERATIONS, todos_tool
 from app.tools.notes.utils import notes_tool
 from app.tools.automations.utils import WEBHOOK_MANAGEMENT_USER_MESSAGE, automations_tool
@@ -41,8 +40,6 @@ available_tools = {
     "subagent": None,
     'web_search': web_search,
     "weather": get_weather,
-    "flashcards": create_flashcards,
-    "quiz": create_quiz,
     "todos": todos_tool,
     "notes": notes_tool,
     "automations": automations_tool,
@@ -238,8 +235,7 @@ def get_tool_schemas(
 
   tool_name_aliases = {
     "get_weather": "weather",
-    "create_flashcards": "flashcards",
-    "create_quiz": "quiz",
+    **RETIRED_STUDY_TOOL_ALIASES,
     # Existing model settings should transparently receive the unified Canvas
     # tool after the dedicated model-facing LaTeX tool is retired.
     "latex_pdf": "canvas",
@@ -447,8 +443,7 @@ def resolve_enabled_tools(
     "code_execution_internal": "code_execution",
     "slide_presentation_legacy": "slide_presentation",
     "get_weather": "weather",
-    "create_flashcards": "flashcards",
-    "create_quiz": "quiz",
+    **RETIRED_STUDY_TOOL_ALIASES,
     "latex_pdf": "canvas",
   }
 

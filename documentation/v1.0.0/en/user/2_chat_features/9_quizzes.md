@@ -1,21 +1,11 @@
-# Interactive Quizzes
+# Quizzes
 
-A model with the **Quiz** tool can create a self-study multiple-choice quiz inside its response. A quiz contains 1–20 questions, four choices for each question, and one intended answer.
+Ask the assistant to create an interactive quiz as a visualization, using a topic or material in your chat. For example: “Quiz me on these biology notes, one question at a time, with explanations and a final score.”
 
-## Create a quiz
+Select an answer and submit it to see feedback. Ask for a retry of missed questions or an explanation of your mistakes. The generated interface can vary with your request; it is intended for self-study, not authoritative grading.
 
-Ask for an **interactive quiz** and specify the topic, number of questions, audience, difficulty, learning goals, and whether explanations are required. Attach or select the source material and say **use only this source** when the quiz must stay grounded in it.
+Choose a model with **Visualization** enabled. Its built-in authoring guidance covers these study activities; no separate quiz/flashcard tool or skill installation is needed.
 
-> Create an interactive 8-question quiz for new support agents using only the attached guide. Test practical understanding, use plausible choices, and explain every answer.
+Generated activities can save answers and progress using visualization state. In an owned chat, a correctly authored activity resumes after reload and can give the assistant a concise progress summary for follow-ups. Shared previews do not update the owner’s progress.
 
-The model chooses the questions and answer key. Omlorix checks the quiz structure, not factual accuracy, so review high-stakes material before using it.
-
-## Take and repeat it
-
-Select one answer. Omlorix immediately marks the correct option, shows **Correct** or **Not quite**, and displays the model’s explanation when provided. Then select **Next question** or **View results**.
-
-At the end, the quiz shows your score. **Try again** restarts the same questions and answer key; ask the model to create a new quiz when you want different content or difficulty.
-
-Quiz progress and scores are local to the displayed widget and are not a durable grade, learning record, or tamper-resistant assessment. Reloading or reopening the chat starts a fresh attempt, and the assistant does not automatically receive your answers or score. Tell it which questions you missed if you want coaching.
-
-When a chat is shared, quiz questions and answers are reviewed as static published content rather than a saved attempt. Use [Flashcards](10_flashcards.md) for unscored recall practice.
+Older quiz and flashcard messages remain available as expandable, read-only study material, including answers and explanations. Ask the assistant to turn that material into a new interactive visualization to practise it again.
