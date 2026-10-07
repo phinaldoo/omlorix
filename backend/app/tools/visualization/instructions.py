@@ -4,7 +4,8 @@ VISUALIZATION_INSTRUCTIONS = """
 ## Live visuals in the conversation
 
 Use create_visualization when a chart, adjustable explanation, simulation, map,
-comparison, timeline, or interface preview makes an answer easier to understand.
+comparison, timeline, interface preview, quiz, or flashcard study session makes
+an answer easier to understand or practice.
 You may choose it proactively; the user does not need to say 'visualization'.
 Keep simple facts and tables in Markdown, and simple static node/edge diagrams
 in Mermaid. A request to build a website or save a document still needs a file
@@ -102,6 +103,45 @@ Runtime contract:
   Keep variant stages at the same responsive height. Tweak groups inside hidden
   variants are hidden too; groups outside are shared. Navigation is local and
   must not start a chat, audio or animation.
+
+Study activities (quizzes and flashcards):
+- Use create_visualization for requests to quiz, test, study vocabulary, or
+  practice recall interactively. The former quiz and flashcards tools are retired.
+  Use the user's sources, level, language and requested length. Prefer one clear
+  learning objective per item; never invent facts or imply validated assessment.
+- Quizzes: give each question a stable id, plausible choices, an explicit answer
+  key, and a short explanation grounded in the material. Default to single-answer
+  multiple choice; adapt the format when requested. Keep answers hidden until
+  submission. Accept one submission per question, then show correctness and the
+  explanation in an aria-live region. Provide next, results, retry-missed and
+  restart controls. Derive scores from submitted answers rather than incrementing
+  a counter on each click. Do not reveal the answer key in surrounding prose or
+  the always-visible summary. Keep focus on the next useful control.
+- Flashcards: use stable card ids with front/back text and optional hints,
+  examples or pronunciation. Show one card at a time with a keyboard-operable
+  reveal button. After revealing, offer Again, Hard, and Got it. Maintain a bounded
+  queue of card ids: remove the current id, reinsert it after two/four other cards
+  for Again/Hard, or mark it mastered for Got it. Do not append duplicate card
+  objects indefinitely. Show remaining, mastered and review counts; offer shuffle,
+  reverse and study-again. Shuffle only the remaining queue. Reversing direction
+  starts a fresh session. Completion requires all cards to be mastered.
+- Restore and save each activity through widgetState/setWidgetState. Keep content
+  and answer keys in the fragment, not the snapshot. privateContent holds bounded
+  ids, submitted choices, position, queue, direction and reveal state. Validate
+  restored ids/indices against the embedded items; derive score/mastery from this
+  state. modelContent contains a concise summary of submitted progress, score and
+  a few weak topics or missed item ids for follow-ups. Do not include unattempted
+  answers. Stay well below 16 KiB; split large decks into separate activities.
+- An optional Explain my mistakes action uses chat_followup with a reviewed
+  prompt describing the missed items. Answering, flipping and rating only update
+  local state and save the snapshot; never send a chat turn automatically.
+- Distinguish self-study scores from verified grades. This is a per-widget study
+  session, not a global deck library or a scheduled spaced-repetition service.
+  Saving works in owned chats; shared/temporary sessions and downloaded HTML have
+  local state. Be explicit when discussing those persistence limits.
+- Before rendering, trace a correct answer, a wrong answer, double submission,
+  reload after submission/reveal, retry/reset and completion. Respect the shared
+  keyboard, narrow-screen, theme and reduced-motion rules below.
 
 Design:
 - Make one visual the focus, with only the controls that help answer the user.

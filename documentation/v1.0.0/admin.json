@@ -154,9 +154,7 @@
                     { "id": "music_generation", "path": "/en/admin/7_tools/9_music_generation.md" },
                     { "id": "slides_presentation", "path": "/en/admin/7_tools/10_slides_presentation.md" },
                     { "id": "latex_pdf", "path": "/en/admin/7_tools/15_latex_pdf.md" },
-                    { "id": "canvas", "path": "/en/admin/7_tools/16_canvas.md" },
-                    { "id": "flashcards", "path": "/en/admin/7_tools/17_flashcards.md" },
-                    { "id": "quiz", "path": "/en/admin/7_tools/18_quiz.md" }
+                    { "id": "canvas", "path": "/en/admin/7_tools/16_canvas.md" }
                 ]
             },
             {
@@ -296,8 +294,6 @@
             "service_connections": "Service Connections",
             "latex_pdf": "LaTeX Rendering",
             "canvas": "Canvas",
-            "flashcards": "Flashcards",
-            "quiz": "Quiz",
             "todos": "Todos",
             "notes": "Notes",
             "automations": "Automations",
@@ -432,8 +428,6 @@
             "service_connections": "Dienstverbindungen",
             "latex_pdf": "LaTeX-Rendering",
             "canvas": "Canvas",
-            "flashcards": "Karteikarten",
-            "quiz": "Quiz",
             "todos": "Aufgaben",
             "notes": "Notizen",
             "automations": "Automatisierungen",

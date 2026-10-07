@@ -754,7 +754,8 @@ function appendAssistantWidget(messageId, widgetHtml, widgetType,
     };
 
     const renderMode = String(widgetMeta?.render_mode || '').trim().toLowerCase();
-    const isNativeWidget = renderMode === 'frontend'
+    const isLegacyStudy = widgetType === 'quiz' || widgetType === 'flashcards';
+    const isNativeWidget = (renderMode === 'frontend' || isLegacyStudy)
         && window.nativeToolWidgets?.isSupported?.(widgetType) === true;
     if (isNativeWidget) {
         appendBeforeAssistantList(assistantMessageContainer, widgetWrapper);
@@ -762,7 +763,7 @@ function appendAssistantWidget(messageId, widgetHtml, widgetType,
             const rendered = window.nativeToolWidgets?.render?.(
                 widgetWrapper,
                 widgetType,
-                decodedHtml,
+                isLegacyStudy ? (widgetMeta?.tool_result || decodedHtml) : decodedHtml,
             );
             if (!rendered) {
                 throw new Error(`No frontend renderer is registered for ${widgetType || 'unknown'}.`);

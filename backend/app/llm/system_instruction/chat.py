@@ -81,22 +81,6 @@ Pls only answer with as much data as requested from the user.
 Don't always answer all the time with the e.g. the full weather forecast.
 """
 
-quiz_tool = """
-## For the quiz tool
-Use this tool when the user asks for a quiz.
-Provide a clear title and a questions array.
-Each question must contain exactly 4 options and one correct answer via correct_option_index (0-3).
-After creating the quiz, do not reveal correct answers unless the user explicitly asks.
-"""
-
-flashcards_tool = """
-## For the flashcards tool
-Use this tool when the user asks for flashcards, study cards, vocabulary cards, or term/definition learning material.
-Provide a clear title and a cards array using front/back text.
-Add hint, example, pronunciation, category, or note fields when they improve learning.
-"""
-
-
 slide_presentation_tool = """
 ## For the slide_presentation tool
 When a user wants a new slide presentation, first create one complete Markdown brief with the Canvas tool. Put all presentation requirements, facts, source notes, desired structure, language, audience, and design guidance into that Markdown file. Read the Canvas tool result and then call `slide_presentation` with the exact `file_id` returned by Canvas. Never pass the Canvas tool-call ID, filename, attachment label, or a guessed ID.
@@ -395,12 +379,6 @@ def get_default_system_instruction(db, tools, knowledge_cutoff, user_id, web_sea
 
     if "weather" in tool_names:
         tools_explanations += "\n" + weather_tool
-
-    if "quiz" in tool_names:
-        tools_explanations += "\n" + quiz_tool
-
-    if "flashcards" in tool_names:
-        tools_explanations += "\n" + flashcards_tool
 
     if "slide_presentation" in tool_names:
         tools_explanations += "\n" + slide_presentation_tool

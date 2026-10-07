@@ -16,8 +16,8 @@ from app.llm.system_instruction.chat import code_execution_tool
 
 def test_builtin_tool_schemas_use_short_public_names():
     assert "weather" in tool_schemas
-    assert "quiz" in tool_schemas
-    assert "flashcards" in tool_schemas
+    assert "quiz" not in tool_schemas
+    assert "flashcards" not in tool_schemas
     assert "stocks" not in tool_schemas
     assert "get_weather" not in tool_schemas
     assert "get_stock" not in tool_schemas
@@ -25,14 +25,14 @@ def test_builtin_tool_schemas_use_short_public_names():
     assert "create_flashcards" not in tool_schemas
 
     schema_names = {schema["name"] for schema in get_tool_schemas(["weather", "stocks", "quiz", "flashcards"])}
-    assert schema_names == {"weather", "quiz", "flashcards"}
+    assert schema_names == {"weather", "create_visualization"}
 
 
 def test_legacy_builtin_tool_names_normalize_to_short_names():
     resolved = resolve_enabled_tools(["get_weather", "create_quiz", "create_flashcards"])
 
-    assert resolved["tool_list"] == ["weather", "quiz", "flashcards"]
-    assert [schema["name"] for schema in resolved["tool_schemas"]] == ["weather", "quiz", "flashcards"]
+    assert resolved["tool_list"] == ["weather", "create_visualization"]
+    assert [schema["name"] for schema in resolved["tool_schemas"]] == ["weather", "create_visualization"]
 
 
 def test_retired_stock_tool_names_are_ignored():
@@ -54,8 +54,8 @@ def test_rate_limit_registry_uses_short_builtin_tool_keys():
     tool_keys = list_rate_limit_tool_keys()
 
     assert "weather" in tool_keys
-    assert "flashcards" in tool_keys
-    assert "quiz" in tool_keys
+    assert "flashcards" not in tool_keys
+    assert "quiz" not in tool_keys
     assert "stocks" not in tool_keys
     assert "get_weather" not in tool_keys
     assert "get_stock" not in tool_keys
@@ -63,8 +63,8 @@ def test_rate_limit_registry_uses_short_builtin_tool_keys():
     assert "create_quiz" not in tool_keys
     assert normalize_rate_limit_tool_key("get_weather") == "weather"
     assert normalize_rate_limit_tool_key("get_stock") == "get_stock"
-    assert normalize_rate_limit_tool_key("create_flashcards") == "flashcards"
-    assert normalize_rate_limit_tool_key("create_quiz") == "quiz"
+    assert normalize_rate_limit_tool_key("create_flashcards") == "create_visualization"
+    assert normalize_rate_limit_tool_key("create_quiz") == "create_visualization"
 
 
 def test_builtin_tool_options_include_admin_translation_keys():
@@ -72,8 +72,7 @@ def test_builtin_tool_options_include_admin_translation_keys():
 
     expected_label_keys = {
         "weather": "rate_limit_tool_label_weather",
-        "flashcards": "rate_limit_tool_label_flashcards",
-        "quiz": "rate_limit_tool_label_quiz",
+        "create_visualization": "rate_limit_tool_label_create_visualization",
         "subagent": "rate_limit_tool_label_subagent",
     }
 
@@ -179,3 +178,35 @@ def test_code_execution_tool_schema_uses_connection_pip_capability(monkeypatch):
 
     assert "pip_packages" not in unsupported_schema["parameters"]["properties"]
     assert "pip_packages" in supported_schema["parameters"]["properties"]
+
+
+def test_all_saved_study_selections_collapse_to_visualization():
+    from app.tools.registry import RETIRED_STUDY_TOOL_ALIASES
+    from app.tools.helper import AVAILABLE_TOOLS
+
+    resolved = resolve_enabled_tools([*RETIRED_STUDY_TOOL_ALIASES, "create_visualization"])
+    assert resolved["tool_list"] == ["create_visualization"]
+    assert [schema["name"] for schema in resolved["tool_schemas"]] == ["create_visualization"]
+    assert not set(RETIRED_STUDY_TOOL_ALIASES).intersection(AVAILABLE_TOOLS)
+    assert not set(RETIRED_STUDY_TOOL_ALIASES).intersection(item["name"] for item in list_available_tool_options(db=None))
+
+
+def test_saved_study_rate_limits_still_apply_to_replacement():
+    from types import SimpleNamespace
+    from app.llm.models import _tool_rate_limit_applies_to_user, _validate_rate_limit_tool_keys
+    from app.llm.router import _schema_to_payload
+
+    assert _validate_rate_limit_tool_keys(None, ["quiz", "create_flashcards", "create_visualization"]) == ["create_visualization"]
+    policy = SimpleNamespace(target_type="tool", tool_keys=["quiz"], user_ids=["owner"], group_ids=[])
+    assert _tool_rate_limit_applies_to_user(policy, "owner", None, "create_visualization")
+    assert not _tool_rate_limit_applies_to_user(policy, "owner", None, "weather")
+    original = {"sections": [{"fields": [{"key": "tools", "value": ["quiz", "flashcards"]}]}]}
+    assert _schema_to_payload(original)["sections"][0]["fields"][0]["value"] == ["create_visualization"]
+    assert original["sections"][0]["fields"][0]["value"] == ["quiz", "flashcards"]
+
+
+def test_saved_byok_study_allowlist_enables_visualization(monkeypatch):
+    monkeypatch.setattr("app.tools.utils.get_user_group_setting_value", lambda *args: ["quiz", "create_flashcards"])
+    monkeypatch.setattr("app.tools.utils.list_available_tool_names", lambda **kwargs: ["create_visualization"])
+    resolved = resolve_enabled_tools(["flashcards", "create_visualization"], db=object(), user_id="owner", byok={"provider": "openai"})
+    assert resolved["tool_list"] == ["create_visualization"]

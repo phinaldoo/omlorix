@@ -23,7 +23,7 @@ Third-party product names, logos, brands, and trademarks are the property of the
 
 - Connect multiple cloud or locally hosted model providers and switch between available models.
 - Use streaming chat, reasoning controls, file attachments, web search, deep research, and code execution.
-- Create images, audio, music, video, slide presentations, visualizations, quizzes, and flashcards.
+- Create images, audio, music, video, slide presentations, and interactive visualizations (including quizzes and flashcards).
 - Work with realtime voice calls, dictation, read-aloud, meeting transcripts, and split-screen conversations.
 
 ![Omlorix chat showing an executive email being edited in Canvas](frontend/assets/readme/omlorix-canvas-workspace.png)

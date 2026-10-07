@@ -187,7 +187,7 @@ tool_schemas: dict[str, dict] = {
       "type": "function",
       "description": (
           "Create a live visual directly in the conversation: charts, interactive explainers, simulations, maps, "
-          "timelines, comparisons, and UI mockups. Use proactively when seeing or changing something helps the user understand. "
+          "timelines, comparisons, UI mockups, quizzes, and flashcard study sessions. Use proactively when seeing or changing something helps the user understand. "
           "Use action=validate for optional structure/policy checks without displaying a widget; fix errors, then use "
           "action=render (default) to publish. Validation does not execute JavaScript or produce a screenshot. "
           "Provide one self-contained HTML fragment under 1 MB with a stable root id. D3 v7, topojson, and lucide are bundled "
@@ -623,121 +623,6 @@ tool_schemas: dict[str, dict] = {
         "additionalProperties": False,
     },
   },
-    "quiz": {
-        "name": "quiz",
-        "type": "function",
-        "description": "Create an interactive quiz widget. Each question must include exactly 4 answer options and one correct option index.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "title": {
-                    "type": "string",
-                    "description": "Quiz title shown in the widget.",
-                },
-                "description": {
-                    "type": "string",
-                    "description": "Optional short subtitle or instructions for the quiz.",
-                },
-                "questions": {
-                    "type": "array",
-                    "description": "Quiz questions. Each question must have 4 options and one correct option index.",
-                    "minItems": 1,
-                    "maxItems": 20,
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "question": {
-                                "type": "string",
-                                "description": "The question text.",
-                            },
-                            "options": {
-                                "type": "array",
-                                "description": "Exactly 4 answer options.",
-                                "items": {"type": "string"},
-                                "minItems": 4,
-                                "maxItems": 4,
-                            },
-                            "correct_option_index": {
-                                "type": "integer",
-                                "description": "0-based index of the correct option (0 to 3).",
-                                "minimum": 0,
-                                "maximum": 3,
-                            },
-                            "explanation": {
-                                "type": "string",
-                                "description": "Optional explanation shown in the final result details.",
-                            },
-                        },
-                        "required": ["question", "options", "correct_option_index"],
-                        "additionalProperties": False,
-                    },
-                },
-            },
-            "required": ["title", "questions"],
-            "additionalProperties": False,
-        },
-    },
-    "flashcards": {
-        "name": "flashcards",
-        "type": "function",
-        "description": "Create an interactive flashcards widget for studying vocabulary, concepts, definitions, or question/answer pairs.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "title": {
-                    "type": "string",
-                    "description": "Deck title shown in the widget.",
-                },
-                "description": {
-                    "type": "string",
-                    "description": "Optional short study goal or instructions for the deck.",
-                },
-                "cards": {
-                    "type": "array",
-                    "description": "Flashcards to study. Prefer front/back wording, but term/definition also works.",
-                    "minItems": 1,
-                    "maxItems": 40,
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "front": {
-                                "type": "string",
-                                "description": "Text shown before flipping the card.",
-                            },
-                            "back": {
-                                "type": "string",
-                                "description": "Text revealed after flipping the card.",
-                            },
-                            "hint": {
-                                "type": "string",
-                                "description": "Optional clue or memory cue.",
-                            },
-                            "example": {
-                                "type": "string",
-                                "description": "Optional usage example or contextual sentence.",
-                            },
-                            "pronunciation": {
-                                "type": "string",
-                                "description": "Optional pronunciation guidance, useful for vocabulary.",
-                            },
-                            "category": {
-                                "type": "string",
-                                "description": "Optional topic label, language, or grouping tag.",
-                            },
-                            "note": {
-                                "type": "string",
-                                "description": "Optional learning note or mnemonic.",
-                            },
-                        },
-                        "required": ["front", "back"],
-                        "additionalProperties": False,
-                    },
-                },
-            },
-            "required": ["title", "cards"],
-            "additionalProperties": False,
-        },
-    },
     "image_generation": {
         "name": "image_generation",
         "type": "function",

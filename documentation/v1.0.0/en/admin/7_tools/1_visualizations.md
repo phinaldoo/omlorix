@@ -29,3 +29,11 @@ A `.viz-carousel` with a stable ID and direct children carrying unique `data-var
 Test local controls, source view, reset, HTML download, expansion/collapse, theme changes, a narrow viewport, keyboard focus, text alternatives, and malformed scripts. Verify optional host actions individually and test shared chats. Models should use accessible labels, sufficient contrast, honest units/scales, and text or table equivalents. Validation is an authoring aid; the browser sandbox enforces isolation independently, including for imported content.
 
 Use [Canvas](16_canvas.md) for durable editable documents and [Image Generation](6_image_generation.md) for raster artwork.
+
+## Study activities and retired tools
+
+Quizzes and flashcards now use `create_visualization`. The built-in authoring guide covers answer submission, scoring, explanations, retrying missed questions, card reveal and recall ratings, bounded review queues, keyboard access, and saved progress. No separate skill installation or study service is required. Interfaces are generated for each request; they are self-study aids, not a grading system or cross-chat spaced-repetition scheduler.
+
+Saved/imported model selections and BYOK allowlists named `quiz`, `create_quiz`, `flashcards`, or `create_flashcards` resolve to Visualization and are deduplicated. Admin model editors show the replacement. Old rate-limit tool keys also match Visualization, retaining existing policy precedence; review their budgets because Visualization supports more activities. Compatibility is applied when reading settings, so backups containing old names continue to work without a data rewrite.
+
+The retired names are no longer advertised or dispatched. Historical structured study widgets remain readable as expandable questions/cards with answers and explanations. Public sharing keeps its existing reviewed static projections. Chat content and backup formats remain unchanged.

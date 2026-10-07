@@ -242,16 +242,6 @@ const MODEL_SELECT_TOOL_META = {
         fallback: 'Weather',
         icon: Icons.model_tool_weather,
     },
-    flashcards: {
-        key: 'model_select_tool_flashcards',
-        fallback: 'Flashcards',
-        icon: Icons.model_tool_flashcards,
-    },
-    quiz: {
-        key: 'model_select_tool_quiz',
-        fallback: 'Quiz',
-        icon: Icons.model_tool_quiz,
-    },
     todos: {
         key: 'model_select_tool_todos',
         fallback: 'Todos',
