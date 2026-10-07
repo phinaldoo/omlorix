@@ -27,13 +27,6 @@ Any third-party provider names and trademarks remain the property of their respe
 
 ## Additional third-party material
 
-The visualization proof fixture includes `world-atlas` 2.0.2 country geometry
-in `docs/pr-evidence/live-visualizations/examples/countries-110m.json`, from
-<https://github.com/topojson/world-atlas>. Its ISC license is included alongside
-it as `world-atlas.LICENSE`. The underlying Natural Earth geometry is public
-domain: <https://www.naturalearthdata.com/about/terms-of-use/>. This dataset is
-used by the reproducible proof only; it is not bundled into every visualization.
-
 Additional dependency and asset license information is maintained in:
 
 - `third_party_assets_manifest/`
