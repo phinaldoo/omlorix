@@ -122,11 +122,11 @@
         }
     
         function isDraftPersistable(draft) {
-            return Boolean(draft?.fileId);
+            return Boolean(draft?.fileId) && draft.canEdit !== false;
         }
     
         function isDraftEditorInteractive(draft) {
-            if (!draft) return false;
+            if (!draft || draft.canEdit === false) return false;
             if (normalizeContentType(draft.contentType) === 'pdf') return false;
             if (isDraftPersistable(draft)) return true;
             return normalizeContentType(draft.contentType) === 'markdown';
@@ -140,6 +140,8 @@
         }
     
         function updateEditorActionButtons(draft, editState) {
+            const history = document.getElementById('canvas-library-History');
+            if (history) history.hidden = !draft?.fileId || draft.canEdit === false || normalizeContentType(draft.contentType) === 'pdf';
             const persistable = isDraftPersistable(draft);
             const saving = Boolean(editState?.saving);
             const dirty = Boolean(editState?.dirty);
@@ -254,7 +256,7 @@
             return payload || {};
         }
     
-        async function saveCanvasFileContent({ fileId, content, contentType, fileName, fileIds }) {
+        async function saveCanvasFileContent({ fileId, content, contentType, fileName, fileIds, expectedRevision }) {
             if (!fileId || typeof window.authedFetch !== 'function') {
                 throw new Error(t('canvas_file_save_unavailable', 'Canvas file cannot be saved right now'));
             }
@@ -264,6 +266,7 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     file_id: String(fileId),
+                    expected_revision: Number(expectedRevision) || 0,
                     content: String(content ?? ''),
                     content_type: normalizeContentType(contentType),
                     filename: String(fileName || ''),
@@ -281,7 +284,7 @@
     
             if (!response.ok) {
                 const fallback = formatT('canvas_file_save_failed_status', 'Save failed ({status})', { status: response.status });
-                throw new Error(getApiErrorMessage(payload, fallback));
+                throw new Error(response.status === 409 ? t('canvas_revision_conflict', 'This document changed. Reopen it before saving or restoring.') : getApiErrorMessage(payload, fallback));
             }
             return payload || {};
         }
@@ -615,6 +618,7 @@
                     content: contentToSave,
                     contentType: draft.contentType,
                     fileName: draft.fileName,
+                    expectedRevision: draft.canvasRevision,
                     fileIds: normalizeContentType(draft.contentType) === 'latex'
                         ? (Array.isArray(draft.assetFileIds) ? draft.assetFileIds : [])
                         : undefined,

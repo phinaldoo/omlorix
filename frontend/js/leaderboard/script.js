@@ -174,10 +174,6 @@
         switch (category) {
             case 'websearch':
                 return t('leaderboard_tool_category_websearch', 'Web Search');
-            case 'todo_management':
-                return t('leaderboard_tool_category_todo', 'Todo Management');
-            case 'notes_management':
-                return t('leaderboard_tool_category_notes', 'Notes Management');
             case 'automations_management':
                 return t('leaderboard_tool_category_automations', 'Automations Management');
             case 'skills_management':
@@ -216,12 +212,10 @@
         }
     }
 
-    const TOOL_CATEGORY_ORDER = ['websearch', 'todo_management', 'notes_management', 'automations_management', 'skills_management', 'memory_management', 'information', 'education', 'media_generation', 'presentations', 'research', 'canvas', 'code_execution'];
+    const TOOL_CATEGORY_ORDER = ['websearch', 'automations_management', 'skills_management', 'memory_management', 'information', 'education', 'media_generation', 'presentations', 'research', 'canvas', 'code_execution'];
 
     const TOOL_CATEGORY_TOOL_MAP = {
         'websearch': ['web_search'],
-        'todo_management': ['todos'],
-        'notes_management': ['notes'],
         'automations_management': ['automations'],
         'skills_management': ['skills'],
         'information': ['weather'],
@@ -304,8 +298,6 @@
         let categoriesHtml = '';
         const category_to_icon = {
             websearch: Icons.globe,
-            todo_management: Icons.todo_management,
-            notes_management: Icons.notes_management,
             automations_management: Icons.automations_management,
             skills_management: Icons.skills_management,
             memory_management: Icons.memory_management,

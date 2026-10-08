@@ -81,7 +81,6 @@ def _impl_reformat_chat_history(
     use_group_context: bool = True,
     use_project_context: bool = True,
     is_chat_completions_api: bool = False,
-    note_ids: list[str] | None = None,
     reference_parts: list[str] | None = None,
     chat_reference_context: str | None = None,
     image_detail=None,
@@ -475,48 +474,7 @@ def _impl_reformat_chat_history(
                 exc,
             )
 
-    # --- Optional: attach notes context if note_ids provided ---
-    notes_start_index = len(formatted)
-    if note_ids and db and user_id:
-        try:
-            from app.llm.system_instruction.notes import (
-                fetch_notes_for_chat,
-                get_notes_context_start,
-                get_notes_context_end,
-            )
-
-            notes_content = fetch_notes_for_chat(db, user_id, note_ids)
-            if notes_content:
-                notes_start = get_notes_context_start(notes_content)
-                if notes_start:
-                    formatted.append(
-                        {
-                            "role": "user",
-                            "content": [
-                                {
-                                    "type": text_type_user,
-                                    "text": notes_start,
-                                }
-                            ],
-                        }
-                    )
-                notes_end = get_notes_context_end()
-                if notes_end:
-                    formatted.append(
-                        {
-                            "role": "user",
-                            "content": [
-                                {
-                                    "type": text_type_user,
-                                    "text": notes_end,
-                                }
-                            ],
-                        }
-                    )
-        except Exception as exc:
-            logger.warning(
-                "[OpenAI Chat Completions] Notes context attach failed: %s", exc
-            )
+    workspace_end_index = len(formatted)
 
     memories_start_index = len(formatted)
     if db and user_id:
@@ -691,8 +649,7 @@ def _impl_reformat_chat_history(
     return {
         "formatted": formatted,
         "context_prefix_count": history_start_index,
-        "context_sections": [("workspace", 0, notes_start_index, True, 90),
-                             ("notes", notes_start_index, memories_start_index, False, 60),
+        "context_sections": [("workspace", 0, workspace_end_index, True, 90),
                              ("memories", memories_start_index, history_start_index, False, 40)],
         "unsupported": unsupported_flag,
         "unsupported_file_ids": sorted(unsupported_file_ids),

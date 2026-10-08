@@ -24,16 +24,7 @@ if (typeof window !== 'undefined') {
   });
 }
 
-const noteMentionState = {
-  notes: [],
-  lastFetched: 0,
-  query: '',
-  resultsQuery: '',
-  offset: 0,
-  hasMore: false,
-  loading: false,
-  requestToken: null,
-};
+
 
 const promptMentionState = {
   prompts: [],
@@ -69,7 +60,7 @@ function updateMentionModelsFromRefresh(models) {
   if (skillMentionState.isOpen) {
     renderMentionDropdown(
       filterSkills(skillMentionState.query),
-      filterNotes(skillMentionState.query),
+
       filterPrompts(skillMentionState.query),
       filterModels(skillMentionState.query),
     );
@@ -89,12 +80,7 @@ const normalizeSkillId = (skillId) => {
   return String(skillId);
 };
 
-const normalizeNoteId = (noteId) => {
-  if (noteId === null || typeof noteId === 'undefined') {
-    return '';
-  }
-  return String(noteId);
-};
+
 
 const normalizePromptId = (promptId) => {
   if (promptId === null || typeof promptId === 'undefined') {
@@ -119,14 +105,7 @@ const MENTION_CATEGORY_META = {
     icon: featureBodiesForMentions.promptLightning,
     color: '#1E88E5',
   },
-  notes: {
-    labelKey: 'mention_notes',
-    fallbackLabel: 'Notes',
-    descriptionKey: 'mention_notes_description',
-    fallbackDescription: 'Reference saved workspace notes',
-    iconMarkup: Icons.notes_management,
-    color: '#10B981',
-  },
+
   prompts: {
     labelKey: 'mention_prompts',
     fallbackLabel: 'Prompts',
@@ -304,97 +283,13 @@ async function loadMoreMentionSkills() {
   await fetchSkills({ query: skillCatalogState.query, append: true });
   if (!skillMentionState.isOpen) return;
   if (activeMentionCategory === 'skills') renderMentionCategoryDetail('skills', filterSkills(skillCatalogState.query));
-  else renderMentionDropdown(filterSkills(skillMentionState.query), filterNotes(skillMentionState.query), filterPrompts(skillMentionState.query), filterModels(skillMentionState.query), filterMcpConnectors(skillMentionState.query));
+  else renderMentionDropdown(filterSkills(skillMentionState.query),  filterPrompts(skillMentionState.query), filterModels(skillMentionState.query), filterMcpConnectors(skillMentionState.query));
   if (skillMentionBody) skillMentionBody.scrollTop = scrollTop;
 }
 
-async function fetchNotes({ forceRefresh = false, query = skillMentionState.query, append = false } = {}) {
-  const now = Date.now();
-  const cacheAge = 60000;
-  const normalizedQuery = String(query || '').trim();
 
-  if (!append && !forceRefresh && noteMentionState.query === normalizedQuery && noteMentionState.notes.length && now - noteMentionState.lastFetched < cacheAge) {
-    return noteMentionState.notes;
-  }
-  if (append && (noteMentionState.loading || !noteMentionState.hasMore)) return noteMentionState.notes;
 
-  const requestToken = append ? noteMentionState.requestToken : Symbol('mention-notes');
-  if (!append) {
-    noteMentionState.requestToken = requestToken;
-    noteMentionState.query = normalizedQuery;
-    noteMentionState.offset = 0;
-    noteMentionState.hasMore = false;
-  }
-  noteMentionState.loading = true;
-  
-  try {
-    const params = new URLSearchParams({
-      limit: String(CHAT_MENTION_PAGE_LIMIT),
-      offset: String(append ? noteMentionState.offset : 0),
-    });
-    if (normalizedQuery) params.set('q', normalizedQuery);
-    const response = await window.authedFetch(`/api/v1/notes/?${params.toString()}`, {
-      method: 'GET',
-    });
-    
-    if (!response.ok) {
-      console.error('Failed to fetch notes:', response.status);
-      if (!append && noteMentionState.requestToken === requestToken) {
-        noteMentionState.resultsQuery = normalizedQuery;
-      }
-      return noteMentionState.notes;
-    }
-    
-    const payload = await response.json();
-    if (noteMentionState.requestToken !== requestToken || noteMentionState.query !== normalizedQuery) return noteMentionState.notes;
-    const notes = unwrapMentionPage(payload);
-    if (append) {
-      const seen = new Set(noteMentionState.notes.map((note) => normalizeNoteId(note.id)));
-      noteMentionState.notes.push(...notes.filter((note) => {
-        const id = normalizeNoteId(note.id);
-        if (!id || seen.has(id)) return false;
-        seen.add(id);
-        return true;
-      }));
-    } else {
-      noteMentionState.notes = Array.isArray(notes) ? notes : [];
-      noteMentionState.resultsQuery = normalizedQuery;
-    }
-    noteMentionState.offset += notes.length;
-    noteMentionState.hasMore = Array.isArray(payload) ? notes.length >= CHAT_MENTION_PAGE_LIMIT : Boolean(payload?.has_more);
-    noteMentionState.lastFetched = now;
-    
-    return noteMentionState.notes;
-  } catch (error) {
-    console.error('Failed to fetch notes:', error);
-    if (!append && noteMentionState.requestToken === requestToken) {
-      noteMentionState.resultsQuery = normalizedQuery;
-    }
-    return noteMentionState.notes;
-  } finally {
-    if (noteMentionState.requestToken === requestToken) noteMentionState.loading = false;
-  }
-}
 
-async function loadMoreMentionNotes() {
-  if (!skillMentionState.isOpen || noteMentionState.loading || !noteMentionState.hasMore) return;
-  const scrollTop = skillMentionBody?.scrollTop || 0;
-  await fetchNotes({ query: skillMentionState.query, append: true });
-  if (!skillMentionState.isOpen || noteMentionState.query !== skillMentionState.query) return;
-  if (activeMentionCategory === 'notes') {
-    renderMentionCategoryDetail('notes', filterNotes(skillMentionState.query));
-    if (skillMentionBody) skillMentionBody.scrollTop = scrollTop;
-    return;
-  }
-  renderMentionDropdown(
-    filterSkills(skillMentionState.query),
-    filterNotes(skillMentionState.query),
-    filterPrompts(skillMentionState.query),
-    filterModels(skillMentionState.query),
-    filterMcpConnectors(skillMentionState.query),
-  );
-  if (skillMentionBody) skillMentionBody.scrollTop = scrollTop;
-}
 
 async function fetchPrompts({ forceRefresh = false } = {}) {
   if (typeof window !== 'undefined' && window.enablePromptsFeature === false) {
@@ -603,47 +498,13 @@ function getMentionModelIcon(model) {
   return fallback;
 }
 
-function getNoteTitleFromContent(content, maxLength = 30) {
-  if (!content || !content.trim()) {
-    return 'Untitled Note';
-  }
-  const firstLine = content.split('\n')[0].trim();
-  if (firstLine.length <= maxLength) {
-    return firstLine || 'Untitled Note';
-  }
-  return firstLine.substring(0, maxLength) + '…';
-}
 
-function getNotePreviewFromContent(content, maxLength = 50) {
-  if (!content || !content.trim()) {
-    return 'No content';
-  }
-  const lines = content.split('\n');
-  let preview = lines.length > 1 ? lines.slice(1).join(' ').trim() : '';
-  if (!preview) {
-    preview = lines[0].trim();
-  }
-  if (preview.length <= maxLength) {
-    return preview || 'No content';
-  }
-  return preview.substring(0, maxLength) + '…';
-}
 
-function resolveNoteTitle(note) {
-  const rawTitle = typeof note?.title === 'string' ? note.title.trim() : '';
-  if (rawTitle) {
-    return rawTitle;
-  }
-  return getNoteTitleFromContent(note?.content || '');
-}
 
-function resolveNoteSnippet(note) {
-  const rawSnippet = typeof note?.snippet === 'string' ? note.snippet.trim() : '';
-  if (rawSnippet) {
-    return rawSnippet;
-  }
-  return getNotePreviewFromContent(note?.content || '');
-}
+
+
+
+
 
 function filterSkills(query) {
   const normalized = String(query || '').toLowerCase().trim();
@@ -657,19 +518,7 @@ function filterSkills(query) {
   });
 }
 
-function filterNotes(query) {
-  const normalized = String(query || '').toLowerCase().trim();
-  const serverQuery = String(noteMentionState.resultsQuery || '').toLowerCase().trim();
-  if (!normalized || serverQuery === normalized) {
-    return noteMentionState.notes.filter(n => !selectedNoteIds.has(normalizeNoteId(n.id)));
-  }
-  return noteMentionState.notes.filter(note => {
-    if (selectedNoteIds.has(normalizeNoteId(note.id))) return false;
-    const haystacks = [note.title, note.snippet, note.content]
-      .map(value => String(value || '').toLowerCase());
-    return haystacks.some(text => text.includes(normalized));
-  });
-}
+
 
 function filterPrompts(query) {
   const normalized = String(query || '').toLowerCase().trim();
@@ -721,7 +570,7 @@ function renderSkillMentionIconMarkup(iconData, size = 16) {
   });
 }
 
-const NOTE_ICON_COLOR = '#10B981';
+
 const featureBodies = typeof featureIconBodies !== 'undefined' ? featureIconBodies : Icons.featureIconBodies;
 const PROMPT_ICON_SVG = featureBodies.prompt;
 const PROMPT_ICON_COLOR = '#f59e0b';
@@ -812,18 +661,7 @@ function buildResultItemForCategory(categoryKey, entity, navIndex) {
       onSelect: () => selectSkill(entity),
     });
   }
-  if (categoryKey === 'notes') {
-    return buildMentionResultItem({
-      itemType: 'note',
-      id: entity.id,
-      navIndex,
-      iconColor: NOTE_ICON_COLOR,
-      iconSvg: Icons.notes_management,
-      titleText: resolveNoteTitle(entity),
-      descriptionText: resolveNoteSnippet(entity),
-      onSelect: () => selectNote(entity),
-    });
-  }
+  {}
   if (categoryKey === 'prompts') {
     return buildMentionResultItem({
       itemType: 'prompt',
@@ -941,7 +779,7 @@ function toggleMentionCategory(categoryKey) {
   const categoryItems = {
     connectors: filterMcpConnectors(''),
     skills: filterSkills(''),
-    notes: filterNotes(''),
+
     prompts: filterPrompts(''),
     models: filterModels(''),
   }[categoryKey] || [];
@@ -971,7 +809,7 @@ function renderMentionCategoryDetail(categoryKey, items) {
     event.stopPropagation();
     renderMentionDropdown(
       filterSkills(''),
-      filterNotes(''),
+
       filterPrompts(''),
       filterModels(''),
       filterMcpConnectors(''),
@@ -1059,7 +897,7 @@ function buildEmptyState() {
 
 function renderMentionDropdown(
   filteredSkills,
-  filteredNotes,
+
   filteredPrompts = [],
   filteredModels = [],
   filteredConnectors = filterMcpConnectors(skillMentionState.query),
@@ -1074,7 +912,7 @@ function renderMentionDropdown(
 
   const hasQuery = String(skillMentionState.query || '').trim().length > 0;
   const totalCount =
-    filteredSkills.length + filteredNotes.length + filteredPrompts.length + filteredModels.length + filteredConnectors.length;
+    filteredSkills.length + filteredPrompts.length + filteredModels.length + filteredConnectors.length;
 
   // The bare-@ overview always exposes every supported destination, matching
   // the demo even when a workspace does not have items in a category yet.
@@ -1091,7 +929,6 @@ function renderMentionDropdown(
 
   const categoryEntries = [
     { key: 'models', items: filteredModels },
-    { key: 'notes', items: filteredNotes },
     { key: 'connectors', items: filteredConnectors },
     { key: 'skills', items: filteredSkills },
     { key: 'prompts', items: filteredPrompts },
@@ -1124,7 +961,7 @@ function renderMentionDropdown(
 
       const labelCount = document.createElement('span');
       labelCount.className = 'mention-menu__section-label-count';
-      labelCount.textContent = `${cat.items.length}${((cat.key === 'notes' && noteMentionState.hasMore) || (cat.key === 'skills' && Boolean(skillCatalogState.cursor))) ? '+' : ''}`;
+      labelCount.textContent = `${cat.items.length}${((cat.key === 'skills' && Boolean(skillCatalogState.cursor))) ? '+' : ''}`;
       labelRow.appendChild(labelCount);
 
       section.appendChild(labelRow);
@@ -1162,7 +999,7 @@ function renderMentionDropdown(
     const header = buildCategoryHeaderEl({
       categoryKey: cat.key,
       count: cat.items.length,
-      countHasMore: ((cat.key === 'notes' && noteMentionState.hasMore) || (cat.key === 'skills' && Boolean(skillCatalogState.cursor))),
+      countHasMore: ((cat.key === 'skills' && Boolean(skillCatalogState.cursor))),
       expanded: false,
       navIndex,
       expandable: true,
@@ -1183,7 +1020,7 @@ document.addEventListener('i18n:updated', () => {
   if (!skillMentionState.isOpen) return;
   renderMentionDropdown(
     filterSkills(skillMentionState.query),
-    filterNotes(skillMentionState.query),
+
     filterPrompts(skillMentionState.query),
     filterModels(skillMentionState.query),
   );
@@ -1354,28 +1191,7 @@ function getSelectedMcpServerIds() {
   return Array.from(selectedMcpServerIds);
 }
 
-function selectNote(note) {
-  if (!note || !note.id) return;
   
-  const input = document.getElementById('chatBoxInput');
-  if (!input) return;
-  
-  const value = input.value;
-  const mentionStart = skillMentionState.mentionStartIndex;
-  const cursorPos = input.selectionStart;
-  
-  const beforeMention = value.slice(0, mentionStart);
-  const afterCursor = value.slice(cursorPos);
-  
-  input.value = beforeMention + afterCursor;
-  input.setSelectionRange(beforeMention.length, beforeMention.length);
-  input.dispatchEvent(new Event('input', { bubbles: true }));
-  
-  addNoteAttachment(note);
-  closeSkillMentionDropdown();
-  
-  input.focus();
-}
 
 function selectPrompt(prompt) {
   if (!prompt || !prompt.id) return;
@@ -1400,124 +1216,13 @@ function selectPrompt(prompt) {
   input.focus();
 }
 
-function addNoteAttachment(note) {
-  if (!note || !note.id) return;
-  const noteKey = normalizeNoteId(note.id);
-  if (!noteKey) return;
-  if (selectedNoteIds.has(noteKey)) return;
   
-  selectedNoteIds.add(noteKey);
-  noteMetadataMap.set(noteKey, note);
   
-  const container = document.getElementById('chatBoxFiles');
-  if (!container) return;
   
-  const element = document.createElement('div');
-  element.className = 'inline-files-element inline-note-element';
-  element.dataset.noteId = noteKey;
   
-  const iconEl = document.createElement('span');
-  iconEl.className = 'inline-skill-element-icon';
-  iconEl.style.backgroundColor = NOTE_ICON_COLOR;
-  iconEl.innerHTML = Icons.notes_management;
   
-  const contentEl = document.createElement('div');
-  contentEl.className = 'inline-files-element-content';
 
-  const topRow = document.createElement('div');
-  topRow.className = 'inline-files-element-content-top';
 
-  const titleEl = document.createElement('p');
-  const noteTitle = resolveNoteTitle(note);
-  titleEl.textContent = noteTitle;
-  titleEl.title = noteTitle;
-  topRow.appendChild(titleEl);
-
-  const bottomRow = document.createElement('div');
-  bottomRow.className = 'inline-files-element-content-bottom';
-
-  const typeMeta = document.createElement('p');
-  typeMeta.textContent = getChatI18nString('chat_attachment_type_note', 'NOTE');
-  bottomRow.appendChild(typeMeta);
-
-  const snippetMeta = document.createElement('p');
-  snippetMeta.className = 'inline-note-snippet';
-  snippetMeta.textContent = resolveNoteSnippet(note);
-  bottomRow.appendChild(snippetMeta);
-
-  contentEl.appendChild(topRow);
-  contentEl.appendChild(bottomRow);
-
-  const deleteEl = document.createElement('div');
-  deleteEl.className = 'inline-files-element-delete';
-  deleteEl.setAttribute('role', 'button');
-  deleteEl.setAttribute('tabindex', '0');
-  deleteEl.setAttribute('aria-label', getChatI18nString('chat_attachment_remove_note', 'Remove note'));
-  deleteEl.innerHTML = Icons.close;
-  
-  const removeNote = () => {
-    removeNoteAttachment(noteKey);
-  };
-  
-  deleteEl.addEventListener('click', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    removeNote();
-  });
-  
-  deleteEl.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      removeNote();
-    }
-  });
-
-  element.appendChild(iconEl);
-  element.appendChild(contentEl);
-  element.appendChild(deleteEl);
-  container.appendChild(element);
-
-  toggleChatFilesContainer(true);
-  persistCurrentChatInputDraft();
-}
-
-function removeNoteAttachment(noteId) {
-  const noteKey = normalizeNoteId(noteId);
-  if (!noteKey) return;
-  
-  selectedNoteIds.delete(noteKey);
-  noteMetadataMap.delete(noteKey);
-  
-  const container = document.getElementById('chatBoxFiles');
-  if (container) {
-    const element = container.querySelector(`.inline-note-element[data-note-id="${noteKey}"]`);
-    if (element) {
-      element.remove();
-    }
-  }
-  
-  updateChatFilesContainerVisibility();
-  persistCurrentChatInputDraft();
-}
-
-function clearAllNoteAttachments() {
-  const container = document.getElementById('chatBoxFiles');
-  if (container) {
-    const elements = container.querySelectorAll('.inline-note-element');
-    elements.forEach(el => el.remove());
-  }
-  selectedNoteIds.clear();
-  noteMetadataMap.clear();
-  updateChatFilesContainerVisibility();
-  persistCurrentChatInputDraft();
-}
-
-function getSelectedNoteIds() {
-  return Array.from(selectedNoteIds).map((noteKey) => {
-    const note = noteMetadataMap.get(noteKey);
-    return typeof note?.id !== 'undefined' ? note.id : noteKey;
-  });
-}
 
 function addPromptAttachment(prompt) {
   if (!prompt || !prompt.id) return;
@@ -1859,7 +1564,7 @@ async function handleSkillMentionInput() {
   openSkillMentionDropdown();
   renderMentionDropdown(
     filterSkills(mentionMatch.query),
-    filterNotes(mentionMatch.query),
+
     filterPrompts(mentionMatch.query),
     filterModels(mentionMatch.query),
     filterMcpConnectors(mentionMatch.query),
@@ -1868,7 +1573,7 @@ async function handleSkillMentionInput() {
   // Every source is independent, so opening the menu never serializes API IO.
   await Promise.all([
     fetchSkills({ query: mentionMatch.query, forceRefresh: queryChanged }),
-    fetchNotes({ query: mentionMatch.query, forceRefresh: queryChanged }),
+
     fetchPrompts(),
     fetchModelsForMention(),
     fetchMcpConnectorsForMention(),
@@ -1883,7 +1588,7 @@ async function handleSkillMentionInput() {
   }
 
   const filteredSkills = filterSkills(mentionMatch.query);
-  const filteredNotes = filterNotes(mentionMatch.query);
+
   const filteredPrompts = filterPrompts(mentionMatch.query);
   const filteredModels = filterModels(mentionMatch.query);
   const filteredConnectors = filterMcpConnectors(mentionMatch.query);
@@ -1892,7 +1597,7 @@ async function handleSkillMentionInput() {
   // in filtered mode we highlight the first item for fast Enter-to-select.
   skillMentionState.highlightedIndex = hasQuery ? 0 : -1;
 
-  renderMentionDropdown(filteredSkills, filteredNotes, filteredPrompts, filteredModels, filteredConnectors);
+  renderMentionDropdown(filteredSkills, filteredPrompts, filteredModels, filteredConnectors);
 }
 
 function findMentionAtCursor(value, cursorPos) {
@@ -1930,7 +1635,7 @@ function selectMentionNavItem(navItem) {
   }
   const { categoryKey, entity } = navItem;
   if (categoryKey === 'skills') return selectSkill(entity);
-  if (categoryKey === 'notes') return selectNote(entity);
+  {}
   if (categoryKey === 'prompts') return selectPrompt(entity);
   if (categoryKey === 'models') return selectModelFromMention(entity);
   if (categoryKey === 'connectors') return selectMcpConnector(entity);

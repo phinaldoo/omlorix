@@ -188,80 +188,6 @@
         ],
     });
 
-    const notesFilePickerModal = () => sharedShell({
-        id: 'notesFilePickerOverlay',
-        overlayClass: 'notes-file-picker-overlay',
-        cardClass: 'notes-file-picker-modal shared-modal--wide',
-        labelledby: 'notesFilePickerTitle',
-        bodyHtml: `
-            <header class="notes-file-picker-header shared-modal-header shared-modal-header--main">
-                <div>
-                    <h3 class="shared-modal-title" id="notesFilePickerTitle" data-i18n="notes_file_picker_title">Choose Files</h3>
-                    <p class="notes-file-picker-subtitle shared-modal-subtitle" id="notesFilePickerSubtitle" data-i18n="notes_file_picker_subtitle">Select uploaded files or upload new ones for this note.</p>
-                </div>
-                ${closeButton('notesFilePickerCloseBtn', 'notes-file-picker-close')}
-            </header>
-            <div class="notes-file-picker-body shared-modal-body">
-                <div class="notes-file-picker-toolbar">
-                    <input type="search" id="notesFilePickerSearch" placeholder="Search uploaded files" aria-label="Search uploaded files" data-i18n-attr="placeholder:notes_file_picker_search_placeholder;aria-label:notes_file_picker_search_aria">
-                    <button type="button" class="notes-file-picker-upload-btn" id="notesFilePickerUploadBtn">${fileIcon()}<span data-i18n="header_upload">Upload</span></button>
-                    <input type="file" id="notesFilePickerUploadInput" multiple hidden>
-                </div>
-                <div class="notes-file-picker-filters">
-                    <button type="button" class="notes-file-picker-filter active" data-filter="all" data-i18n="notes_filter_all">All</button>
-                    <button type="button" class="notes-file-picker-filter" data-filter="document" data-i18n="notes_filter_documents">Documents</button>
-                    <button type="button" class="notes-file-picker-filter" data-filter="image" data-i18n="notes_filter_images">Images</button>
-                    <button type="button" class="notes-file-picker-filter" data-filter="audio" data-i18n="notes_filter_audio">Audio</button>
-                </div>
-                <div class="notes-file-picker-status" id="notesFilePickerStatus" data-i18n="notes_file_picker_loading">Loading uploaded files...</div>
-                <div class="notes-file-picker-list" id="notesFilePickerList"></div>
-                <div class="notes-file-picker-empty" id="notesFilePickerEmpty" hidden data-i18n="notes_file_picker_empty">No matching files found.</div>
-            </div>
-        `,
-        actions: [cancel('notesFilePickerCancelBtn'), submit('notesFilePickerConfirmBtn', 'notes_file_picker_insert_selected', 'Insert Selected', null, { disabled: true })],
-    });
-
-    const notesRecordingModal = () => sharedShell({
-        id: 'notesRecordingOverlay',
-        overlayClass: 'notes-recording-overlay',
-        cardClass: 'notes-recording-modal shared-modal--wide',
-        labelledby: 'notesRecordingTitle',
-        bodyHtml: `
-            <header class="notes-recording-header shared-modal-header shared-modal-header--main">
-                <div>
-                    <h3 class="shared-modal-title" id="notesRecordingTitle" data-i18n="notes_record_audio">Record Audio</h3>
-                    <p class="notes-recording-subtitle shared-modal-subtitle" data-i18n="notes_recording_subtitle">Capture audio and add it inline to this note as a playable attachment.</p>
-                </div>
-                ${closeButton('notesRecordingCloseBtn', 'notes-recording-close')}
-            </header>
-            <div class="notes-recording-body shared-modal-body">
-                <div class="notes-recording-source-switch" role="tablist" aria-label="Recording source" data-i18n-attr="aria-label:notes_recording_source_aria">
-                    <button type="button" class="notes-recording-source-btn active" id="notesRecordingSourceMicrophone" data-source="microphone" aria-pressed="true">${fileIcon()}<span data-i18n="notes_recording_source_microphone">Microphone</span></button>
-                    <button type="button" class="notes-recording-source-btn" id="notesRecordingSourceScreen" data-source="screen" aria-pressed="false">${fileIcon()}<span data-i18n="notes_recording_source_screen_audio">Screen Audio</span></button>
-                </div>
-                <div class="notes-recording-status-card">
-                    <div>
-                        <p class="notes-recording-status-label" id="notesRecordingStatus" data-i18n="notes_recording_status_ready">Ready to record</p>
-                        <p class="notes-recording-status-details" id="notesRecordingDetails" data-i18n="notes_recording_details_ready">Use your microphone or capture shared tab audio for a meeting, then add the audio inline to this note.</p>
-                    </div>
-                    <div class="notes-recording-timer" id="notesRecordingTimer">00:00</div>
-                </div>
-                <div class="notes-recording-preview" id="notesRecordingPreview" hidden>
-                    <div class="notes-recording-preview-copy">
-                        <p class="notes-recording-preview-name" id="notesRecordingPreviewName"></p>
-                        <p class="notes-recording-preview-meta" id="notesRecordingPreviewMeta"></p>
-                    </div>
-                    <audio id="notesRecordingPreviewAudio" class="notes-recording-preview-audio" controls preload="metadata"></audio>
-                </div>
-            </div>
-        `,
-        actions: [
-            cancel('notesRecordingCancelBtn'),
-            sharedAction('notesRecordingUseBtn', 'notes_recording_add_to_note', 'Add to Note', 'submit', { disabled: true }),
-            sharedAction('notesRecordingPrimaryBtn', 'notes_recording_start', 'Start Recording', 'submit'),
-        ],
-    });
-
     const memoriesImportModal = () => sharedShell({
         id: 'memoriesImportContent',
         overlayClass: 'memories-import-overlay',
@@ -354,9 +280,6 @@
         actionsLeadHtml,
     });
 
-
-
-
     const shareLinkModal = ({ id, titleId, titleI18n, titleText, subtitleId, subtitleI18n, subtitleText, closeId, closeI18n, bodyHtml, actions }) => sharedShell({
         id,
         overlayClass: 'cs-overlay',
@@ -401,68 +324,7 @@
             describedby: 'promptAcceptDescription',
             overlayAttrs: { 'aria-hidden': 'true' },
         }),
-        shareAcceptModal({
-            id: 'todoAcceptOverlay',
-            titleId: 'todoAcceptTitle',
-            ownerId: 'todoAcceptOwner',
-            previewId: 'todoAcceptPreview',
-            previewContentId: 'todoAcceptPreviewContent',
-            confirmId: 'todoAcceptConfirmBtn',
-            badgeI18n: 'todos_accept_badge',
-            badgeText: 'Shared Todo List',
-            titleI18n: 'todos_accept_loading',
-            titleText: 'Loading...',
-            previewI18n: 'todos_accept_preview_label',
-            previewText: 'List preview',
-            confirmI18n: 'todos_accept_add_action',
-            confirmText: 'Add to My Lists',
-            iconId: 'todoAcceptIcon',
-            iconStyle: 'background-color: #10b981;',
-            iconSvg: Icons.resolveIcon("todo_management"),
-            descHtml: '<p class="share-accept-desc" data-i18n="todos_accept_desc">Adding this list will let you view all todos. The owner can make changes that will sync to your workspace.</p>',
-        }),
-        shareAcceptModal({
-            id: 'noteAcceptOverlay',
-            titleId: 'noteAcceptTitle',
-            ownerId: 'noteAcceptOwner',
-            previewId: 'noteAcceptPreview',
-            previewContentId: 'noteAcceptPreviewContent',
-            confirmId: 'noteAcceptConfirmBtn',
-            badgeI18n: 'notes_accept_badge',
-            badgeText: 'Shared Note',
-            titleI18n: 'notes_accept_loading',
-            titleText: 'Loading...',
-            previewI18n: 'notes_accept_preview_label',
-            previewText: 'Note preview',
-            confirmI18n: 'notes_accept_add_action',
-            confirmText: 'Add to My Notes',
-            iconId: 'noteAcceptIcon',
-            iconStyle: 'background-color: #f59e0b;',
-            iconSvg: Icons.resolveIcon("notes_management"),
-            typeInfoId: 'noteAcceptShareTypeInfo',
-        }),
-        shareAcceptModal({
-            id: 'folderAcceptOverlay',
-            titleId: 'folderAcceptTitle',
-            ownerId: 'folderAcceptOwner',
-            previewId: 'folderAcceptPreview',
-            previewContentId: 'folderAcceptPreviewContent',
-            confirmId: 'folderAcceptConfirmBtn',
-            badgeI18n: 'files_folder_accept_badge',
-            badgeText: 'Shared Folder',
-            titleI18n: 'files_folder_accept_loading',
-            titleText: 'Loading...',
-            previewI18n: 'files_folder_accept_preview_label',
-            previewText: 'Folder contents',
-            confirmI18n: 'files_folder_accept_add',
-            confirmText: 'Add to My Files',
-            iconId: 'folderAcceptIcon',
-            iconStyle: 'background-color: #6366f1;',
-            iconSvg: Icons.resolveIcon("folder"),
-            typeInfoId: 'folderAcceptShareTypeInfo',
-        }),
-        notesFilePickerModal(),
-        notesRecordingModal(),
+
         memoriesImportModal(),
         meetingModal({
             id: 'chatBoxMeetingOverlay',
@@ -753,14 +615,7 @@
             `,
             actions: [cancel('filesStorageUsageClose', 'files_storage_usage_close', 'Close')],
         },
-        {
-            id: 'filesFolderDeleteOverlay',
-            overlayAttrs: { 'aria-hidden': 'true' },
-            icon: 'warning',
-            title: title(null, 'files_folder_delete_title', 'Delete folder'),
-            descriptions: [htmlDesc('<span data-i18n="files_folder_delete_confirm_prefix">Are you sure you want to delete "</span><span id="filesFolderDeleteName"></span><span data-i18n="files_folder_delete_confirm_middle">"?</span> <span data-i18n="files_folder_delete_confirm_suffix">All files inside will move to</span> <strong data-i18n="files_folder_uncategorized">Uncategorized</strong>.')],
-            actions: [cancel('filesFolderDeleteCancel'), danger('filesFolderDeleteConfirm', 'files_folder_delete_action', 'Delete folder')],
-        },
+
         {
             id: 'filesEditModalOverlay',
             cardClass: 'workspace-crud-card files-edit-modal',
@@ -788,51 +643,7 @@
             `,
             actions: [cancel('editFileCancelBtn'), submit('saveFileChangesBtn', 'files_edit_save', 'Save changes')],
         },
-        {
-            id: 'filesFolderModalOverlay',
-            cardId: 'filesFolderModal',
-            cardClass: 'workspace-crud-card files-folder-modal',
-            role: 'dialog',
-            ariaModal: 'true',
-            ariaLabelledby: 'filesFolderModalTitle',
-            contentHtml: `
-                <header class="files-folder-modal-header shared-modal-header shared-modal-header--main">
-                    <h3 class="shared-modal-title" id="filesFolderModalTitle" data-i18n="files_folder_new">New Folder</h3>
-                    <button class="om-button shared-modal-close" id="filesFolderModalClose" type="button" aria-label="Close" data-i18n-attr="aria-label:common_close">
-                        ${closeIcon()}
-                    </button>
-                </header>
-                <div class="files-folder-modal-body shared-modal-body">
-                    <div class="files-folder-modal-icon-row">
-                        <label data-i18n="files_folder_icon_label">Icon & Color</label>
-                        <div class="todos-icon-picker" id="filesFolderIconPicker">
-                            <button type="button" class="todos-icon-picker-trigger" id="filesFolderIconPickerTrigger">
-                                <div class="todos-icon-picker-preview" id="filesFolderIconPickerPreview" style="background-color: #6366f1;"></div>
-                                <span class="todos-icon-picker-text" data-i18n="files_folder_icon_choose">Choose icon & color</span>
-                                <span class="todos-icon-picker-caret" aria-hidden="true"></span>
-                            </button>
-                            <div class="todos-icon-picker-dropdown">
-                                <div class="todos-icon-picker-section">
-                                    <div class="todos-icon-picker-panel active" id="filesFolderSvgPanel" data-panel="svg" role="group" aria-label="Folder icon type" data-i18n-attr="aria-label:files_folder_icon_type_aria">
-                                        <div class="todos-icon-grid" id="filesFolderIconGrid"></div>
-                                    </div>
-                                </div>
-                                <div class="todos-icon-picker-section">
-                                    <p class="todos-icon-picker-section-title" data-i18n="files_folder_colors">Colors</p>
-                                    <div class="todos-color-grid" id="filesFolderColorGrid"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="files-folder-modal-field">
-                        <label for="filesFolderNameInput" data-i18n="files_folder_name_label">Folder name</label>
-                        <input type="text" id="filesFolderNameInput" class="files-folder-modal-input" placeholder="e.g. Work Documents" maxlength="255" autocomplete="off" data-i18n-attr="placeholder:files_folder_name_placeholder" aria-describedby="filesFolderNameError" aria-invalid="false">
-                        <p class="field-validation-error" id="filesFolderNameError" data-i18n="files_folder_name_required" aria-hidden="true" hidden>Folder name is required</p>
-                    </div>
-                </div>
-            `,
-            actions: [cancel('filesFolderModalCancel'), submit('filesFolderModalSave', 'files_folder_create', 'Create Folder')],
-        },
+
         {
             id: 'memoriesEditorOverlay',
             cardClass: 'workspace-crud-card memories-editor-modal',
@@ -865,17 +676,7 @@
                 submit('memoriesSaveBtn', 'workspace_memories_save', 'Save Memory'),
             ],
         },
-        {
-            id: 'notesDeleteOverlay',
-            overlayAttrs: { 'aria-hidden': 'true' },
-            role: 'dialog',
-            ariaModal: 'true',
-            ariaLabelledby: 'notesDeleteTitle',
-            icon: 'warning',
-            title: title('notesDeleteTitle', 'notes_delete_title', 'Delete Note'),
-            descriptions: [desc(null, 'notes_delete_desc', 'This note and its version history will be permanently deleted. This action cannot be undone.')],
-            actions: [cancel('notesDeleteCancelBtn'), danger('notesDeleteConfirmBtn', 'common_delete', 'Delete')],
-        },
+
         {
             id: 'promptDeleteOverlay',
             overlayAttrs: { 'aria-hidden': 'true' },
@@ -1022,30 +823,6 @@
             descriptions: [desc(null, 'automations_delete_warning_text', 'Deleting an automation will stop all future scheduled executions. Past chat history from this automation will remain.')],
             actions: [cancel('deleteAutomationCancelBtn'), danger('confirmDeleteAutomationBtn', 'automations_delete_confirm', 'Delete automation', 'deleteAutomationPrimaryText')],
         },
-        {
-            id: 'notesRestoreOverlay',
-            role: 'dialog',
-            ariaModal: 'true',
-            ariaLabelledby: 'notesRestoreTitle',
-            icon: 'file',
-            title: title('notesRestoreTitle', 'notes_restore_title', 'Restore this version?'),
-            descriptions: [desc('notesRestoreDescription', null, '')],
-            bodyHtml: `
-                <div class="notes-restore-meta" aria-live="polite">
-                    <div class="notes-restore-meta-item"><span class="notes-restore-meta-label" data-i18n="notes_restore_edited_by">Edited by</span><span class="notes-restore-meta-value" id="notesRestoreAuthor"></span></div>
-                    <div class="notes-restore-meta-item"><span class="notes-restore-meta-label" data-i18n="notes_restore_edited_on">Edited on</span><span class="notes-restore-meta-value" id="notesRestoreTimestamp"></span></div>
-                    <div class="notes-restore-meta-item"><span class="notes-restore-meta-label" data-i18n="notes_restore_summary">Summary</span><span class="notes-restore-meta-value" id="notesRestoreSummary"></span></div>
-                </div>
-            `,
-            actions: [
-                cancel('notesRestoreCancelBtn'),
-                {
-                    id: 'notesRestoreConfirmBtn',
-                    variant: 'submit',
-                    i18n: 'notes_restore_confirm',
-                    text: 'Restore',
-                },
-            ],
-        },
+
     ]);
 })();

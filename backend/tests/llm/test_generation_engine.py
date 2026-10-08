@@ -134,11 +134,9 @@ def test_engine_delivers_tool_results_errors_and_closes_resources(monkeypatch):
         return {
             "content": "body needed now",
             "result": {
-                "note": {
-                    "id": "note-1",
-                    "content": "large body",
-                    "updated_at": "revision-1",
-                }
+                "file_id": "canvas-1",
+                "content": "large body",
+                "canvas_revision": 1
             },
         }
 
@@ -154,13 +152,13 @@ def test_engine_delivers_tool_results_errors_and_closes_resources(monkeypatch):
             "openai",
         )
         assert received is response
-        result = yield from stream_tool_call(tool, None, "notes")
+        result = yield from stream_tool_call(tool, None, "canvas")
         assert isinstance(result, ToolResult)
         assert result.model_content == "body needed now"
-        assert "content" not in result.history_receipt["note"]
-        assert result.artifacts[0].revision == "revision-1"
+        assert "content" not in result.history_receipt
+        assert result.artifacts[0].revision == 1
         with pytest.raises(ValueError, match="tool failed"):
-            yield from stream_tool_call(failed, None, "notes")
+            yield from stream_tool_call(failed, None, "canvas")
         yield json.dumps({"t": "d", "d": "f"})
 
     events = list(engine.run(adapter()))
@@ -178,7 +176,7 @@ def test_closing_client_stream_closes_suspended_tool_generator():
             closed.append(True)
 
     def adapter():
-        yield from stream_tool_call(tool, None, "notes")
+        yield from stream_tool_call(tool, None, "canvas")
 
     stream = GenerationEngine().run(adapter())
     assert next(stream) == "progress"

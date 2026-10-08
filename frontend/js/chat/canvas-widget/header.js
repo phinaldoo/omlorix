@@ -81,6 +81,9 @@
                     <button class="om-button canvas-markdown-share-btn is-disabled" id="canvas-markdown-ShareBtn" type="button" aria-label="Share canvas" title="Share canvas" data-i18n-attr="aria-label:canvas_share_button_enabled;title:canvas_share_button_enabled" hidden>
                     ${getPreviewHeaderIcon('share')}
                 </button>
+                <button class="om-button" id="canvas-library-History" type="button" aria-label="Version history" title="Version history" data-i18n-attr="aria-label:canvas_history;title:canvas_history" hidden>
+                    ${getPreviewHeaderIcon('clock')}
+                </button>
                 <div class="preview-download-controls">
                     <select style="display:none" aria-hidden="true" tabindex="-1" id="canvas-markdown-DownloadFormat" aria-label="Download format" data-i18n-attr="aria-label:canvas_download_format_aria" hidden disabled>
                         <option value="md" data-i18n="canvas_markdown_download_md">MD</option>

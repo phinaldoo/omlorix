@@ -8,8 +8,6 @@ RATE_LIMIT_TOOL_LABEL_I18N_KEYS: dict[str, str] = {
     "subagent": "rate_limit_tool_label_subagent",
     "web_search": "rate_limit_tool_label_web_search",
     "weather": "rate_limit_tool_label_weather",
-    "todos": "rate_limit_tool_label_todos",
-    "notes": "rate_limit_tool_label_notes",
     "automations": "rate_limit_tool_label_automations",
     "skills": "rate_limit_tool_label_skills",
     "image_generation": "rate_limit_tool_label_image_generation",
@@ -27,8 +25,6 @@ RATE_LIMIT_TOOL_DESCRIPTION_I18N_KEYS: dict[str, str] = {
     "create_visualization": "rate_limit_tool_description_create_visualization",
     "web_search": "rate_limit_tool_description_web_search",
     "weather": "rate_limit_tool_description_weather",
-    "todos": "rate_limit_tool_description_todos",
-    "notes": "rate_limit_tool_description_notes",
     "automations": "rate_limit_tool_description_automations",
     "skills": "rate_limit_tool_description_skills",
     "image_generation": "rate_limit_tool_description_image_generation",
@@ -50,8 +46,6 @@ BUILTIN_RATE_LIMIT_TOOLS: tuple[dict[str, str], ...] = (
     {"key": "video_generation", "label": "Video generation", "description": "Generate videos.", "source": "built_in"},
     {"key": "audio_generation", "label": "Audio generation", "description": "Generate audio.", "source": "built_in"},
     {"key": "music_generation", "label": "Music generation", "description": "Generate music.", "source": "built_in"},
-    {"key": "todos", "label": "Todos", "description": "Read and manage todos.", "source": "built_in"},
-    {"key": "notes", "label": "Notes", "description": "Read and manage notes.", "source": "built_in"},
     {
         "key": "automations",
         "label": "Automations",
@@ -80,7 +74,13 @@ RETIRED_STUDY_TOOL_ALIASES = {
     "create_flashcards": "create_visualization",
 }
 
+RETIRED_WORKSPACE_TOOL_ALIASES = dict.fromkeys((
+    "notes", "list_notes", "create_note", "edit_note", "todos", "list_todo_lists",
+    "view_todo_list", "toggle_todo", "create_todo", "create_todo_list",
+), "canvas")
+
 TOOL_KEY_ALIASES = {
+    **RETIRED_WORKSPACE_TOOL_ALIASES,
     "code_execution_internal": "code_execution",
     "slide_presentation_legacy": "slide_presentation",
     "get_weather": "weather",

@@ -281,7 +281,7 @@
         root.replaceChildren(card);
     }
 
-    /** Build the compact Notes result card; notes.js attaches its open action. */
+    /** Read-only receipt for historical chats; migrated content lives in Canvas. */
     function renderNotesResult(root, data) {
         const card = element('div', 'canvas-markdown-result-widget notes-tool-result-widget');
         card.dataset.noteId = String(data.note_id || '');
@@ -297,13 +297,7 @@
             element('div', 'canvas-markdown-result-sub', t('notes_tool_widget_status_created', 'Created note')),
         );
         header.append(icon, meta);
-        const open = button('canvas-markdown-result-open-btn notes-tool-result-open-btn');
-        open.dataset.noteOpen = 'true';
-        const openIcon = element('span');
-        openIcon.setAttribute('aria-hidden', 'true');
-        if (window.Icons?.eye) openIcon.innerHTML = window.Icons.eye;
-        open.append(openIcon, element('span', 'canvas-markdown-result-open-label', t('notes_tool_open_note', 'Open Note')));
-        card.append(header, open);
+        card.append(header);
         root.replaceChildren(card);
     }
 

@@ -39,7 +39,6 @@ def reformat_chat_history(
     input_formats_allowed: list[str] | None = None,
     use_group_context: bool = True,
     use_project_context: bool = True,
-    note_ids: list[str] | None = None,
     reference_parts: list[str] | None = None,
     chat_reference_context: str | None = None,
 ):
@@ -587,30 +586,7 @@ def reformat_chat_history(
         if project_end:
             context_parts.append({"type": "text", "text": project_end})
 
-    notes_context_start = len(context_parts)
-    # Notes Context
-    if note_ids and db and user_id:
-        try:
-            from app.llm.system_instruction.notes import (
-                fetch_notes_for_chat,
-                get_notes_context_start,
-                get_notes_context_end,
-            )
-
-            notes_content = fetch_notes_for_chat(db, user_id, note_ids)
-            if notes_content:
-                notes_start = get_notes_context_start(notes_content)
-                if notes_start:
-                    context_parts.append({"type": "text", "text": notes_start})
-                notes_end = get_notes_context_end()
-                if notes_end:
-                    context_parts.append({"type": "text", "text": notes_end})
-        except Exception as exc:
-            import logging
-
-            logging.getLogger(__name__).warning(
-                "[Anthropic] Notes context attach failed: %s", exc
-            )
+    workspace_context_end = len(context_parts)
 
     memories_context_start = len(context_parts)
     if db and user_id:
@@ -632,8 +608,7 @@ def reformat_chat_history(
     context_messages = []
     context_sections = []
     for source, start, end, required, priority in (
-        ("workspace", 0, notes_context_start, True, 90),
-        ("notes", notes_context_start, memories_context_start, False, 60),
+        ("workspace", 0, workspace_context_end, True, 90),
         ("memories", memories_context_start, len(context_parts), False, 40),
     ):
         if end > start:

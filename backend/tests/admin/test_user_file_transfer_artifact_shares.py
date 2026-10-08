@@ -129,13 +129,10 @@ def test_import_skips_password_protected_artifact_shares(monkeypatch):
             }
         ],
         loader=lambda entry: (b"# Shared\n", "artifact.md", "text/markdown", "sha256"),
-        folder_id_map={"source-folder-1": "mapped-folder-1"},
     )
 
     restored_shares = [row for row in db.added if isinstance(row, FileArtifactShare)]
     assert restored_shares == []
-    assert imported_file.folder_id == "mapped-folder-1"
-    assert imported_file.meta["import_source_folder_id"] == "source-folder-1"
     assert result["created_files_count"] == 1
     assert result["warnings"] == [
         {
@@ -197,7 +194,6 @@ def test_import_resets_unprotected_artifact_share_expiry_when_missing(monkeypatc
             }
         ],
         loader=lambda entry: (b"# Shared\n", "artifact.md", "text/markdown", "sha256"),
-        folder_id_map={},
     )
     after_import = datetime.now(timezone.utc)
 
@@ -220,81 +216,9 @@ def test_import_resets_unprotected_artifact_share_expiry_when_missing(monkeypatc
     ]
 
 
-def test_export_admin_user_files_bundle_manifest_includes_folders_and_shared_folder_subscriptions(monkeypatch):
-    monkeypatch.setattr(user_file_transfer, "_copy_export_file_to_zip_entry", lambda *args, **kwargs: None)
-    monkeypatch.setattr(
-        "app.users.utils._export_user_file_folders",
-        lambda user_id, db: {
-            "owned": [
-                {
-                    "id": "folder-1",
-                    "user_id": user_id,
-                    "name": "Research",
-                    "live_share_id": "live-share-1",
-                }
-            ],
-            "subscriptions": [
-                {
-                    "id": "sub-1",
-                    "folder_id": "shared-folder-1",
-                    "subscriber_id": user_id,
-                    "share_type": "live",
-                    "target_share_id": "target-live-share-1",
-                }
-            ],
-        },
-    )
-
-    user = User(id="user-1", email="person@example.com")
-    file_record = Files(
-        id="file-1",
-        user_id="user-1",
-        file_name="artifact.md",
-        storage_provider="local",
-        storage_key="user-1/artifact.md",
-        file_category="document",
-        file_type="text/markdown",
-        file_size=12,
-        meta={"original_filename": "artifact.md"},
-        created_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
-        last_updated_at=datetime(2026, 1, 2, tzinfo=timezone.utc),
-    )
-
-    zip_buffer, _, manifest = user_file_transfer.export_admin_user_files_bundle(
-        _ExportDb(user=user, files=[file_record], shares=[]),
-        "user-1",
-    )
-
-    assert manifest["folder_count"] == 1
-    assert manifest["shared_file_folder_subscription_count"] == 1
-
-    with zip_buffer, zipfile.ZipFile(zip_buffer, "r") as archive:
-        manifest_payload = json.loads(archive.read("manifest.json").decode("utf-8"))
-
-    assert manifest_payload["folders"] == [
-        {
-            "id": "folder-1",
-            "user_id": "user-1",
-            "name": "Research",
-            "live_share_id": "live-share-1",
-        }
-    ]
-    assert manifest_payload["shared_file_folder_subscriptions"] == [
-        {
-            "id": "sub-1",
-            "folder_id": "shared-folder-1",
-            "subscriber_id": "user-1",
-            "share_type": "live",
-            "target_share_id": "target-live-share-1",
-        }
-    ]
 
 
 def test_export_admin_user_files_bundle_accepts_temporary_account_email_references(monkeypatch):
-    monkeypatch.setattr(
-        "app.users.utils._export_user_file_folders",
-        lambda user_id, db: {"owned": [], "subscriptions": []},
-    )
 
     user = User(
         id="temporary-user-1",
@@ -319,10 +243,6 @@ def test_export_admin_user_files_bundle_accepts_temporary_account_email_referenc
 
 
 def test_export_admin_user_files_bundle_skips_missing_file_content_with_warning(monkeypatch):
-    monkeypatch.setattr(
-        "app.users.utils._export_user_file_folders",
-        lambda user_id, db: {"owned": [], "subscriptions": []},
-    )
 
     def fail_copy(*_args, **_kwargs):
         raise HTTPException(status_code=500, detail="Failed to prepare file 'document.pdf' for export")
@@ -366,10 +286,6 @@ def test_export_admin_user_files_bundle_skips_missing_file_content_with_warning(
 
 
 def test_admin_users_archive_accepts_temporary_accounts_without_files(monkeypatch):
-    monkeypatch.setattr(
-        "app.users.utils._export_user_file_folders",
-        lambda user_id, db: {"owned": [], "subscriptions": []},
-    )
 
     user = User(
         id="temporary-user-1",
@@ -503,64 +419,6 @@ def test_admin_users_archive_includes_user_file_export_warnings(monkeypatch):
     ]
 
 
-def test_import_admin_user_files_archive_restores_folder_state_before_files(monkeypatch):
-    target_user = User(id="target-user", email="target@example.com")
-    db = _ImportDb()
-
-    captured = {}
-
-    monkeypatch.setattr(user_file_transfer, "_resolve_existing_user_by_email", lambda db, email: (target_user, "updated"))
-    monkeypatch.setattr(
-        "app.users.utils._bulk_insert_file_folders",
-        lambda db, user_id, folders: ({"source-folder-1": "mapped-folder-1"}, [{"section": "file_folders", "warning": "folder restored"}]),
-    )
-    monkeypatch.setattr(
-        "app.users.utils._bulk_insert_shared_file_folder_subscriptions",
-        lambda db, user_id, subscriptions, folder_id_map=None: [{"section": "shared_file_folder_subscriptions", "warning": folder_id_map["source-folder-1"]}],
-    )
-
-    def fake_import(db, **kwargs):
-        captured.update(kwargs)
-        return {
-            "target_user_id": target_user.id,
-            "target_user_email": target_user.email,
-            "user_action": "updated",
-            "created_files": [],
-            "created_files_count": 0,
-            "skipped_files": [],
-            "skipped_files_count": 0,
-            "warnings": [],
-            "errors": [],
-        }
-
-    monkeypatch.setattr(user_file_transfer, "_import_file_entries_for_target_user", fake_import)
-
-    buffer = io.BytesIO()
-    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
-        archive.writestr(
-            "manifest.json",
-            json.dumps(
-                {
-                    "export_type": user_file_transfer.ADMIN_USER_FILES_EXPORT_TYPE,
-                    "export_version": user_file_transfer.ADMIN_USER_FILES_EXPORT_VERSION,
-                    "user": {"email": "target@example.com"},
-                    "files": [],
-                    "folders": [{"id": "source-folder-1", "name": "Research"}],
-                    "shared_file_folder_subscriptions": [{"id": "sub-1", "folder_id": "external-folder-1", "share_type": "live"}],
-                }
-            ),
-        )
-
-    buffer.seek(0)
-    with zipfile.ZipFile(buffer, "r") as archive:
-        result = user_file_transfer.import_admin_user_files_archive(db, archive)
-
-    assert captured["folder_id_map"] == {"source-folder-1": "mapped-folder-1"}
-    assert result["restored_folder_count"] == 1
-    assert result["warnings"] == [
-        {"section": "file_folders", "warning": "folder restored"},
-        {"section": "shared_file_folder_subscriptions", "warning": "mapped-folder-1"},
-    ]
 
 
 def test_import_admin_user_files_archive_accepts_temporary_account_email_references(monkeypatch):

@@ -563,7 +563,6 @@ def test_websearch_download_does_not_reuse_metadata_only_duplicate(monkeypatch, 
         file_size,
         content_sha256=None,
         project_id=None,
-        folder_id=None,
     ):
         seen_duplicate_lookup.update(
             {
@@ -573,7 +572,6 @@ def test_websearch_download_does_not_reuse_metadata_only_duplicate(monkeypatch, 
                 "file_size": file_size,
                 "content_sha256": content_sha256,
                 "project_id": project_id,
-                "folder_id": folder_id,
             }
         )
         # Simulate the previous vulnerable metadata-only behavior: the existing private file
@@ -612,7 +610,6 @@ def test_websearch_download_does_not_reuse_metadata_only_duplicate(monkeypatch, 
         "file_size": len(remote_bytes),
         "content_sha256": expected_sha256,
         "project_id": None,
-        "folder_id": None,
     }
     assert persisted["meta"]["sha256"] == expected_sha256
     assert persisted["project_id"] is None

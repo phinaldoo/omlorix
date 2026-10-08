@@ -120,7 +120,7 @@ def test_canvas_schema_survives_google_provider_conversion():
     payload = _build_aistudio_tools_payload(get_tool_schemas(["canvas"]))
     declaration = payload[0].function_declarations[0]
     assert declaration.name == "canvas"
-    assert len(declaration.parameters.any_of) == 5
+    assert len(declaration.parameters.any_of) == 6
 
 
 def test_failed_creation_emits_safe_error_before_storage_and_allows_one_correction(

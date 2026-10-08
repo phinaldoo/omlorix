@@ -10,10 +10,8 @@ from fastapi import HTTPException
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.modules.setdefault("zstandard", SimpleNamespace())
 
-from app.notes import router as notes_router
 from app.prompts import router as prompts_router
 from app.skills import router as skills_router
-from app.todos import router as todos_router
 
 
 def _db_with_owned_live_share(model_name: str):
@@ -37,10 +35,8 @@ def _db_with_owned_live_share(model_name: str):
 @pytest.mark.parametrize(
     ("router_module", "model_name", "ensure_function_name", "guard_function_name"),
     [
-        (notes_router, "Notes", "ensure_notes_sharing_allowed", "ensure_notes_sharing_allowed_or_existing"),
         (prompts_router, "Prompts", "ensure_prompt_sharing_allowed", "ensure_prompt_sharing_allowed_or_existing"),
         (skills_router, "Skills", "ensure_skills_sharing_allowed", "ensure_skills_sharing_allowed_or_existing"),
-        (todos_router, "TodoLists", "ensure_todo_sharing_allowed", "ensure_todo_sharing_allowed_or_existing"),
     ],
 )
 def test_existing_live_share_does_not_unlock_new_collaborate_share(

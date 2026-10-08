@@ -21,8 +21,6 @@ logger = logging.getLogger(__name__)
 # Tool categories mapping
 TOOL_CATEGORIES: dict[str, list[str]] = {
     "websearch": ["web_search"],
-    "todo_management": ["todos"],
-    "notes_management": ["notes"],
     "automations_management": ["automations"],
     "skills_management": ["skills"],
     "information": ["weather"],
@@ -48,8 +46,6 @@ def _compute_tool_categories(tool_list: list[str]) -> dict:
         {
             "categories": {
                 "websearch": "full" | "partial" | "none",
-                "todo_management": "full" | "partial" | "none",
-                "notes_management": "full" | "partial" | "none",
             },
             "uncategorized": ["tool1", "tool2", ...]
         }

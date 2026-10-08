@@ -20,11 +20,8 @@ if "zstandard" not in sys.modules:
     sys.modules["zstandard"] = fake_zstandard
 
 from app.agents import utils as agents_utils
-from app.file_folders import router as folders_router
-from app.notes import router as notes_router
 from app.prompts import router as prompts_router
 from app.skills import router as skills_router
-from app.todos import router as todos_router
 
 
 def _request():
@@ -81,38 +78,6 @@ def test_accept_shared_agent_persists_only_share_type(monkeypatch, share_type_na
     assert "can_edit" not in result
 
 
-@pytest.mark.parametrize(
-    ("module", "share_type_name"),
-    [
-        (notes_router, "LIVE"),
-        (notes_router, "COLLABORATE"),
-    ],
-)
-def test_accept_shared_note_passes_only_share_type(monkeypatch, module, share_type_name):
-    share_type = getattr(module.ShareType, share_type_name)
-    captured = {}
-
-    monkeypatch.setattr(module, "ensure_notes_enabled", lambda *args, **kwargs: None)
-    monkeypatch.setattr(module, "ensure_notes_sharing_allowed", lambda *args, **kwargs: None)
-    monkeypatch.setattr(module, "detect_share_type_from_id", lambda db, share_id: share_type)
-    monkeypatch.setattr(module, "get_shared_note_by_share_id", lambda db, share_id, share_type: _shared_item(id="note-1"))
-    monkeypatch.setattr(
-        module,
-        "subscribe_to_shared_note",
-        lambda db, user_id, item_id, share_type: captured.setdefault("share_type", share_type),
-    )
-    monkeypatch.setattr(module, "create_audit_log", lambda *args, **kwargs: None)
-
-    response = module.accept_shared_note_route(
-        "share-1",
-        _request(),
-        db=object(),
-        db_log=object(),
-        user=_user(),
-    )
-
-    assert captured["share_type"] == share_type
-    assert response.share_type == share_type.value
 
 
 @pytest.mark.parametrize(
@@ -146,62 +111,8 @@ def test_accept_shared_prompt_passes_only_share_type(monkeypatch, share_type_nam
     assert response.share_type == share_type.value
 
 
-@pytest.mark.parametrize(
-    "share_type_name",
-    ["LIVE", "COLLABORATE"],
-)
-def test_accept_shared_folder_passes_only_share_type(monkeypatch, share_type_name):
-    share_type = getattr(folders_router.ShareType, share_type_name)
-    captured = {}
-
-    monkeypatch.setattr(folders_router, "detect_share_type_from_id", lambda db, share_id: share_type)
-    monkeypatch.setattr(folders_router, "get_shared_folder_by_share_id", lambda db, share_id: _shared_item(id="folder-1"))
-    monkeypatch.setattr(
-        folders_router,
-        "subscribe_to_shared_folder",
-        lambda db, user_id, item_id, share_type: captured.setdefault("share_type", share_type),
-    )
-    monkeypatch.setattr(folders_router, "create_audit_log", lambda *args, **kwargs: None)
-
-    folders_router.accept_shared_folder_route(
-        "share-1",
-        _request(),
-        db=object(),
-        db_log=object(),
-        user=_user(),
-    )
-
-    assert captured["share_type"] == share_type
 
 
-@pytest.mark.parametrize(
-    "share_type_name",
-    ["LIVE", "COLLABORATE"],
-)
-def test_accept_shared_todo_passes_only_share_type(monkeypatch, share_type_name):
-    share_type = getattr(todos_router.ShareType, share_type_name)
-    captured = {}
-
-    monkeypatch.setattr(todos_router, "ensure_todo_enabled", lambda *args, **kwargs: None)
-    monkeypatch.setattr(todos_router, "ensure_todo_sharing_allowed", lambda *args, **kwargs: None)
-    monkeypatch.setattr(todos_router, "detect_share_type_from_id", lambda db, share_id: share_type)
-    monkeypatch.setattr(todos_router, "get_shared_todo_list_by_share_id", lambda db, share_id: _shared_item(id="todo-list-1"))
-    monkeypatch.setattr(
-        todos_router,
-        "subscribe_to_shared_todo_list",
-        lambda db, user_id, item_id, share_type: captured.setdefault("share_type", share_type),
-    )
-    monkeypatch.setattr(todos_router, "create_audit_log", lambda *args, **kwargs: None)
-
-    todos_router.accept_shared_todo_list_route(
-        "share-1",
-        _request(),
-        db=object(),
-        db_log=object(),
-        user=_user(),
-    )
-
-    assert captured["share_type"] == share_type
 
 
 @pytest.mark.parametrize(

@@ -723,7 +723,6 @@ async def create_meeting_transcript(
             "file_type": file_record.file_type,
             "file_size": file_record.file_size,
             "project_id": file_record.project_id,
-            "folder_id": file_record.folder_id,
             "created_at": file_record.created_at.isoformat() if file_record.created_at else None,
             "meta": file_record.meta if isinstance(file_record.meta, dict) else {},
         },

@@ -1015,6 +1015,7 @@
          */
         function renderStreamingMarkdownDraft(draft) {
             if (!draft || !previewPanel || !previewTrack) return;
+            document.dispatchEvent(new CustomEvent('canvas-document-changed', { detail: draft.fileId }));
             const draftKey = String(draft.key || state.activeDraftKey || '');
             const content = String(draft.content || '');
             const scrollState = getScrollState(draftKey);
@@ -1175,7 +1176,7 @@
                             data: spreadsheetData,
                             fileName,
                             format: contentType,
-                            editable: Boolean(draft.fileId),
+                            editable: Boolean(draft.fileId) && draft.canEdit !== false,
                             requiresRecalculation: draft.spreadsheetRequiresRecalculation === true,
                             onChange: ({ dirty }) => {
                                 const currentDraft = draftMap.get(draftKey);
@@ -1228,6 +1229,7 @@
         /* ── Main Render Function ── */
         function renderDraft(draft) {
             if (!draft || !previewPanel || !previewTrack) return;
+            document.dispatchEvent(new CustomEvent('canvas-document-changed', { detail: draft.fileId }));
     
             const draftKey = draft.key || state.activeDraftKey || '';
             const wasStreamingMarkdown = Boolean(

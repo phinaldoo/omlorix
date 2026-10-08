@@ -1314,12 +1314,12 @@ function toggleChatFilesContainer(active) {
 function updateChatFilesContainerVisibility() {
   const hasFiles = chatBoxAttachmentElements.size > 0;
   const hasSkills = selectedSkillIds.size > 0;
-  const hasNotes = selectedNoteIds.size > 0;
+
   const hasPrompts = selectedPromptIds.size > 0;
   const hasMcpConnectors = selectedMcpServerIds.size > 0;
   const hasChatReferences = selectedChatReferenceIds.size > 0;
   const hasReferences = chatBoxReferencePartCount > 0;
-  toggleChatFilesContainer(hasFiles || hasSkills || hasNotes || hasPrompts || hasMcpConnectors || hasChatReferences || hasReferences);
+  toggleChatFilesContainer(hasFiles || hasSkills || hasPrompts || hasMcpConnectors || hasChatReferences || hasReferences);
   scheduleScrollButtonOffsetUpdate();
 }
 

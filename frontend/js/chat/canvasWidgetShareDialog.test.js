@@ -332,7 +332,7 @@ test('narrow chat panes collapse secondary header labels', () => {
     assert.match(modelSelectCss, /\.model-select-label \.label-name,[\s\S]*\.model-select-trigger-status[\s\S]*display: none/);
 });
 
-test('canvas and notes headers truncate filenames before shrinking controls', () => {
+test('canvas headers truncate filenames before shrinking controls', () => {
     const canvasCss = readFrontendSource(CANVAS_WIDGET_CSS_PATH, 'utf8');
 
     assert.match(canvasCss, /\.canvas-markdown-preview-header-left\s*\{[^}]*flex: 1 1 0;[^}]*min-width: 0;[^}]*overflow: hidden;/);
@@ -342,14 +342,12 @@ test('canvas and notes headers truncate filenames before shrinking controls', ()
     assert.match(canvasCss, /\.canvas-markdown-preview-title\s*\{[^}]*text-overflow: ellipsis;[^}]*white-space: nowrap;[^}]*overflow: hidden;/);
 });
 
-test('narrow canvas and notes previews collapse view tabs to accessible icon buttons', () => {
+test('narrow canvas previews collapse view tabs to accessible icon buttons', () => {
     const canvasSource = readFrontendSource(CANVAS_WIDGET_PATH, 'utf8');
-    const notesSource = readFrontendSource(path.join(__dirname, 'notes.js'), 'utf8');
     const canvasCss = readFrontendSource(CANVAS_WIDGET_CSS_PATH, 'utf8');
 
     assert.match(canvasCss, /@container canvas-preview \(max-width: 600px\)\s*\{[\s\S]*\.canvas-markdown-editor-view-btn-label\s*\{\s*display: none;/);
     assert.match(canvasCss, /@container canvas-preview \(max-width: 600px\)[\s\S]*\.canvas-markdown-editor-view-btn\s*\{[^}]*width: 30px;[^}]*height: 30px;[^}]*padding: 0;/);
-    assert.doesNotMatch(canvasCss, /\.om-button/);
     assert.match(canvasSource, /id="canvas-markdown-MarkdownTab"[^>]*aria-label="Markdown"[^>]*data-i18n-attr="aria-label:markdown_editor_tab_markdown;title:markdown_editor_tab_markdown"/);
     assert.match(canvasSource, /id="canvas-markdown-EditorTab"[^>]*aria-label="Editor"[^>]*data-i18n-attr="aria-label:markdown_editor_tab_editor;title:markdown_editor_tab_editor"/);
     assert.match(canvasSource, /class="canvas-html-view-toggle canvas-markdown-editor-view-toggle"[^>]*role="tablist"[^>]*canvas_view_mode_label/);
@@ -359,10 +357,6 @@ test('narrow canvas and notes previews collapse view tabs to accessible icon but
     assert.match(canvasSource, /code_block_tab_preview">Preview<\/span>/);
     assert.match(canvasSource, /codeBtn\.setAttribute\('aria-selected', effectiveMode === 'code'/);
     assert.match(canvasSource, /previewBtn\.setAttribute\('aria-selected', effectiveMode === 'preview'/);
-    assert.match(notesSource, /id="notes-tool-MarkdownTab"[^>]*aria-label=/);
-    assert.match(notesSource, /id="notes-tool-EditorTab"[^>]*aria-label=/);
-    assert.match(notesSource, /state\.markdownTab\.setAttribute\('aria-label', markdownLabel\)/);
-    assert.match(notesSource, /state\.editorTab\.setAttribute\('aria-label', editorLabel\)/);
 });
 
 test('saved HTML canvases use the editable autosaving source editor with line numbers', () => {

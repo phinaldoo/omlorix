@@ -229,7 +229,7 @@ function translateShareItemType(itemType) {
         agent: ['workspace_notifications_item_agent', 'agent'],
         chat: ['workspace_notifications_item_chat', 'chat'],
         file_folder: ['workspace_notifications_item_file_folder', 'file folder'],
-        note: ['workspace_notifications_item_note', 'note'],
+
         project: ['workspace_notifications_item_project', 'project'],
         prompt: ['workspace_notifications_item_prompt', 'prompt'],
         skill: ['workspace_notifications_item_skill', 'skill'],
@@ -409,7 +409,7 @@ function createNotificationElement(notification) {
     message.textContent = getNotificationMessage(notification);
     content.appendChild(message);
 
-    if (isShareInvitation) {
+    if (isShareInvitation && ['skill', 'prompt', 'agent', 'project'].includes(notification.details?.item_type)) {
         const detailWrapper = document.createElement('div');
         detailWrapper.innerHTML = formatShareInvitationDetails(notification.details);
         const detailElement = detailWrapper.firstElementChild;
@@ -440,7 +440,7 @@ function createNotificationElement(notification) {
         }
     }
 
-    if (isShareInvitation) {
+    if (isShareInvitation && ['skill', 'prompt', 'agent', 'project'].includes(notification.details?.item_type)) {
         const shareId = String(notification.details.share_id ?? '');
         const itemType = String(notification.details.item_type ?? '');
         const shareType = String(notification.details.share_type ?? '');
@@ -510,7 +510,7 @@ function createNotificationElement(notification) {
     item.appendChild(content);
 
     // Add event listeners for share invitation actions
-    if (isShareInvitation) {
+    if (isShareInvitation && ['skill', 'prompt', 'agent', 'project'].includes(notification.details?.item_type)) {
         const acceptBtn = item.querySelector('[data-action="accept"]');
         const dismissBtn = item.querySelector('[data-action="dismiss"]');
         
@@ -588,29 +588,11 @@ async function handleAcceptInvitation(notification, itemElement) {
         const itemType = details.item_type;
         const shareType = details.share_type;
         let endpoint = '';
-        if (itemType === 'todo_list') {
-            if (shareType === 'clone') {
-                endpoint = `/api/v1/todo/clone/${encodeURIComponent(shareId)}`;
-            } else {
-                endpoint = `/api/v1/todo/shared/${encodeURIComponent(shareId)}/accept`;
-            }
-        } else if (itemType === 'note') {
-            if (shareType === 'clone') {
-                endpoint = `/api/v1/notes/clone/${encodeURIComponent(shareId)}`;
-            } else {
-                endpoint = `/api/v1/notes/shared/${encodeURIComponent(shareId)}/accept`;
-            }
-        } else if (itemType === 'skill') {
+        if (itemType === 'skill') {
             if (shareType === 'clone') {
                 endpoint = `/api/v1/skills/clone/${encodeURIComponent(shareId)}`;
             } else {
                 endpoint = `/api/v1/skills/shared/${encodeURIComponent(shareId)}/accept`;
-            }
-        } else if (itemType === 'file_folder') {
-            if (shareType === 'clone') {
-                endpoint = `/api/v1/file-folders/clone/${encodeURIComponent(shareId)}`;
-            } else {
-                endpoint = `/api/v1/file-folders/shared/${encodeURIComponent(shareId)}/accept`;
             }
         } else if (itemType === 'prompt') {
             if (shareType === 'clone') {

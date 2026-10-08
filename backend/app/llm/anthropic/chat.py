@@ -80,7 +80,6 @@ def anthropic_chat(
     skill_content: str | None = None,
     system_instruction_sections: list[dict[str, str]] | None = None,
     assistant_metadata: dict | None = None,
-    note_ids: list[str] | None = None,
     retry_count: int | None = None,
     reference_parts: list[str] | None = None,
     chat_reference_context: str | None = None,
@@ -160,7 +159,6 @@ def anthropic_chat(
         input_formats_allowed=input_formats_allowed,
         use_group_context=use_group_context,
         use_project_context=use_project_context,
-        note_ids=note_ids,
         reference_parts=reference_parts,
         chat_reference_context=chat_reference_context,
     )

@@ -96,6 +96,8 @@ canvas_tool = """
 ## For the canvas tool
 Use this tool when the user asks for an editable markdown document, Mermaid diagram, CSV table, HTML page, or print-ready LaTeX document, or when sustained document collaboration clearly benefits from a Canvas. Do not create a Canvas for an ordinary chat answer, short plan, or suggestion list unless the user asks for an editable artifact.
 Please only include in the canvas content the raw content, no additional instructions or suggestions.
+For saved notes and task lists, use Markdown Canvas documents with headings and standard `- [ ]` / `- [x]` checkboxes. Find existing documents with `type="list"` (optional title query and pagination), then view their current revision before editing. Reuse a matching document rather than creating duplicate lists. Canvas saves retain version history for the user to inspect and restore.
+
 Canvas content can reference existing user files when you know their file IDs.
 In markdown canvas content, reference a file as `[label](omlorix-file://FILE_ID)` or embed an image as `![alt text](omlorix-file://FILE_ID)`.
 In HTML canvas content, reference a file with `href="omlorix-file://FILE_ID"` or embed an image with `src="omlorix-file://FILE_ID"`.
@@ -107,15 +109,6 @@ Use the exact file ID from the conversation or tool result. Canvas reads are bou
 When revising, copyediting, or proofreading an already-written document, preserve it and use targeted replacements. Put multiple independent replacements into one atomic `edits` array so they share one snapshot and one save. Use a single `start_snippet`/`end_snippet` pair only for one replacement. Do not submit the complete document again unless the user requests a wholesale rewrite or it does not yet exist, and do not save intermediate drafts as separate calls.
 """
 
-notes_tool = """
-## For the notes tool
-Use this tool when the user wants to create, inspect, update, or list notes.
-Lists return paginated summaries without note bodies. Read one note with `type="view"`, or read up to 20 notes in one `type="view_many"` call. Reads are bounded; use `heading`, `query`, or `start_line`/`end_line` to load only what is relevant.
-An attached note snapshot that contains the needed section, a fresh view, or a save receipt provides a usable `updated_at`; pass it unchanged as `expected_updated_at` for an edit. Do not call view merely to verify a successful save or when the current needed text and revision are already available. If the tool reports a revision conflict, view the relevant current section and reconsider the change; never retry an old full-document replacement against the new revision automatically.
-When revising, copyediting, or proofreading an existing note, put multiple independent exact replacements into one atomic `edits` array. Use `start_snippet`, `end_snippet`, and `content` only for a single replacement. Do not submit the complete note again unless the user requests a wholesale rewrite, and do not save intermediate drafts as separate calls.
-Notes are Markdown. Reference an existing user file as `[label](omlorix-file://FILE_ID)` or embed an image as `![alt text](omlorix-file://FILE_ID)`.
-Use the exact file ID from the conversation or tool result.
-"""
 
 deep_research_tool = """
 ## For the deep_research tool
@@ -386,8 +379,6 @@ def get_default_system_instruction(db, tools, knowledge_cutoff, user_id, web_sea
     if "canvas" in tool_names:
         tools_explanations += "\n" + canvas_tool
 
-    if "notes" in tool_names:
-        tools_explanations += "\n" + notes_tool
 
     if "deep_research" in tool_names:
         tools_explanations += "\n" + deep_research_tool

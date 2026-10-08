@@ -1,11 +1,9 @@
 (function initializeFormValidation(globalScope) {
     const DEFAULT_GROUP_SELECTOR = [
         '.projects-create-input-group',
-        '.todos-list-editor-field',
         '.memories-card',
         '.cs-field',
         '.files-edit-modal-field',
-        '.files-folder-modal-field',
     ].join(',');
 
     function getFieldGroup(inputEl, options = {}) {

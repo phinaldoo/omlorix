@@ -520,7 +520,6 @@ def test_render_latex_pdf_audits_retained_source_update_when_pdf_save_fails(
         id="source-id",
         file_name="Report.tex",
         file_type="text/x-tex",
-        folder_id=None,
         project_id=None,
         meta={"latex_source": True, "canvas_revision": 4},
     )
@@ -782,7 +781,6 @@ def test_uploaded_latex_canvas_adoption_stages_actor_audit_in_commit(
         id="source-1",
         file_name="uploaded.tex",
         file_type="text/x-tex",
-        folder_id="shared-folder-1",
         project_id=None,
         meta={"original_filename": "uploaded.tex"},
     )
@@ -880,7 +878,6 @@ def test_canvas_compile_failure_state_and_audit_are_atomic(monkeypatch, audit_fa
         id="source-1",
         file_name="report.tex",
         file_type="text/x-tex",
-        folder_id="shared-folder-1",
         project_id=None,
         meta={
             "canvas": True,
@@ -1041,7 +1038,6 @@ def test_canvas_latex_render_records_only_terminal_source_states(
         id="source-1",
         file_name="report.tex",
         file_type="text/x-tex",
-        folder_id="shared-folder-1",
         project_id="project-1",
         meta={
             "canvas": True,
@@ -1130,7 +1126,6 @@ def test_canvas_latex_render_records_only_terminal_source_states(
         assert db.commit_count == 0
         # The derivative must share the source's access boundary. Otherwise a
         # collaborator can render successfully but cannot open the returned PDF.
-        assert kwargs["folder_id"] == "shared-folder-1"
         assert kwargs["project_id"] == "project-1"
         if outcome == "pdf_persistence_failure":
             raise RuntimeError("PDF persistence failed")
@@ -1212,7 +1207,7 @@ def test_canvas_latex_render_records_only_terminal_source_states(
             assert audit_calls == []
 
 
-def test_existing_latex_pdf_moves_to_the_source_access_boundary(monkeypatch):
+def test_existing_latex_pdf_moves_to_the_source_project(monkeypatch):
     """Re-rendering repairs a legacy derivative left outside the shared folder."""
     pdf_record = SimpleNamespace(
         id="pdf-1",
@@ -1220,7 +1215,6 @@ def test_existing_latex_pdf_moves_to_the_source_access_boundary(monkeypatch):
         file_type="application/pdf",
         file_category="document",
         file_size=10,
-        folder_id=None,
         project_id=None,
         storage_provider="local",
         storage_key="old-key",
@@ -1238,7 +1232,6 @@ def test_existing_latex_pdf_moves_to_the_source_access_boundary(monkeypatch):
     def fake_replace(_db, **kwargs):
         record = kwargs["file_record"]
         if kwargs["update_location"]:
-            record.folder_id = kwargs["folder_id"]
             record.project_id = kwargs["project_id"]
         return record
 
@@ -1257,12 +1250,10 @@ def test_existing_latex_pdf_moves_to_the_source_access_boundary(monkeypatch):
         file_type="application/pdf",
         file_category="document",
         meta={"latex_pdf": True},
-        folder_id="shared-folder-1",
         project_id="project-1",
         update_location=True,
     )
 
-    assert result.folder_id == "shared-folder-1"
     assert result.project_id == "project-1"
 
 
@@ -1274,7 +1265,6 @@ def test_latex_overwrite_forwards_transactional_audit_callback(monkeypatch):
         file_type="application/pdf",
         file_category="document",
         file_size=10,
-        folder_id=None,
         project_id=None,
         storage_provider="local",
         storage_key="old-key",

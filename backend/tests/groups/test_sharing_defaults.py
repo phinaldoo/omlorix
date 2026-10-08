@@ -6,8 +6,6 @@ def test_all_group_sharing_permissions_default_to_enabled():
 
     sharing_permissions = {
         "project": DEFAULT_GROUP_SETTINGS["projects"]["allow_project_share"],
-        "todo_list": DEFAULT_GROUP_SETTINGS["todo"]["allow_todo_list_share"],
-        "notes": DEFAULT_GROUP_SETTINGS["notes"]["allow_notes_share"],
         "skills": DEFAULT_GROUP_SETTINGS["skills"]["allow_skill_share"],
         "prompts": DEFAULT_GROUP_SETTINGS["prompts"]["allow_prompt_share"],
         "bookmarks": DEFAULT_GROUP_SETTINGS["bookmarks"]["allow_bookmark_share"],
@@ -18,8 +16,6 @@ def test_all_group_sharing_permissions_default_to_enabled():
 
     assert sharing_permissions == {
         "project": True,
-        "todo_list": True,
-        "notes": True,
         "skills": True,
         "prompts": True,
         "bookmarks": True,

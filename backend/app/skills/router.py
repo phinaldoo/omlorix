@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.dependencies import get_db, get_db_log, verified_admin, verified_user
 from app.groups.init import get_user_group_setting_value
+from app.files.history import history_storage_bytes
 from app.files.models import Files
 from app.files.utils import (
     CHUNK_SIZE,
@@ -270,7 +271,7 @@ def _ensure_skill_clone_capacity(
 
     if (
         max_storage_limit_bytes is not None
-        and int(stored_file_size or 0) + existing_skill_size + clone_file_size > max_storage_limit_bytes
+        and int(stored_file_size or 0) + history_storage_bytes(db, recipient_id) + existing_skill_size + clone_file_size > max_storage_limit_bytes
     ):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Maximum storage quota reached")
     if (
@@ -304,7 +305,7 @@ def _ensure_skill_file_upload_capacity(
             .filter(Files.user_id == user_id)
             .scalar()
         )
-        if int(stored_file_size or 0) + skill_file_size + file_size > max_user_storage_limit_bytes:
+        if int(stored_file_size or 0) + history_storage_bytes(db, user_id) + skill_file_size + file_size > max_user_storage_limit_bytes:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Maximum storage quota reached")
 
     if max_files_limit >= 0:

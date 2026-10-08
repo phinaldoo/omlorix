@@ -341,9 +341,7 @@ function captureChatSendComposerContext() {
         skillIds: typeof window.getSelectedSkillIds === 'function'
             ? [...(window.getSelectedSkillIds() || [])]
             : [],
-        noteIds: typeof window.getSelectedNoteIds === 'function'
-            ? [...(window.getSelectedNoteIds() || [])]
-            : [],
+
         promptIds: typeof window.getSelectedPromptIds === 'function'
             ? [...(window.getSelectedPromptIds() || [])]
             : [],
@@ -364,7 +362,7 @@ function captureChatSendComposerContext() {
 }
 
 function hasUnsupportedRealtimeRequestContext(composerContext = {}) {
-    return ['skillIds', 'noteIds', 'promptIds', 'referenceParts'].some((key) => (
+    return ['skillIds', 'promptIds', 'referenceParts'].some((key) => (
         Array.isArray(composerContext?.[key]) && composerContext[key].length > 0
     )) || Array.isArray(composerContext?.subagentTargets);
 }
@@ -408,11 +406,6 @@ function clearChatRequestFiles(options = {}) {
     if (!preserveSkills && typeof window.clearAllSkillAttachments === 'function') {
         try {
             window.clearAllSkillAttachments();
-        } catch (_) {}
-    }
-    if (typeof window.clearAllNoteAttachments === 'function') {
-        try {
-            window.clearAllNoteAttachments();
         } catch (_) {}
     }
     if (typeof window.clearAllPromptAttachments === 'function') {

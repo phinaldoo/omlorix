@@ -103,7 +103,7 @@ const DEFAULT_ONE_TIME_DELAY_MINUTES = 10;
 let activeAutomationContext = null;
 let automationsModelsCache = [];
 let automationsSkillsCache = [];
-let automationsNotesCache = [];
+
 let automationsFilesCache = [];
 const automationsFilesMetaMap = new Map();
 let automationFilesDropdownOutsideListenerBound = false;
@@ -133,7 +133,7 @@ const AutomationState = {
         scheduleRules: [],
         scheduleTimezone: null,
         selectedSkillId: null,
-        selectedNoteIds: [],
+
         selectedFileIds: [],
         fileMetadata: {},
         fileLibrarySearch: '',
@@ -158,7 +158,7 @@ const AutomationState = {
         scheduleRules: [],
         scheduleTimezone: null,
         selectedSkillId: null,
-        selectedNoteIds: [],
+
         selectedFileIds: [],
         fileMetadata: {},
         fileLibrarySearch: '',
@@ -174,7 +174,7 @@ const AutomationState = {
 
 let automationsModelSelectOutsideHandlerBound = false;
 let automationSkillSelectOutsideHandlerBound = false;
-let automationNotesSelectOutsideHandlerBound = false;
+
 let automationConnectionsSelectOutsideHandlerBound = false;
 
 function automationT(key, fallback) {
@@ -1159,7 +1159,7 @@ function resetAutomationCreateState() {
     AutomationState.create.scheduleRules = [];
     AutomationState.create.scheduleTimezone = getPreferredAutomationTimezone();
     AutomationState.create.selectedSkillId = null;
-    AutomationState.create.selectedNoteIds = [];
+
     AutomationState.create.selectedFileIds = [];
     AutomationState.create.fileMetadata = {};
     AutomationState.create.fileLibrarySearch = '';
@@ -1180,7 +1180,7 @@ function resetAutomationCreateState() {
     renderAutomationModelSelect('create');
     renderAutomationConnectionsSelect('create');
     renderAutomationSkillSelect('create');
-    renderAutomationNotesSelect('create');
+
     renderAutomationFilesSelected('create');
     renderAutomationFileLibrary('create');
 }
@@ -1408,22 +1408,7 @@ async function loadAutomationSkills() {
     }
 }
 
-async function loadAutomationNotes() {
-    try {
-        const params = new URLSearchParams({
-            limit: String(AUTOMATIONS_PAGE_LIMIT),
-            offset: '0',
-        });
-        const res = await window.authedFetch(`/api/v1/notes/?${params.toString()}`, { method: 'GET' });
-        if (!res.ok) return;
-        const notes = unwrapAutomationsPage(await res.json());
-        if (Array.isArray(notes)) {
-            automationsNotesCache = notes;
-        }
-    } catch (e) {
-        console.error('Failed to load notes for automations', e);
-    }
-}
+
 
 async function loadAutomationFiles() {
     try {
@@ -1481,20 +1466,9 @@ function ensureAutomationSkillSelectOutsideHandler() {
     automationSkillSelectOutsideHandlerBound = true;
 }
 
-function handleAutomationNotesSelectDocumentClick(e) {
-    ['create', 'edit'].forEach((mode) => {
-        const container = mode === 'edit' ? automationEditNotesSelect : automationNotesSelect;
-        if (!container || container.contains(e.target)) return;
-        container.querySelector(`#automationNotesAddTrigger${mode}`)?.classList.remove('open');
-        container.querySelector(`#automationNotesDropdown${mode}`)?.classList.remove('open');
-    });
-}
 
-function ensureAutomationNotesSelectOutsideHandler() {
-    if (automationNotesSelectOutsideHandlerBound) return;
-    document.addEventListener('click', handleAutomationNotesSelectDocumentClick);
-    automationNotesSelectOutsideHandlerBound = true;
-}
+
+
 
 function handleAutomationConnectionsSelectDocumentClick(e) {
     ['create', 'edit'].forEach((mode) => {
@@ -1518,10 +1492,7 @@ function cleanupAutomationSelectOutsideHandlers() {
         document.removeEventListener('click', handleAutomationSkillSelectDocumentClick);
         automationSkillSelectOutsideHandlerBound = false;
     }
-    if (automationNotesSelectOutsideHandlerBound) {
-        document.removeEventListener('click', handleAutomationNotesSelectDocumentClick);
-        automationNotesSelectOutsideHandlerBound = false;
-    }
+
     if (automationConnectionsSelectOutsideHandlerBound) {
         document.removeEventListener('click', handleAutomationConnectionsSelectDocumentClick);
         automationConnectionsSelectOutsideHandlerBound = false;
@@ -1601,108 +1572,12 @@ function renderAutomationSkillSelect(mode) {
 }
 
 // Notes Select Functions (Multi-select with chips)
-const automationNotesSelect = document.getElementById('automationNotesSelect');
-const automationEditNotesSelect = document.getElementById('automationEditNotesSelect');
 
-function getAutomationNoteLabel(note) {
-    const title = typeof note?.title === 'string' ? note.title.trim() : '';
-    if (title) return title;
 
-    // List responses intentionally omit full content. Keep this fallback for
-    // callers that already hold a full note response, then use the lightweight
-    // snippet before treating the note as empty.
-    const content = typeof note?.content === 'string' ? note.content : '';
-    const contentLabel = content
-        .split('\n')
-        .map(line => line.replace(/^#+\s*/, '').trim())
-        .find(Boolean);
-    if (contentLabel) return contentLabel;
 
-    const snippet = typeof note?.snippet === 'string' ? note.snippet.trim() : '';
-    return snippet || automationT('automations_notes_empty_note', 'Empty note');
-}
 
-function renderAutomationNotesSelect(mode) {
-    const container = mode === 'edit' ? automationEditNotesSelect : automationNotesSelect;
-    if (!container) return;
 
-    const state = mode === 'edit' ? AutomationState.edit : AutomationState.create;
-    const selectedNoteIds = state.selectedNoteIds || [];
-    const selectedNotes = automationsNotesCache.filter(n => selectedNoteIds.includes(n.id));
 
-    const noteIcon = Icons.notes_management;
-
-    container.innerHTML = `
-        <div class="automations-notes-selected-chips">
-            ${selectedNotes.length === 0 ? `
-                <span class="automations-notes-placeholder">${AutomationUtils.escapeHtml(automationT('automations_notes_none_selected', 'No notes selected (optional)'))}</span>
-            ` : selectedNotes.map(note => `
-                <span class="automations-notes-chip" data-note-id="${note.id}">
-                    ${noteIcon}
-                    <span class="automations-notes-chip-text">${AutomationUtils.escapeHtml(getAutomationNoteLabel(note))}</span>
-                    <button type="button" class="automations-notes-chip-remove" data-note-id="${note.id}" aria-label="${AutomationUtils.escapeHtml(automationT('automations_notes_remove_aria', 'Remove note'))}">
-                        ${Icons.close}
-                    </button>
-                </span>
-            `).join('')}
-        </div>
-        <div class="automations-notes-add-section">
-            <button type="button" class="automations-notes-add-trigger" id="automationNotesAddTrigger${mode}">
-                ${Icons.plus}
-                ${AutomationUtils.escapeHtml(automationT('automations_notes_add', 'Add note'))}
-            </button>
-            <div class="automations-notes-dropdown" id="automationNotesDropdown${mode}">
-                ${automationsNotesCache.length === 0 ? `
-                    <div class="automations-notes-dropdown-empty">${AutomationUtils.escapeHtml(automationT('automations_notes_empty', 'No notes available'))}</div>
-                ` : automationsNotesCache.map(n => `
-                    <div class="automations-notes-dropdown-item ${selectedNoteIds.includes(n.id) ? 'selected' : ''}" data-note-id="${n.id}">
-                        <span class="automations-notes-dropdown-item-icon">${noteIcon}</span>
-                        <span class="automations-notes-dropdown-item-text">${AutomationUtils.escapeHtml(getAutomationNoteLabel(n))}</span>
-                        <span class="automations-notes-dropdown-item-check">
-                            ${Icons.check}
-                        </span>
-                    </div>
-                `).join('')}
-            </div>
-        </div>
-    `;
-
-    // Remove chip handlers
-    container.querySelectorAll('.automations-notes-chip-remove').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const noteId = btn.dataset.noteId;
-            state.selectedNoteIds = state.selectedNoteIds.filter(id => id !== noteId);
-            renderAutomationNotesSelect(mode);
-        });
-    });
-
-    // Add note trigger
-    const addTrigger = container.querySelector(`#automationNotesAddTrigger${mode}`);
-    const dropdown = container.querySelector(`#automationNotesDropdown${mode}`);
-
-    addTrigger?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        addTrigger.classList.toggle('open');
-        dropdown?.classList.toggle('open');
-    });
-
-    // Dropdown item selection
-    container.querySelectorAll('.automations-notes-dropdown-item').forEach(item => {
-        item.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const noteId = item.dataset.noteId;
-            if (state.selectedNoteIds.includes(noteId)) {
-                state.selectedNoteIds = state.selectedNoteIds.filter(id => id !== noteId);
-            } else {
-                state.selectedNoteIds = [...state.selectedNoteIds, noteId];
-            }
-            renderAutomationNotesSelect(mode);
-        });
-    });
-
-    ensureAutomationNotesSelectOutsideHandler();
-}
 
 /** Render the same provider artwork used by connection cards and chat mentions. */
 function resolveAutomationConnectionIcon(connection) {
@@ -2569,7 +2444,7 @@ function showAutomationsCreateContainer() {
     activeAutomationContext = null;
     resetAutomationCreateState();
     renderAutomationSkillSelect('create');
-    renderAutomationNotesSelect('create');
+
     automationNameInput?.focus();
 }
 
@@ -2634,7 +2509,7 @@ function showAutomationsEditContainer(automation) {
         ? convertStoredRulesToEditorRules(automation.schedule_rules, AutomationState.edit.scheduleTimezone)
         : [];
     AutomationState.edit.selectedSkillId = automation?.skill_id || null;
-    AutomationState.edit.selectedNoteIds = Array.isArray(automation?.note_ids) ? [...automation.note_ids] : [];
+
     AutomationState.edit.selectedFileIds = Array.isArray(automation?.file_ids) ? [...automation.file_ids] : [];
     AutomationState.edit.fileMetadata = {};
     AutomationState.edit.fileLibrarySearch = '';
@@ -2656,7 +2531,7 @@ function showAutomationsEditContainer(automation) {
     renderAutomationConnectionsSelect('edit');
     void loadAutomationConnections('edit', { pruneUnavailable: true });
     renderAutomationSkillSelect('edit');
-    renderAutomationNotesSelect('edit');
+
     renderAutomationScheduleRules('edit');
     renderAutomationFilesSelected('edit');
     renderAutomationFileLibrary('edit');
@@ -2678,7 +2553,6 @@ function hasAutomationTransientDropdown() {
         document.querySelector('#automationsContainer .svg-select-dropdown.open') ||
         document.querySelector('#automationsContainer .shared-model-select-dropdown.open') ||
         document.querySelector('#automationsContainer .shared-skill-select-dropdown.open') ||
-        document.querySelector('#automationsContainer .automations-notes-dropdown.open') ||
         document.querySelector('#automationsContainer .automations-connections-dropdown.open') ||
         document.querySelector('#automationsContainer .shared-file-library-dropdown.open')
     );
@@ -2697,9 +2571,9 @@ function closeAutomationTransientDropdowns() {
         skillContainer?.querySelector(`#automationSkillSelectTrigger${mode}`)?.classList.remove('open');
         skillContainer?.querySelector(`#automationSkillSelectDropdown${mode}`)?.classList.remove('open');
 
-        const notesContainer = mode === 'edit' ? automationEditNotesSelect : automationNotesSelect;
-        notesContainer?.querySelector(`#automationNotesAddTrigger${mode}`)?.classList.remove('open');
-        notesContainer?.querySelector(`#automationNotesDropdown${mode}`)?.classList.remove('open');
+
+
+
 
         const connectionsContainer = mode === 'edit' ? automationEditConnectionsSelect : automationConnectionsSelect;
         const connectionsTrigger = connectionsContainer?.querySelector(`#automationConnectionsAddTrigger${mode}`);
@@ -2782,7 +2656,7 @@ if (confirmCreateAutomationBtn) {
                     schedule_rules: scheduleRulesPayload,
                     schedule_timezone: AutomationState.create.triggerType === 'webhook' ? null : getAutomationScheduleTimezoneForSubmit('create'),
                     skill_id: AutomationState.create.selectedSkillId || null,
-                    note_ids: AutomationState.create.selectedNoteIds || [],
+
                     file_ids: AutomationState.create.selectedFileIds || [],
                     mcp_server_ids: AutomationState.create.selectedMcpServerIds || [],
                     is_active: automationActiveToggle?.checked ?? true,
@@ -2883,7 +2757,7 @@ if (saveAutomationChangesBtn) {
                     schedule_rules: scheduleRulesPayload,
                     schedule_timezone: AutomationState.edit.triggerType === 'webhook' ? null : getAutomationScheduleTimezoneForSubmit('edit'),
                     skill_id: AutomationState.edit.selectedSkillId || null,
-                    note_ids: AutomationState.edit.selectedNoteIds || [],
+
                     file_ids: AutomationState.edit.selectedFileIds || [],
                     mcp_server_ids: AutomationState.edit.selectedMcpServerIds || [],
                     is_active: automationEditActiveToggle?.checked ?? true,
@@ -3101,11 +2975,11 @@ async function initAutomations() {
     showAutomationsStartContainer();
     initAutomationIconPickers();
     initAutomationFilesUI();
-    await Promise.all([loadAutomationModels(), loadAutomationSkills(), loadAutomationNotes(), loadAutomationFiles()]);
+    await Promise.all([loadAutomationModels(), loadAutomationSkills(),  loadAutomationFiles()]);
     renderAutomationModelSelect('create');
     renderAutomationConnectionsSelect('create');
     renderAutomationSkillSelect('create');
-    renderAutomationNotesSelect('create');
+
     renderAutomationScheduleRules('create');
     renderAutomationFilesSelected('create');
     renderAutomationFileLibrary('create');

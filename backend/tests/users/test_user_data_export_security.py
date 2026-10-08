@@ -35,11 +35,9 @@ from app.agents.models import SharedUserAgentSubscription, UserAgent, UserAgentA
 from app.auth.models import Authentication
 from app.chats.models import ChatMessages, Chats
 from app.connections.models import UserConnection
-from app.file_folders.models import FileFolders, SharedFileFolderSubscription
 from app.mcp.models import TRANSPORT_STDIO
 from app.prompts.models import Prompts
 from app.projects.models import Project
-from app.todos.models import TodoLists, Todos
 from app.users import data_export as user_data_export
 from app.users import data_import as user_utils
 from app.users import utils as legacy_user_utils
@@ -1281,63 +1279,6 @@ def test_skill_import_regenerates_ids_and_remaps_skill_files(tmp_path, monkeypat
     ).read_bytes() == b"skill file"
 
 
-def test_todo_import_regenerates_ids_and_clears_share_metadata():
-    class FakeDb:
-        def __init__(self):
-            self.added = []
-            self.commits = 0
-
-        def add(self, row):
-            self.added.append(row)
-
-        def commit(self):
-            self.commits += 1
-
-    db = FakeDb()
-    user_utils._bulk_insert_todos(
-        db,
-        "user-1",
-        [
-            {
-                "id": "source-list",
-                "title": "Inbox",
-                "description": "Imported items",
-                "icon": "checklist",
-                "clone_share_id": "clone-share",
-                "live_share_id": "live-share",
-                "collaborate_share_id": "collab-share",
-                "sort_order": [
-                    {"key": "priority", "direction": "desc"},
-                    {"key": "bogus", "direction": "sideways"},
-                ],
-                "todos": [
-                    {
-                        "id": "source-todo",
-                        "content": "Check import path",
-                        "priority": "high",
-                        "is_done": False,
-                        "completed_at": "2026-02-02T00:00:00+00:00",
-                    }
-                ],
-            }
-        ],
-    )
-
-    imported_list = next(row for row in db.added if isinstance(row, TodoLists))
-    imported_todo = next(row for row in db.added if isinstance(row, Todos))
-
-    assert imported_list.id != "source-list"
-    assert imported_list.user_id == "user-1"
-    assert imported_list.clone_share_id is None
-    assert imported_list.live_share_id is None
-    assert imported_list.collaborate_share_id is None
-    assert imported_list.sort_order == [{"key": "priority", "direction": "desc"}]
-
-    assert imported_todo.id != "source-todo"
-    assert imported_todo.todo_list == imported_list.id
-    assert imported_todo.priority == 0
-    assert imported_todo.completed_at is None
-    assert db.commits == 1
 
 
 def test_agent_asset_import_cleans_uploaded_blob_on_commit_failure(monkeypatch):
@@ -2472,62 +2413,6 @@ def test_prompt_import_drops_nonportable_share_ids(
         db.close()
 
 
-def test_canvas_system_folder_identity_round_trips_without_share_capabilities():
-    """Archives preserve system identity but cannot make a system folder shared."""
-
-    engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(
-        bind=engine,
-        tables=[FileFolders.__table__, SharedFileFolderSubscription.__table__],
-    )
-    db = sessionmaker(bind=engine)()
-    now = datetime(2026, 7, 26, tzinfo=timezone.utc)
-    try:
-        db.add(
-            FileFolders(
-                id="source-canvas-folder",
-                user_id="source-user",
-                name="Renamed Canvas",
-                icon="folder",
-                icon_color="#6366f1",
-                order=0,
-                system_kind="canvas",
-                created_at=now,
-                updated_at=now,
-            )
-        )
-        db.commit()
-
-        exported = user_data_export._export_user_file_folders("source-user", db)[
-            "owned"
-        ]
-        assert exported[0]["system_kind"] == "canvas"
-
-        # A hand-edited archive must not be able to restore share capabilities
-        # onto the private system container.
-        exported[0]["clone_share_id"] = "clone-token"
-        exported[0]["live_share_id"] = "live-token"
-        exported[0]["collaborate_share_id"] = "collaborate-token"
-        folder_id_map, warnings = user_utils._bulk_insert_file_folders(
-            db, "target-user", exported
-        )
-
-        imported = (
-            db.query(FileFolders)
-            .filter(
-                FileFolders.user_id == "target-user",
-                FileFolders.system_kind == "canvas",
-            )
-            .one()
-        )
-        assert folder_id_map["source-canvas-folder"] == imported.id
-        assert imported.name == "Renamed Canvas"
-        assert imported.clone_share_id is None
-        assert imported.live_share_id is None
-        assert imported.collaborate_share_id is None
-        assert warnings == []
-    finally:
-        db.close()
 
 
 def test_streamed_user_connections_omit_oauth_secrets():
@@ -2630,16 +2515,8 @@ def test_streamed_complete_user_data_export_always_contains_owned_memories():
             return_value=iter(["[]"]),
         ),
         patch(
-            "app.users.utils._stream_user_notes_json",
-            return_value=iter(['{"notes":[],"history":[]}']),
-        ),
-        patch(
             "app.users.utils._export_user_memories",
             return_value={"data": {"memories": [{"content": "Remember this"}]}},
-        ),
-        patch(
-            "app.users.utils._stream_user_todos_json_array",
-            return_value=iter(["[]"]),
         ),
         patch(
             "app.users.utils._stream_model_query_json_array",

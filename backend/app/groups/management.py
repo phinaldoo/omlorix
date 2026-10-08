@@ -55,10 +55,6 @@ MANAGER_EDITABLE_RULES: dict[str, dict[str, Any]] = {
     # hierarchy and management reach, not a policy ceiling.
     "projects.enable_projects": {"mode": "free"},
     "projects.allow_project_share": {"mode": "free"},
-    "todo.enabled_todo": {"mode": "free"},
-    "todo.allow_todo_list_share": {"mode": "free"},
-    "notes.enabled_notes": {"mode": "free"},
-    "notes.allow_notes_share": {"mode": "free"},
     "memories.enabled_memories": {"mode": "free"},
     "memories.memory_model_id": {"mode": "free"},
     "skills.enabled_skills": {"mode": "free"},

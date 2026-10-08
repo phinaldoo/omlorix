@@ -317,7 +317,6 @@ def _reference_from_grant(
             else None
         ),
         # The folder is provenance only. Current access is always re-evaluated.
-        "canvas_folder_id": str(getattr(canvas_record, "folder_id", None) or ""),
     }
 
 
@@ -422,13 +421,8 @@ def build_canvas_asset_references(
             raise CanvasAssetAccessError(CanvasAssetAccessError.code)
         asset = readable.record
 
-        same_folder = bool(
-            getattr(canvas_record, "folder_id", None)
-            and getattr(asset, "folder_id", None)
-            and str(canvas_record.folder_id) == str(asset.folder_id)
-        )
         actor_owns_asset = str(asset.user_id) == normalized_actor_id
-        if actor_owns_asset or same_folder:
+        if actor_owns_asset:
             grant = _upsert_grant(
                 db,
                 canvas_record=canvas_record,

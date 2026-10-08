@@ -22,6 +22,9 @@ class _FakeQuery:
     def with_for_update(self, *args, **kwargs):
         return self
 
+    def yield_per(self, count):
+        return iter(self._rows)
+
     def all(self):
         return list(self._rows)
 

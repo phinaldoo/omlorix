@@ -6,7 +6,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.database import Base
-from app.file_folders.models import FileFolders, SharedFileFolderSubscription
+from app.files.models import FileMember, CanvasHistory
 from app.files.canvas_assets import (
     CANVAS_ASSET_REFERENCES_META_KEY,
     CanvasAssetAccessError,
@@ -29,8 +29,8 @@ def db():
     Base.metadata.create_all(
         bind=engine,
         tables=[
-            FileFolders.__table__,
-            SharedFileFolderSubscription.__table__,
+            FileMember.__table__,
+            CanvasHistory.__table__,
             Files.__table__,
             CanvasAssetGrant.__table__,
         ],
@@ -43,32 +43,8 @@ def db():
         engine.dispose()
 
 
-def _folder(db, *, folder_id: str, owner_id: str) -> FileFolders:
-    folder = FileFolders(
-        id=folder_id,
-        user_id=owner_id,
-        name=folder_id,
-        live_share_id=f"live-{folder_id}",
-        collaborate_share_id=f"share-{folder_id}",
-        created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc),
-    )
-    db.add(folder)
-    db.commit()
-    return folder
 
 
-def _subscribe(db, *, folder_id: str, user_id: str, share_type: str = "collaborate") -> None:
-    db.add(
-        SharedFileFolderSubscription(
-            id=f"subscription-{folder_id}-{user_id}",
-            folder_id=folder_id,
-            subscriber_id=user_id,
-            share_type=share_type,
-            subscribed_at=datetime.now(timezone.utc),
-        )
-    )
-    db.commit()
 
 
 def _file(
@@ -76,7 +52,7 @@ def _file(
     *,
     file_id: str,
     owner_id: str,
-    folder_id: str | None = None,
+    members=(),
     canvas_type: str | None = None,
 ) -> Files:
     meta = {"original_filename": f"{file_id}.txt"}
@@ -91,12 +67,14 @@ def _file(
         file_category="text",
         file_type="text/plain" if not canvas_type else "text/x-tex",
         file_size=10,
-        folder_id=folder_id,
         meta=meta,
         created_at=datetime.now(timezone.utc),
         last_updated_at=datetime.now(timezone.utc),
     )
     db.add(record)
+    db.flush()
+    for user_id, role in members:
+        db.add(FileMember(file_id=file_id, user_id=user_id, role=role, granted_at=datetime.now(timezone.utc)))
     db.commit()
     return record
 
@@ -104,13 +82,11 @@ def _file(
 def test_private_owner_asset_id_is_rejected_without_creating_request(db):
     """Knowing a private owner UUID is not enough to create an approval request."""
 
-    _folder(db, folder_id="shared-folder", owner_id="owner")
-    _subscribe(db, folder_id="shared-folder", user_id="collaborator")
     canvas = _file(
         db,
         file_id="canvas",
         owner_id="owner",
-        folder_id="shared-folder",
+        members=[('collaborator', 'editor')],
         canvas_type="latex",
     )
     _file(db, file_id="owner-private", owner_id="owner")
@@ -211,14 +187,11 @@ def test_pending_grant_notifies_the_real_asset_owner(monkeypatch):
 def test_asset_owner_can_grant_private_asset_to_all_canvas_members(db):
     """An owner attachment becomes a Canvas-scoped grant, not a global file grant."""
 
-    _folder(db, folder_id="shared-folder", owner_id="canvas-owner")
-    _subscribe(db, folder_id="shared-folder", user_id="asset-owner")
-    _subscribe(db, folder_id="shared-folder", user_id="viewer")
     canvas = _file(
         db,
         file_id="canvas",
         owner_id="canvas-owner",
-        folder_id="shared-folder",
+        members=[('asset-owner', 'editor'), ('viewer', 'editor')],
         canvas_type="latex",
     )
     asset = _file(db, file_id="private-logo", owner_id="asset-owner")
@@ -249,13 +222,11 @@ def test_asset_owner_can_grant_private_asset_to_all_canvas_members(db):
 def test_forged_active_metadata_does_not_create_a_grant(db):
     """Imported metadata cannot manufacture access to another user's bytes."""
 
-    _folder(db, folder_id="shared-folder", owner_id="canvas-owner")
-    _subscribe(db, folder_id="shared-folder", user_id="viewer")
     canvas = _file(
         db,
         file_id="canvas",
         owner_id="canvas-owner",
-        folder_id="shared-folder",
+        members=[('viewer', 'editor')],
         canvas_type="html",
     )
     asset = _file(db, file_id="private-asset", owner_id="asset-owner")
@@ -284,23 +255,19 @@ def test_forged_active_metadata_does_not_create_a_grant(db):
 def test_readable_foreign_asset_outside_canvas_scope_requires_owner_approval(db):
     """Read access from another share cannot silently become a Canvas-wide grant."""
 
-    _folder(db, folder_id="canvas-folder", owner_id="canvas-owner")
-    _subscribe(db, folder_id="canvas-folder", user_id="requester")
     canvas = _file(
         db,
         file_id="canvas",
         owner_id="canvas-owner",
-        folder_id="canvas-folder",
+        members=[('requester', 'editor')],
         canvas_type="latex",
     )
 
-    _folder(db, folder_id="asset-folder", owner_id="asset-owner")
-    _subscribe(db, folder_id="asset-folder", user_id="requester", share_type="live")
     asset = _file(
         db,
         file_id="foreign-asset",
         owner_id="asset-owner",
-        folder_id="asset-folder",
+        members=[('requester', 'viewer')],
     )
 
     references, pending = build_canvas_asset_references(
@@ -327,23 +294,18 @@ def test_readable_foreign_asset_outside_canvas_scope_requires_owner_approval(db)
 def test_asset_owner_approval_activates_the_canvas_grant(db):
     """A pending foreign reference becomes usable after the real owner decides."""
 
-    _folder(db, folder_id="canvas-folder", owner_id="canvas-owner")
-    _subscribe(db, folder_id="canvas-folder", user_id="requester")
-    _subscribe(db, folder_id="canvas-folder", user_id="viewer", share_type="live")
     canvas = _file(
         db,
         file_id="canvas",
         owner_id="canvas-owner",
-        folder_id="canvas-folder",
+        members=[('requester', 'editor'), ('viewer', 'viewer')],
         canvas_type="markdown",
     )
-    _folder(db, folder_id="asset-folder", owner_id="asset-owner")
-    _subscribe(db, folder_id="asset-folder", user_id="requester", share_type="live")
     asset = _file(
         db,
         file_id="foreign-asset",
         owner_id="asset-owner",
-        folder_id="asset-folder",
+        members=[('requester', 'viewer')],
     )
     references, pending = build_canvas_asset_references(
         db,
@@ -402,23 +364,21 @@ def test_asset_owner_approval_activates_the_canvas_grant(db):
     )
 
 
-def test_foreign_asset_in_same_collaboration_folder_is_already_authorized(db):
-    """Putting an asset in the Canvas folder is an explicit member-scope share."""
+def test_readable_foreign_asset_still_needs_approval_for_canvas_members(db):
+    """Individual file access must not silently widen access to all Canvas members."""
 
-    _folder(db, folder_id="shared-folder", owner_id="canvas-owner")
-    _subscribe(db, folder_id="shared-folder", user_id="requester")
     canvas = _file(
         db,
         file_id="canvas",
         owner_id="canvas-owner",
-        folder_id="shared-folder",
+        members=[('requester', 'editor')],
         canvas_type="latex",
     )
     asset = _file(
         db,
         file_id="shared-asset",
         owner_id="canvas-owner",
-        folder_id="shared-folder",
+        members=[('requester', 'editor')],
     )
 
     references, pending = build_canvas_asset_references(
@@ -428,9 +388,9 @@ def test_foreign_asset_in_same_collaboration_folder_is_already_authorized(db):
         asset_file_ids=[asset.id],
     )
 
-    assert pending == []
-    assert references[0]["status"] == "active"
-    assert references[0]["authorized_by_user_id"] == "canvas-owner"
+    assert pending
+    assert references[0]["status"] == "pending"
+    assert pending == references
 
 
 def test_generated_pdf_must_match_current_canvas_revision():

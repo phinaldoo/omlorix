@@ -1,6 +1,7 @@
 from sqlalchemy import BigInteger, CheckConstraint, ForeignKey, Index, UniqueConstraint
 from sqlalchemy import JSON, Column, String
-from sqlalchemy import Integer as SAInteger
+from sqlalchemy import Integer as SAInteger, Text
+from sqlalchemy.orm import deferred
 from datetime import datetime, timezone
 from sqlalchemy import DateTime
 import uuid
@@ -34,13 +35,52 @@ class Files(Base):
     file_type = Column(String, nullable=False)
     file_size = Column(SAInteger, nullable=False)
     project_id = Column(String, ForeignKey("projects.id", ondelete="SET NULL"), nullable=True)
-    folder_id = Column(String, nullable=True)
+    # Transitional inline storage permits an atomic, database-only migration
+    # from Notes. The next Canvas save moves the source to configured storage.
+    inline_content = deferred(Column(Text, nullable=True))
     share = Column(JSON, nullable=True)
     share_id = Column(String, nullable=True)
     meta = Column(JSON, nullable=True)
     # Meta includes internal provenance flags and the original filename.
     created_at = Column(DateTime, nullable=False)
     last_updated_at = Column(DateTime, nullable=False)
+
+
+class FileMember(Base):
+    """Explicit per-file access, independent of library organization."""
+
+    __tablename__ = "file_members"
+    __table_args__ = (Index("ix_file_members_user_file", "user_id", "file_id"),)
+    file_id = Column(String, ForeignKey("files.id", ondelete="CASCADE"), primary_key=True)
+    user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    role = Column(String(16), nullable=False, default="viewer")
+    granted_at = Column(DateTime(timezone=True), nullable=False)
+
+
+class CanvasHistory(Base):
+    """Immutable previous source versions; storage objects are never overwritten."""
+
+    __tablename__ = "canvas_history"
+    __table_args__ = (
+        UniqueConstraint("file_id", "revision", name="uq_canvas_history_revision"),
+        Index("ix_canvas_history_file_revision", "file_id", "revision"),
+        Index("ix_canvas_history_owner", "owner_id"),
+    )
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    file_id = Column(String, ForeignKey("files.id", ondelete="CASCADE"), nullable=False)
+    owner_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    revision = Column(SAInteger, nullable=False)
+    actor_id = Column(String, nullable=True)
+    edit_source = Column(String(24), nullable=False, default="user")
+    file_name = Column(String, nullable=False)
+    file_type = Column(String, nullable=False)
+    content_type = Column(String(24), nullable=False)
+    file_size = Column(BigInteger, nullable=False)
+    storage_provider = Column(String, nullable=False)
+    storage_key = Column(String, nullable=False)
+    storage_meta = Column(JSON, nullable=True)
+    inline_content = deferred(Column(Text, nullable=True))
+    created_at = Column(DateTime(timezone=True), nullable=False)
 
 
 class FileProcessingArtifact(Base):
@@ -210,7 +250,6 @@ def create_file(
     storage_provider: str | None = None,
     storage_key: str | None = None,
     storage_meta: dict | None = None,
-    folder_id: str | None = None,
     commit: bool = True,
 ):
     """Create a new file record in the database."""
@@ -232,7 +271,6 @@ def create_file(
         file_type=file_type,
         file_size=file_size,
         project_id=project_id,
-        folder_id=folder_id,
         share=share,
         share_id=share_id,
         meta=meta,

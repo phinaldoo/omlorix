@@ -13,21 +13,18 @@ def test_preview_download_icons_and_format_actions(tmp_path):
     frontend = Path(__file__).resolve().parents[3] / 'frontend'
     index = BeautifulSoup((frontend / 'index.html').read_text(), 'html.parser')
     controls = ''.join(str(index.select_one(selector)) for selector in [
-        '.notes-download-controls', '#deepResearchExportControls',
+        '#deepResearchExportControls',
         '#latex-pdf-PreviewDownload', '#filesSidebarPreviewDownload',
     ])
-    notes_source = (frontend / 'js/chat/notes/sidebar.js').read_text()
-    notes_markup = notes_source.split('panel.innerHTML = `', 1)[1].split('`;', 1)[0]
     shell = '''<!doctype html><html data-mode="dark"><head><meta charset="utf-8">
     <link rel="stylesheet" href="/css/common/init.css">
     <link rel="stylesheet" href="/css/common/elements.css">
     <link rel="stylesheet" href="/css/common/elementsNew.css">
     <link rel="stylesheet" href="/css/chat/canvas-widget.css">
-    <link rel="stylesheet" href="/css/chat/notes.css">
     <link rel="stylesheet" href="/css/chat/deep-research-widget.css">
     <link rel="stylesheet" href="/css/chat/slide-presentation-widget.css">
     <style>body{margin:0;padding:24px}#canvas{width:720px;max-width:100%;container-type:inline-size;container-name:canvas-preview}#other{display:flex;align-items:center;gap:16px;margin-top:30px}#notes-tool{margin-top:30px}</style>
-    </head><body><div id="canvas"></div><div id="notes-tool"></div><div id="other">''' + controls + '''</div>
+    </head><body><div id="canvas"></div><div id="other">''' + controls + '''</div>
     <script src="/js/common/icons.js"></script><script src="/js/common/dropdown.js"></script>
     <script src="/js/chat/downloadControls.js"></script><script src="/js/chat/canvas-widget/header.js"></script>
     <script>function escapeHtml(text){const element=document.createElement('span');element.textContent=text;return element.innerHTML;}
@@ -51,15 +48,9 @@ def test_preview_download_icons_and_format_actions(tmp_path):
         page.on('pageerror', lambda error: errors.append(str(error)))
         try:
             page.goto('http://downloads.test/')
-            page.evaluate('''markup => {
-                const NotesRender={escapeHtml}; const notesT=(_key,fallback)=>fallback;
-                document.querySelector('#notes-tool').innerHTML=eval('`'+markup+'`');
-                window.downloads=[];
-            }''', notes_markup)
+            page.evaluate('window.downloads=[]')
             for select_id, button_id in [
                 ('canvas-markdown-DownloadFormat', 'canvas-markdown-PreviewDownload'),
-                ('notesDownloadFormat', 'notesDownloadBtn'),
-                ('notes-tool-DownloadFormat', 'notes-tool-PreviewDownload'),
                 ('deepResearchExportFormat', 'deepResearchExportButton'),
             ]:
                 page.evaluate('''([selectId,buttonId]) => {
@@ -112,7 +103,7 @@ def test_preview_download_icons_and_format_actions(tmp_path):
             expect(canvas).not_to_have_attribute('aria-haspopup', 'menu')
             canvas.click()
             expect(page.get_by_role('menu')).to_have_count(0)
-            assert page.evaluate('downloads.length') == 5
+            assert page.evaluate('downloads.length') == 3
             page.evaluate('finishDownload()')
             expect(canvas).to_be_enabled()
             # The already-direct file/PDF buttons remain plain icon buttons.

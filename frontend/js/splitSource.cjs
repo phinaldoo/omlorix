@@ -41,17 +41,7 @@ const SPLIT_SOURCE_PATHS = new Map([
         'js/chat/chatBox/mentions.js',
         'js/chat/chatBox.js',
     ]],
-    ['js/chat/notes.js', [
-        'js/chat/notes/state.js',
-        'js/chat/notes/api.js',
-        'js/chat/notes/dom.js',
-        'js/chat/notes/render.js',
-        'js/chat/notes/manager.js',
-        'js/chat/notes/manager-lifecycle.js',
-        'js/chat/notes/manager-history.js',
-        'js/chat/notes/sidebar.js',
-        'js/chat/notes.js',
-    ]],
+
     ['js/chat/splitScreen.js', [
         'js/chat/splitScreen/core.js',
         'js/chat/splitScreen/lifecycle.js',

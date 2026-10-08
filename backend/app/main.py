@@ -75,7 +75,6 @@ from app.chats.read_aloud import (
     start_read_aloud_cleanup_worker,
     stop_read_aloud_cleanup_worker,
 )
-from app.file_folders.router import file_folders_router
 from app.files.router import files_router
 from app.files.storage import get_user_file_storage_config
 from app.files.worker import (
@@ -93,7 +92,6 @@ from app.memories.worker import (
     start_memory_lifecycle_worker,
     stop_memory_lifecycle_worker,
 )
-from app.notes.router import notes_router
 from app.prompts.router import prompts_router
 from app.llm.ollama.router import ollama_router
 from app.llm.lmstudio.router import lmstudio_router
@@ -140,7 +138,6 @@ from app.settings.utils import (
 )
 from app.settings.router import settings_router
 from app.skills.router import skills_router
-from app.todos.router import todo_router
 from app.userNotifications.router import user_notifications_router
 from app.automations.router import automations_router
 from app.automations.worker import (
@@ -610,12 +607,10 @@ app.include_router(backups_router)
 app.include_router(auth_router)
 app.include_router(chats_router)
 app.include_router(connections_router)
-app.include_router(file_folders_router)
 app.include_router(files_router)
 app.include_router(group_management_router)
 app.include_router(feedback_router)
 app.include_router(memories_router)
-app.include_router(notes_router)
 app.include_router(prompts_router)
 app.include_router(llm_router)
 app.include_router(ollama_router)
@@ -633,7 +628,6 @@ app.include_router(custom_python_tools_router)
 app.include_router(utils_router)
 app.include_router(llmstats_router)
 app.include_router(realtime_stats_router)
-app.include_router(todo_router)
 app.include_router(user_notifications_router)
 app.include_router(automations_router)
 app.include_router(presentations_router)

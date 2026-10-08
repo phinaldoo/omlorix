@@ -488,25 +488,6 @@ const folderIconOptions = {
 }
 
 
-const todoIconOptions = {
-    checklist: Icons.checklist,
-    list: Icons.list,
-    star: Icons.star,
-    heart: Icons.heart,
-    home: Icons.home,
-    briefcase: Icons.briefcase,
-    book: Icons.book,
-    calendar: Icons.calendar, 
-    shopping_cart: Icons.shoppingCart,
-    gift: Icons.gift,
-    music: Icons.music,
-    camera: Icons.camera,
-    map_pin: Icons.pin,
-    flag: Icons.flag,
-    lightning: Icons.lightning,
-    sun: Icons.sun,
-}
-
 const workspaceIconPickerOptions = [
     { id: 'folder', name: 'Folder', iconKey: 'folder', svg: Icons.folder },
     { id: 'archive', name: 'Archive', iconKey: 'archive', svg: Icons.archive },
@@ -540,29 +521,11 @@ const workspaceIconPickerOptions = [
 
 Icons.workspaceIconPickerOptions = workspaceIconPickerOptions;
 Icons.folderIconOptions = folderIconOptions;
-Icons.todoIconOptions = todoIconOptions;
 
 if (typeof globalThis !== 'undefined') {
     globalThis.Icons = Icons;
     globalThis.folderIconOptions = folderIconOptions;
-    globalThis.todoIconOptions = todoIconOptions;
     globalThis.workspaceIconPickerOptions = workspaceIconPickerOptions;
-}
-
-const todoSortOptions = [
-  { id: 'manual', nameKey: 'todos_sort_manual', name: 'Manual', icon: Icons.list },
-  { id: 'date-asc', nameKey: 'todos_sort_date_oldest', name: 'Date (Oldest)', icon: Icons.arrow_down },
-  { id: 'date-desc', nameKey: 'todos_sort_date_newest', name: 'Date (Newest)', icon: Icons.arrow_top },
-  { id: 'due-date', nameKey: 'todos_sort_due_date', name: 'Due date', icon: Icons.calendar },
-  { id: 'alpha-asc', nameKey: 'todos_sort_alpha_asc', name: 'A → Z', icon: Icons.arrow_down },
-  { id: 'alpha-desc', nameKey: 'todos_sort_alpha_desc', name: 'Z → A', icon: Icons.arrow_top },
-  { id: 'priority', nameKey: 'todos_sort_priority', name: 'Priority', icon: Icons.layers},
-]
-
-Icons.todoSortOptions = todoSortOptions;
-
-if (typeof globalThis !== 'undefined') {
-    globalThis.todoSortOptions = todoSortOptions;
 }
 
 /**

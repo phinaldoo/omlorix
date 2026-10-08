@@ -87,6 +87,10 @@ const WorkspaceManager = {
         if (tabId === 'bookmarks' && typeof window !== 'undefined' && window.enableBookmarksFeature === false) {
             return false;
         }
+        if (tabId === 'connections' && typeof window.ConnectionsWorkspace !== 'undefined') {
+            window.ConnectionsWorkspace.show();
+        }
+
         if (tabId === 'memories' && typeof window !== 'undefined' && window.enableMemoriesFeature === false) {
             return false;
         }
@@ -409,42 +413,6 @@ const WorkspaceManager = {
             tabId = DEFAULT_WORKSPACE_TAB;
         }
 
-        // A todo create/edit form is a routed page with potentially unsaved
-        // input. Workspace-tab navigation therefore uses the same accessible
-        // discard guard as the page's Back and Cancel actions.
-        if (
-            WorkspaceState.activeTab === 'todo' &&
-            tabId !== 'todo' &&
-            window.TodosState?.listEditorMode &&
-            !window.TodosState.listEditorNavigationBypass
-        ) {
-            window.TodosManager?.requestListEditorExit?.(() => {
-                window.TodosState.listEditorNavigationBypass = true;
-                window.TodosManager.closeListEditorPage({ updateHistory: false, restoreFocus: false });
-                this.switchToTab(tabId);
-                window.TodosState.listEditorNavigationBypass = false;
-            });
-            return;
-        }
-
-        // Notes autosave normally makes tab changes seamless. If the pending
-        // save fails (especially with a collaborator conflict), keep the user
-        // on the note so its recovery UI remains available.
-        if (
-            WorkspaceState.activeTab === 'notes'
-            && tabId !== 'notes'
-            && window.NotesManager?.hasPendingEdits?.()
-            && !window.NotesManager?.isNavigationBypassed?.()
-            && typeof window.NotesManager?.requestWorkspaceExit === 'function'
-        ) {
-            window.NotesManager.requestWorkspaceExit(() => {
-                window.NotesManager.setNavigationBypass?.(true);
-                this.switchToTab(tabId);
-                window.NotesManager.setNavigationBypass?.(false);
-            });
-            return;
-        }
-
         // Update active tab in state
         WorkspaceState.activeTab = tabId;
 
@@ -486,7 +454,7 @@ const WorkspaceManager = {
 
         const container = WorkspaceDOM.container;
         if (container) {
-            const noPaddingTabs = ['files', 'todo', 'notes'];
+            const noPaddingTabs = ['files'];
             container.classList.toggle('full-bleed', noPaddingTabs.includes(tabId));
         }
 
@@ -496,28 +464,11 @@ const WorkspaceManager = {
         // Initialize files if switching to files tab
         if (tabId === 'files' && typeof FilesManager !== 'undefined') {
             FilesManager.initialize();
-            if (typeof FileFoldersManager !== 'undefined') {
-                FileFoldersManager.init();
+            if (typeof FileLibraryManager !== 'undefined') {
+                FileLibraryManager.init();
             }
         }
 
-        // Initialize todos if switching to todo tab
-        if (tabId === 'todo' && typeof TodosManager !== 'undefined') {
-            TodosManager.init();
-            TodosManager.loadLists();
-        }
-
-        // Initialize notes if switching to notes tab
-        if (tabId === 'notes' && typeof NotesManager !== 'undefined') {
-            NotesManager.show();
-        }
-
-        // Initialize connections if switching to connections tab
-        if (tabId === 'connections' && typeof window.ConnectionsWorkspace !== 'undefined') {
-            window.ConnectionsWorkspace.show();
-        }
-
-        // Initialize memories if switching to memories tab
         if (tabId === 'memories' && typeof MemoriesManager !== 'undefined') {
             MemoriesManager.show();
         }
@@ -547,30 +498,13 @@ const WorkspaceManager = {
             'files': '/workspace/files',
             'skills': '/workspace/skills',
             'agents': '/workspace/agents',
-            'todo': '/workspace/todo',
-            'notes': '/workspace/notes',
             'memories': '/workspace/memories',
             'prompts': '/workspace/prompts',
             'bookmarks': '/workspace/bookmarks',
         };
         const currentPath = window.location.pathname;
-        const isTodoListEditorRoute = tabId === 'todo'
-            && /^\/workspace\/todo\/lists\/(?:new|[^/]+\/edit)$/.test(currentPath);
-        const newUrl = isTodoListEditorRoute
-            ? currentPath
-            : (urlMap[tabId] || urlMap[DEFAULT_WORKSPACE_TAB] || '/workspace/notifications');
-
-        // Opening a nested todo editor through a direct URL must not be
-        // flattened back to /workspace/todo or duplicated in browser history.
-        if (isTodoListEditorRoute) {
-            window.history.replaceState(
-                { ...(window.history.state || {}), workspaceTab: tabId, todosListEditor: true },
-                '',
-                newUrl,
-            );
-        } else {
-            window.history.pushState({ workspaceTab: tabId }, '', newUrl);
-        }
+        const newUrl = urlMap[tabId] || urlMap[DEFAULT_WORKSPACE_TAB] || '/workspace/notifications';
+        window.history.pushState({ workspaceTab: tabId }, '', newUrl);
     },
 
     updateFilesHeaderElements(show) {
@@ -628,7 +562,7 @@ const WorkspaceManager = {
     },
 
     setActiveTab(tabId) {
-        if (tabId && ['notifications', 'messages', 'connections', 'files', 'skills', 'agents', 'todo', 'notes', 'memories', 'prompts', 'bookmarks'].includes(tabId)) {
+        if (tabId && ['notifications', 'messages', 'connections', 'files', 'skills', 'agents', 'memories', 'prompts', 'bookmarks'].includes(tabId)) {
             WorkspaceState.activeTab = this.isTabAllowed(tabId) ? tabId : DEFAULT_WORKSPACE_TAB;
         }
     },

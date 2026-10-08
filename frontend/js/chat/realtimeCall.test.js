@@ -786,7 +786,6 @@ test('realtime chat send blocks unsupported one-request context before transport
 
     assert.equal(hasUnsupportedContext({}), false);
     assert.equal(hasUnsupportedContext({ imageIds: ['file-1'], chatReferenceIds: ['chat-1'] }), false);
-    assert.equal(hasUnsupportedContext({ noteIds: ['note-1'] }), true);
     assert.equal(hasUnsupportedContext({ promptIds: ['prompt-1'] }), true);
     assert.equal(hasUnsupportedContext({ referenceParts: ['selected passage'] }), true);
     assert.match(realtimeBranch, /if \(hasUnsupportedRealtimeRequestContext\(composerContext\)\)/);

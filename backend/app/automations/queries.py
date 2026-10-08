@@ -27,7 +27,6 @@ def list_automation_summaries(db, user_id, *, limit=20, offset=0, cursor=None):
             func.coalesce(json_array_size(getattr(A, field)), 0).label(name)
             for field, name in (
                 ("schedule_rules", "schedule_rule_count"),
-                ("note_ids", "note_count"),
                 ("file_ids", "file_count"),
                 ("mcp_server_ids", "mcp_server_count"),
             )

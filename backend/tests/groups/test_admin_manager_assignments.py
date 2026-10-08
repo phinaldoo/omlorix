@@ -141,10 +141,6 @@ def test_manager_feature_controls_are_complete_and_group_scoped():
     feature_paths = {
         "projects.enable_projects",
         "projects.allow_project_share",
-        "todo.enabled_todo",
-        "todo.allow_todo_list_share",
-        "notes.enabled_notes",
-        "notes.allow_notes_share",
         "memories.enabled_memories",
         "skills.enabled_skills",
         "skills.allow_skill_share",

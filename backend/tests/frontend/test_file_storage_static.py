@@ -159,109 +159,18 @@ def test_google_picker_admin_configuration_is_registered_and_translated():
         assert not missing, f"{locale_dir.name}/admin.json missing {missing}"
 
 
-def test_workspace_file_move_menu_marks_current_folder_and_renders_folder_svg():
-    """Shared dropdown choices reuse workspace icons and expose selection."""
-
-    files_js = (ROOT / "frontend" / "js" / "chat" / "files.js").read_text(encoding="utf-8")
-
-    assert "currentFile?.folder_id" in files_js
-    assert "resolveWorkspaceStoredIcon" in files_js
-    assert "renderWorkspaceIcon" in files_js
-    assert "checked: !currentFolderId" in files_js
-    assert "checked: Boolean(currentFolderId) && currentFolderId === folderId" in files_js
 
 
-def test_workspace_file_move_menu_fully_reuses_shared_dropdown():
-    """The move menu uses the shared styling, controller, and positioning."""
-
-    files_js = (ROOT / "frontend" / "js" / "chat" / "files.js").read_text(encoding="utf-8")
-    files_css = (ROOT / "frontend" / "css" / "chat" / "files.css").read_text(encoding="utf-8")
-    move_menu_js = files_js.split("window.showMoveToFolderMenu = function", 1)[1].split("// Expose FileDragDrop", 1)[0]
-
-    assert "window.openDropdownMenu" in files_js
-    assert "showMoveToFolderMenu(fileId, actionButton)" in files_js
-    assert "files-folder-ctx-menu" not in files_js
-    assert "move-menu" not in files_js
-    assert "files-folder-ctx-item" not in files_js
-    assert "select-dropdown-item" not in files_js
-    assert "select-dropdown-button" not in files_js
-    assert "document.createElement('button')" not in move_menu_js
-    assert ".files-folder-ctx-menu" not in files_css
-    assert ".files-folder-ctx-item" not in files_css
 
 
-def test_custom_folder_count_uses_far_right_action_slot_until_hover():
-    """Custom folders show their count without reserving flex space for actions."""
-
-    files_css = (ROOT / "frontend" / "css" / "chat" / "files.css").read_text(encoding="utf-8")
-
-    assert ".files-sidebar-item-count {" in files_css
-    assert "margin-inline-start: auto;" in files_css
-    assert ".files-sidebar-item-actions {\n    position: absolute;" in files_css
-    assert "inset-inline-end: 12px;" in files_css
-    assert ".files-sidebar-item.has-actions:hover .files-sidebar-item-count" in files_css
-    assert ".files-sidebar-item.has-actions:hover .files-sidebar-item-action-btn" in files_css
-    assert "pointer-events: none;" in files_css
 
 
-def test_custom_folder_context_menu_delegates_markup_to_shared_dropdown():
-    """The feature supplies menu data and leaves safe markup to the component."""
-
-    folders_js = (ROOT / "frontend" / "js" / "chat" / "fileFolders.js").read_text(encoding="utf-8")
-    context_menu_js = folders_js.split("const ContextMenu = {", 1)[1].split("const FolderModal = {", 1)[0]
-
-    assert "window.openDropdownMenu" in context_menu_js
-    assert "innerHTML" not in context_menu_js
-    assert "FolderRenderer.escapeHtml" not in context_menu_js
 
 
-def test_custom_folder_actions_use_shared_select_dropdown_and_button_anchor():
-    """Folder actions use the standard menu design and viewport-safe placement."""
-
-    folders_js = (ROOT / "frontend" / "js" / "chat" / "fileFolders.js").read_text(encoding="utf-8")
-    files_css = (ROOT / "frontend" / "css" / "chat" / "files.css").read_text(encoding="utf-8")
-    context_menu_js = folders_js.split("const ContextMenu = {", 1)[1].split("const FolderModal = {", 1)[0]
-
-    assert "window.openDropdownMenu" in context_menu_js
-    assert "select-dropdown-item" not in context_menu_js
-    assert "select-dropdown-button" not in context_menu_js
-    assert "files-folder-ctx-item" not in context_menu_js
-    assert "positionOptions" not in context_menu_js
-    assert "files-folder-action-dropdown" not in files_css
 
 
-def test_folder_icon_picker_is_not_clipped_by_edit_modal():
-    """The folder picker may escape its card and scroll all available choices."""
-
-    files_css = (ROOT / "frontend" / "css" / "chat" / "files.css").read_text(encoding="utf-8")
-
-    assert ".delete-warning-card.workspace-crud-card.files-folder-modal" in files_css
-    assert "overflow: visible;" in files_css
-    assert ".files-folder-modal .todos-icon-picker-dropdown" in files_css
-    assert "overflow-y: auto;" in files_css
-    assert "overscroll-behavior: contain;" in files_css
 
 
-def test_mobile_files_folder_sidebar_has_one_synchronized_controller():
-    """The drawer toggle must not be immediately undone by a second listener."""
-
-    index_html = (ROOT / "frontend" / "index.html").read_text(encoding="utf-8")
-    files_js = (ROOT / "frontend" / "js" / "chat" / "files.js").read_text(encoding="utf-8")
-    folders_js = (ROOT / "frontend" / "js" / "chat" / "fileFolders.js").read_text(encoding="utf-8")
-    files_css = (ROOT / "frontend" / "css" / "chat" / "files.css").read_text(encoding="utf-8")
-
-    assert 'aria-controls="filesFolderSidebar"' in index_html
-    assert 'id="filesFolderMobileSidebarToggle"' in index_html
-    assert 'aria-expanded="false"' in index_html
-    assert index_html.index('id="filesFolderMobileSidebarToggle"') < index_html.index('id="filesMainHeaderTitle"')
-    assert "const setSidebarOpen = (open" in files_js
-    assert "filesSidebarToggle.setAttribute('aria-expanded'" in files_js
-    assert "filesSidebarBackdrop?.classList.toggle('active', shouldOpen)" in files_js
-    assert "FolderDOM.mobileSidebarToggle" not in folders_js
-    assert "sidebar.classList.remove('mobile-open')" not in folders_js
-    mobile_css = files_css.split("@media (max-width: 768px) {", 2)[2]
-    assert ".files-sidebar {" in mobile_css
-    assert "background: var(--background);" in mobile_css
 
 
 def test_direct_workspace_files_route_retries_loading_after_app_setup():

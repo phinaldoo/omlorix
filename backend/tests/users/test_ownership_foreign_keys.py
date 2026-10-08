@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from app.files.models import CanvasHistory, FileMember
+
 from datetime import datetime, timezone
 import sys
 from pathlib import Path
@@ -116,7 +118,7 @@ def _session():
             User.__table__,
             Project.__table__,
             Chats.__table__,
-            Files.__table__,
+            Files.__table__, CanvasHistory.__table__, FileMember.__table__,
             ProjectMember.__table__,
             Memory.__table__,
         ],

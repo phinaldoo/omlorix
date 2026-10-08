@@ -46,7 +46,6 @@ def test_download_file_route_audits_owned_file_download():
     file_record = SimpleNamespace(
         id="file-1",
         user_id="owner-1",
-        folder_id=None,
         project_id="project-1",
     )
 
@@ -75,16 +74,14 @@ def test_download_file_route_audits_owned_file_download():
             "actor_user_id": "owner-1",
             "owner_user_id": "owner-1",
             "file_id": "file-1",
-            "folder_id": None,
-            "folder_owner_user_id": None,
             "project_id": "project-1",
-            "access_via_shared_folder": False,
+            "access_via_membership": False,
             "inline": True,
         },
     )
 
 
-def test_download_file_route_audits_shared_folder_download():
+def test_download_file_route_audits_shared_file_download():
     request = _request()
     db = MagicMock()
     db_log = MagicMock()
@@ -92,7 +89,6 @@ def test_download_file_route_audits_shared_folder_download():
     shared_file = SimpleNamespace(
         id="file-2",
         user_id="file-owner-1",
-        folder_id="folder-1",
         project_id=None,
     )
     folder_record = SimpleNamespace(id="folder-1", user_id="folder-owner-1")
@@ -128,10 +124,8 @@ def test_download_file_route_audits_shared_folder_download():
             "actor_user_id": "actor-2",
             "owner_user_id": "file-owner-1",
             "file_id": "file-2",
-            "folder_id": "folder-1",
-            "folder_owner_user_id": "folder-owner-1",
             "project_id": None,
-            "access_via_shared_folder": True,
+            "access_via_membership": True,
             "inline": False,
         },
     )

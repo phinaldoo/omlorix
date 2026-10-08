@@ -1,3 +1,4 @@
+from app.files.legacy_import import import_user_notes, import_todo_lists as _bulk_insert_todos
 """User archive validation, import, and restore helpers.
 
 Restore operations are kept separate from export generation because they have
@@ -42,11 +43,9 @@ from app.chats.models import ChatMessages
 from app.files.models import Files
 from app.memories.schemas import MemoryExportPayload
 from app.memories.service import MemoryScope, import_memory_export
-from app.notes.models import import_user_notes
 from app.projects.models import Project
 from app.automations.models import Automation
 from app.automations.schedule import compute_next_schedule_state
-from app.todos.models import DEFAULT_TODO_SORT_ORDER, TodoLists, Todos
 from app.auth.utils import hash_password
 from app.utils.icon_security import sanitize_icon_input
 
@@ -65,7 +64,6 @@ from app.users.data_export import (
     _safe_child_path,
     _sanitize_user_archive_settings,
     _sanitize_user_profile_for_archive,
-    _share_id_for_folder_subscription,
 )
 
 logger = logging.getLogger(__name__)
@@ -536,116 +534,12 @@ def reconnect_imported_user_archive_file_references(
         db.commit()
 
 
-def _normalize_todo_sort_order(value: Any) -> List[Dict[str, str]]:
-    if not isinstance(value, list):
-        return deepcopy(DEFAULT_TODO_SORT_ORDER)
-
-    allowed_keys = {
-        entry["key"]
-        for entry in DEFAULT_TODO_SORT_ORDER
-        if isinstance(entry, dict) and entry.get("key")
-    }
-    normalized: List[Dict[str, str]] = []
-    for entry in value:
-        if not isinstance(entry, dict):
-            continue
-        key = str(entry.get("key") or "").strip()
-        direction = str(entry.get("direction") or "").strip().lower()
-        if key not in allowed_keys or direction not in {"asc", "desc"}:
-            continue
-        normalized.append({"key": key, "direction": direction})
-
-    return normalized or deepcopy(DEFAULT_TODO_SORT_ORDER)
 
 
-def _rebuild_todo_list_payload(
-    todo_list_export: Dict[str, Any], *, user_id: str
-) -> Dict[str, Any]:
-    now = datetime.now(timezone.utc)
-    order_value = todo_list_export.get("order")
-    if not isinstance(order_value, int):
-        order_value = 0
-
-    title = str(todo_list_export.get("title") or "").strip()[:255]
-    if not title:
-        title = "Imported list"
-
-    return {
-        "id": str(uuid.uuid4()),
-        "user_id": user_id,
-        "order": order_value,
-        "title": title,
-        "description": str(todo_list_export.get("description") or "").strip(),
-        "icon": sanitize_icon_input(todo_list_export.get("icon"), fallback="checklist"),
-        "clone_share_id": None,
-        "live_share_id": None,
-        "collaborate_share_id": None,
-        "sort_order": _normalize_todo_sort_order(todo_list_export.get("sort_order")),
-        "created_at": _safe_datetime(todo_list_export.get("created_at"), now),
-        "updated_at": _safe_datetime(todo_list_export.get("updated_at"), now),
-    }
 
 
-def _rebuild_todo_payload(
-    todo_export: Dict[str, Any], *, todo_list_id: str
-) -> Dict[str, Any]:
-    now = datetime.now(timezone.utc)
-
-    order_value = todo_export.get("order")
-    if not isinstance(order_value, int):
-        order_value = 0
-
-    priority_value = todo_export.get("priority")
-    if not isinstance(priority_value, int):
-        priority_value = 0
-
-    is_done = bool(todo_export.get("is_done", False))
-    completed_at = (
-        _normalized_timestamp(todo_export.get("completed_at")) if is_done else None
-    )
-
-    content = str(todo_export.get("content") or "").strip()
-    if not content:
-        content = "Imported todo"
-
-    notes_value = todo_export.get("notes")
-    notes = None
-    if isinstance(notes_value, str):
-        notes = notes_value.strip() or None
-
-    return {
-        "id": str(uuid.uuid4()),
-        "todo_list": todo_list_id,
-        "order": order_value,
-        "content": content,
-        "notes": notes,
-        "priority": priority_value,
-        "due_at": _normalized_timestamp(todo_export.get("due_at")),
-        "is_done": is_done,
-        "is_marked": bool(todo_export.get("is_marked", False)),
-        "completed_at": completed_at,
-        "created_at": _safe_datetime(todo_export.get("created_at"), now),
-        "updated_at": _safe_datetime(todo_export.get("updated_at"), now),
-    }
 
 
-def _bulk_insert_todos(db, user_id: str, todo_lists: List[Dict[str, Any]]) -> None:
-    for todo_list_export in todo_lists:
-        if not isinstance(todo_list_export, dict):
-            continue
-
-        todo_list_payload = _rebuild_todo_list_payload(
-            todo_list_export, user_id=user_id
-        )
-        todo_list = TodoLists(**todo_list_payload)
-        db.add(todo_list)
-
-        for todo_export in todo_list_export.get("todos") or []:
-            if not isinstance(todo_export, dict):
-                continue
-            todo_payload = _rebuild_todo_payload(todo_export, todo_list_id=todo_list.id)
-            db.add(Todos(**todo_payload))
-    db.commit()
 
 
 def _normalize_automation_mcp_import_ids(value: Any) -> List[str]:
@@ -691,9 +585,6 @@ def _rebuild_automation_payload(
         except ValueError:
             schedule_timezone = None
 
-    note_ids = automation_export.get("note_ids")
-    if not isinstance(note_ids, list):
-        note_ids = []
 
     file_ids = automation_export.get("file_ids")
     if not isinstance(file_ids, list):
@@ -728,7 +619,6 @@ def _rebuild_automation_payload(
         "schedule_rules": schedule_rules,
         "schedule_timezone": schedule_timezone,
         "skill_id": automation_export.get("skill_id") or None,
-        "note_ids": [str(note_id) for note_id in note_ids if note_id],
         "file_ids": [str(file_id) for file_id in file_ids if file_id],
         "mcp_server_ids": resolved_mcp_server_ids,
         "is_active": is_active,
@@ -1102,285 +992,10 @@ def _bulk_insert_shared_skill_subscriptions(
     )
 
 
-def _bulk_insert_file_folders(
-    db,
-    user_id: str,
-    folders: List[Dict[str, Any]],
-) -> tuple[Dict[str, str], List[Dict[str, Any]]]:
-    from app.file_folders.models import FILE_FOLDER_SYSTEM_KINDS, FileFolders
-    from sqlalchemy import and_, or_
-
-    folder_id_map: dict[str, str] = {}
-    warnings: list[dict[str, Any]] = []
-    target_user_id = str(user_id)
-    source_ids = {
-        str(row.get("id") or "").strip()
-        for row in folders
-        if isinstance(row, dict) and str(row.get("id") or "").strip()
-    }
-    requested_share_ids = {
-        str(row.get(field) or "").strip()
-        for row in folders
-        if isinstance(row, dict)
-        for field in ("clone_share_id", "live_share_id", "collaborate_share_id")
-        if str(row.get(field) or "").strip()
-    }
-
-    # One indexed, archive-bounded query replaces the previous whole-table
-    # scans and one-query-per-folder lookup. Target-user system folders are the
-    # only rows loaded independently of IDs present in the archive.
-    collision_filters = [
-        and_(
-            FileFolders.user_id == user_id,
-            FileFolders.system_kind.isnot(None),
-        )
-    ]
-    if source_ids:
-        collision_filters.append(FileFolders.id.in_(source_ids))
-    if requested_share_ids:
-        collision_filters.extend(
-            (
-                FileFolders.clone_share_id.in_(requested_share_ids),
-                FileFolders.live_share_id.in_(requested_share_ids),
-                FileFolders.collaborate_share_id.in_(requested_share_ids),
-            )
-        )
-
-    collision_rows = (
-        db.query(
-            FileFolders.id,
-            FileFolders.user_id,
-            FileFolders.system_kind,
-            FileFolders.clone_share_id,
-            FileFolders.live_share_id,
-            FileFolders.collaborate_share_id,
-        )
-        .filter(or_(*collision_filters))
-        .all()
-    )
-
-    existing_folder_ids: set[str] = set()
-    existing_owned_folders: dict[str, str] = {}
-    existing_share_ids: set[str] = set()
-    existing_system_folders: dict[str, str] = {}
-    for (
-        folder_id,
-        folder_user_id,
-        system_kind,
-        clone_share_id,
-        live_share_id,
-        collaborate_share_id,
-    ) in collision_rows:
-        normalized_folder_id = str(folder_id or "").strip()
-        normalized_user_id = str(folder_user_id or "").strip()
-        normalized_system_kind = str(system_kind or "").strip()
-
-        if normalized_folder_id in source_ids:
-            existing_folder_ids.add(normalized_folder_id)
-            if normalized_user_id == target_user_id:
-                existing_owned_folders[normalized_folder_id] = normalized_folder_id
-
-        if (
-            normalized_user_id == target_user_id
-            and normalized_system_kind in FILE_FOLDER_SYSTEM_KINDS
-        ):
-            existing_system_folders[normalized_system_kind] = normalized_folder_id
-
-        for share_id in (clone_share_id, live_share_id, collaborate_share_id):
-            normalized_share_id = str(share_id or "").strip()
-            if normalized_share_id in requested_share_ids:
-                existing_share_ids.add(normalized_share_id)
-
-    # Imported system-folder identities remain portable, but only one folder of
-    # each recognized kind may exist per user.  Share capabilities are never
-    # restored onto a system folder because those folders are private automatic
-    # storage containers.
-    for row in folders:
-        if not isinstance(row, dict):
-            continue
-
-        source_id = str(row.get("id") or "").strip()
-        existing_folder_id = existing_owned_folders.get(source_id)
-        if existing_folder_id:
-            folder_id_map[source_id] = existing_folder_id
-            continue
-        if source_id and source_id in folder_id_map:
-            continue
-
-        requested_system_kind = str(row.get("system_kind") or "").strip().lower()
-        system_kind = (
-            requested_system_kind
-            if requested_system_kind in FILE_FOLDER_SYSTEM_KINDS
-            else None
-        )
-        if system_kind and system_kind in existing_system_folders:
-            if source_id:
-                folder_id_map[source_id] = existing_system_folders[system_kind]
-            continue
-
-        folder_id = (
-            source_id
-            if source_id and source_id not in existing_folder_ids
-            else str(uuid.uuid4())
-        )
-        payload = _prepare_new_serialized_model_payload(
-            FileFolders,
-            row,
-            overrides={"id": folder_id, "user_id": user_id},
-        )
-        payload["system_kind"] = system_kind
-
-        if system_kind:
-            # Share tokens are capabilities and cannot be restored on private
-            # system folders, even from a hand-edited archive.
-            payload["clone_share_id"] = None
-            payload["live_share_id"] = None
-            payload["collaborate_share_id"] = None
-
-        regenerated_share_types: list[str] = []
-        for share_field, share_label in (
-            ("clone_share_id", "clone"),
-            ("live_share_id", "live"),
-            ("collaborate_share_id", "collaborate"),
-        ):
-            share_id = str(payload.get(share_field) or "").strip()
-            if not share_id:
-                continue
-            if share_id in existing_share_ids:
-                payload[share_field] = str(uuid.uuid4())
-                regenerated_share_types.append(share_label)
-            existing_share_ids.add(str(payload.get(share_field) or "").strip())
-
-        if regenerated_share_types:
-            warnings.append(
-                {
-                    "section": "file_folders",
-                    "warning": "One or more imported folder share IDs conflicted with existing folders and were regenerated.",
-                    "source_folder_id": source_id or None,
-                    "folder_id": folder_id,
-                    "regenerated_share_types": regenerated_share_types,
-                }
-            )
-
-        existing_folder_ids.add(folder_id)
-        if system_kind:
-            existing_system_folders[system_kind] = folder_id
-        if source_id:
-            folder_id_map[source_id] = folder_id
-        db.add(FileFolders(**payload))
-
-    db.commit()
-    return folder_id_map, warnings
 
 
-def _resolve_shared_file_folder_subscription_target(
-    db, row: Dict[str, Any], folder_id_map: Dict[str, str]
-) -> str | None:
-    from app.file_folders.models import (
-        FileFolders,
-        ShareType,
-        get_shared_folder_by_share_id,
-    )
-
-    source_folder_id = str(row.get("folder_id") or "").strip()
-    if source_folder_id and source_folder_id in folder_id_map:
-        return folder_id_map[source_folder_id]
-
-    normalized_share_type = str(row.get("share_type") or "").strip().lower()
-    if normalized_share_type == ShareType.CLONE.value:
-        return None
-
-    target_share_id = str(row.get("target_share_id") or "").strip()
-    if target_share_id:
-        share_type = (
-            ShareType(normalized_share_type)
-            if normalized_share_type in {item.value for item in ShareType}
-            else None
-        )
-        folder = get_shared_folder_by_share_id(db, target_share_id, share_type)
-        if (
-            folder
-            and _share_id_for_folder_subscription(folder, normalized_share_type)
-            == target_share_id
-        ):
-            return str(folder.id)
-
-    if source_folder_id:
-        folder = (
-            db.query(FileFolders).filter(FileFolders.id == source_folder_id).first()
-        )
-        if folder and _share_id_for_folder_subscription(folder, normalized_share_type):
-            return str(folder.id)
-
-    return None
 
 
-def _bulk_insert_shared_file_folder_subscriptions(
-    db,
-    user_id: str,
-    subscriptions: List[Dict[str, Any]],
-    *,
-    folder_id_map: Dict[str, str] | None = None,
-) -> List[Dict[str, Any]]:
-    from app.file_folders.models import SharedFileFolderSubscription
-
-    resolved_folder_id_map = folder_id_map or {}
-    warnings: list[dict[str, Any]] = []
-
-    for row in subscriptions:
-        if not isinstance(row, dict):
-            continue
-
-        resolved_folder_id = _resolve_shared_file_folder_subscription_target(
-            db, row, resolved_folder_id_map
-        )
-        normalized_share_type = (
-            str(row.get("share_type") or "").strip().lower() or "live"
-        )
-        if resolved_folder_id is None:
-            warnings.append(
-                {
-                    "section": "shared_file_folder_subscriptions",
-                    "warning": "Skipped shared file folder subscription because the referenced shared folder could not be resolved.",
-                    "source_folder_id": str(row.get("folder_id") or "").strip() or None,
-                    "target_share_id": str(row.get("target_share_id") or "").strip()
-                    or None,
-                    "share_type": normalized_share_type,
-                }
-            )
-            continue
-
-        existing = (
-            db.query(SharedFileFolderSubscription)
-            .filter(
-                SharedFileFolderSubscription.folder_id == resolved_folder_id,
-                SharedFileFolderSubscription.subscriber_id == user_id,
-            )
-            .first()
-        )
-        subscribed_at = _prepare_serialized_model_payload(
-            SharedFileFolderSubscription, row
-        ).get("subscribed_at")
-
-        if existing:
-            existing.share_type = normalized_share_type
-            if subscribed_at is not None:
-                existing.subscribed_at = subscribed_at
-            continue
-
-        payload = _prepare_new_serialized_model_payload(
-            SharedFileFolderSubscription,
-            row,
-            overrides={
-                "folder_id": resolved_folder_id,
-                "subscriber_id": user_id,
-                "share_type": normalized_share_type,
-            },
-        )
-        db.add(SharedFileFolderSubscription(**payload))
-
-    db.commit()
-    return warnings
 
 
 def _bulk_insert_agents(
@@ -1853,7 +1468,6 @@ def _import_user_archive_inline_files(
     source_email: str,
     files: List[Dict[str, Any]],
     user_action: str,
-    folder_id_map: Dict[str, str],
     project_id_map: Dict[str, str],
 ) -> Dict[str, Any]:
     """Call the shared inline file importer without creating an import cycle."""
@@ -1867,7 +1481,6 @@ def _import_user_archive_inline_files(
         source_email=source_email,
         files=files,
         user_action=user_action,
-        folder_id_map=folder_id_map,
         project_id_map=project_id_map,
     )
 
@@ -1891,7 +1504,6 @@ def _restore_user_archive_sections(
     """
     result = UserArchiveRestoreResult()
     user_id = str(target_user.id)
-    folder_id_map: Dict[str, str] = {}
     file_id_map: Dict[str, str] = {}
     skill_id_map: Dict[str, str] = {}
     agent_id_map: Dict[str, str] = {}
@@ -1972,36 +1584,6 @@ def _restore_user_archive_sections(
             user_id,
             validated.shared_skill_subscriptions,
         )
-    if validated.file_folders:
-        folder_result = restore_section(
-            "file_folders",
-            _bulk_insert_file_folders,
-            db,
-            user_id,
-            validated.file_folders,
-        )
-        if isinstance(folder_result, tuple) and folder_result:
-            folder_id_map = folder_result[0] or {}
-            result.warnings.extend(
-                warning
-                for warning in (folder_result[1] if len(folder_result) > 1 else [])
-                if isinstance(warning, dict)
-            )
-    if validated.shared_file_folder_subscriptions:
-        subscription_warnings = restore_section(
-            "shared_file_folder_subscriptions",
-            _bulk_insert_shared_file_folder_subscriptions,
-            db,
-            user_id,
-            validated.shared_file_folder_subscriptions,
-            folder_id_map=folder_id_map,
-        )
-        if isinstance(subscription_warnings, list):
-            result.warnings.extend(
-                warning
-                for warning in subscription_warnings
-                if isinstance(warning, dict)
-            )
     if validated.todos:
         restore_section("todos", _bulk_insert_todos, db, user_id, validated.todos)
     if validated.projects:
@@ -2024,7 +1606,6 @@ def _restore_user_archive_sections(
             source_email=source_email,
             files=validated.files,
             user_action=user_action,
-            folder_id_map=folder_id_map,
             project_id_map=project_id_map,
             mark_imported=False,
         )

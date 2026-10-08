@@ -75,6 +75,15 @@ class CanvasCreate(CanvasWrite):
     edits: None = None
 
 
+class CanvasList(CanvasInput):
+    """Find saved documents and checklists by title."""
+
+    type: Literal["list"]
+    query: str | None = Field(default=None, max_length=200)
+    limit: int = Field(default=20, ge=1, le=100)
+    offset: int = Field(default=0, ge=0, le=10000)
+
+
 class CanvasView(CanvasInput):
     """Read the current source and revision without changing the file."""
 
@@ -135,7 +144,7 @@ class CanvasBatchEdit(CanvasEdit):
 
 
 CANVAS_INPUT = TypeAdapter(
-    CanvasCreate | CanvasView | CanvasReplace | CanvasSnippetEdit | CanvasBatchEdit
+    CanvasCreate | CanvasView | CanvasReplace | CanvasSnippetEdit | CanvasBatchEdit | CanvasList
 )
 
 
@@ -184,12 +193,12 @@ def parse_canvas_tool_arguments(arguments: dict) -> dict:
         ):
             args.pop(field, None)
 
-    is_view = args.get("type") == "view"
+    is_view = args.get("type") in {"view", "list"}
     has_edits = any(
         args.get(field) is not None
         for field in ("edits", "start_snippet", "end_snippet")
     )
-    if not args.get("file_id") and (is_view or has_edits):
+    if not args.get("file_id") and (args.get("type") == "view" or has_edits):
         raise CanvasValidationError(
             code="canvas_file_required", safe_message=CANVAS_FILE_REQUIRED
         )

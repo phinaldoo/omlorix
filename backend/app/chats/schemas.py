@@ -746,11 +746,6 @@ class SendChatRequest(BaseModel):
         max_length=CHAT_CONTEXT_SELECTION_MAX_ITEMS,
         description="Optional list of skill IDs to apply to this message",
     )
-    note_ids: Optional[list[str]] = Field(
-        default=None,
-        max_length=CHAT_CONTEXT_SELECTION_MAX_ITEMS,
-        description="Optional list of note IDs to include with this message",
-    )
     prompt_ids: Optional[list[str]] = Field(
         default=None,
         max_length=CHAT_CONTEXT_SELECTION_MAX_ITEMS,
@@ -1192,11 +1187,6 @@ class RegenerateMessageRequest(BaseModel):
         default=None,
         max_length=CHAT_CONTEXT_SELECTION_MAX_ITEMS,
         description="Optional list of skill IDs to apply",
-    )
-    note_ids: Optional[list[str]] = Field(
-        default=None,
-        max_length=CHAT_CONTEXT_SELECTION_MAX_ITEMS,
-        description="Optional list of note IDs to include",
     )
     prompt_ids: Optional[list[str]] = Field(
         default=None,

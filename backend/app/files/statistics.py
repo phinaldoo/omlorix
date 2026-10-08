@@ -10,7 +10,8 @@ from fastapi import HTTPException
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
-from app.files.models import Files
+from app.files.models import Files, CanvasHistory
+from app.files.history import history_storage_bytes
 from app.groups.defaults import DEFAULT_GROUP_SETTINGS
 from app.groups.init import get_group_setting_value, get_group_settings
 from app.users.models import User
@@ -226,7 +227,7 @@ def get_user_file_storage_usage(db: Session, user_id: str) -> dict[str, Any]:
     return build_file_storage_usage_payload(
         user_id=user_id,
         file_count=int(file_count or 0),
-        storage_bytes=int(storage_bytes or 0),
+        storage_bytes=int(storage_bytes or 0) + history_storage_bytes(db, user_id),
         latest_file_at=latest_file_at,
         quota=quota,
     )
@@ -242,13 +243,16 @@ def get_admin_file_storage_statistics(
     search: str | None = None,
 ) -> dict[str, Any]:
     """Return aggregate file-storage statistics for admin reporting."""
+    history_usage = db.query(CanvasHistory.owner_id.label("user_id"),
+        func.sum(CanvasHistory.file_size).label("bytes")).group_by(CanvasHistory.owner_id).subquery()
     usage_subquery = (
         db.query(
             Files.user_id.label("user_id"),
             func.count(Files.id).label("file_count"),
-            func.coalesce(func.sum(Files.file_size), 0).label("storage_bytes"),
+            (func.coalesce(func.sum(Files.file_size), 0) + func.coalesce(func.max(history_usage.c.bytes), 0)).label("storage_bytes"),
             func.max(Files.created_at).label("latest_file_at"),
         )
+        .outerjoin(history_usage, history_usage.c.user_id == Files.user_id)
         .group_by(Files.user_id)
         .subquery()
     )
@@ -330,7 +334,7 @@ def get_admin_file_storage_statistics(
     return {
         "summary": {
             "total_files": int(totals[0] or 0),
-            "total_storage_bytes": int(totals[1] or 0),
+            "total_storage_bytes": int(totals[1] or 0) + int(db.query(func.coalesce(func.sum(CanvasHistory.file_size), 0)).scalar() or 0),
             "users_with_files": int(totals[2] or 0),
         },
         "items": items,

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from app.files.models import CanvasHistory, FileMember
+
 import asyncio
 import hashlib
 from contextlib import contextmanager
@@ -36,7 +38,7 @@ def _session():
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(
         bind=engine,
-        tables=[Files.__table__, FileQuotaReservation.__table__],
+        tables=[Files.__table__, CanvasHistory.__table__, FileMember.__table__, FileQuotaReservation.__table__],
     )
     return sessionmaker(bind=engine)()
 
@@ -66,7 +68,7 @@ def _configure_upload(monkeypatch, *, max_files=-1, max_user_storage_gb=None, ma
     )
 
 
-def test_duplicate_upload_into_folder_creates_scoped_record_without_moving_private_file(monkeypatch):
+def test_duplicate_upload_reuses_owned_content_in_flat_library(monkeypatch):
     db = _session()
     _configure_upload(monkeypatch)
 
@@ -93,7 +95,6 @@ def test_duplicate_upload_into_folder_creates_scoped_record_without_moving_priva
             project_id=None,
             user_id="user-1",
             db=db,
-            folder_id="shared-folder",
         )
     )
 
@@ -101,13 +102,11 @@ def test_duplicate_upload_into_folder_creates_scoped_record_without_moving_priva
     scoped_record = db.query(Files).filter(Files.id == result["file_id"]).one()
 
     assert result["status"] == "success"
-    assert result["already_uploaded"] is False
-    assert result["file_id"] != "private-file"
-    assert private_record.folder_id is None
-    assert scoped_record.folder_id == "shared-folder"
+    assert result["already_uploaded"] is True
+    assert result["file_id"] == "private-file"
 
 
-def test_duplicate_upload_reuses_record_in_same_folder(monkeypatch):
+def test_duplicate_upload_reuses_record_in_flat_library(monkeypatch):
     db = _session()
     _configure_upload(monkeypatch)
 
@@ -126,7 +125,6 @@ def test_duplicate_upload_reuses_record_in_same_folder(monkeypatch):
         file_name="shared-file.txt",
         storage_provider="local",
         storage_key="user-1/shared-file.txt",
-        folder_id="shared-folder",
     )
 
     result = asyncio.run(
@@ -135,7 +133,6 @@ def test_duplicate_upload_reuses_record_in_same_folder(monkeypatch):
             project_id=None,
             user_id="user-1",
             db=db,
-            folder_id="shared-folder",
         )
     )
 

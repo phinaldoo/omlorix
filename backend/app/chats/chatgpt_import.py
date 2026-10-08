@@ -688,7 +688,6 @@ def _import_archive_asset(
             file_size,
             content_sha256,
             project_id=None,
-            folder_id=None,
         )
         if duplicate_record:
             imported_file_cache[asset_id] = duplicate_record
@@ -719,7 +718,6 @@ def _import_archive_asset(
                     file_type=mime_type,
                     file_size=file_size,
                     project_id=None,
-                    folder_id=None,
                     share=None,
                     share_id=None,
                     meta={

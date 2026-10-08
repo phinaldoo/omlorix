@@ -765,11 +765,7 @@ async function hideChatContainer() {
             window.canvasMarkdownWidget.reset();
         } catch (_) {}
     }
-    if (window.NotesToolSidebar && typeof window.NotesToolSidebar.reset === 'function') {
-        try {
-            window.NotesToolSidebar.reset();
-        } catch (_) {}
-    }
+    {}
     if (window.deepResearchWidget && typeof window.deepResearchWidget.hidePreviewPanel === 'function') {
         try {
             window.deepResearchWidget.hidePreviewPanel();
@@ -814,11 +810,7 @@ async function showChatStartContainer(options = {}) {
             window.canvasMarkdownWidget.reset();
         } catch (_) {}
     }
-    if (window.NotesToolSidebar && typeof window.NotesToolSidebar.reset === 'function') {
-        try {
-            window.NotesToolSidebar.reset();
-        } catch (_) {}
-    }
+    {}
     // Deep Research keeps its run state while behaving like every other
     // message-scoped preview: a fresh conversation must never inherit the
     // previously open report sidebar.
@@ -1094,14 +1086,6 @@ function handleAppRoute(pathname) {
     if (promptShareIntent && window.PromptLibraryManager?.handleSharedPromptRoute) {
         return window.PromptLibraryManager.handleSharedPromptRoute(promptShareIntent) !== false;
     }
-    // Todo list creation and editing are first-class workspace pages. Keep
-    // these nested routes inside the todo tab on reload and history changes.
-    if (/^\/workspace\/todo\/lists\/(?:new|[^/]+\/edit)$/.test(path)) {
-        if (typeof showWorkspaceContainer === 'function') {
-            showWorkspaceContainer({ tab: 'todo' });
-        }
-        return true;
-    }
     switch (path) {
         case '':
         case '/':
@@ -1155,16 +1139,6 @@ function handleAppRoute(pathname) {
         case '/workspace/agents':
             if (typeof showWorkspaceContainer === 'function') {
                 showWorkspaceContainer({ tab: 'agents' });
-            }
-            return true;
-        case '/workspace/todo':
-            if (typeof showWorkspaceContainer === 'function') {
-                showWorkspaceContainer({ tab: 'todo' });
-            }
-            return true;
-        case '/workspace/notes':
-            if (typeof showWorkspaceContainer === 'function') {
-                showWorkspaceContainer({ tab: 'notes' });
             }
             return true;
         case '/workspace/memories':

@@ -21,15 +21,12 @@ if "zstandard" not in sys.modules:
 
 from app.agents.models import SharedUserAgentSubscription, UserAgent, UserAgentAsset
 from app.chats.models import Chats
-from app.file_folders.models import FileFolders
 from app.files.models import Files
 from app.groups.models import GroupManager
-from app.notes.models import Notes
 from app.projects.models import Project
 from app.prompts.models import Prompts
 from app.scim.models import ScimGroupMembership, ScimUserLink
 from app.skills.models import Skills
-from app.todos.models import TodoLists
 from app.tools.slide_presentation.models import SlidePresentations
 from app.userNotifications.models import UserNotifications
 from app.users.models import User, hard_delete_user
@@ -200,11 +197,8 @@ def test_hard_delete_user_cleans_newer_user_linked_records_and_storage(monkeypat
     query_results = {
         User: [user],
         (Skills, "id"): [],
-        (TodoLists, "id"): [],
-        (Notes, "id"): [],
         (Chats, "id"): [],
         Files: [],
-        (FileFolders, "id"): [],
         (Prompts, "id"): [],
         (Project, "id"): [],
         (UserAgent, "id"): [(agent.id,)],

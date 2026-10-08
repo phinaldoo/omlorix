@@ -5,9 +5,7 @@ from app.admin.router import admin_router
 from app.chats.router import chats_router
 from app.files.router import files_router
 from app.memories.router import memories_router, project_memory_transfer_router
-from app.notes.router import notes_router
 from app.skills.router import skills_router
-from app.todos.router import todo_router
 from app.users.router import users_router
 
 
@@ -32,9 +30,7 @@ def test_self_service_transfer_exposes_complete_account_and_chatgpt_routes():
         chats_router,
         files_router,
         memories_router,
-        notes_router,
         skills_router,
-        todo_router,
     )
     self_service_routes = {
         operation

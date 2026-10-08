@@ -34,7 +34,7 @@ from app.files.models import (
     get_file,
     list_files,
 )
-from app.file_folders.models import can_user_edit_folder
+from app.files.access import resolve_file_for_edit
 from app.files.access import get_accessible_file
 from app.files.content_credentials import (
     apply_content_credentials,
@@ -308,7 +308,6 @@ def _find_duplicate_file(
     file_size: int,
     content_sha256: str | None = None,
     project_id: str | None = None,
-    folder_id: str | None = None,
 ) -> Optional[Files]:
     """Find duplicate file within the same destination scope."""
     candidates = (
@@ -318,7 +317,6 @@ def _find_duplicate_file(
             Files.file_type == file_type,
             Files.file_size == file_size,
             Files.project_id == project_id,
-            Files.folder_id == folder_id,
         )
         .all()
     )
@@ -969,7 +967,8 @@ def ensure_user_file_upload_capacity(
         storage_query = db.query(func.coalesce(func.sum(Files.file_size), 0)).filter(Files.user_id == user_id)
         if existing_file_id:
             storage_query = storage_query.filter(Files.id != existing_file_id)
-        existing_total_size = storage_query.scalar()
+        from app.files.history import history_storage_bytes
+        existing_total_size = int(storage_query.scalar() or 0) + history_storage_bytes(db, user_id)
         if existing_total_size + reserved_storage_bytes + file_size > max_user_storage_limit_bytes:
             raise FileQuotaError(
                 code=USER_FILE_STORAGE_QUOTA_REACHED,
@@ -1206,7 +1205,6 @@ def _create_file_record_for_uploaded_storage(
     storage_provider: str,
     storage_key: str,
     storage_meta: dict | None = None,
-    folder_id: str | None = None,
     commit: bool = True,
 ) -> Files:
     committed = False
@@ -1226,7 +1224,6 @@ def _create_file_record_for_uploaded_storage(
             storage_provider=storage_provider,
             storage_key=storage_key,
             storage_meta=storage_meta,
-            folder_id=folder_id,
             commit=False,
         )
         if not commit:
@@ -1297,37 +1294,35 @@ def materialize_file_record(file_record: Files, user_id: str) -> Path:
         )
         raise HTTPException(status_code=404, detail="File not found on disk")
 
+    if provider == "inline":
+        content = getattr(file_record, "inline_content", None)
+        if content is None:
+            raise HTTPException(status_code=404, detail="File not found")
+        MATERIALIZED_TEMP_DIR.mkdir(parents=True, exist_ok=True)
+        _write_materialized_file_bytes(file_id=file_record.id, file_name=file_record.file_name,
+                                       file_bytes=content.encode("utf-8"))
+        return _materialized_file_path(file_record.id, file_record.file_name)
+
     # Local provider keeps files in place; no materialization copy needed.
     if provider == "local":
+        # The storage key selects the immutable version, not the display name.
         try:
-            local_path = _legacy_local_path_from_key(user_id, file_record.file_name)
-            if local_path.exists():
-                return local_path
+            target = _resolve_local_storage_path(storage_key)
+            if target.exists():
+                return target
         except ValueError:
-            logger.warning(
-                "[Files] Rejected invalid local file path",
-                extra={"event": "file_local_path_invalid", "user_id": user_id, "file_id": file_record.id},
-            )
-        try:
-            alt_target = _resolve_local_storage_path(storage_key)
-            if alt_target.exists():
-                return alt_target
-        except ValueError:
-            logger.warning(
-                "[Files] Rejected invalid local storage key",
-                extra={"event": "file_local_storage_key_invalid", "user_id": user_id, "file_id": file_record.id},
-            )
+            pass
         raise HTTPException(status_code=404, detail="File not found on disk")
 
     suffix = Path(file_record.file_name or "").suffix or ".bin"
     materialized = MATERIALIZED_TEMP_DIR / f"{file_record.id}{suffix}"
-    if materialized.exists() and materialized.stat().st_size > 0:
+    if materialized.exists() and (materialized.stat().st_size > 0 or getattr(file_record, "file_size", None) == 0):
         return materialized
 
     materialized_tmp = MATERIALIZED_TEMP_DIR / f"{file_record.id}.{uuid.uuid4().hex}.partial"
     try:
         download_file_from_storage(provider, storage_key, materialized_tmp)
-        if not materialized_tmp.exists() or materialized_tmp.stat().st_size <= 0:
+        if not materialized_tmp.exists() or (materialized_tmp.stat().st_size <= 0 and getattr(file_record, "file_size", None) != 0):
             raise FileNotFoundError("Materialized temp file is missing after download")
         os.replace(materialized_tmp, materialized)
     except FileNotFoundError:
@@ -1364,7 +1359,6 @@ def persist_generated_file_bytes(
     meta: dict | None = None,
     file_id: str | None = None,
     file_name: str | None = None,
-    folder_id: str | None = None,
     max_files_limit: int | None = None,
     max_user_storage_limit_bytes: int | None = None,
     quota_reservation_id: str | None = None,
@@ -1378,7 +1372,7 @@ def persist_generated_file_bytes(
     file.  If the callback fails, the database work is rolled back and the
     uploaded storage object is compensated by the existing cleanup path.
     """
-    if not file_bytes:
+    if not file_bytes and not normalize_file_mime_type(file_type).startswith("text/"):
         raise ValueError("file_bytes must not be empty")
 
     effective_meta = dict(meta or {})
@@ -1429,7 +1423,6 @@ def persist_generated_file_bytes(
             meta=effective_meta,
             file_id=generated_file_id,
             file_name=file_name,
-            folder_id=folder_id,
             max_files_limit=max_files_limit,
             max_user_storage_limit_bytes=max_user_storage_limit_bytes,
             quota_reservation_id=quota_reservation_id,
@@ -1453,7 +1446,6 @@ def persist_generated_file_path(
     meta: dict | None = None,
     file_id: str | None = None,
     file_name: str | None = None,
-    folder_id: str | None = None,
     max_files_limit: int | None = None,
     max_user_storage_limit_bytes: int | None = None,
     quota_reservation_id: str | None = None,
@@ -1464,7 +1456,7 @@ def persist_generated_file_path(
     if not source.exists() or not source.is_file():
         raise ValueError("source_path must point to an existing file")
     file_size = int(source.stat().st_size)
-    if file_size <= 0:
+    if file_size <= 0 and not normalize_file_mime_type(file_type).startswith("text/"):
         raise ValueError("source_path must not be empty")
 
     safe_original_filename = Path(original_filename or "generated").name
@@ -1501,7 +1493,6 @@ def persist_generated_file_path(
             storage_provider=provider,
             storage_key=storage_key,
             storage_meta=upload_meta,
-            folder_id=folder_id,
             commit=commit,
         )
 
@@ -1632,8 +1623,6 @@ def overwrite_existing_file_bytes(
     update_materialized_cache: bool = True,
 ) -> tuple[str, str, dict]:
     """Upload replacement bytes and optionally publish the local cache copy."""
-    if not file_bytes:
-        raise ValueError("file_bytes must not be empty")
     temp_target = TEMP_DIR / f"{file_id}.overwrite"
     temp_target.parent.mkdir(parents=True, exist_ok=True)
     temp_target.write_bytes(file_bytes)
@@ -1661,7 +1650,6 @@ def persist_generated_file_replacement_bytes(
     file_category: str,
     meta: dict | None = None,
     quota_reservation_id: str | None = None,
-    folder_id: str | None = None,
     project_id: str | None = None,
     update_location: bool = False,
     before_commit: Callable[[Files], None] | None = None,
@@ -1764,7 +1752,6 @@ def persist_generated_file_replacement_bytes(
             file_record.storage_key = storage_key
             file_record.storage_meta = storage_meta
             if update_location:
-                file_record.folder_id = folder_id
                 file_record.project_id = project_id
             file_record.last_updated_at = datetime.datetime.now(datetime.timezone.utc)
             file_record.meta = updated_meta
@@ -1847,6 +1834,8 @@ def delete_storage_reference(
     file_name: str | None = None,
 ) -> None:
     """Delete file from storage provider."""
+    if storage_provider == "inline":
+        return
     provider = str(storage_provider or "local").strip().lower() or "local"
     key = str(storage_key or "").strip()
     if user_id and key:
@@ -1976,7 +1965,6 @@ async def upload_file(
     project_id: Optional[str],
     user_id: str,
     db: Session,
-    folder_id: str | None = None,
     model_allowed_mime_types: set[str] | None = None,
 ) -> Dict[str, Any]:
     """
@@ -2096,7 +2084,6 @@ async def upload_file(
             bytes_written,
             content_sha256,
             project_id=project_id,
-            folder_id=folder_id,
         )
         if duplicate_record:
             try:
@@ -2122,7 +2109,6 @@ async def upload_file(
                     bytes_written,
                     content_sha256,
                     project_id=project_id,
-                    folder_id=folder_id,
                 )
                 if duplicate_record:
                     duplicate_file_id = duplicate_record.id
@@ -2183,7 +2169,6 @@ async def upload_file(
                     storage_provider=storage_provider,
                     storage_key=storage_key,
                     storage_meta=storage_meta,
-                    folder_id=folder_id,
                 )
         except HTTPException:
             db.rollback()
@@ -2224,7 +2209,6 @@ def _upload_file_with_thread_session(
     file: UploadFile,
     project_id: str | None,
     user_id: str,
-    folder_id: str | None,
     model_allowed_mime_types: set[str] | None,
 ) -> Dict[str, Any]:
     """Run the synchronous upload/storage stack with a thread-owned session."""
@@ -2233,19 +2217,12 @@ def _upload_file_with_thread_session(
 
     session = SessionLocal()
     try:
-        if folder_id and not can_user_edit_folder(session, user_id, folder_id):
-            raise HTTPException(
-                status_code=403,
-                detail="You do not have access to this folder",
-            )
-
         async def _run() -> Dict[str, Any]:
             return await upload_file(
                 file,
                 project_id,
                 user_id,
                 session,
-                folder_id=folder_id,
                 model_allowed_mime_types=model_allowed_mime_types,
             )
 
@@ -2259,7 +2236,6 @@ async def upload_file_off_event_loop(
     project_id: str | None,
     user_id: str,
     db: Session,
-    folder_id: str | None = None,
     model_allowed_mime_types: set[str] | None = None,
 ) -> Dict[str, Any]:
     """Upload through a bounded worker thread while preserving the async API."""
@@ -2278,7 +2254,6 @@ async def upload_file_off_event_loop(
             project_id,
             user_id,
             db,
-            folder_id=folder_id,
             model_allowed_mime_types=model_allowed_mime_types,
         )
 
@@ -2287,7 +2262,6 @@ async def upload_file_off_event_loop(
         file,
         project_id,
         str(user_id),
-        folder_id,
         model_allowed_mime_types,
     )
 
@@ -2437,8 +2411,14 @@ def _delete_file_record(db: Session, user_id: str, file_info: Files) -> None:
         raise HTTPException(status_code=500, detail="Failed to clean up file references")
 
     try:
+        from app.files.history import stage_history_deletion
+        from app.files.models import FileMember
+        history_cleanup = stage_history_deletion(db, file_info.id)
+        db.query(FileMember).filter(FileMember.file_id == file_info.id).delete(synchronize_session=False)
         db.delete(file_info)
         db.commit()
+        for cleanup in history_cleanup:
+            cleanup()
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Failed to delete file from database: {str(exc)}")
 
@@ -2471,8 +2451,7 @@ def delete_file(user_id: str, file_id: str | None, db: Session, time_option: Fil
                 file_info = db.query(Files).filter(Files.id == file_id).first()
                 if (
                     not file_info
-                    or not file_info.folder_id
-                    or not can_user_edit_folder(db, user_id, file_info.folder_id)
+                    or str(file_info.user_id) != str(user_id)
                 ):
                     raise HTTPException(status_code=404, detail="File not found")
 
@@ -2737,8 +2716,7 @@ def rename_file(user_id: str, file_id: str, new_original_filename: str, db: Sess
             file_info = db.query(Files).filter(Files.id == file_id).first()
             if (
                 not file_info
-                or not file_info.folder_id
-                or not can_user_edit_folder(db, user_id, file_info.folder_id)
+                or not resolve_file_for_edit(db, user_id, file_id)
             ):
                 raise HTTPException(status_code=404, detail="File not found")
 

@@ -78,7 +78,7 @@ from app.llm.models import (
     normalize_llm_provider_status,
 )
 from app.tools.registry import (
-    RETIRED_STUDY_TOOL_ALIASES,
+    RETIRED_STUDY_TOOL_ALIASES, RETIRED_WORKSPACE_TOOL_ALIASES,
     get_rate_limit_tool,
     list_rate_limit_tools,
     normalize_rate_limit_tool_key,
@@ -675,7 +675,7 @@ def _schema_to_payload(schema_obj: Any) -> dict[str, Any]:
             for field in section.get("fields", []):
                 if field.get("key") == "tools" and isinstance(field.get("value"), list):
                     field["value"] = list(dict.fromkeys(
-                        RETIRED_STUDY_TOOL_ALIASES.get(name, name) for name in field["value"]
+                        RETIRED_WORKSPACE_TOOL_ALIASES.get(name, RETIRED_STUDY_TOOL_ALIASES.get(name, name)) for name in field["value"]
                     ))
         return payload
     return {"sections": []}

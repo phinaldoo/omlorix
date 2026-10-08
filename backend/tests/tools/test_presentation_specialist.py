@@ -1,3 +1,5 @@
+
+from app.files.models import CanvasHistory, FileMember
 """Exercise the shared tool loop and presentation publication as one workflow."""
 
 from datetime import datetime, timezone
@@ -130,7 +132,7 @@ def test_review_images_preserve_each_slide_and_overviews_after_staging_cleanup(t
 def workspace(tmp_path, monkeypatch):
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(
-        engine, tables=[Files.__table__, Models.__table__, SlidePresentations.__table__]
+        engine, tables=[Files.__table__, CanvasHistory.__table__, FileMember.__table__, Models.__table__, SlidePresentations.__table__]
     )
     db = sessionmaker(bind=engine)()
     now = datetime.now(timezone.utc)

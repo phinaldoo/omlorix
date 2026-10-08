@@ -1,3 +1,5 @@
+
+from app.files.models import CanvasHistory, FileMember
 import json
 import sys
 import threading
@@ -653,7 +655,7 @@ def test_run_forwards_and_persists_nested_generated_files(monkeypatch):
     db = _session(
         [
             Models.__table__,
-            Files.__table__,
+            Files.__table__, CanvasHistory.__table__, FileMember.__table__,
         ]
     )
     db.add(_model("model-1", access={"everyone": True, "users": [], "groups": []}))
@@ -670,7 +672,6 @@ def test_run_forwards_and_persists_nested_generated_files(monkeypatch):
             file_type="text/html",
             file_size=42,
             project_id=None,
-            folder_id=None,
             share=None,
             share_id=None,
             meta={"origin": "assistant", "original_filename": "index.html", "canvas": True},
@@ -690,7 +691,6 @@ def test_run_forwards_and_persists_nested_generated_files(monkeypatch):
             file_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
             file_size=84,
             project_id=None,
-            folder_id=None,
             share=None,
             share_id=None,
             meta={"origin": "assistant", "original_filename": "quarterly-review.pptx"},

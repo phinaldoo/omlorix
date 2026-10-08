@@ -388,10 +388,8 @@ function buildRegenerationRequestBody({ chatId, userMessageId, modelId, generati
         payload.skill_ids = payloadSkillIds;
     }
 
-    const noteIds = typeof window.getSelectedNoteIds === 'function' ? window.getSelectedNoteIds() : [];
-    if (noteIds && noteIds.length) {
-        payload.note_ids = noteIds;
-    }
+
+
 
     const promptIds = typeof window.getSelectedPromptIds === 'function' ? window.getSelectedPromptIds() : [];
     if (promptIds && promptIds.length) {
@@ -550,10 +548,7 @@ async function triggerRegeneration(assistantMessageId, { retryGuidance = null, o
     
     try {
         try {
-            if (typeof window.NotesToolSidebar?.flushPendingEdits === 'function') {
-                const notesSaved = await window.NotesToolSidebar.flushPendingEdits();
-                if (!notesSaved) return false;
-            }
+            {}
             // Switch to the pending response immediately. Keeping this setup in
             // the protected request flow ensures setup failures also roll back.
             // Retain a caller-side snapshot until preparation returns, because a
@@ -878,13 +873,7 @@ async function processRegenerationStream(
                                 window.canvasMarkdownWidget.handleToolCallEvent(obj, targetMessageId);
                             } catch (_) {}
                         }
-                        if (window.NotesToolSidebar && typeof window.NotesToolSidebar.handleToolCallEvent === 'function') {
-                            try {
-                                window.NotesToolSidebar.handleToolCallEvent(obj, targetMessageId);
-                            } catch (error) {
-                                console.error('Failed to start notes live preview', error);
-                            }
-                        }
+                        {}
 
                         syncMediaGenPlaceholder(
                             targetMessageId,
@@ -909,13 +898,7 @@ async function processRegenerationStream(
                                 window.canvasMarkdownWidget.handleToolCallDeltaEvent(obj, targetMessageId);
                             } catch (_) {}
                         }
-                        if (window.NotesToolSidebar && typeof window.NotesToolSidebar.handleToolCallDeltaEvent === 'function') {
-                            try {
-                                window.NotesToolSidebar.handleToolCallDeltaEvent(obj, targetMessageId);
-                            } catch (error) {
-                                console.error('Failed to update notes live preview', error);
-                            }
-                        }
+                        {}
                     } else if (obj.t === 'c') {
                         // Content
                         if (last_appended_message_type === 'loading') {
@@ -1007,15 +990,6 @@ async function processRegenerationStream(
                                 window.canvasMarkdownWidget.handleCanvasEvent(obj, targetMessageId);
                             } catch (_) {}
                         }
-                    } else if (obj.t === 'notes_evt') {
-                        clearMediaGenPlaceholderForNonFileEvent(targetMessageId);
-                        if (window.NotesToolSidebar && typeof window.NotesToolSidebar.handleNotesEvent === 'function') {
-                            try {
-                                window.NotesToolSidebar.handleNotesEvent(obj, targetMessageId);
-                            } catch (error) {
-                                console.error('Failed to handle notes stream event', error);
-                            }
-                        }
                     } else if (obj.t === 'f') {
                         if (last_appended_message_type === 'loading') {
                             if (typeof removeLoading === 'function') {
@@ -1102,13 +1076,7 @@ async function processRegenerationStream(
                         }
                         last_appended_message_type = '';
                     } else if (obj.t === 'e') {
-                        if (window.NotesToolSidebar && typeof window.NotesToolSidebar.handleStreamEnd === 'function') {
-                            try {
-                                window.NotesToolSidebar.handleStreamEnd(targetMessageId);
-                            } catch (error) {
-                                console.error('Failed to clean up regenerated notes preview after stream error', error);
-                            }
-                        }
+                        {}
                         if (window.canvasMarkdownWidget && typeof window.canvasMarkdownWidget.handleStreamEnd === 'function') {
                             try {
                                 window.canvasMarkdownWidget.handleStreamEnd(targetMessageId);
@@ -1206,13 +1174,7 @@ async function processRegenerationStream(
         } else {
             window.finalizeInterruptedAssistantStream?.(finalMessageId, transcriptRoot);
         }
-        if (window.NotesToolSidebar && typeof window.NotesToolSidebar.handleStreamEnd === 'function') {
-            try {
-                window.NotesToolSidebar.handleStreamEnd(newMessageId || originalMessageId);
-            } catch (error) {
-                console.error('Failed to clean up regenerated notes preview after generation', error);
-            }
-        }
+        {}
         if (window.canvasMarkdownWidget && typeof window.canvasMarkdownWidget.handleStreamEnd === 'function') {
             try {
                 window.canvasMarkdownWidget.handleStreamEnd(newMessageId || originalMessageId);
@@ -1245,7 +1207,7 @@ function closeAssistantVersionPreviewSidebars() {
         window.slidePresentationWidget,
         window.canvasMarkdownWidget,
         window.latexPdfWidget,
-        window.NotesToolSidebar,
+
     ];
 
     previewControllers.forEach((controller) => {

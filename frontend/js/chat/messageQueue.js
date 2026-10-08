@@ -193,7 +193,7 @@ function createEmptyComposerSnapshot() {
     uploadedFiles: [],
     uploadedFileIds: [],
     skills: [],
-    notes: [],
+
     prompts: [],
     chatReferences: [],
     referenceParts: [],
@@ -217,7 +217,7 @@ function normalizeComposerSnapshot(rawSnapshot, fallbackMessage = '') {
     uploadedFiles: Array.isArray(snapshot.uploadedFiles) ? snapshot.uploadedFiles : [],
     uploadedFileIds: Array.isArray(snapshot.uploadedFileIds) ? snapshot.uploadedFileIds : [],
     skills: Array.isArray(snapshot.skills) ? snapshot.skills : [],
-    notes: Array.isArray(snapshot.notes) ? snapshot.notes : [],
+
     prompts: Array.isArray(snapshot.prompts) ? snapshot.prompts : [],
     chatReferences: Array.isArray(snapshot.chatReferences) ? snapshot.chatReferences : [],
     referenceParts: Array.isArray(snapshot.referenceParts) ? snapshot.referenceParts : [],
@@ -277,7 +277,6 @@ function queueItemHasNonTextContent(item) {
     'uploadedFiles',
     'uploadedFileIds',
     'skills',
-    'notes',
     'prompts',
     'chatReferences',
     'referenceParts',

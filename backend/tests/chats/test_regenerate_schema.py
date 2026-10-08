@@ -36,7 +36,7 @@ def test_regenerate_request_rejects_retry_guidance_above_limit():
         )
 
 
-@pytest.mark.parametrize("field_name", ["skill_ids", "note_ids", "prompt_ids"])
+@pytest.mark.parametrize("field_name", ["skill_ids", "prompt_ids"])
 def test_chat_requests_reject_unbounded_context_id_lists(field_name):
     values = [f"id-{index}" for index in range(21)]
 

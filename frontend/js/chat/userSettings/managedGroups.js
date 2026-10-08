@@ -21,8 +21,6 @@
         tempMaxActive: document.getElementById('managedGroupTempMaxActive'),
         tempCredentialLength: document.getElementById('managedGroupTempCredentialLength'),
         enableProjects: document.getElementById('managedGroupEnableProjects'),
-        enableTodo: document.getElementById('managedGroupEnableTodo'),
-        enableNotes: document.getElementById('managedGroupEnableNotes'),
         enableMemories: document.getElementById('managedGroupEnableMemories'),
         memoryModel: document.getElementById('managedGroupMemoryModel'),
         enableSkills: document.getElementById('managedGroupEnableSkills'),
@@ -31,8 +29,6 @@
         enableAgents: document.getElementById('managedGroupEnableAgents'),
         enableAutomations: document.getElementById('managedGroupEnableAutomations'),
         allowProjectShare: document.getElementById('managedGroupAllowProjectShare'),
-        allowTodoShare: document.getElementById('managedGroupAllowTodoShare'),
-        allowNotesShare: document.getElementById('managedGroupAllowNotesShare'),
         allowSkillShare: document.getElementById('managedGroupAllowSkillShare'),
         allowPromptShare: document.getElementById('managedGroupAllowPromptShare'),
         allowBookmarkShare: document.getElementById('managedGroupAllowBookmarkShare'),
@@ -163,8 +159,6 @@
     // cannot drift apart when a new manager-editable switch is introduced.
     const FEATURE_SETTING_CONTROLS = [
         { control: dom.enableProjects, page: 'projects', key: 'enable_projects' },
-        { control: dom.enableTodo, page: 'todo', key: 'enabled_todo' },
-        { control: dom.enableNotes, page: 'notes', key: 'enabled_notes' },
         { control: dom.enableMemories, page: 'memories', key: 'enabled_memories' },
         { control: dom.enableSkills, page: 'skills', key: 'enabled_skills' },
         { control: dom.enablePrompts, page: 'prompts', key: 'enabled_prompts' },
@@ -172,8 +166,6 @@
         { control: dom.enableAgents, page: 'agents', key: 'allow_agents' },
         { control: dom.enableAutomations, page: 'automations', key: 'enabled_automations' },
         { control: dom.allowProjectShare, page: 'projects', key: 'allow_project_share' },
-        { control: dom.allowTodoShare, page: 'todo', key: 'allow_todo_list_share' },
-        { control: dom.allowNotesShare, page: 'notes', key: 'allow_notes_share' },
         { control: dom.allowSkillShare, page: 'skills', key: 'allow_skill_share' },
         { control: dom.allowPromptShare, page: 'prompts', key: 'allow_prompt_share' },
         { control: dom.allowBookmarkShare, page: 'bookmarks', key: 'allow_bookmark_share' },
@@ -183,8 +175,6 @@
     ];
     const FEATURE_SHARE_DEPENDENCIES = [
         { feature: dom.enableProjects, share: dom.allowProjectShare },
-        { feature: dom.enableTodo, share: dom.allowTodoShare },
-        { feature: dom.enableNotes, share: dom.allowNotesShare },
         { feature: dom.enableSkills, share: dom.allowSkillShare },
         { feature: dom.enablePrompts, share: dom.allowPromptShare },
         { feature: dom.enableBookmarks, share: dom.allowBookmarkShare },

@@ -333,7 +333,7 @@
                 skills: 'skills_management',
                 agents: 'assistant',
                 todo: 'todo',
-                notes: 'notes_management',
+
                 memories: 'memory_management',
                 prompts: 'textLines',
                 bookmarks: 'bookmark',
@@ -1059,7 +1059,7 @@
 
         const workspaceTabs = [
             'notifications', 'connections', 'files', 'skills', 'agents',
-            'todo', 'notes', 'memories', 'prompts', 'bookmarks',
+            'memories', 'prompts', 'bookmarks',
         ];
         workspaceTabs.forEach((tabId) => {
             const title = tabId.charAt(0).toUpperCase() + tabId.slice(1);

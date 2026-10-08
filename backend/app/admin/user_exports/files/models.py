@@ -15,6 +15,7 @@ from pathlib import Path, PureWindowsPath
 from typing import Any, BinaryIO
 
 from app.files.models import FileArtifactShare, Files
+from app.files.archive import (export_members, stream_history_json, export_history_zip, restore_file_history, restore_file_members)
 from app.files.sharing import (
     ARTIFACT_SHARE_DEFAULT_EXPIRES_IN_HOURS,
     ARTIFACT_SHARE_MAX_EXPIRES_IN_HOURS,
@@ -301,7 +302,6 @@ def _build_file_export_entry(
         "file_type": file_record.file_type,
         "file_size": file_record.file_size,
         "project_id": file_record.project_id,
-        "folder_id": file_record.folder_id,
         "share": file_record.share,
         "share_id": file_record.share_id,
         "artifact_shares": artifact_shares or [],
@@ -435,6 +435,7 @@ def _export_artifact_shares_for_file(
 
 def _stream_file_entry_json(
     *,
+    db,
     file_record: Files,
     user_email: str,
     user_id: str,
@@ -450,6 +451,7 @@ def _stream_file_entry_json(
             artifact_shares=artifact_shares,
         )
     )
+    entry["members"] = export_members(db, file_record.id)
     if not include_content:
         yield _json_dumps(entry)
         return
@@ -469,7 +471,9 @@ def _stream_file_entry_json(
     yield _json_dumps(ADMIN_USER_INLINE_FILE_CONTENT_KEY)
     yield ':"'
     yield from _iter_export_file_base64_chunks(file_record, user_id, original_filename)
-    yield '"}'
+    yield '","canvas_history":'
+    yield from stream_history_json(db, file_record)
+    yield '}'
 
 
 def stream_admin_user_file_entries_json_array(
@@ -494,6 +498,7 @@ def stream_admin_user_file_entries_json_array(
             yield ","
         first = False
         yield from _stream_file_entry_json(
+            db=db,
             file_record=file_record,
             user_email=user_email,
             user_id=str(user.id),
@@ -548,11 +553,6 @@ def export_admin_user_files_bundle(
     tuple[BinaryIO, str, dict[str, Any]]: The ZIP file buffer, filename, and manifest.
     """
     user, user_email = _get_export_user(db, user_id)
-    from app.users.utils import _export_user_file_folders
-
-    file_folder_export = _export_user_file_folders(str(user.id), db)
-    exported_folders = file_folder_export.get("owned", [])
-    exported_subscriptions = file_folder_export.get("subscriptions", [])
     zip_buffer = tempfile.SpooledTemporaryFile(
         max_size=EXPORT_ARCHIVE_SPOOL_THRESHOLD_BYTES, mode="w+b"
     )
@@ -631,6 +631,8 @@ def export_admin_user_files_bundle(
                         archive_name=archive_name,
                     )
                 )
+                manifest_entry["canvas_history"] = export_history_zip(db, file_record, archive)
+                manifest_entry["members"] = export_members(db, file_record.id)
                 if not first_manifest_file:
                     _write_json_chunk(manifest_buffer, ",")
                 first_manifest_file = False
@@ -641,8 +643,6 @@ def export_admin_user_files_bundle(
                 manifest_buffer,
                 "],"
                 + f'"file_count":{file_count},'
-                + f'"folders":{_json_dumps(exported_folders)},'
-                + f'"shared_file_folder_subscriptions":{_json_dumps(exported_subscriptions)},'
                 + f'"warnings":{_json_dumps(warnings)}'
                 + "}",
             )
@@ -667,8 +667,6 @@ def export_admin_user_files_bundle(
                     "email": user_email,
                 },
                 "file_count": file_count,
-                "folder_count": len(exported_folders),
-                "shared_file_folder_subscription_count": len(exported_subscriptions),
                 "warnings": warnings,
             },
         )
@@ -911,6 +909,8 @@ def _validate_imported_file_bytes(
     fallback_type: str,
 ) -> tuple[str, str]:
     """Validate imported file bytes and return file type and hash."""
+    if not file_bytes and fallback_type.startswith("text/"):
+        return fallback_type, hashlib.sha256(file_bytes).hexdigest()
     if not file_bytes:
         raise HTTPException(
             status_code=400, detail=f"Archived file '{original_filename}' is empty."
@@ -997,7 +997,7 @@ def _load_and_validate_inline_file_entry(
     )
 
     encoded_content = str(entry.get(ADMIN_USER_INLINE_FILE_CONTENT_KEY) or "").strip()
-    if not encoded_content:
+    if ADMIN_USER_INLINE_FILE_CONTENT_KEY not in entry:
         raise HTTPException(
             status_code=400,
             detail=f"Inline file entry '{original_filename}' is missing embedded content.",
@@ -1139,15 +1139,13 @@ def _import_file_entries_for_target_user(
     user_action: str,
     files: list[dict[str, Any]],
     loader,
-    folder_id_map: dict[str, str] | None = None,
     project_id_map: dict[str, str] | None = None,
 ) -> dict[str, Any]:
-    """Import file entries and reconnect their folder/project ownership."""
+    """Import file sources, revisions, memberships, and project ownership."""
     existing_source_ids, existing_duplicate_signatures = _build_existing_file_indexes(
         db, target_user.id
     )
     existing_share_ids = _load_existing_artifact_share_ids(db)
-    resolved_folder_id_map = folder_id_map or {}
     resolved_project_id_map = project_id_map or {}
 
     created: list[dict[str, Any]] = []
@@ -1155,8 +1153,20 @@ def _import_file_entries_for_target_user(
     errors: list[dict[str, Any]] = []
     warnings: list[dict[str, Any]] = []
 
+    source_loader = loader
+    loaded_bytes = 0
+    def bounded_loader(entry):
+        nonlocal loaded_bytes
+        result = source_loader(entry)
+        loaded_bytes += len(result[0])
+        if loaded_bytes > MAX_IMPORT_TOTAL_SIZE:
+            raise HTTPException(status_code=400, detail="Files and Canvas history exceed the import size limit")
+        return result
+    loader = bounded_loader
+
     for index, entry in enumerate(files):
         source_file_id = str(entry.get("id") or "").strip()
+        history_cleanup_references = []
         try:
             file_bytes, original_filename, detected_file_type, file_sha256 = loader(
                 entry
@@ -1245,6 +1255,10 @@ def _import_file_entries_for_target_user(
                 ).first():
                     preferred_file_id = None
 
+            def restore_canvas_metadata(record):
+                restore_file_history(db, record, entry.get("canvas_history", []), loader, history_cleanup_references)
+                restore_file_members(db, record, entry.get("members", []))
+
             imported_file = persist_generated_file_bytes(
                 db,
                 user_id=target_user.id,
@@ -1255,12 +1269,8 @@ def _import_file_entries_for_target_user(
                 meta=source_meta,
                 file_id=preferred_file_id,
                 project_id=mapped_project_id,
+                before_commit=restore_canvas_metadata,
             )
-            source_folder_id = str(entry.get("folder_id") or "").strip()
-            mapped_folder_id = resolved_folder_id_map.get(source_folder_id)
-            if mapped_folder_id:
-                imported_file.folder_id = mapped_folder_id
-
             created_at = _parse_iso_datetime(entry.get("created_at"))
             last_updated_at = _parse_iso_datetime(entry.get("last_updated_at"))
             if created_at:
@@ -1278,7 +1288,7 @@ def _import_file_entries_for_target_user(
                 source_file_id=source_file_id,
                 original_filename=original_filename,
             )
-            if created_at or last_updated_at or restored_shares or mapped_folder_id:
+            if created_at or last_updated_at or restored_shares:
                 db.commit()
                 db.refresh(imported_file)
 
@@ -1294,6 +1304,7 @@ def _import_file_entries_for_target_user(
                 existing_source_ids[source_file_id] = str(imported_file.id)
             existing_duplicate_signatures[duplicate_signature] = str(imported_file.id)
         except HTTPException as exc:
+            _cleanup_import_history(db, history_cleanup_references, target_user.id)
             errors.append(
                 {
                     "index": index,
@@ -1304,6 +1315,7 @@ def _import_file_entries_for_target_user(
                 }
             )
         except Exception:
+            _cleanup_import_history(db, history_cleanup_references, target_user.id)
             logger.exception("Failed to import file at index %s", index)
             errors.append(
                 {
@@ -1335,7 +1347,6 @@ def import_admin_user_inline_files_for_user(
     source_email: str,
     files: list[dict[str, Any]],
     user_action: str = "updated",
-    folder_id_map: dict[str, str] | None = None,
     project_id_map: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     """Import inline files for a user."""
@@ -1370,7 +1381,6 @@ def import_admin_user_inline_files_for_user(
         user_action=user_action,
         files=files,
         loader=_load_and_validate_inline_file_entry,
-        folder_id_map=folder_id_map,
         project_id_map=project_id_map,
     )
 
@@ -1383,10 +1393,6 @@ def import_admin_user_files_archive(
     project_id_map: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     """Import a nested canonical file archive for its target account."""
-    from app.users.utils import (
-        _bulk_insert_file_folders,
-        _bulk_insert_shared_file_folder_subscriptions,
-    )
 
     manifest = _read_manifest(archive)
     user_block = manifest.get("user") if isinstance(manifest.get("user"), dict) else {}
@@ -1410,10 +1416,6 @@ def import_admin_user_files_archive(
             status_code=400,
             detail="Invalid file package. Manifest 'files' must be a list.",
         )
-    folders = _manifest_list_or_empty(manifest, "folders")
-    shared_file_folder_subscriptions = _manifest_list_or_empty(
-        manifest, "shared_file_folder_subscriptions"
-    )
 
     if len(files) > MAX_IMPORT_FILE_COUNT:
         raise HTTPException(
@@ -1493,23 +1495,7 @@ def import_admin_user_files_archive(
             )
 
     target_user, user_action = _resolve_existing_user_by_email(db, package_email)
-    folder_id_map: dict[str, str] = {}
     warnings: list[dict[str, Any]] = []
-    if folders:
-        folder_id_map, folder_warnings = _bulk_insert_file_folders(
-            db, target_user.id, folders
-        )
-        warnings.extend(folder_warnings)
-    if shared_file_folder_subscriptions:
-        warnings.extend(
-            _bulk_insert_shared_file_folder_subscriptions(
-                db,
-                target_user.id,
-                shared_file_folder_subscriptions,
-                folder_id_map=folder_id_map,
-            )
-        )
-
     result = _import_file_entries_for_target_user(
         db,
         target_user=target_user,
@@ -1517,22 +1503,19 @@ def import_admin_user_files_archive(
         user_action=user_action,
         files=files,
         loader=lambda entry: _load_and_validate_file_entry(archive, entry),
-        folder_id_map=folder_id_map,
         project_id_map=project_id_map,
     )
     result["warnings"] = warnings + [
         warning for warning in result.get("warnings", []) if isinstance(warning, dict)
     ]
-    result["restored_folder_count"] = len(folder_id_map)
-    result["restored_shared_file_folder_subscription_count"] = max(
-        0,
-        len(shared_file_folder_subscriptions)
-        - len(
-            [
-                warning
-                for warning in warnings
-                if warning.get("section") == "shared_file_folder_subscriptions"
-            ]
-        ),
-    )
     return result
+
+
+def _cleanup_import_history(db, references, user_id):
+    from app.files.utils import delete_storage_reference
+    db.rollback()
+    for provider, key, name in references:
+        # Later metadata errors must not delete already committed revisions.
+        from app.files.models import CanvasHistory
+        if not db.query(CanvasHistory.id).filter(CanvasHistory.storage_provider == provider, CanvasHistory.storage_key == key).first():
+            delete_storage_reference(storage_provider=provider, storage_key=key, user_id=user_id, file_name=name)

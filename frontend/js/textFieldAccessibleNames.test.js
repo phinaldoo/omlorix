@@ -14,10 +14,6 @@ function startTagById(source, id) {
 
 test('compact authenticated text fields have localized durable accessible names', () => {
     const fields = new Map([
-        ['todosSidebarSearchInput', 'todos_search_placeholder'],
-        ['todosAddInput', 'todos_add_placeholder'],
-        ['todosAddNotes', 'todos_add_notes_placeholder'],
-        ['notesSidebarSearchInput', 'notes_search_placeholder'],
         ['chatBoxInput', 'chat_input_placeholder'],
     ]);
 

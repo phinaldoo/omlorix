@@ -300,7 +300,6 @@ def _scrub_slide_presentation_file_ids(db: Session, user_id: str, file_id: str) 
             _scrub_deep_research_artifact_file_ids(
                 db, user_id, str(derivative.id)
             )
-            _scrub_note_file_references(db, user_id, str(derivative.id))
             try:
                 delete_storage_reference(
                     storage_provider=str(derivative.storage_provider or "local"),
@@ -356,51 +355,8 @@ def _scrub_deep_research_artifact_file_ids(
     return updated
 
 
-def _remove_target_note_references(content: str | None, *, user_id: str, file_id: str) -> tuple[str, bool]:
-    from app.notes.utils import parse_note_file_references
-
-    source = str(content or "")
-    cleaned = source
-    for reference in parse_note_file_references(source):
-        if reference.owner_id == user_id and reference.file_id == file_id:
-            cleaned = cleaned.replace(reference.raw_token, "")
-    return cleaned, cleaned != source
 
 
-def _scrub_note_file_references(db: Session, user_id: str, file_id: str) -> int:
-    try:
-        from app.notes.models import NoteHistory, Notes
-    except Exception:
-        return 0
-
-    updated = 0
-    now = datetime.now(timezone.utc)
-    for note in db.query(Notes).filter(Notes.content.contains(file_id)).all():
-        cleaned, changed = _remove_target_note_references(note.content, user_id=user_id, file_id=file_id)
-        if changed:
-            note.content = cleaned
-            note.updated_at = now
-            updated += 1
-
-    for history in (
-        db.query(NoteHistory)
-        .filter(or_(NoteHistory.content.contains(file_id), NoteHistory.previous_content.contains(file_id)))
-        .all()
-    ):
-        cleaned, changed = _remove_target_note_references(history.content, user_id=user_id, file_id=file_id)
-        if changed:
-            history.content = cleaned
-            updated += 1
-        previous_cleaned, previous_changed = _remove_target_note_references(
-            history.previous_content,
-            user_id=user_id,
-            file_id=file_id,
-        )
-        if previous_changed:
-            history.previous_content = previous_cleaned
-            updated += 1
-
-    return updated
 
 
 def cleanup_file_references(db: Session, user_id: str, file_id: str | None) -> dict[str, int]:
@@ -419,5 +375,4 @@ def cleanup_file_references(db: Session, user_id: str, file_id: str | None) -> d
             user_id,
             normalized_file_id,
         ),
-        "notes": _scrub_note_file_references(db, user_id, normalized_file_id),
     }

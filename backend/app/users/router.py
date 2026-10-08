@@ -735,10 +735,7 @@ def get_shared_items_route(db: Session = Depends(get_db), user = Depends(verifie
     """Get the user's outbound shares, inbound shared memberships, and sharing capabilities."""
     from app.chats.models import Chats
     from app.files.models import FileArtifactShare, Files
-    from app.file_folders.models import FileFolders, SharedFileFolderSubscription
     from app.projects.models import Project, ProjectMember
-    from app.notes.models import Notes, SharedNoteSubscription
-    from app.todos.models import TodoLists, SharedTodoListSubscription
     from app.skills.models import Skills, SharedSkillSubscription
     from app.prompts.models import Prompts, SharedPromptSubscription
     from app.agents.models import UserAgent, SharedUserAgentSubscription
@@ -874,81 +871,6 @@ def get_shared_items_route(db: Session = Depends(get_db), user = Depends(verifie
     except Exception:
         mark_inventory_failure("project", "Failed to fetch shared projects")
 
-    # 4. Notes
-    try:
-        shared_notes = (
-            db.query(Notes)
-            .filter(
-                Notes.user_id == user.id,
-                or_(
-                    Notes.clone_share_id.isnot(None),
-                    Notes.live_share_id.isnot(None),
-                    Notes.collaborate_share_id.isnot(None),
-                ),
-            )
-            .all()
-        )
-        for note in shared_notes:
-            title = (note.content or "")[:50].split("\n")[0] or "Untitled Note"
-            for share_type, share_id in [
-                ("clone", note.clone_share_id),
-                ("live", note.live_share_id),
-                ("collaborate", note.collaborate_share_id),
-            ]:
-                if share_id:
-                    items.append({
-                        "type": "note",
-                        "id": note.id,
-                        "resource_id": note.id,
-                        "title": title,
-                        "share_id": share_id,
-                        "share_url": build_shared_item_url(public_url, "note", share_id, share_type),
-                        "share_type": share_type,
-                        "has_password": False,
-                        "created_at": note.created_at.isoformat() if note.created_at else None,
-                        "expires_at": None,
-                        "capabilities": get_shared_item_capabilities("note"),
-                    })
-    except Exception:
-        mark_inventory_failure("note", "Failed to fetch shared notes")
-
-    # 5. Todos
-    try:
-        shared_todos = (
-            db.query(TodoLists)
-            .filter(
-                TodoLists.user_id == user.id,
-                or_(
-                    TodoLists.clone_share_id.isnot(None),
-                    TodoLists.live_share_id.isnot(None),
-                    TodoLists.collaborate_share_id.isnot(None),
-                ),
-            )
-            .all()
-        )
-        for todo in shared_todos:
-            for share_type, share_id in [
-                ("clone", todo.clone_share_id),
-                ("live", todo.live_share_id),
-                ("collaborate", todo.collaborate_share_id),
-            ]:
-                if share_id:
-                    items.append({
-                        "type": "todo",
-                        "id": todo.id,
-                        "resource_id": todo.id,
-                        "title": todo.title or "Untitled Todo",
-                        "share_id": share_id,
-                        "share_url": build_shared_item_url(public_url, "todo", share_id, share_type),
-                        "share_type": share_type,
-                        "has_password": False,
-                        "created_at": todo.created_at.isoformat() if todo.created_at else None,
-                        "expires_at": None,
-                        "capabilities": get_shared_item_capabilities("todo"),
-                    })
-    except Exception:
-        mark_inventory_failure("todo", "Failed to fetch shared todos")
-
     # 6. Skills
     try:
         shared_skills = (
@@ -1060,44 +982,6 @@ def get_shared_items_route(db: Session = Depends(get_db), user = Depends(verifie
     except Exception:
         mark_inventory_failure("agent", "Failed to fetch shared agents")
 
-    # 9. Folders
-    try:
-        shared_folders = (
-            db.query(FileFolders)
-            .filter(
-                FileFolders.user_id == user.id,
-                or_(
-                    FileFolders.clone_share_id.isnot(None),
-                    FileFolders.live_share_id.isnot(None),
-                    FileFolders.collaborate_share_id.isnot(None),
-                ),
-            )
-            .all()
-        )
-        for folder in shared_folders:
-            for share_type, share_id in [
-                ("clone", folder.clone_share_id),
-                ("live", folder.live_share_id),
-                ("collaborate", folder.collaborate_share_id),
-            ]:
-                if share_id:
-                    items.append({
-                        "type": "folder",
-                        "id": folder.id,
-                        "resource_id": folder.id,
-                        "title": folder.name or "Untitled Folder",
-                        "share_id": share_id,
-                        "share_url": build_shared_item_url(public_url, "folder", share_id, share_type),
-                        "share_type": share_type,
-                        "direction": "outbound",
-                        "has_password": False,
-                        "created_at": folder.created_at.isoformat() if folder.created_at else None,
-                        "expires_at": None,
-                        "capabilities": get_shared_item_capabilities("folder"),
-                    })
-    except Exception:
-        mark_inventory_failure("folder", "Failed to fetch shared folders")
-
     # 10. Accepted project shares.
     try:
         project_memberships = (
@@ -1127,20 +1011,6 @@ def get_shared_items_route(db: Session = Depends(get_db), user = Depends(verifie
 
     inbound_definitions = [
         {
-            "section": "note",
-            "model": Notes,
-            "subscription": SharedNoteSubscription,
-            "resource_field": SharedNoteSubscription.note_id,
-            "title": lambda note: (note.content or "")[:50].split("\n")[0] or "Untitled Note",
-        },
-        {
-            "section": "todo",
-            "model": TodoLists,
-            "subscription": SharedTodoListSubscription,
-            "resource_field": SharedTodoListSubscription.todo_list_id,
-            "title": lambda todo: todo.title or "Untitled Todo",
-        },
-        {
             "section": "skill",
             "model": Skills,
             "subscription": SharedSkillSubscription,
@@ -1160,13 +1030,6 @@ def get_shared_items_route(db: Session = Depends(get_db), user = Depends(verifie
             "subscription": SharedUserAgentSubscription,
             "resource_field": SharedUserAgentSubscription.agent_id,
             "title": lambda agent: agent.name or "Untitled Agent",
-        },
-        {
-            "section": "folder",
-            "model": FileFolders,
-            "subscription": SharedFileFolderSubscription,
-            "resource_field": SharedFileFolderSubscription.folder_id,
-            "title": lambda folder: folder.name or "Untitled Folder",
         },
     ]
 

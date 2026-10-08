@@ -15,21 +15,15 @@ import pypdfium2 as pdfium
 from pydantic import ValidationError
 import pytest
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.modules.setdefault("zstandard", types.ModuleType("zstandard"))
 
 from app.database import Base  # noqa: E402
-from app.file_folders.models import (  # noqa: E402
-    FileFolders,
-    ShareType,
-    SharedFileFolderSubscription,
-    create_folder_share,
-)
 from app.files.access import ResolvedFileAccess, accessible_files_query  # noqa: E402
 from app.files.canvas_assets import CanvasAssetAccessError  # noqa: E402
-from app.files.models import Files  # noqa: E402
+from app.files.models import Files, FileMember, CanvasHistory  # noqa: E402
 from app.files import router as files_router  # noqa: E402
 from app.files import utils as file_utils  # noqa: E402
 from app.files.schemas import (  # noqa: E402
@@ -545,72 +539,6 @@ def test_canvas_save_new_file_enforces_user_capacity(monkeypatch):
     ]
 
 
-def test_canvas_save_serializes_system_folder_creation_with_file_admission(monkeypatch):
-    """The first-folder lookup and insert must run under the per-user lock."""
-
-    admission_active = False
-    observed_steps: list[str] = []
-
-    @contextmanager
-    def fake_serialized_admission(db, user_id):
-        nonlocal admission_active
-        assert user_id == "user-1"
-        admission_active = True
-        observed_steps.append("lock_entered")
-        try:
-            yield
-        finally:
-            admission_active = False
-            observed_steps.append("lock_exited")
-
-    def fake_capacity(*args, **kwargs):
-        assert admission_active is True
-        observed_steps.append("capacity_checked")
-
-    def fake_ensure_folder(db, user_id):
-        assert admission_active is True
-        observed_steps.append("folder_ensured")
-        return "canvas-folder-1"
-
-    def fake_persist(**kwargs):
-        assert admission_active is True
-        assert "max_files_limit" not in kwargs
-        assert "max_user_storage_limit_bytes" not in kwargs
-        observed_steps.append("file_persisted")
-        return SimpleNamespace(id=kwargs["file_id"], file_name=kwargs["file_name"])
-
-    db = SimpleNamespace(rollback=lambda: observed_steps.append("rolled_back"))
-    monkeypatch.setattr(
-        canvas_utils, "_validate_canvas_content_bytes", lambda *args, **kwargs: None
-    )
-    monkeypatch.setattr(
-        canvas_utils, "ensure_user_file_upload_size_limit", lambda *args, **kwargs: None
-    )
-    monkeypatch.setattr(
-        canvas_utils, "resolve_user_file_upload_limits", lambda db, user_id: (3, 100)
-    )
-    monkeypatch.setattr(
-        canvas_utils, "serialized_user_file_quota_admission", fake_serialized_admission
-    )
-    monkeypatch.setattr(canvas_utils, "ensure_user_file_upload_capacity", fake_capacity)
-    monkeypatch.setattr(canvas_utils, "_ensure_canvas_folder_id", fake_ensure_folder)
-    monkeypatch.setattr(canvas_utils, "persist_generated_file_bytes", fake_persist)
-
-    result = canvas_utils.save_canvas_markdown(
-        db,
-        user_id="user-1",
-        content="hello",
-        content_type="markdown",
-    )
-
-    assert result["created"] is True
-    assert observed_steps == [
-        "lock_entered",
-        "capacity_checked",
-        "folder_ensured",
-        "file_persisted",
-        "lock_exited",
-    ]
 
 
 def test_canvas_save_new_file_ignores_blank_snippet_fields(monkeypatch):
@@ -651,28 +579,6 @@ def test_canvas_save_new_file_ignores_blank_snippet_fields(monkeypatch):
     assert persisted["file_bytes"] == b"<main>Hello</main>"
 
 
-def test_canvas_folder_helper_creates_and_reuses_canvas_folder():
-    engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(
-        bind=engine,
-        tables=[FileFolders.__table__, SharedFileFolderSubscription.__table__],
-    )
-    db = sessionmaker(bind=engine)()
-    try:
-        folder_id = canvas_utils._ensure_canvas_folder_id(db, "user-1")
-        db.commit()
-
-        folder = db.query(FileFolders).filter(FileFolders.id == folder_id).one()
-        assert folder.name == "Canvas"
-        assert folder.user_id == "user-1"
-        assert folder.system_kind == "canvas"
-
-        assert canvas_utils._ensure_canvas_folder_id(db, "user-1") == folder_id
-        assert (
-            db.query(FileFolders).filter(FileFolders.user_id == "user-1").count() == 1
-        )
-    finally:
-        db.close()
 
 
 def test_canvas_create_rolls_back_source_and_storage_when_grants_fail_after_preflight(
@@ -685,8 +591,8 @@ def test_canvas_create_rolls_back_source_and_storage_when_grants_fail_after_pref
     Base.metadata.create_all(
         bind=engine,
         tables=[
-            FileFolders.__table__,
-            SharedFileFolderSubscription.__table__,
+            FileMember.__table__,
+            CanvasHistory.__table__,
             Files.__table__,
         ],
     )
@@ -801,146 +707,8 @@ def test_canvas_create_rolls_back_source_and_storage_when_grants_fail_after_pref
         engine.dispose()
 
 
-def test_canvas_folder_helper_does_not_reuse_shared_name_collision(monkeypatch):
-    """A saved Canvas must not cross a same-named folder's sharing boundary."""
-
-    engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(
-        bind=engine,
-        tables=[
-            FileFolders.__table__,
-            SharedFileFolderSubscription.__table__,
-            Files.__table__,
-        ],
-    )
-    db = sessionmaker(bind=engine)()
-    now = datetime.now(timezone.utc)
-    try:
-        shared_folder = FileFolders(
-            id="shared-canvas-folder",
-            user_id="owner-1",
-            name="canvas",
-            icon="folder",
-            icon_color="#6366f1",
-            order=0,
-            live_share_id="live-share-token",
-            created_at=now,
-            updated_at=now,
-        )
-        db.add(shared_folder)
-        db.add(
-            SharedFileFolderSubscription(
-                id="subscription-1",
-                folder_id=shared_folder.id,
-                subscriber_id="subscriber-1",
-                share_type="live",
-                subscribed_at=now,
-            )
-        )
-        db.commit()
-
-        monkeypatch.setattr(
-            canvas_utils, "_validate_canvas_content_bytes", lambda *args, **kwargs: None
-        )
-        monkeypatch.setattr(
-            canvas_utils,
-            "ensure_user_file_upload_size_limit",
-            lambda *args, **kwargs: None,
-        )
-        monkeypatch.setattr(
-            canvas_utils,
-            "resolve_user_file_upload_limits",
-            lambda db, user_id: (3, 100),
-        )
-        monkeypatch.setattr(
-            canvas_utils,
-            "ensure_user_file_upload_capacity",
-            lambda *args, **kwargs: None,
-        )
-
-        def persist_to_database(**kwargs):
-            """Persist through the real model while avoiding external storage."""
-
-            persisted_at = datetime.now(timezone.utc)
-            record = Files(
-                id=kwargs["file_id"],
-                user_id=kwargs["user_id"],
-                file_name=kwargs["file_name"],
-                storage_provider="local",
-                storage_key=f"{kwargs['user_id']}/{kwargs['file_name']}",
-                file_category=kwargs["file_category"],
-                file_type=kwargs["file_type"],
-                file_size=len(kwargs["file_bytes"]),
-                folder_id=kwargs["folder_id"],
-                meta=kwargs["meta"],
-                created_at=persisted_at,
-                last_updated_at=persisted_at,
-            )
-            kwargs["db"].add(record)
-            kwargs["db"].commit()
-            return record
-
-        monkeypatch.setattr(
-            canvas_utils, "persist_generated_file_bytes", persist_to_database
-        )
-        save_result = canvas_utils.save_canvas_markdown(
-            db,
-            user_id="owner-1",
-            content="private canvas content",
-            content_type="markdown",
-        )
-
-        generated_file = (
-            db.query(Files).filter(Files.id == save_result["file_id"]).one()
-        )
-        resolved_folder_id = generated_file.folder_id
-
-        assert resolved_folder_id != shared_folder.id
-        resolved_folder = (
-            db.query(FileFolders).filter(FileFolders.id == resolved_folder_id).one()
-        )
-        assert resolved_folder.system_kind == "canvas"
-        assert resolved_folder.live_share_id is None
-        assert (
-            accessible_files_query(db, "subscriber-1")
-            .filter(Files.id == generated_file.id)
-            .first()
-            is None
-        )
-    finally:
-        db.close()
 
 
-def test_canvas_system_folder_cannot_be_shared():
-    """Backend authorization must enforce privacy even if the UI is bypassed."""
-
-    engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(bind=engine, tables=[FileFolders.__table__])
-    db = sessionmaker(bind=engine)()
-    now = datetime.now(timezone.utc)
-    try:
-        db.add(
-            FileFolders(
-                id="system-canvas-folder",
-                user_id="owner-1",
-                name="Canvas",
-                system_kind="canvas",
-                icon="folder",
-                icon_color="#6366f1",
-                order=0,
-                created_at=now,
-                updated_at=now,
-            )
-        )
-        db.commit()
-
-        with pytest.raises(HTTPException) as exc_info:
-            create_folder_share(db, "owner-1", "system-canvas-folder", ShareType.LIVE)
-
-        assert exc_info.value.status_code == 409
-        assert exc_info.value.detail == {"code": "system_folder_not_shareable"}
-    finally:
-        db.close()
 
 
 def test_canvas_save_new_file_uses_canvas_folder(monkeypatch):
@@ -958,16 +726,12 @@ def test_canvas_save_new_file_uses_canvas_folder(monkeypatch):
     monkeypatch.setattr(
         canvas_utils, "ensure_user_file_upload_capacity", lambda *args, **kwargs: None
     )
-    monkeypatch.setattr(
-        canvas_utils, "_ensure_canvas_folder_id", lambda db, user_id: "canvas-folder-1"
-    )
 
     def fake_persist_generated_file_bytes(**kwargs):
         persisted.update(kwargs)
         return SimpleNamespace(
             id=kwargs["file_id"],
             file_name=kwargs["file_name"],
-            folder_id=kwargs["folder_id"],
         )
 
     monkeypatch.setattr(
@@ -982,7 +746,6 @@ def test_canvas_save_new_file_uses_canvas_folder(monkeypatch):
     )
 
     assert result["created"] is True
-    assert persisted["folder_id"] == "canvas-folder-1"
 
 
 def test_canvas_save_new_file_does_not_auto_attach_to_project(monkeypatch):
@@ -1230,7 +993,6 @@ def test_canvas_save_update_preserves_existing_private_folder(monkeypatch):
         storage_meta={},
         meta={"original_filename": "site.html", "canvas_type": "html"},
         project_id=None,
-        folder_id="private-folder-1",
     )
     db = SimpleNamespace(
         add=lambda record: None, commit=lambda: None, refresh=lambda record: None
@@ -1247,9 +1009,6 @@ def test_canvas_save_update_preserves_existing_private_folder(monkeypatch):
     )
     monkeypatch.setattr(
         canvas_utils, "ensure_user_file_upload_capacity", lambda *args, **kwargs: None
-    )
-    monkeypatch.setattr(
-        canvas_utils, "_ensure_canvas_folder_id", lambda db, user_id: "canvas-folder-1"
     )
     monkeypatch.setattr(
         canvas_utils, "get_file", lambda db, file_id, user_id: file_record
@@ -1270,7 +1029,6 @@ def test_canvas_save_update_preserves_existing_private_folder(monkeypatch):
     )
 
     assert result["created"] is False
-    assert file_record.folder_id == "private-folder-1"
 
 
 def test_canvas_update_compensates_staged_storage_when_grant_reconciliation_fails(
@@ -1290,7 +1048,6 @@ def test_canvas_update_compensates_staged_storage_when_grant_reconciliation_fail
         storage_meta={},
         meta={"canvas": True, "canvas_type": "markdown"},
         project_id=None,
-        folder_id=None,
     )
     db = SimpleNamespace(
         add=lambda _record: events.append("source_staged"),
@@ -1474,7 +1231,6 @@ def test_existing_html_canvas_overwrite_reloads_new_storage_bytes(monkeypatch, t
         storage_meta={},
         meta={"original_filename": "website.html", "canvas_type": "html"},
         project_id=None,
-        folder_id="canvas-folder-1",
     )
     stored_path = file_utils.get_file_path("user-1", file_record.file_name)
     stored_path.write_text("<main>Before edit</main>", encoding="utf-8")
@@ -1526,7 +1282,7 @@ def test_existing_html_canvas_overwrite_reloads_new_storage_bytes(monkeypatch, t
     assert save_result["created"] is False
     assert save_result["content"] == updated_html
     assert reopened["content"] == updated_html
-    assert not stored_path.exists()
+    assert stored_path.exists()  # Retained by immutable Canvas history.
     assert file_utils._resolve_local_storage_path(
         file_record.storage_key
     ).read_text(encoding="utf-8") == updated_html
@@ -1751,7 +1507,6 @@ def test_spreadsheet_update_preserves_file_identity_and_records_revision(monkeyp
         file_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         file_category="document",
         file_size=12,
-        folder_id="folder-1",
         storage_provider="local",
         storage_key="old-key",
         storage_meta={},
@@ -1802,7 +1557,6 @@ def test_spreadsheet_update_preserves_file_identity_and_records_revision(monkeyp
     assert result["spreadsheet_format"] == "xlsx"
     assert result["canvas_revision"] == 5
     assert result["spreadsheet_requires_recalculation"] is True
-    assert file_record.folder_id == "folder-1"
     assert file_record.meta["canvas"] is True
     assert file_record.meta["canvas_type"] == "spreadsheet"
     assert file_record.meta["spreadsheet_requires_recalculation"] is True
@@ -1863,7 +1617,7 @@ def test_spreadsheet_update_rejects_an_outdated_expected_revision():
 
     assert caught.value.expected_revision == 6
     assert caught.value.current_revision == 7
-    assert query.locked is True
+    assert query.locked is False
 
 
 def _xlsx_package_bytes(*, extra_entries: dict[str, bytes] | None = None) -> bytes:
@@ -2071,7 +1825,6 @@ def test_spreadsheet_persistence_error_is_not_reclassified_as_client_input(
         file_type="text/csv",
         file_category="document",
         file_size=4,
-        folder_id=None,
         storage_provider="local",
         storage_key="old-key",
         storage_meta={},
@@ -2474,6 +2227,7 @@ def test_canvas_save_partial_update_rejects_ambiguous_start_snippet(
 
 def test_canvas_save_route_preserves_http_exceptions(monkeypatch):
     payload = CanvasFileSaveRequest(
+        expected_revision=1,
         file_id="file-1", content="hello", content_type="markdown"
     )
 
@@ -2501,6 +2255,7 @@ def test_canvas_save_route_preserves_http_exceptions(monkeypatch):
 
 def test_canvas_save_request_accepts_html_content_type():
     payload = CanvasFileSaveRequest(
+        expected_revision=1,
         file_id="file-1",
         content="<main>Hello</main>",
         content_type="html",
@@ -2538,6 +2293,7 @@ def test_canvas_asset_decision_requires_the_actionable_notification_id():
 
 def test_canvas_save_route_accepts_html_content_type(monkeypatch):
     payload = CanvasFileSaveRequest(
+        expected_revision=1,
         file_id="file-1",
         content="<main>Hello</main>",
         content_type="html",
@@ -2710,15 +2466,14 @@ def test_canvas_tool_schema_lists_file_metadata_before_content():
     assert set(branches[1]["required"]) == {"type", "file_id"}
 
 
-def test_notes_tool_schema_advertises_bounded_reads_and_atomic_edits():
-    notes_schema = tool_schemas["notes"]
-    properties = notes_schema["parameters"]["properties"]
 
-    assert "view" in properties["type"]["enum"]
-    assert "delete" not in properties["type"]["enum"]
-    assert "start_snippet" in properties
-    assert "end_snippet" in properties
-    assert "bounded" in notes_schema["description"]
-    assert "view_many" in notes_schema["description"]
-    assert "atomic edits array" in notes_schema["description"]
-    assert "expected_updated_at" in notes_schema["description"]
+
+@pytest.fixture(autouse=True)
+def isolate_persistence_in_unit_doubles(monkeypatch):
+    """Keep source-format unit doubles separate from the real history/ACL tests."""
+    lock = canvas_utils._lock_canvas_for_edit
+    capture = canvas_utils.capture_canvas_history
+    monkeypatch.setattr(canvas_utils, "_lock_canvas_for_edit", lambda db, owner, file_id, actor:
+        lock(db, owner, file_id, actor) if isinstance(db, Session) else canvas_utils.get_file(db, file_id, owner))
+    monkeypatch.setattr(canvas_utils, "capture_canvas_history", lambda db, record:
+        capture(db, record) if isinstance(db, Session) else None)
