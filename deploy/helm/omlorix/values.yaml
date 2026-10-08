@@ -1,0 +1,194 @@
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  repository: ghcr.io/phinaldoo/omlorix-backend
+  tag: ""
+  pullPolicy: IfNotPresent
+
+frontendImage:
+  repository: ghcr.io/phinaldoo/omlorix-frontend
+  tag: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+validation:
+  enabled: true
+
+frontend:
+  enabled: true
+  replicas: 1
+  port: 8080
+  resources: {}
+
+api:
+  replicas: 1
+  port: 8000
+  resources: {}
+
+worker:
+  enabled: true
+  replicas: 1
+  resources: {}
+
+scheduler:
+  enabled: true
+  replicas: 1
+  resources: {}
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8000
+
+frontendService:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+
+ingress:
+  enabled: false
+  className: ""
+  annotations:
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "512m"
+    nginx.ingress.kubernetes.io/limit-rps: "10"
+    nginx.ingress.kubernetes.io/limit-connections: "20"
+    nginx.ingress.kubernetes.io/hsts: "true"
+    nginx.ingress.kubernetes.io/hsts-include-subdomains: "true"
+    nginx.ingress.kubernetes.io/hsts-max-age: "31536000"
+  hosts:
+    - host: omlorix.local
+  tls:
+    - secretName: omlorix-tls
+      hosts:
+        - omlorix.local
+
+podAnnotations: {}
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  seccompProfile:
+    type: RuntimeDefault
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+frontendSecurityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 101
+  runAsGroup: 101
+
+fileStorage:
+  local:
+    # Set this to true only for short-lived evaluation installs where losing
+    # uploaded files on pod reschedule is acceptable.
+    allowEphemeral: false
+    persistence:
+      enabled: true
+      existingClaim: ""
+      accessModes:
+        - ReadWriteMany
+      size: 10Gi
+      storageClassName: ""
+      annotations: {}
+      labels: {}
+      selector: {}
+
+env:
+  MODE: production
+  PUBLIC_URL: ""
+  CORS_ALLOW_ORIGINS: ""
+  TRUSTED_HOSTS: ""
+  ALLOW_LOCAL_OR_PRIVATE_ORIGINS: "false"
+  REDIS_ENABLED: "true"
+  REDIS_URL: redis://redis:6379/0
+  RATE_LIMIT_WIDGET_FRAME_RPM: "120"
+  RATE_LIMIT_TRUSTED_PROXIES: ""
+  WIDGET_FRAME_TTL_SECONDS: "300"
+  WIDGET_FRAME_MAX_HTML_CHARACTERS: "5000000"
+  WIDGET_FRAME_MAX_FRAMES_PER_USER: "100"
+  WIDGET_FRAME_MAX_BYTES_PER_USER: "26214400"
+  WIDGET_FRAME_MAX_TOTAL_FRAMES: "2000"
+  WIDGET_FRAME_MAX_TOTAL_BYTES: "268435456"
+  WIDGET_FRAME_LOCAL_MAX_TOTAL_FRAMES: "256"
+  WIDGET_FRAME_LOCAL_MAX_TOTAL_BYTES: "67108864"
+  OPENAI_REALTIME_MONITOR_MAX_TOTAL: "128"
+  OPENAI_REALTIME_MONITOR_MAX_PER_USER: "4"
+  AUTOMATION_QUEUE_NAME: omlorix-automations
+  AUTOMATION_SCHEDULER_ENABLED: "false"
+  DB_MIGRATIONS_MODE: "off"
+  DB_MIGRATIONS_LOCK_TIMEOUT_SECONDS: "120"
+  FILE_STORAGE_PROVIDER: local
+  FILE_STORAGE_LOCAL_BASE_PATH: /app/data/userFiles
+
+  DATABASE_HOST: ""
+  DATABASE_PORT: "5432"
+  DATABASE_NAME: ""
+  DATABASE_SCHEMA: "app"
+  DATABASE_AUDIT_LOG_SCHEMA: "audit"
+  DATABASE_LOGS_SCHEMA: "logs"
+
+  FILE_STORAGE_S3_BUCKET: ""
+  FILE_STORAGE_S3_PREFIX: ""
+  FILE_STORAGE_S3_REGION: ""
+  FILE_STORAGE_S3_ENDPOINT_URL: ""
+  FILE_STORAGE_GCS_BUCKET: ""
+  FILE_STORAGE_GCS_PREFIX: ""
+  FILE_STORAGE_GCS_PROJECT: ""
+  FILE_STORAGE_GCS_CREDENTIALS_JSON: ""
+  FILE_STORAGE_AZURE_CONTAINER: ""
+  FILE_STORAGE_AZURE_PREFIX: ""
+  FILE_STORAGE_AZURE_ACCOUNT_URL: ""
+  FILE_STORAGE_AZURE_CONNECTION_STRING: ""
+  FILE_STORAGE_AZURE_CREDENTIAL: ""
+  FILE_STORAGE_WEBDAV_URL: ""
+  FILE_STORAGE_WEBDAV_USERNAME: ""
+  FILE_STORAGE_WEBDAV_PREFIX: ""
+  FILE_STORAGE_WEBDAV_VERIFY_SSL: "true"
+  FILE_STORAGE_WEBDAV_TIMEOUT: "30"
+
+envSecret:
+  JWT_SECRET_KEY: ""
+  ENCRYPTION_KEY: ""
+  DATABASE_USER: ""
+  DATABASE_PASSWORD: ""
+
+  DATABASE_URL: ""
+
+  FILE_STORAGE_S3_ACCESS_KEY_ID: ""
+  FILE_STORAGE_S3_SECRET_ACCESS_KEY: ""
+  FILE_STORAGE_S3_SESSION_TOKEN: ""
+  FILE_STORAGE_WEBDAV_PASSWORD: ""
+  PROMETHEUS_METRICS_TOKEN: ""
+
+existingSecretName: ""
+
+migrationJob:
+  enabled: true
+  backoffLimit: 2
+  activeDeadlineSeconds: 900
+  resources: {}
+
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

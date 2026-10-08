@@ -286,3 +286,23 @@ jobs:
       - name: Scan CLI for reachable Go vulnerabilities
         run: |
           go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./cmd/omlorix-server-cli
+
+  helm-validation:
+    name: Helm chart validation
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Helm
+        uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: v3.18.4
+
+      - name: Lint and template Helm chart
+        run: |
+          helm lint deploy/helm/omlorix -f deploy/helm/omlorix/values-production.example.yaml
+          helm template omlorix deploy/helm/omlorix -f deploy/helm/omlorix/values-production.example.yaml >/dev/null
+          helm template omlorix deploy/helm/omlorix -f deploy/helm/omlorix/values-single-server-plus.yaml --set validation.enabled=false >/dev/null
+          helm template omlorix deploy/helm/omlorix -f deploy/helm/omlorix/values-kubernetes.yaml --set validation.enabled=false >/dev/null

@@ -1,0 +1,29 @@
+{{- if and (include "omlorix.localFileStorageUsesPersistence" .) (not .Values.fileStorage.local.persistence.existingClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "omlorix.localFileStorageClaimName" . }}
+  labels:
+    {{- include "omlorix.labels" . | nindent 4 }}
+    app.kubernetes.io/component: user-files
+    {{- with .Values.fileStorage.local.persistence.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.fileStorage.local.persistence.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  accessModes:
+    {{- toYaml .Values.fileStorage.local.persistence.accessModes | nindent 4 }}
+  resources:
+    requests:
+      storage: {{ .Values.fileStorage.local.persistence.size | quote }}
+  {{- with .Values.fileStorage.local.persistence.storageClassName }}
+  storageClassName: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.fileStorage.local.persistence.selector }}
+  selector:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

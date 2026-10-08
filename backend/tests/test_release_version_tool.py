@@ -25,8 +25,13 @@ def run_git(repository: Path, *args: str) -> None:
 def test_release_bump_uses_newest_server_tag_when_branch_metadata_lags(tmp_path: Path) -> None:
     """A published tag must prevent a duplicate version after a deferred sync."""
     (tmp_path / "backend" / "app").mkdir(parents=True)
+    (tmp_path / "deploy" / "helm" / "omlorix").mkdir(parents=True)
     (tmp_path / "backend" / "app" / "version.py").write_text(
         'APP_VERSION = "0.9.19"\n',
+        encoding="utf-8",
+    )
+    (tmp_path / "deploy" / "helm" / "omlorix" / "Chart.yaml").write_text(
+        'appVersion: "0.9.19"\n',
         encoding="utf-8",
     )
     (tmp_path / ".env.example").write_text("OMLORIX_VERSION=0.9.19\n", encoding="utf-8")
@@ -62,6 +67,9 @@ def test_release_bump_uses_newest_server_tag_when_branch_metadata_lags(tmp_path:
     assert "version=0.9.21" in result.stdout
     assert 'APP_VERSION = "0.9.21"' in (
         tmp_path / "backend" / "app" / "version.py"
+    ).read_text(encoding="utf-8")
+    assert 'appVersion: "0.9.21"' in (
+        tmp_path / "deploy" / "helm" / "omlorix" / "Chart.yaml"
     ).read_text(encoding="utf-8")
     assert (tmp_path / ".env.example").read_text(encoding="utf-8") == (
         "OMLORIX_VERSION=0.9.21\n"
