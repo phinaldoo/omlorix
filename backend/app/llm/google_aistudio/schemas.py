@@ -52,10 +52,25 @@ class CreateProviderGoogleAistudio(BaseModel):
 
 class GoogleAistudioSettings(BaseModel):
     api_version: "GoogleAiStudioApiVersionEnum" = "v1beta"
+    vertexai: bool = False
+    project: str | None = None
+    location: str | None = None
 
     disable_background_sync: bool = False
     enable_auto_delete_missing_models: bool = False
     enable_notify_model_changes: bool = True
+
+    @model_validator(mode="after")
+    def normalize_vertex_fields(self):
+        if isinstance(self.project, str):
+            self.project = self.project.strip() or None
+        if isinstance(self.location, str):
+            self.location = self.location.strip() or None
+
+        if not self.vertexai:
+            self.project = None
+            self.location = None
+        return self
 
 
 class GoogleAiStudioApiVersionEnum(str, Enum):
@@ -137,6 +152,37 @@ GOOGLE_AISTUDIO_PROVIDER_SCHEMA = Sections(
                     ],
                     required=True,
                 ),
+                FieldSchema(
+                    key="settings.vertexai",
+                    label="Use Vertex AI",
+                    description="Enable Vertex AI mode for Gemini client initialization.",
+                    type="boolean",
+                    default=False,
+                    required=False,
+                    hide_on_byok=True,
+                ),
+                FieldSchema(
+                    key="settings.project",
+                    label="Vertex project",
+                    description="Google Cloud project ID used when Vertex AI is enabled.",
+                    type="string",
+                    placeholder="E.g. my-gcp-project",
+                    required=True,
+                    dependency="settings.vertexai",
+                    dependency_value=True,
+                    hide_on_byok=True,
+                ),
+                FieldSchema(
+                    key="settings.location",
+                    label="Vertex location",
+                    description="Google Cloud location/region used when Vertex AI is enabled.",
+                    type="string",
+                    placeholder="E.g. us-central1",
+                    required=True,
+                    dependency="settings.vertexai",
+                    dependency_value=True,
+                    hide_on_byok=True,
+                ),
             ],
         ),
         Section(
@@ -183,6 +229,21 @@ GOOGLE_AISTUDIO_PROVIDER_SCHEMA = Sections(
 class GoogleAiStudioListModelsByok(BaseModel):
     api_key: str
     api_version: str | None = None
+    vertexai: bool = False
+    project: str | None = None
+    location: str | None = None
+
+    @model_validator(mode="after")
+    def normalize_vertex_fields(self):
+        if isinstance(self.project, str):
+            self.project = self.project.strip() or None
+        if isinstance(self.location, str):
+            self.location = self.location.strip() or None
+
+        if not self.vertexai:
+            self.project = None
+            self.location = None
+        return self
 
 
 # -------------------

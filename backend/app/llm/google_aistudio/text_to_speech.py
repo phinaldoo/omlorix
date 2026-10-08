@@ -87,6 +87,19 @@ _WAV_MIME_TYPES = {
 _DIALOGUE_SPEAKER_PATTERN = re.compile(r"^\s*([^:\n]{1,60})\s*:\s*.+$", re.MULTILINE)
 
 
+def _coerce_bool(value: Any, default: bool = False) -> bool:
+    """Coerce value to boolean."""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"1", "true", "yes", "on"}:
+            return True
+        if normalized in {"0", "false", "no", "off"}:
+            return False
+    return default
+
+
 def _normalize_supported_actions(raw: Any) -> set[str]:
     """Normalize supported actions."""
     values: set[str] = set()
@@ -308,6 +321,9 @@ def _get_provider_aistudio_connection_settings(provider: LLMProvider) -> dict[st
     return {
         "api_key": str(provider.api_key or "").strip(),
         "api_version": str(settings.get("api_version") or "v1").strip() or "v1",
+        "vertexai": _coerce_bool(settings.get("vertexai"), False),
+        "project": settings.get("project"),
+        "location": settings.get("location"),
     }
 
 
@@ -319,6 +335,9 @@ def google_aistudio_text_to_speech_models_list_for_provider(
     return google_aistudio_text_to_speech_models_list(
         api_key=connection["api_key"],
         api_version=connection["api_version"],
+        vertexai=connection["vertexai"],
+        project=connection["project"],
+        location=connection["location"],
     )
 
 
@@ -326,6 +345,9 @@ def google_aistudio_text_to_speech_models_list(
     *,
     api_key: str,
     api_version: str = "v1",
+    vertexai: bool = False,
+    project: str | None = None,
+    location: str | None = None,
 ) -> list[dict[str, Any]]:
     """Google AI Studio text to speech models list."""
     token = str(api_key or "").strip()
@@ -340,6 +362,9 @@ def google_aistudio_text_to_speech_models_list(
             None,
             api_key=token,
             api_version=api_version,
+            vertexai=vertexai,
+            project=project,
+            location=location,
         )
         raw_models = client.models.list()
         for item in raw_models:
@@ -440,6 +465,9 @@ def google_aistudio_generate_audio(
             None,
             api_key=connection["api_key"],
             api_version=connection["api_version"],
+            vertexai=connection["vertexai"],
+            project=connection["project"],
+            location=connection["location"],
         )
         config_overrides = {}
         if model_name.removeprefix("models/") in {

@@ -140,11 +140,7 @@ def get_google_aistudio_music_generation_models(provider: LLMProvider) -> list[d
     fallback_by_id = {item["id"]: item for item in fallback_items if item.get("id")}
 
     try:
-        client = get_aistudio_client(
-            None,
-            api_key=provider.api_key,
-            api_version=(provider.settings or {}).get("api_version", "v1beta"),
-        )
+        client = get_aistudio_client(None, api_key=provider.api_key, api_version=(provider.settings or {}).get("api_version", "v1beta"), vertexai=(provider.settings or {}).get("vertexai", False), project=(provider.settings or {}).get("project"), location=(provider.settings or {}).get("location"))
         raw_models = list(client.models.list())
     except Exception:
         return fallback_items
@@ -374,6 +370,9 @@ def generate_music_google_aistudio(
         None,
         api_key=provider.api_key,
         api_version=provider_settings.get("api_version", "v1beta"),
+        vertexai=provider_settings.get("vertexai", False),
+        project=provider_settings.get("project"),
+        location=provider_settings.get("location"),
     )
 
     normalized_model = _normalize_model_id(model_name)

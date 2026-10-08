@@ -137,6 +137,9 @@ async def transcribe_audio_bytes(
     api_key: str,
     model: str,
     api_version: str | None = "v1",
+    vertexai: bool = False,
+    project: str | None = None,
+    location: str | None = None,
     prompt: str | None = None,
 ) -> str:
     mime_type = _get_audio_mime_type(filename)
@@ -147,6 +150,9 @@ async def transcribe_audio_bytes(
             None,
             api_key=api_key,
             api_version=api_version,
+            vertexai=vertexai,
+            project=project,
+            location=location,
         )
         async_client = client.aio
         response = await async_client.models.generate_content(

@@ -663,6 +663,12 @@ def load_realtime_runtime_settings(db: Session) -> dict[str, Any]:
         raise HTTPException(status_code=400, detail="Realtime provider API key is missing")
 
     if provider.provider == ProviderEnum.google_aistudio.value:
+        provider_settings = provider.settings if isinstance(provider.settings, dict) else {}
+        if _coerce_bool(provider_settings.get("vertexai"), False):
+            raise HTTPException(
+                status_code=400,
+                detail="Realtime Google Live sessions currently support Google AI Studio Developer API providers only.",
+            )
         allowed_models = set(
             get_google_aistudio_live_models(
                 db=db,
