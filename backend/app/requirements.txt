@@ -176,9 +176,9 @@ azure-core==1.41.0 \
     --hash=sha256:522b4011e8180b1a3dcd2024396a4e7fe9ac37fb8597db47163d230b5efe892d \
     --hash=sha256:f46ff5dfcd230f25cf1c19e8a34b8dc08a337b2503e268bb600a16c00db8ad5a
     # via azure-storage-blob
-azure-storage-blob==12.30.3 \
-    --hash=sha256:31760221ceff36b7ceed741ba0093d08ec857911b92294dce3e4efe8fa40245e \
-    --hash=sha256:80729a5397e5f0a63dbbdff74da675c5db1eacaf25fd5db0074b7ba6c17e2498
+azure-storage-blob==12.31.0 \
+    --hash=sha256:0c0cb601d3462491d09ea96023cd791bb9dd4b173bf950daf3cff34ff47ba5b5 \
+    --hash=sha256:997b393cfcbdc4b186d5911790d91f80387f7edc12c4d73eab963a2d26e5b2a9
     # via -r requirements.in
 bcrypt==5.0.0 \
     --hash=sha256:046ad6db88edb3c5ece4369af997938fb1c19d6a699b9c1b27b0db432faae4c4 \
