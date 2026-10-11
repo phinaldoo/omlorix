@@ -4,9 +4,9 @@
 #
 #    pip-compile --generate-hashes --output-file=backend/app/requirements-dev.txt --strip-extras backend/app/requirements-dev.in
 #
-fakeredis==2.38.0 \
-    --hash=sha256:d2abfd24652f86501044499bf08c9d639db050f695eefc06b8b8b6f0bb24dbd6 \
-    --hash=sha256:d9fb0518c4eaa35f1f2c94df6b4a4c97ff3ca9f43d6cc8112317a9037d244301
+fakeredis==2.39.0 \
+    --hash=sha256:acd1450575259634db2942d5bae93e383aac32bb9968aab29fe7b0c2ab880bb8 \
+    --hash=sha256:e89c3410f290330042638ff5cca3e22788fa267dcaf28a64b4f483e14577208d
     # via -r requirements-dev.in
 iniconfig==2.3.0 \
     --hash=sha256:c76315c77db068650d49c5b56314774a7804df16fee4402c1f19d6d15d8c4730 \
