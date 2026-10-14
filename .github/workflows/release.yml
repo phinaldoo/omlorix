@@ -330,7 +330,7 @@ jobs:
 
     steps:
       - name: Download release candidate
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ${{ env.RELEASE_CANDIDATE_ARTIFACT }}
           path: ${{ runner.temp }}
@@ -385,7 +385,7 @@ jobs:
 
     steps:
       - name: Download release candidate
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ${{ env.RELEASE_CANDIDATE_ARTIFACT }}
           path: ${{ runner.temp }}
@@ -444,7 +444,7 @@ jobs:
 
     steps:
       - name: Download release candidate
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ${{ env.RELEASE_CANDIDATE_ARTIFACT }}
           path: ${{ runner.temp }}
@@ -500,7 +500,7 @@ jobs:
           ref: ${{ needs.prepare.outputs.mode == 'rerelease' && needs.prepare.outputs.tag || github.sha }}
 
       - name: Download release candidate
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ${{ env.RELEASE_CANDIDATE_ARTIFACT }}
           path: ${{ runner.temp }}
@@ -743,7 +743,7 @@ jobs:
           password: ${{ github.token }}
 
       - name: Download ${{ matrix.image }} digests
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: ${{ matrix.image }}-digest-*
           path: ${{ runner.temp }}/image-digests
