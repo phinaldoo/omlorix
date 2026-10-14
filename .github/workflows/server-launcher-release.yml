@@ -237,7 +237,7 @@ jobs:
           tar --exclude=.git -czf "$RUNNER_TEMP/${{ env.RELEASE_CANDIDATE_ARCHIVE }}" .
 
       - name: Upload release candidate
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ env.RELEASE_CANDIDATE_ARTIFACT }}
           path: ${{ runner.temp }}/${{ env.RELEASE_CANDIDATE_ARCHIVE }}
@@ -605,7 +605,7 @@ jobs:
             done
 
       - name: Stage desktop artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: launcher-release-desktop-${{ matrix.platform }}
           path: |
@@ -680,7 +680,7 @@ jobs:
 
       - name: Stage non-Windows CLI artifacts
         if: ${{ matrix.goos != 'windows' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: launcher-release-cli-${{ matrix.goos }}-${{ matrix.goarch }}
           path: dist/omlorix-server-cli-*
@@ -689,7 +689,7 @@ jobs:
 
       - name: Stage Windows CLI signing candidate
         if: ${{ matrix.goos == 'windows' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: launcher-candidate-cli-windows-amd64
           path: dist/omlorix-server-cli-*
@@ -767,7 +767,7 @@ jobs:
           }
 
       - name: Stage final Windows CLI artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: launcher-release-cli-windows-amd64
           path: dist/omlorix-server-cli-*
