@@ -14,6 +14,7 @@ from app.llm.google_aistudio import utils as _compat_source
 
 _COMPAT_DEPENDENCIES = {
     "create_aistudio_provider": (
+        "_coerce_bool",
         "HTTPException",
         "create_llm_provider",
         "datetime",
@@ -21,7 +22,13 @@ _COMPAT_DEPENDENCIES = {
         "logger",
         "timezone",
     ),
-    "get_aistudio_client": ("HTTPException", "genai", "get_llm_provider", "types"),
+    "get_aistudio_client": (
+        "_coerce_bool",
+        "HTTPException",
+        "genai",
+        "get_llm_provider",
+        "types",
+    ),
     "list_models_google_aistudio": (
         "AISTUDIO_MODELS_NOT_SUPPORTED",
         "HTTPException",
@@ -58,6 +65,7 @@ def _sync_compat_dependencies(function_name, facade_globals):
 # exactly the same evaluation behavior as in the original module.
 for _dependency_name in (
     "AISTUDIO_MODELS_NOT_SUPPORTED",
+    "_coerce_bool",
     "HTTPException",
     "create_llm_provider",
     "create_model",
@@ -95,6 +103,9 @@ def _impl_create_aistudio_provider(
             byok={
                 "api_key": api_key,
                 "api_version": (settings or {}).get("api_version", "v1beta"),
+                "vertexai": _coerce_bool((settings or {}).get("vertexai", False)),
+                "project": (settings or {}).get("project"),
+                "location": (settings or {}).get("location"),
             },
             type="generateContent",
         )
@@ -124,6 +135,9 @@ def _impl_get_aistudio_client(
     aistudio_provider_id: str | None = None,
     api_key: str | None = None,
     api_version: str | None = "v1beta",
+    vertexai: bool | None = False,
+    project: str | None = None,
+    location: str | None = None,
 ):
     if aistudio_provider_id:
         provider = get_llm_provider(db, aistudio_provider_id)
@@ -134,17 +148,33 @@ def _impl_get_aistudio_client(
         provider_settings = (
             provider.settings if isinstance(provider.settings, dict) else {}
         )
-        return genai.Client(
-            api_key=provider.api_key,
-            http_options=types.HttpOptions(
+        client_kwargs = {
+            "api_key": provider.api_key,
+            "http_options": types.HttpOptions(
                 api_version=provider_settings.get("api_version", "v1beta")
             ),
-        )
+        }
+        if _coerce_bool(provider_settings.get("vertexai", False)):
+            client_kwargs["vertexai"] = True
+            provider_project = provider_settings.get("project")
+            provider_location = provider_settings.get("location")
+            if isinstance(provider_project, str) and provider_project.strip():
+                client_kwargs["project"] = provider_project.strip()
+            if isinstance(provider_location, str) and provider_location.strip():
+                client_kwargs["location"] = provider_location.strip()
+        return genai.Client(**client_kwargs)
     elif api_key:
-        return genai.Client(
-            api_key=api_key,
-            http_options=types.HttpOptions(api_version=api_version),
-        )
+        client_kwargs = {
+            "api_key": api_key,
+            "http_options": types.HttpOptions(api_version=api_version),
+        }
+        if _coerce_bool(vertexai):
+            client_kwargs["vertexai"] = True
+            if isinstance(project, str) and project.strip():
+                client_kwargs["project"] = project.strip()
+            if isinstance(location, str) and location.strip():
+                client_kwargs["location"] = location.strip()
+        return genai.Client(**client_kwargs)
     else:
         raise HTTPException(status_code=422, detail="Provider api_key not configured")
 
@@ -164,6 +194,9 @@ def _impl_list_models_google_aistudio(
             db,
             api_key=byok.get("api_key"),
             api_version=byok.get("api_version"),
+            vertexai=byok.get("vertexai", False),
+            project=byok.get("project"),
+            location=byok.get("location"),
         )
     try:
         raw_models = list(client.models.list())
@@ -215,6 +248,9 @@ def _impl_get_aistudio_model(
             db,
             api_key=byok.get("api_key"),
             api_version=byok.get("api_version"),
+            vertexai=byok.get("vertexai", False),
+            project=byok.get("project"),
+            location=byok.get("location"),
         )
     try:
         model = client.models.get(model=model_name)

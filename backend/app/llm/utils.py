@@ -1284,6 +1284,9 @@ def test_llm_provider(db, payload: TestProviderPayload | dict):
                 config = {
                     "api_key": api_key,
                     "api_version": provider_settings.get("api_version", "v1beta"),
+                    "vertexai": provider_settings.get("vertexai", False),
+                    "project": provider_settings.get("project"),
+                    "location": provider_settings.get("location"),
                 }
                 models = list_models_google_aistudio(db, byok=config, type="generateContent")
             case ProviderEnum.openrouter:

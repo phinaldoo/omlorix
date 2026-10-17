@@ -4,6 +4,7 @@ import os
 import tempfile
 import time
 
+from google import genai
 from google.genai import types
 
 from app.llm.google_aistudio.utils import (
@@ -59,6 +60,37 @@ def _extract_bytes_from_inline_part(part) -> bytes | None:
     return None
 
 
+def _coerce_bool(value) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "on"}
+    if isinstance(value, (int, float)):
+        return value != 0
+    return False
+
+
+def _build_client(
+    api_key: str,
+    api_version: str | None = None,
+    *,
+    vertexai: bool = False,
+    project: str | None = None,
+    location: str | None = None,
+):
+    client_kwargs = {
+        "api_key": api_key,
+        "http_options": types.HttpOptions(api_version=api_version or DEFAULT_API_VERSION),
+    }
+    if _coerce_bool(vertexai):
+        client_kwargs["vertexai"] = True
+        if isinstance(project, str) and project.strip():
+            client_kwargs["project"] = project.strip()
+        if isinstance(location, str) and location.strip():
+            client_kwargs["location"] = location.strip()
+    return genai.Client(**client_kwargs)
+
+
 def _normalize_reference_image_mime(mime_type: str | None) -> str:
     value = str(mime_type or "").strip().lower()
     if value.startswith("image/"):
@@ -91,12 +123,17 @@ def generate_image_google_aistudio(
     *,
     settings: dict | None = None,
     api_version: str | None = None,
+    vertexai: bool = False,
+    project: str | None = None,
+    location: str | None = None,
 ) -> bytes:
     settings = settings or {}
-    client = get_aistudio_client(
-        None,
-        api_key=api_key,
-        api_version=api_version or DEFAULT_API_VERSION,
+    client = _build_client(
+        api_key,
+        api_version,
+        vertexai=vertexai,
+        project=project,
+        location=location,
     )
     model_info = _find_model_definition(model)
     category = (model_info or {}).get("category", "model")
@@ -185,6 +222,9 @@ def edit_image_google_aistudio(
     reference_images: list[dict | bytes],
     settings: dict | None = None,
     api_version: str | None = None,
+    vertexai: bool = False,
+    project: str | None = None,
+    location: str | None = None,
 ) -> bytes:
     if not reference_images:
         raise ValueError("reference_images is required for image edit")
@@ -193,10 +233,12 @@ def edit_image_google_aistudio(
         raise ValueError("The selected Google image model does not support image edit")
 
     settings = settings or {}
-    client = get_aistudio_client(
-        None,
-        api_key=api_key,
-        api_version=api_version or DEFAULT_API_VERSION,
+    client = _build_client(
+        api_key,
+        api_version,
+        vertexai=vertexai,
+        project=project,
+        location=location,
     )
     model_name = model if model.startswith("models/") else f"models/{model}"
 
