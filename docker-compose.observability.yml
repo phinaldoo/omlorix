@@ -250,7 +250,7 @@ services:
 
   redis-exporter:
     labels: *omlorix-labels
-    image: oliver006/redis_exporter:v1.92.0@sha256:ca3abd5f19da6c87e96038ba08aaa3dfaab34dc649834584c4d6880b05952fef
+    image: oliver006/redis_exporter:v1.94.0@sha256:0842ef7110e62b40bbde2d5c11f38c6fbd99f7100c75e3866637c1b335a1eff7
     profiles: ["redis-enabled"]
     environment:
       - REDIS_ADDR=${REDIS_EXPORTER_ADDR:-${REDIS_URL}}
