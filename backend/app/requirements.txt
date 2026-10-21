@@ -643,9 +643,9 @@ docstring-parser==0.18.0 \
     --hash=sha256:292510982205c12b1248696f44959db3cdd1740237a968ea1e2e7a900eeb2015 \
     --hash=sha256:b3fcbed555c47d8479be0796ef7e19c2670d428d72e96da63f3a40122860374b
     # via anthropic
-elevenlabs==2.70.0 \
-    --hash=sha256:27b933cd6651a6ca0b668ed0408f7256ed30b431c7d83b7b47ac81e93aa2e688 \
-    --hash=sha256:d83aedddea61a7c8f025697c1276c47b6e0ff85917bc8f6927da47bce12483cf
+elevenlabs==2.73.1 \
+    --hash=sha256:519c3c5a4aa3f53f3333d4d0f093498838f247134f3ded41d57ff5e08fcb271a \
+    --hash=sha256:7df65409de74022ae1af306e8b631cec59d04681cf8d0281e7e08fc707efb906
     # via -r requirements.in
 email-validator==2.3.0 \
     --hash=sha256:80f13f623413e6b197ae73bb10bf4eb0908faf509ad8362c5edeb0be7fd450b4 \
