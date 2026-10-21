@@ -48,7 +48,7 @@ onnxruntime==1.30.0  # Note: Keep a wheel set that supports Python 3.13 and 3.14
 
 # --- Data Validation ---
 pydantic==2.13.5
-pydantic-settings==2.15.0
+pydantic-settings==2.16.0
 jsonschema==4.26.0
 bleach==6.4.0
 tinycss2==1.5.1

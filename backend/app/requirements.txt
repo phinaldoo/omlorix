@@ -2406,9 +2406,9 @@ pydantic-core==2.46.5 \
     # via
     #   elevenlabs
     #   pydantic
-pydantic-settings==2.15.0 \
-    --hash=sha256:0ba092c291c94baceb5eff768aa0d56400a457585bc0175925a5a5510303da42 \
-    --hash=sha256:694b793e84f766ba76a90ebdefc01d0a9a045dab0382bee70393da93712ad117
+pydantic-settings==2.16.0 \
+    --hash=sha256:5b6c578049ede4db0e2ef3b4eaa4ad4069cfa9211f83fb38df899dfade50a614 \
+    --hash=sha256:7e73acf7f61936a15e5a3b6eedaea29f133357faf7272f2607ba479b049dd7f2
     # via -r requirements.in
 pyjwt==2.15.0 \
     --hash=sha256:7a3742debf6b879e912dbb9819ceec1594be812452b78c5f2e2dfc56564954f8 \
@@ -2829,6 +2829,7 @@ typing-extensions==4.15.0 \
     #   opentelemetry-semantic-conventions
     #   pydantic
     #   pydantic-core
+    #   pydantic-settings
     #   python-docx
     #   python-pptx
     #   sqlalchemy
