@@ -1757,9 +1757,9 @@ onnxruntime==1.30.0 \
     # via
     #   -r requirements.in
     #   magika
-openai==3.8.0 \
-    --hash=sha256:514736aa1e4ef1033c1209ad53897392845ccd4f2c4fae6413b2cf5f91c2c926 \
-    --hash=sha256:6138a5a1333a1be9e4d1edea2d160b311542787b029543f87de4961c66358d16
+openai==3.37.0 \
+    --hash=sha256:670bd6f699000d43a2073bcf94374a55bb133bfe5de0d084d47eb9bb9f6a8e5d \
+    --hash=sha256:d9f5b000f52397a7f9f946012744c5bc4c962eed3c100385252464c273a63e57
     # via -r requirements.in
 openpyxl==3.1.5 \
     --hash=sha256:5282c12b107bffeef825f4617dc029afaf41d0ea60823bbb665ef3079dc79de2 \
