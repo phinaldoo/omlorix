@@ -16,7 +16,7 @@
     "dist:linux": "node electron/scripts/package-desktop.mjs linux"
   },
   "dependencies": {
-    "electron-updater": "^6.8.9",
+    "electron-updater": "^6.8.11",
     "http-proxy": "^1.18.1"
   },
   "devDependencies": {
