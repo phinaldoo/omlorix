@@ -148,7 +148,7 @@ services:
 
   otel-collector:
     labels: *omlorix-labels
-    image: otel/opentelemetry-collector-contrib:0.161.0@sha256:fd328de2552466ad78385e1b1289c3f2402b1c45f265b252aab1955b42845ac1
+    image: otel/opentelemetry-collector-contrib:0.163.2-386@sha256:bd0aac7fc525d8016b7bba1e35287b1f3a43c1e2d52e2426e2496d8d45668784
     command: ["--config=/etc/otel-collector-config.yaml"]
     environment:
       - DEPLOYMENT_ENVIRONMENT=${MODE:-production}
