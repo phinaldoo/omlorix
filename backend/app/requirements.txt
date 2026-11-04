@@ -1858,9 +1858,9 @@ opentelemetry-instrumentation-sqlalchemy==0.63b1 \
     --hash=sha256:621f9eb800ea24a98b4eda968373e3909bfede0ff47f77b96f8b8a18bc2a2a1a \
     --hash=sha256:d417414f6517963e9c1ee91ec971b94938b46904499114d035a43937bd62b6a1
     # via -r requirements.in
-opentelemetry-propagator-b3==1.45.0 \
-    --hash=sha256:3c0fcffff85bf0fdd5c72a0d3255872d098dc9c36d6d31f3bb2b27179a376f96 \
-    --hash=sha256:6bfb9ce952ebfde0122b832664f0251b19de22bf31be55f7b442999fe7bab505
+opentelemetry-propagator-b3==1.45.2 \
+    --hash=sha256:86c7f921a8390c0f7d88a27450765b6d075a3579f2592baa623723e9e527a1b8 \
+    --hash=sha256:e3ab95b91a3fd70c89b30bc366702984f1eb811a53416bf8555e700c290997ab
     # via -r requirements.in
 opentelemetry-proto==1.42.1 \
     --hash=sha256:c6a51e6b4f05ae63565f3a113217f3d2bfaec68f78c02d7a6c85f9010d1cfca6 \
