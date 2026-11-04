@@ -2694,9 +2694,9 @@ rpds-py==0.30.0 \
     # via
     #   jsonschema
     #   referencing
-rq==2.12.0 \
-    --hash=sha256:78116d0c860f6285817b52d7d6d0b16a726372073ce8ea1d229732ce74ef9378 \
-    --hash=sha256:97e349a00e9f2a18962102b3dca156cb5ce315d3ef38145e24ba9cabd16a9361
+rq==3.0.0 \
+    --hash=sha256:71b92cb7b2880e0d0ac2a462945e3f09243122f61465cec4238689d8ddf2abf4 \
+    --hash=sha256:b41e39b3c36ec3faf9e2402c638a0b25fe18ebb93a1cb15193bc69694f054618
     # via -r requirements.in
 s3transfer==0.19.0 \
     --hash=sha256:777cc2415536f1debadb5c2ef7779275d0fc0fe0e042411cdd6caebeb2685262 \
