@@ -1,4 +1,4 @@
-FROM python:3.14.7-slim@sha256:caaf356f40667c496d405780745b9ac25771c189a51dfcc42430d531ea09f8a2 AS python-deps-base
+FROM python:3.15.1-slim@sha256:533b0b2f9b5d46fd097091cf826f27902f1d6c3bca714b6dc74551356aa97a51 AS python-deps-base
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -25,7 +25,7 @@ RUN python -m pip install --prefix=/install --no-cache-dir --require-hashes \
     -r /tmp/requirements.txt \
     -r /tmp/requirements-dev.txt
 
-FROM python:3.14.7-slim@sha256:caaf356f40667c496d405780745b9ac25771c189a51dfcc42430d531ea09f8a2 AS runtime
+FROM python:3.15.1-slim@sha256:533b0b2f9b5d46fd097091cf826f27902f1d6c3bca714b6dc74551356aa97a51 AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
